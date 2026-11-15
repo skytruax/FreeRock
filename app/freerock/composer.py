@@ -177,9 +177,11 @@ def vocabulary(profile: ZoneProfile, rock: float = 0.5) -> dict[str, PartSpec]:
                                "slow lute melody", "low hurdy-gurdy drone", "soft brushed drums",
                                "warm round bass"] + profile.colours,
                  ["vocals", "tempo changes", "distorted guitars"]),
-        PartSpec("Storm", 16, ["a storm rolling in", "rolling floor toms", "tremolo-picked guitar",
-                               "tense and dark", "minor-tinged riff", "bass rumbling on the root"]
-                 + profile.colours, loud),
+        # A rain storm is for rocking out, not for brooding: as hard as Battle, with its own riff.
+        PartSpec("Storm", 16, ["a thunderstorm breaking overhead", "full band at full crunch",
+                               "pounding floor toms and crash cymbals like thunder",
+                               "a hard driving riff, loud and wide open", "bass pushing hard on the root",
+                               "blues-scale lead guitar with wide bends"] + profile.colours, loud),
     ]
     return {part.name: part for part in parts}
 

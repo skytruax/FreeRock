@@ -1,5 +1,6 @@
 """The rules from game state to sound, against scripted sessions."""
 import dataclasses
+import random
 
 import pytest
 
@@ -9,10 +10,10 @@ from freerock.state import GameState
 STEP = 0.25
 
 
-def play(script, until, rules=None, start=None):
+def play(script, until, rules=None, start=None, seed=1):
     """Runs a session. `script` is a list of (time, {field: value}) changes. Returns a function
     that gives the Target that was current at a moment."""
-    director = Director(rules)
+    director = Director(rules, rng=random.Random(seed))
     state = start or GameState(daytime=True)
     changes = sorted(script, key=lambda item: item[0])
     seen = {}
@@ -30,7 +31,7 @@ def test_nothing_happening_is_the_bed_alone():
     calm = at(10)
     assert calm.place == "wander" and (calm.bed, calm.drums, calm.bass) == (1.0, 0.0, 0.0)
     assert calm.bed_highpass_hz == 110.0 and calm.lowpass_hz == 20000.0 and calm.reverb == 0.0
-    assert calm.intensity == pytest.approx(0.25) and not calm.silent
+    assert calm.intensity == pytest.approx(0.25) and not calm.silent and not calm.rest
 
 
 def test_a_fight_brings_the_bass_in_at_once_and_battle_if_it_lasts():
@@ -130,16 +131,35 @@ def test_dying_strips_the_music_back_and_ends_the_fight():
     assert at(31).place == "wander" and at(31).volume == 1.0 and at(31).lowpass_hz == 20000.0
 
 
-def test_weather_tints_follow_the_intensity_and_a_storm_needs_to_last():
-    at = play([(2, {"weather": "rain", "weather_intensity": 0.5}),
+def test_rain_brings_the_drums_and_a_rain_storm_the_whole_band():
+    at = play([(2, {"weather": "rain", "weather_intensity": 0.2}),
+               (6, {"weather_intensity": 0.5}),
                (10, {"weather_intensity": 0.8}), (40, {"weather_intensity": 0.2}),
                (70, {"weather": "clear", "weather_intensity": 0.0})], 75)
     drizzle = at(2)
-    assert drizzle.lowpass_hz == pytest.approx(5500.0) and drizzle.reverb == pytest.approx(0.175)
-    assert drizzle.place == "wander"
-    assert at(19.75).place == "wander" and at(20).place == "storm" and at(20).lowpass_hz == pytest.approx(4000.0)
-    assert at(59.75).place == "storm" and at(60).place == "wander"      # twenty seconds of calm
-    assert at(72).lowpass_hz == 20000.0 and at(72).reverb == 0.0
+    assert drizzle.lowpass_hz == 20000.0, "rain must not muffle the music"
+    assert drizzle.reverb == pytest.approx(0.104) and (drizzle.drums, drizzle.bass) == (0.0, 0.0)
+    steady = at(6)
+    assert steady.drums == 0.6 and steady.bass == 0.0 and steady.lowpass_hz == 20000.0
+    storm = at(10)                                       # the moment it becomes a storm
+    assert storm.bass == 1.0 and storm.drums >= 0.75 and storm.intensity == pytest.approx(0.7)
+    assert storm.lowpass_hz == 20000.0 and storm.bed_highpass_hz == 20.0
+    assert "a rain storm: the whole band" in storm.why and storm.place == "wander"
+    assert at(19.75).place == "wander" and at(20).place == "storm"       # it has set in
+    assert at(39.75).bass == 1.0
+    assert at(46).bass == 0.0 and at(46).drums == 0.0                    # the rain eases and the band leaves
+    assert at(59.75).place == "storm" and at(60).place == "wander"       # twenty seconds of calm
+    assert at(72).reverb == 0.0
+
+
+def test_a_storm_at_night_still_rocks_and_a_storm_outside_a_cave_does_not_reach_in():
+    night = play([(1, {"weather": "rain", "weather_intensity": 1.0, "daytime": False})], 3)(3)
+    assert night.bass == 1.0 and night.lowpass_hz == 20000.0 and night.intensity == pytest.approx(0.8)
+    assert "darker at night" not in night.why
+    cave = play([(1, {"weather": "rain", "weather_intensity": 1.0, "indoors": True})], 3)(3)
+    assert cave.bass == 0.0 and cave.lowpass_hz == 2500.0 and "rain" not in " ".join(cave.why)
+    inn = play([(1, {"weather": "rain", "weather_intensity": 1.0, "resting": True})], 3)(3)
+    assert inn.bass == 0.0
 
 
 def test_snow_sandstorm_and_weather_the_game_does_not_report():
@@ -150,7 +170,7 @@ def test_snow_sandstorm_and_weather_the_game_does_not_report():
     silent_game = play([(1, {"weather": None, "weather_intensity": None})], 2)(2)
     assert silent_game.lowpass_hz == 20000.0 and silent_game.reverb == 0.0
     off_the_scale = play([(1, {"weather": "rain", "weather_intensity": 7.0})], 2)(2)
-    assert off_the_scale.lowpass_hz == pytest.approx(3000.0)            # held inside 0 to 1
+    assert off_the_scale.intensity == pytest.approx(0.8)                # held inside 0 to 1
 
 
 def test_night_cinematic_and_switched_off():
@@ -192,3 +212,62 @@ def test_playable_falls_back_until_something_fits():
     assert playable("boss", {"wander"}) == "wander" and playable("night", {"wander"}) == "wander"
     with pytest.raises(ValueError):
         playable("wander", {"battle"})
+
+
+# --- rests ----------------------------------------------------------------------------------------
+
+RESTS = Rules(rest_every_s=20, rest_for_s=6, rest_spread=0.0, calm_before_rest_s=10)
+
+
+def test_after_a_stretch_of_calm_music_there_is_a_rest_and_then_music_again():
+    at = play([], 60, rules=RESTS)
+    assert not at(19.75).rest
+    resting = at(20)
+    assert resting.rest and resting.fade_s == 8.0 and "a rest, as the game has between pieces" in resting.why
+    assert at(25.75).rest and not at(26).rest
+    assert not at(45.75).rest and at(46).rest and not at(52).rest          # and round again
+
+
+def test_a_fight_ends_a_rest_at_once_and_puts_off_the_next_one():
+    at = play([(22, {"in_combat": True, "target_class": "normal"}), (25, {"in_combat": False})], 60, rules=RESTS)
+    assert at(21.75).rest
+    fight = at(22)
+    assert not fight.rest and fight.bass == 1.0
+    # The fight is over at 25, held until 30, and the music has settled by about 35. The next rest
+    # waits for ten calm seconds after that, not for the clock it was on before.
+    assert not any(at(moment).rest for moment in (26, 30, 35, 40, 44))
+    assert at(46).rest
+
+
+def test_a_new_place_stealth_or_a_storm_end_a_rest():
+    place = play([(22, {"zone_name": "Westfall", "map_id": 52})], 30, rules=RESTS,
+                 start=GameState(daytime=True, zone_name="Elwynn Forest", map_id=37))
+    assert place(21.75).rest and not place(22).rest
+    sneak = play([(22, {"stealthed": True})], 30, rules=RESTS)
+    assert sneak(21.75).rest and not sneak(22).rest
+    storm = play([(22, {"weather": "rain", "weather_intensity": 0.9})], 30, rules=RESTS)
+    assert storm(21.75).rest and not storm(22).rest and storm(22).bass == 1.0
+
+
+def test_nothing_rests_while_something_is_going_on():
+    stormy = play([(1, {"weather": "rain", "weather_intensity": 0.9})], 80, rules=RESTS)
+    assert not any(stormy(moment).rest for moment in range(2, 80))
+    dungeon_fight = play([(1, {"in_combat": True, "encounter": True})], 80, rules=RESTS)
+    assert not any(dungeon_fight(moment).rest for moment in range(2, 80))
+
+
+def test_rests_can_be_switched_off_and_do_not_come_like_clockwork():
+    never = play([], 200, rules=Rules(rest_every_s=0))
+    assert not any(never(moment).rest for moment in range(0, 200))
+    starts = set()
+    for seed in range(6):
+        at = play([], 40, rules=Rules(rest_every_s=20, rest_for_s=6, rest_spread=0.3), seed=seed)
+        starts.add(next(moment for moment in [m * 0.25 for m in range(160)] if at(moment).rest))
+    assert all(14 <= start <= 26.25 for start in starts) and len(starts) >= 4
+
+
+def test_an_inn_and_a_cave_can_rest_too():
+    inn = play([(0, {"resting": True, "indoors": True})], 30, rules=RESTS)
+    assert inn(21).rest and inn(21).place == "ember"
+    cave = play([(0, {"indoors": True})], 30, rules=RESTS)
+    assert cave(21).rest and cave(21).lowpass_hz == 2500.0

@@ -24,7 +24,18 @@ function makeAsset() {
     section.end = frame;
     sections.push(section);
   });
-  return { id: "test", rate: RATE, bpm: 120, bar_frames: BAR, frames: frame, sections };
+  return { id: "test", zone: "test-zone", rate: RATE, bpm: 120, bar_frames: BAR, frames: frame, sections };
+}
+
+// A later set for the same zone: one more Wander riff, whose audio is in another request.
+const EXTRA = { name: "Wander C", role: "wander", asset_id: "extra", start: 0, end: 2 * CELL, gain_db: -6,
+                tone: 1500, cells: [{ start: 0, end: CELL }, { start: CELL, end: 2 * CELL }] };
+function makeGrownAsset() {
+  const asset = makeAsset();
+  asset.id = "test+extra";
+  for (const section of asset.sections) section.asset_id = "test";
+  asset.sections.push(Object.assign({}, EXTRA));
+  return asset;
 }
 
 // Music for another zone at another tempo: 96 beats a minute, so a bar is 2.5 s and a cell 10 s.
@@ -42,9 +53,11 @@ function makeSlowAsset() {
 // kind "tones": bass is a steady 80 Hz tone, drums are noise, the bed is the section's tone.
 // kind "loud":  every layer is the same full-scale tone, to push the limiter.
 function makeLoader(firstAsset, kind) {
-  const known = { [firstAsset.id]: firstAsset, slow: makeSlowAsset() };
+  const known = { test: makeAsset(), slow: makeSlowAsset(),
+                  extra: { frames: 2 * CELL, sections: [EXTRA] } };
   return async (assetId, layer, first, last) => {
     const asset = known[assetId];
+    if (!asset) throw new Error("The test has no audio for " + assetId);
     const out = new Int16Array((last - first) * 2);
     let seed = 99;
     for (let i = 0; i < last - first; i++) {
@@ -76,7 +89,7 @@ function makeLoader(firstAsset, kind) {
 // Runs the engine for `seconds`. `script` is a list of [time, action]; tick() is called after
 // each action and every `tickEvery` seconds, as the live page does from its timer.
 async function render(seconds, options) {
-  const asset = makeAsset();
+  const asset = options.asset || makeAsset();
   const ctx = new OfflineAudioContext(2, seconds * RATE, RATE);
   const engine = new FreeRockEngine(ctx, makeLoader(asset, options.kind || "marks"),
                                     { limiter: options.limiter === true, random: () => 0 });
@@ -90,14 +103,23 @@ async function render(seconds, options) {
     if (!moments.has(key)) moments.set(key, []);
     moments.get(key).push(action);
   }
+  // A step that goes wrong is noted and the render carries on: left paused, it would never finish
+  // and the whole run would hang instead of saying what failed.
+  const failures = [];
   for (const [key, actions] of moments) {
     ctx.suspend(key / 1000).then(async () => {
-      for (const action of actions) await action(engine);
-      await engine.tick();
-      ctx.resume();
+      try {
+        for (const action of actions) await action(engine);
+        await engine.tick();
+      } catch (error) {
+        failures.push("at " + key / 1000 + " s: " + String(error && error.stack || error));
+      } finally {
+        ctx.resume();
+      }
     });
   }
   const buffer = await ctx.startRendering();
+  if (failures.length) throw new Error(failures.join("\n"));
   return { data: buffer.getChannelData(0), right: buffer.getChannelData(1), engine, asset };
 }
 
@@ -203,6 +225,41 @@ tests.zoneChange = async () => {
            arrivalTone: strength(run.data, barLine + 1, barLine + 9, 2100),
            wanderTone: strength(run.data, barLine + 11, barLine + 19, 2500),
            oldAfter: strength(run.data, barLine + 1, barLine + 9, 500) };
+};
+
+// A rest: the music fades away, nothing plays, and it comes back with a fresh opening.
+tests.rest = async () => {
+  const run = await render(30, {
+    target: { bed: 1, drums: 0, bass: 0, bed_highpass_hz: 20 },
+    script: [[10.0, (engine) => engine.setTarget({ rest: true, fade_s: 2.0 })],
+             [16.0, (engine) => engine.setTarget({ rest: false, fade_s: 0.4 })]] });
+  const d = run.data, log = run.engine.log;
+  return { before: rms(d, 9.0, 9.9), fading: rms(d, 10.8, 11.2), resting: rms(d, 12.5, 15.9),
+           back: rms(d, 18.0, 19.0), toneAfter: strength(d, 18.0, 19.0, 300),
+           startsDuringRest: log.filter((entry) => entry.at > 12.6 && entry.at < 16.0).length,
+           firstAfter: log.find((entry) => entry.at >= 16.0), late: run.engine.late };
+};
+
+// Music from two requests for one zone: the later set's riff joins the rotation, and its audio is
+// fetched from its own request.
+tests.sets = async () => {
+  const run = await render(60, { asset: makeGrownAsset(), target: { bed: 1, drums: 0, bass: 0, bed_highpass_hz: 20 } });
+  const log = run.engine.log;
+  const third = log.find((entry) => entry.section === "Wander C");
+  return { order: log.map((entry) => entry.section + " " + entry.cell), from: log.map((entry) => entry.from),
+           toneOfThird: third ? strength(run.data, third.at + 1, third.at + 7, 1500) : 0,
+           otherToneThen: third ? strength(run.data, third.at + 1, third.at + 7, 500) : 1, late: run.engine.late };
+};
+
+// More music arriving for the zone that is playing must not interrupt it.
+tests.moreMusic = async () => {
+  const run = await render(60, {
+    target: { bed: 1, drums: 0, bass: 0, bed_highpass_hz: 20 },
+    script: [[10.3, (engine) => engine.setAsset(makeGrownAsset())]] });
+  const log = run.engine.log;
+  return { order: log.map((entry) => entry.section + " " + entry.cell),
+           starts: log.map((entry) => entry.at),
+           steadyAcross: rms(run.data, 12.0, 12.3) / rms(run.data, 11.5, 11.8), late: run.engine.late };
 };
 
 // Levels and tone must move as soon as the target changes.

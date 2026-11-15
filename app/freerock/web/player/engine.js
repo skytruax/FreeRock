@@ -19,6 +19,8 @@
   const FADE = 0.015;        // length of the crossfade between two cells
   const NOTICE = 0.12;       // a cut is never asked for closer than this to now
   const QUEUE_AHEAD = 3.0;   // the next cell is chosen and loaded this long before it is needed
+  const REST_IN = 1.5;       // how long the music takes to come back after a rest
+  const LOG_LENGTH = 500;    // how many scheduled cells are remembered
   const OPEN_HZ = 20000;
   const FALLBACK = { boss: "battle", battle: "wander", storm: "wander", night: "ember",
                      depths: "ember", ember: "wander", arrival: "wander" };
@@ -39,7 +41,8 @@
       this.random = options.random || Math.random;
       this.asset = null;
       this.target = { place: "wander", cut: "bar", bed: 1, drums: 0, bass: 0, bed_highpass_hz: 110,
-                      lowpass_hz: OPEN_HZ, highpass_hz: 20, reverb: 0, volume: 1, silent: false, fade_s: 0.4 };
+                      lowpass_hz: OPEN_HZ, highpass_hz: 20, reverb: 0, volume: 1, silent: false, rest: false,
+                      fade_s: 0.4 };
       this.userVolume = 1;
       this.current = null;       // the cell that is playing
       this.queued = null;        // the cell that will follow it
@@ -47,6 +50,7 @@
       this.cache = new Map();    // "asset:startFrame" -> { bed, drums, bass } AudioBuffers
       this.cacheLimit = options.cacheLimit || 10;
       this.late = 0;             // cells that could not be loaded in time and started late
+      this.restSince = null;     // when the rest that is going on began, on the audio clock
       this.log = [];             // what was scheduled and when, for the status page and the tests
       this._busy = Promise.resolve();
 
@@ -133,15 +137,29 @@
 
     // --- the asset ---------------------------------------------------------------------------
 
+    // The music for a place. It may come from several requests (a core suite and later sets): each
+    // section says which one its audio is in. When more music arrives for the place that is
+    // already playing, nothing is cut; the new sections simply join the rotation.
     setAsset(asset) {
       return this._serial(async () => {
-        const changed = !this.asset || this.asset.id !== asset.id;
-        this.asset = asset;
         if (asset.rate !== this.ctx.sampleRate) {
           throw new Error("The music is at " + asset.rate + " Hz and the player at " + this.ctx.sampleRate +
                           " Hz; they have to match for the layers to stay locked");
         }
-        if (changed && this.started) await this._moveTo(this._sectionFor(this.target.place, true), "bar");
+        // Every section remembers which request its audio is in, so a cell that is playing when
+        // more music arrives still knows where its own next cell comes from.
+        for (const section of asset.sections) {
+          section.asset_id = section.asset_id || asset.id;
+          section.key = section.asset_id + ":" + section.name;
+        }
+        const before = this.asset;
+        const changed = !before || before.id !== asset.id;
+        const samePlace = before && before.zone !== undefined && before.zone === asset.zone &&
+                          before.bar_frames === asset.bar_frames;
+        this.asset = asset;
+        if (changed && this.started && !samePlace && !this.target.rest) {
+          await this._moveTo(this._sectionFor(this.target.place, true), "bar");
+        }
       });
     }
 
@@ -177,7 +195,7 @@
       if (cell.index + 1 < section.cells.length) return { section, index: cell.index + 1 };
       const role = section.role === "arrival" ? "wander" : section.role;
       const same = this.asset.sections.filter((other) => other.role === this._playable(role));
-      const at = same.indexOf(section);
+      const at = same.findIndex((other) => other.key === section.key);
       return { section: same[(at + 1) % same.length], index: 0 };
     }
 
@@ -185,7 +203,8 @@
 
     async _load(asset, section, index) {
       const cell = section.cells[index];
-      const key = asset.id + ":" + cell.start;
+      const from = section.asset_id;                  // which request's audio this section is in
+      const key = from + ":" + cell.start;
       if (this.cache.has(key)) {
         const found = this.cache.get(key);
         this.cache.delete(key);
@@ -197,7 +216,7 @@
       const last = cell.end - Math.round(LEAD * rate) + Math.round(FADE * rate);
       const loaded = {};
       await Promise.all(LAYERS.map(async (layer) => {
-        const bytes = await this.loader(asset.id, layer, first, last);
+        const bytes = await this.loader(from, layer, first, last);
         const samples = new Int16Array(bytes);
         if (samples.length !== (last - first) * 2) {
           throw new Error("Asked for " + (last - first) + " frames of " + layer + ", got " + samples.length / 2);
@@ -244,7 +263,8 @@
         playing.sources.push(source);
         playing.gains.push(gain);
       }
-      this.log.push({ at: when, section: section.name, cell: index });
+      this.log.push({ at: when, section: section.name, cell: index, from: section.asset_id });
+      if (this.log.length > LOG_LENGTH) this.log.splice(0, this.log.length - LOG_LENGTH);
       return playing;
     }
 
@@ -289,6 +309,14 @@
         if (!this.started || !this.asset) return;
         const now = this.ctx.currentTime;
         if (this.queued && this.queued.start - LEAD <= now) { this.current = this.queued; this.queued = null; }
+        if (this.target.rest) {
+          // Resting: nothing new is queued, and once the fade is over what was playing is let go.
+          if (this.restSince !== null && now > this.restSince + this.target.fade_s + 0.25) {
+            for (const playing of [this.current, this.queued]) if (playing) this._drop(playing);
+            this.current = this.queued = null;
+          }
+          return;
+        }
         if (this.queued) return;
         if (!this.current) {
           await this._moveTo(this._sectionFor(this.target.place, true), "bar");
@@ -316,8 +344,18 @@
       return this._serial(async () => {
         const before = this.target;
         this.target = Object.assign({}, before, target);
+        if (this.target.rest && !before.rest) this.restSince = this.ctx.currentTime;
         this._levels(before);
         if (!this.started || !this.asset) return;
+        if (this.target.rest) return;                    // the music fades away; tick() tidies up
+        if (before.rest) {
+          // Back from a rest: a fresh start, the way a new piece begins, not the middle of an old one.
+          this.restSince = null;
+          for (const playing of [this.current, this.queued]) if (playing) this._drop(playing);
+          this.current = this.queued = null;
+          await this._moveTo(this._sectionFor(this.target.place, true), "bar");
+          return;
+        }
         const wanted = this._playable(this.target.place);
         const heading = this.queued ? this.queued.section.role : this.current ? this.current.section.role : null;
         const settled = heading === wanted || (heading === "arrival" && wanted === "wander");
@@ -345,12 +383,19 @@
       this._ramp(this.toneLow2.frequency, this._ceiling(t.lowpass_hz), t.fade_s, true);
       this._ramp(this.toneHigh.frequency, Math.max(t.highpass_hz, 20), t.fade_s, true);
       this._ramp(this.send.gain, t.reverb, t.fade_s);
-      if (this.started) this._ramp(this.master.gain, t.silent ? 0 : t.volume * this.userVolume, t.fade_s);
+      const comingBack = before.rest && !t.rest;
+      if (this.started) this._ramp(this.master.gain, this._loudness(), comingBack ? REST_IN : t.fade_s);
+    }
+
+    // How loud the whole player is right now: nothing during a rest or a cinematic.
+    _loudness() {
+      const t = this.target;
+      return t.silent || t.rest ? 0 : t.volume * this.userVolume;
     }
 
     setVolume(volume) {
       this.userVolume = Math.min(Math.max(volume, 0), 1);
-      if (this.started) this._ramp(this.master.gain, this.target.silent ? 0 : this.target.volume * this.userVolume, 0.1);
+      if (this.started) this._ramp(this.master.gain, this._loudness(), 0.1);
     }
 
     // --- starting and stopping ---------------------------------------------------------------
@@ -363,8 +408,8 @@
           await this.ctx.resume();
         }
         this.started = true;
-        this._ramp(this.master.gain, this.target.silent ? 0 : this.target.volume * this.userVolume, 0.3);
-        await this._moveTo(this._sectionFor(this.target.place, true), "bar");
+        this._ramp(this.master.gain, this._loudness(), 0.3);
+        if (!this.target.rest) await this._moveTo(this._sectionFor(this.target.place, true), "bar");
       });
     }
 
@@ -387,7 +432,7 @@
         const playing = this.queued || this.current;
         if (!this.started || !playing) return;
         const same = this.asset.sections.filter((section) => section.role === playing.section.role);
-        const next = same[(same.indexOf(playing.section) + 1) % same.length];
+        const next = same[(same.findIndex((section) => section.key === playing.section.key) + 1) % same.length];
         const section = same.length > 1 ? next : this._sectionFor(this.target.place, false);
         await this._moveTo(section, "bar");
       });
@@ -398,6 +443,9 @@
       return {
         started: this.started, asset: this.asset ? this.asset.id : null,
         section: playing ? playing.section.name : null, cell: playing ? playing.index : null,
+        // Which request the section that is playing came from: what /rock love and ban apply to.
+        asset_id: playing ? playing.section.asset_id : null,
+        resting: this.target.rest === true,
         place: this.target.place, late: this.late, cached: this.cache.size, time: this.ctx.currentTime,
       };
     }

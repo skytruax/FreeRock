@@ -26,7 +26,7 @@
     // The engine is looked in on twice a second, as the live page does, and at each moment the
     // script changes the target. Moments are kept a hundredth of a second apart because the
     // renderer can only pause on its own block boundaries.
-    const moments = new Map();
+    const moments = new Map(), failures = [];
     for (let t = 0.5; t < job.seconds; t += 0.5) moments.set(Math.round(t * 100), []);
     for (const [time, target] of job.script.slice(1)) {
       const key = Math.max(Math.round(time * 100), 1);
@@ -36,12 +36,18 @@
     for (const [key, targets] of moments) {
       if (key / 100 >= job.seconds) continue;
       ctx.suspend(key / 100).then(async () => {
-        for (const target of targets) await engine.setTarget(target);
-        await engine.tick();
-        ctx.resume();
+        try {
+          for (const target of targets) await engine.setTarget(target);
+          await engine.tick();
+        } catch (error) {
+          failures.push("at " + key / 100 + " s: " + String(error && error.stack || error));
+        } finally {
+          ctx.resume();      // left paused, the render would never finish and nothing would be reported
+        }
       });
     }
     const buffer = await ctx.startRendering();
+    if (failures.length) throw new Error(failures.join("\n"));
     const left = buffer.getChannelData(0), right = buffer.getChannelData(1);
     const out = new Int16Array(left.length * 2);
     for (let i = 0; i < left.length; i++) {

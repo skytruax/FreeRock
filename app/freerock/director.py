@@ -10,10 +10,12 @@ once, so they follow the game directly. The section changes on a bar line and st
 it waits until the game has stayed the same for a moment.
 
 Only state the game leaves unsealed is used. Health and threat are not available and are not
-needed: intensity comes from combat, what is targeted, boss encounters and where the player is.
+needed: intensity comes from combat, what is targeted, boss encounters, where the player is, and
+the weather (a rain storm brings the whole band in).
 """
 from __future__ import annotations
 
+import random
 from dataclasses import dataclass, field, replace
 
 from .state import GameState
@@ -42,6 +44,7 @@ class Target:
     reverb: float = 0.0               # 0 to 0.6
     volume: float = 1.0               # 0 to 1, on top of the player's own volume control
     silent: bool = False              # fade right out (a cinematic, or FreeRock switched off in game)
+    rest: bool = False                # a stretch without music, as the game has between pieces
     fade_s: float = 0.4               # how long the levels and tone take to get there
     intensity: float = 0.0            # 0 to 1, for the log and the control page
     why: tuple[str, ...] = ()         # the rules in force, for the log
@@ -71,13 +74,23 @@ class Rules:
     afterglow_s: float = 8.0          # Ember after a fight that reached Battle
     depths_after_s: float = 2.5
     depths_release_s: float = 4.0
-    storm_at: float = 0.6
-    storm_after_s: float = 10.0
+    rain_drums_at: float = 0.3        # rain this strong brings the drums in
+    storm_at: float = 0.6             # rain this strong is a rain storm: the whole band comes in
+    storm_after_s: float = 10.0       # a storm that lasts this long moves to the Storm section
     storm_release_at: float = 0.4
     storm_release_s: float = 20.0
+    storm_floor: float = 0.6          # intensity at the edge of a storm...
+    storm_ceiling: float = 0.8        # ...and in the thick of one
     mounted_after_s: float = 1.0
     calm_drums: float = 0.0           # drums while nothing is happening; 0 leaves the bed alone
     stealth_bass: bool = True         # stealth drops the band to the bass line and quiet drums
+    # Rests: after about this much calm music the music stops for a while, as the game's own does
+    # between pieces. Anything happening brings it straight back. rest_every_s of 0 means never.
+    rest_every_s: float = 360.0
+    rest_for_s: float = 60.0
+    rest_spread: float = 0.3          # each is varied by up to this fraction either way
+    calm_before_rest_s: float = 60.0  # after anything exciting, at least this much music before a rest
+    rest_fade_s: float = 8.0          # how long the music takes to fade away into a rest
 
 
 @dataclass
@@ -97,6 +110,9 @@ class _Memory:
     in_storm: bool = False
     mounted_since: float | None = None
     elite_since: float | None = None
+    place_key: tuple | None = None       # where the player was last seen, to notice a new place
+    play_until: float | None = None      # when the music next takes a rest
+    rest_until: float | None = None      # when the rest that is going on ends
 
 
 def _weather_strength(state: GameState) -> float:
@@ -108,9 +124,14 @@ def _weather_strength(state: GameState) -> float:
 
 
 class Director:
-    def __init__(self, rules: Rules | None = None):
+    def __init__(self, rules: Rules | None = None, rng: random.Random | None = None):
         self.rules = rules or Rules()
+        self.rng = rng or random.Random()
         self._m = _Memory()
+
+    def _about(self, seconds: float) -> float:
+        """`seconds`, give or take the spread, so rests do not come round like clockwork."""
+        return seconds * (1.0 + self.rules.rest_spread * (2.0 * self.rng.random() - 1.0))
 
     def update(self, state: GameState, now: float) -> Target:
         """Call whenever the state changes, and a few times a second in between."""
@@ -159,6 +180,13 @@ class Director:
                 why.append("holding after the fight")
         if m.intensity < base and not fallen:
             m.intensity = min(m.intensity + rules.decay_per_s * elapsed, base)
+        # A rain storm rocks: out in heavy rain the whole band comes in, harder the heavier it is.
+        strength = _weather_strength(state)
+        storming = (state.weather == "rain" and strength >= rules.storm_at and not state.indoors
+                    and not state.resting and not fallen)
+        if storming:
+            depth = (strength - rules.storm_at) / max(1.0 - rules.storm_at, 1e-9)
+            m.intensity = max(m.intensity, rules.storm_floor + (rules.storm_ceiling - rules.storm_floor) * depth)
         intensity = m.intensity
 
         # --- layers ------------------------------------------------------------------------------
@@ -189,8 +217,7 @@ class Director:
             if now - m.outdoors_since >= rules.depths_release_s:
                 m.in_depths = False
 
-        strength = _weather_strength(state)
-        if strength >= rules.storm_at:
+        if state.weather == "rain" and strength >= rules.storm_at:
             m.calm_weather_since = None
             m.stormy_since = m.stormy_since if m.stormy_since is not None else now
             if now - m.stormy_since >= rules.storm_after_s:
@@ -226,7 +253,7 @@ class Director:
             why.append("resting")
         elif m.in_storm and not state.indoors:
             place = "storm"
-            why.append("heavy weather")
+            why.append("a storm that has set in")
         elif state.daytime is False:
             place = "night"
             why.append("night")
@@ -252,14 +279,18 @@ class Director:
         if state.submerged:
             tint("under water", low=500.0)
             fade = 0.15
-        if state.weather == "rain" and strength > 0:
-            tint("rain", low=8000.0 - 5000.0 * strength, wet=0.10 + 0.15 * strength)
+        if state.weather == "rain" and strength > 0 and not state.indoors:
+            # Rain is not muffled: it gets a little more space, then the drums, then (a storm)
+            # the whole band, which the intensity above has already brought in.
+            tint("a rain storm: the whole band" if storming else "rain", wet=0.08 + 0.12 * strength)
+            if strength >= rules.rain_drums_at and not fallen and not state.resting:
+                drums = max(drums, 0.6)
         elif state.weather == "snow" and strength > 0:
             tint("snow", low=6000.0, wet=0.20 + 0.25 * strength)
             drums *= 1.0 - 0.3 * strength
         elif state.weather == "sandstorm" and strength > 0:
             tint("sandstorm", low=3000.0 + 5000.0 * (1.0 - strength), high=300.0 * strength)
-        if state.daytime is False:
+        if state.daytime is False and not storming:
             tint("darker at night", low=5000.0)
             drums *= 0.7
         if state.resting:
@@ -288,10 +319,38 @@ class Director:
             lowpass, reverb, volume = min(lowpass, 1200.0), max(reverb, 0.6), volume * 0.4
             why.append("dead")
 
+        # --- rests -------------------------------------------------------------------------------
+        # The game's own music stops between pieces, and the quiet is part of how a zone feels.
+        # After a stretch of calm music FreeRock rests too, and anything happening (a fight, a
+        # storm, stealth, a new place) brings the music straight back.
+        here = (state.in_instance, state.instance_id, state.map_id, state.zone_name)
+        new_place = m.place_key is not None and here != m.place_key
+        m.place_key = here
+        calm = (m.combat_since is None and intensity <= base + 0.02 and not fallen and not storming
+                and not state.stealthed and not state.loading and now >= m.afterglow_until)
+        rest = False
+        if rules.rest_every_s > 0:
+            if m.play_until is None:
+                m.play_until = now + self._about(rules.rest_every_s)
+            if m.rest_until is not None:
+                if not calm or new_place or now >= m.rest_until:
+                    m.rest_until = None
+                    m.play_until = now + self._about(rules.rest_every_s)
+                else:
+                    rest = True
+            elif not calm or new_place:
+                m.play_until = max(m.play_until, now + rules.calm_before_rest_s)
+            elif now >= m.play_until:
+                m.rest_until = now + self._about(rules.rest_for_s)
+                rest = True
+        if rest:
+            fade = rules.rest_fade_s
+            why.append("a rest, as the game has between pieces")
+
         return Target(place=place, cut=cut, bed=round(bed, 3), drums=round(drums, 3), bass=round(bass, 3),
                       bed_highpass_hz=FLOOR_HZ if bass > 0 else 110.0,
                       lowpass_hz=round(lowpass, 1), highpass_hz=round(highpass, 1),
-                      reverb=round(min(reverb, 0.6), 3), volume=round(volume, 3), fade_s=fade,
+                      reverb=round(min(reverb, 0.6), 3), volume=round(volume, 3), rest=rest, fade_s=fade,
                       intensity=round(intensity, 3), why=tuple(dict.fromkeys(why)))
 
 

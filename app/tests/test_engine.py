@@ -128,6 +128,36 @@ async def test_a_new_zone_at_another_tempo_cuts_in_on_the_old_bar_line(results):
     assert change["oldAfter"] < 0.005, "the old zone's music kept playing"
 
 
+async def test_a_rest_fades_the_music_away_and_it_comes_back_with_a_fresh_opening(results):
+    rest = of(results, "rest")
+    assert rest["before"] > 0.05
+    assert rest["fading"] < rest["before"] * 0.75                     # on its way down
+    assert rest["resting"] < 1e-4, "something played during the rest"
+    assert rest["startsDuringRest"] == 0, "cells were still being queued during the rest"
+    first = rest["firstAfter"]
+    assert first["section"] == "Arrival" and first["at"] == pytest.approx(16.12, abs=0.02)
+    assert rest["back"] > 0.1 and rest["toneAfter"] > 0.1             # Arrival's own tone, at full level
+    assert rest["late"] == 0
+
+
+async def test_a_later_set_joins_the_rotation_from_its_own_request(results):
+    sets = of(results, "sets")
+    assert sets["order"][:8] == ["Arrival 0", "Wander A 0", "Wander A 1", "Wander B 0", "Wander B 1",
+                                 "Wander C 0", "Wander C 1", "Wander A 0"]
+    assert sets["from"][:8] == ["test"] * 5 + ["extra"] * 2 + ["test"]
+    assert sets["toneOfThird"] > 0.08 and sets["otherToneThen"] < 0.005
+    assert sets["late"] == 0
+
+
+async def test_more_music_for_the_zone_that_is_playing_does_not_interrupt_it(results):
+    more = of(results, "moreMusic")
+    gaps = [later - earlier for earlier, later in zip(more["starts"], more["starts"][1:])]
+    assert all(gap == pytest.approx(8.0, abs=1e-6) for gap in gaps), "a cell was cut when the new set arrived"
+    assert more["order"][:7] == ["Arrival 0", "Wander A 0", "Wander A 1", "Wander B 0", "Wander B 1",
+                                 "Wander C 0", "Wander C 1"]
+    assert more["steadyAcross"] == pytest.approx(1.0, abs=0.02) and more["late"] == 0
+
+
 async def test_levels_and_tone_move_at_once(results):
     levels = of(results, "levels")
     # The bass tone is 0.3 and the section playing is stored 6 dB down, so fully in it reads 0.15.
