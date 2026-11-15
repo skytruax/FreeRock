@@ -30,7 +30,7 @@ def build_app(config: server.ServerConfig | None = None, *, music: bool = True, 
     app = server.create_app(config)
     if not music:
         return app
-    settings = settings or Settings()
+    settings = settings or Settings.load()
     library = Library(settings.library_dir)
     ingest, note = None, None
     if not new_music:

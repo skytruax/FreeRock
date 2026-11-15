@@ -20,7 +20,7 @@ class StandInIngest:
     def __init__(self, library, failure=None):
         self.library, self.failure, self.calls = library, failure, []
 
-    async def core_suite(self, name, *, rock=0.5, reroll=False):
+    async def core_suite(self, name, *, rock=None, reroll=False):
         self.calls.append((name, rock))
         if self.failure:
             raise self.failure
@@ -36,7 +36,7 @@ class StandInIngest:
 @pytest.fixture
 def home(tmp_path, monkeypatch):
     settings = Settings(var_dir=tmp_path)
-    monkeypatch.setattr(musiccli, "_settings", lambda: settings)
+    monkeypatch.setattr(musiccli, "_settings", lambda: Settings.load(tmp_path))
     library = Library(settings.library_dir)
     made = {}
 
@@ -55,11 +55,14 @@ def test_make_makes_music_for_a_zone_and_says_what_it_did(home, capsys):
     assert "Making music for Duskwood: 80 BPM, D minor" in out and "minutes of music" in out
     assert "Wander A  tempo +0.010%" in out
     assert made["ingest"].calls == [("Duskwood", 0.8)]
-    assert [asset.zone for asset in library.assets()] == ["duskwood"]
+    assert cli.main(["make", "Westfall"]) == 0 and made["ingest"].calls[-1] == ("Westfall", None)
+    library_before = len(library.assets())
+    assert library_before == 2
+    assert sorted(asset.zone for asset in library.assets()) == ["duskwood", "westfall"]
     # A second time it leaves the zone alone unless told otherwise.
     assert cli.main(["make", "Duskwood"]) == 0
-    assert "already has music" in capsys.readouterr().out and len(library.assets()) == 1
-    assert cli.main(["make", "Duskwood", "--again"]) == 0 and len(library.assets()) == 2
+    assert "already has music" in capsys.readouterr().out and len(library.assets()) == 2
+    assert cli.main(["make", "Duskwood", "--again"]) == 0 and len(library.assets()) == 3
 
 
 def test_make_says_why_when_it_cannot(home, capsys):
@@ -102,3 +105,28 @@ def test_ledger_shows_the_spend_and_the_account(home, capsys, monkeypatch):
     out = capsys.readouterr().out
     assert "This month: 2.80 of 300 minutes (about $0.42). Today: 2.80 of 20 minutes." in out
     assert "core suite" in out and "ElevenLabs account: pro plan, 5220 of 781495 credits used." in out
+
+
+def test_settings_can_be_shown_and_changed(home, capsys):
+    settings, library, made = home
+    assert cli.main(["settings"]) == 0
+    out = capsys.readouterr().out
+    assert "monthly_minutes  300" in out and "daily_minutes    20" in out and "rock             0.5" in out
+    assert cli.main(["settings", "daily_minutes", "40"]) == 0
+    assert "daily_minutes    40" in capsys.readouterr().out
+    assert Settings.load(settings.var_dir).daily_minutes == 40 and Settings.load(settings.var_dir).monthly_minutes == 300
+    assert cli.main(["settings", "rock", "0.8"]) == 0 and Settings.load(settings.var_dir).rock == 0.8
+    capsys.readouterr()
+    assert cli.main(["settings", "rock", "3"]) == 1 and "between 0 and 1" in capsys.readouterr().err
+    assert cli.main(["settings", "model_id", "1"]) == 1 and "is not a setting" in capsys.readouterr().err
+    assert cli.main(["settings", "rock"]) == 1 and "Give a value" in capsys.readouterr().err
+    assert Settings.load(settings.var_dir).rock == 0.8
+
+
+def test_a_settings_file_with_something_wrong_in_it_is_an_error(tmp_path):
+    (tmp_path / "settings.json").write_text('{"daily_minutes": "lots"}')
+    with pytest.raises(ValueError):
+        Settings.load(tmp_path)
+    (tmp_path / "settings.json").write_text('{"monthly_minutes": 120, "rock": 0.2}')
+    loaded = Settings.load(tmp_path)
+    assert loaded.monthly_minutes == 120 and loaded.rock == 0.2 and loaded.daily_minutes == 20

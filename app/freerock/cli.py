@@ -5,6 +5,8 @@
     freerock sim --list            the scenarios that come with FreeRock
     freerock read <picture>        read the strip out of a saved picture and say what it holds
     freerock make "<zone>"         make a zone's first music now
+    freerock adopt <folder>        look again at a track that failed its checks
+    freerock settings [name value] show the allowances and the amount of rock, or change one
     freerock library               list the music FreeRock has
     freerock ledger                what has been spent this month and what is left
 

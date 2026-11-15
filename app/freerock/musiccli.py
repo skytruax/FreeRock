@@ -2,6 +2,7 @@
 
     freerock make "Duskwood"       make that zone's first music now (uses the allowance)
     freerock adopt <folder>        look again at a track that failed its checks; keep it if it passes now
+    freerock settings [name value] show the allowances and the amount of rock, or change one
     freerock library               what music FreeRock has
     freerock ledger                what has been spent this month and what is left
 """
@@ -22,7 +23,7 @@ from .settings import MissingKey, Settings
 
 
 def _settings() -> Settings:
-    return Settings()
+    return Settings.load()
 
 
 def _ingest(settings: Settings) -> tuple[Ingest, Gateway]:
@@ -33,8 +34,8 @@ def _ingest(settings: Settings) -> tuple[Ingest, Gateway]:
 # -- make ---------------------------------------------------------------------------------------
 def _make_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("zone", help="the zone's name as the game shows it, in quotes if it has spaces")
-    parser.add_argument("--rock", type=float, default=0.5,
-                        help="how much of the rock the calm parts carry, 0 to 1 (default: %(default)s)")
+    parser.add_argument("--rock", type=float,
+                        help="how much of the rock the calm parts carry, 0 to 1 (default: the rock setting)")
     parser.add_argument("--again", action="store_true", help="make it even if the zone already has music")
 
 
@@ -100,6 +101,31 @@ def _adopt(arguments: argparse.Namespace) -> int:
     return asyncio.run(run())
 
 
+# -- settings -----------------------------------------------------------------------------------
+def _settings_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("name", nargs="?", help="monthly_minutes, daily_minutes or rock")
+    parser.add_argument("value", nargs="?", type=float, help="the new value")
+
+
+def _show_settings(arguments: argparse.Namespace) -> int:
+    settings = _settings()
+    if arguments.name is not None:
+        if arguments.value is None:
+            print("Give a value as well, for example: freerock settings %s 40" % arguments.name, file=sys.stderr)
+            return 1
+        try:
+            settings.change(arguments.name, arguments.value)
+        except ValueError as problem:
+            print(str(problem), file=sys.stderr)
+            return 1
+        settings.save()
+        print("Saved in %s. A running server uses it from its next start." % settings.file)
+    print("monthly_minutes  %g   new music FreeRock may make in a calendar month" % settings.monthly_minutes)
+    print("daily_minutes    %g   and in one day" % settings.daily_minutes)
+    print("rock             %g   how much of the rock the calm parts of new music carry, 0 to 1" % settings.rock)
+    return 0
+
+
 # -- library ------------------------------------------------------------------------------------
 def _library(arguments: argparse.Namespace) -> int:
     assets = Library(_settings().library_dir).assets()
@@ -149,5 +175,7 @@ def _ledger(arguments: argparse.Namespace) -> int:
 add_command("make", "make a zone's first music now", _make_arguments, _make)
 add_command("adopt", "look again at a track that failed its checks and keep it if it now passes",
             _adopt_arguments, _adopt)
+add_command("settings", "show the allowances and the amount of rock, or change one",
+            _settings_arguments, _show_settings)
 add_command("library", "list the music FreeRock has", lambda parser: None, _library)
 add_command("ledger", "what has been spent this month and what is left", lambda parser: None, _ledger)

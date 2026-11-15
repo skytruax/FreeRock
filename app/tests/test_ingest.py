@@ -164,3 +164,14 @@ async def test_a_kept_track_can_be_adopted_once_it_passes(tmp_path):
     assert [asset.id for asset in library.assets("westfall")] == [made.asset.id]
     assert gateway.ledger.month_minutes() == pytest.approx(3.5), "adopting must not cost anything more"
     await gateway.aclose()
+
+
+async def test_new_music_uses_the_rock_setting_unless_told_otherwise(tmp_path):
+    seen = []
+    ingest, library, gateway = make(tmp_path, seen)
+    gateway.settings.rock = 0.9
+    await ingest.core_suite("Elwynn Forest")
+    assert "crunchy rhythm guitars, the riff played with swagger" in seen[0]["composition_plan"]["chunks"][1]["positive_styles"]
+    await ingest.core_suite("Westfall", rock=0.1)
+    assert "clean chiming electric guitars, the riff played gently" in seen[1]["composition_plan"]["chunks"][1]["positive_styles"]
+    await gateway.aclose()

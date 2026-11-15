@@ -5,6 +5,7 @@ FreeRock that never call ElevenLabs (the game link, the tests) run without one.
 """
 from __future__ import annotations
 
+import json
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -70,6 +71,10 @@ class Settings:
     # Held back from the monthly allowance for re-rolls when a track fails its checks.
     reroll_reserve: float = 0.10
 
+    # How much of the rock the calm parts of new music carry, from 0 (hardly any) to 1 (a lot).
+    # Battle and Boss are always the full band.
+    rock: float = 0.5
+
     model_id: str = "music_v2_5"
     api_base: str = "https://api.elevenlabs.io"
     # What ElevenLabs charges per generated minute of music, for the ledger's dollar column.
@@ -84,3 +89,42 @@ class Settings:
     @property
     def library_dir(self) -> Path:
         return self.var_dir / "library"
+
+    # The settings that may be changed in var/settings.json or with `freerock settings`.
+    CHANGEABLE = ("monthly_minutes", "daily_minutes", "rock")
+
+    @property
+    def file(self) -> Path:
+        return self.var_dir / "settings.json"
+
+    @classmethod
+    def load(cls, var_dir: Path | None = None) -> "Settings":
+        """The settings as changed in var/settings.json, or the defaults if there is no such file.
+        A name the file should not have, or a value that makes no sense, is an error here rather
+        than something found out later from a bill."""
+        settings = cls(var_dir=var_dir) if var_dir is not None else cls()
+        if not settings.file.is_file():
+            return settings
+        changes = json.loads(settings.file.read_text(encoding="utf-8"))
+        for name, value in changes.items():
+            settings.change(name, value)
+        return settings
+
+    def change(self, name: str, value: float) -> None:
+        if name not in self.CHANGEABLE:
+            raise ValueError("%r is not a setting; the settings are %s" % (name, ", ".join(self.CHANGEABLE)))
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise ValueError("%s must be a number, not %r" % (name, value))
+        if name == "rock" and not 0.0 <= value <= 1.0:
+            raise ValueError("rock must be between 0 and 1, not %r" % (value,))
+        if name != "rock" and value < 0:
+            raise ValueError("%s cannot be less than nothing" % name)
+        setattr(self, name, float(value))
+
+    def save(self) -> None:
+        """Writes the changeable settings that differ from the defaults to var/settings.json."""
+        defaults = type(self)(var_dir=self.var_dir)
+        changed = {name: getattr(self, name) for name in self.CHANGEABLE
+                   if getattr(self, name) != getattr(defaults, name)}
+        self.var_dir.mkdir(parents=True, exist_ok=True)
+        self.file.write_text(json.dumps(changed, indent=2) + "\n", encoding="utf-8")

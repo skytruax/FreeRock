@@ -105,6 +105,10 @@ class Ingest:
         self.splitter = splitter
         self.rng = rng or random.Random()
 
+    def _rock(self, rock: float | None) -> float:
+        """How much rock new music gets: what was asked for, else the setting."""
+        return self.gateway.settings.rock if rock is None else rock
+
     async def _generate(self, request: composer.Request, *, purpose: str, zone: str,
                         reroll: bool) -> tuple[np.ndarray, Any]:
         decoder, pieces = PcmStream(CHANNELS), []
@@ -168,17 +172,18 @@ class Ingest:
             layers=layers, song_id=noted.get("song_id"), checks=checks)
         return Made(asset=asset, first_audio_s=None, total_s=None, split_s=layers.seconds)
 
-    async def core_suite(self, place_name: str | None, *, rock: float = 0.5, seed: int | None = None,
-                         reroll: bool = False) -> Made:
+    async def core_suite(self, place_name: str | None, *, rock: float | None = None,
+                         seed: int | None = None, reroll: bool = False) -> Made:
         """A zone's first music, from the zone's name as the game gives it."""
         profile = atlas.profile_for(place_name)
         request = composer.core_suite(profile, seed=seed if seed is not None else self.rng.randrange(2 ** 31),
-                                      rock=rock, part_bars=atlas.part_bars(profile.bpm))
+                                      rock=self._rock(rock), part_bars=atlas.part_bars(profile.bpm))
         return await self._make(request, zone=profile.key, set_name="core",
                                 purpose="core suite", reroll=reroll)
 
-    async def later_set(self, core: Asset, place_name: str | None, kind: str, *, rock: float = 0.5,
-                        seed: int | None = None, reroll: bool = False) -> Made:
+    async def later_set(self, core: Asset, place_name: str | None, kind: str, *,
+                        rock: float | None = None, seed: int | None = None,
+                        reroll: bool = False) -> Made:
         """More music for a zone that already has its core suite: kind is "second" or "fresh". It
         is told to stay close to thirty seconds of the core suite's first Wander riff, so it
         sounds like the same band."""
@@ -192,6 +197,6 @@ class Ingest:
             reference = composer.Reference(core.song_id, start_ms, start_ms + 30_000)
         maker = composer.second_set if kind == "second" else composer.fresh_set
         request = maker(profile, seed=seed if seed is not None else self.rng.randrange(2 ** 31),
-                        rock=rock, reference=reference, part_bars=atlas.part_bars(profile.bpm))
+                        rock=self._rock(rock), reference=reference, part_bars=atlas.part_bars(profile.bpm))
         return await self._make(request, zone=profile.key, set_name=kind,
                                 purpose="%s set" % kind, reroll=reroll)
