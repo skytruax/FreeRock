@@ -45,10 +45,13 @@
   <details class="card" id="pretend">
     <summary>Pretend game: try the music without the game</summary>
     <p class="soft">These controls stand in for the game. Use them only while the real game is not
-      connected. Choosing a zone that has no music yet has some made, which uses about three minutes
-      of the monthly allowance and takes a minute or two.</p>
+      connected. A zone that has no music yet borrows another zone's, unless you tick the box below.</p>
     <label for="p-zone">Zone</label>
     <select id="p-zone"></select>
+    <div class="checks">
+      <label><input type="checkbox" id="p-make"> Make new music for a zone that has none (about three
+        minutes of the monthly allowance per zone; ready in a minute or two)</label>
+    </div>
     <div class="checks">
       <label><input type="checkbox" data-field="indoors"> In a cave or building</label>
       <label><input type="checkbox" data-field="resting"> In an inn or city</label>

@@ -68,6 +68,8 @@ class Conductor:
         self._task: asyncio.Task | None = None
         self._sent_asset: str | None = None
         self._volume: int | None = None  # the volume last passed on from the game
+        self._pretend_state: game.GameState | None = None   # the last state the pretend game set
+        self._pretend_may_make = False
 
     # --- choosing the music ----------------------------------------------------------------------
 
@@ -155,6 +157,8 @@ class Conductor:
         player has stayed a moment, and nothing else is being made."""
         if self.ingest is None or self.making is not None:
             return
+        if state is self._pretend_state and not self._pretend_may_make:
+            return                       # a pretend game that has not asked for new music
         now = self.clock()
         key = self.place_key(state)
         if not key:
@@ -295,6 +299,9 @@ class Conductor:
         """Says the game is in the state given, as if the strip had been read. For trying the
         music without the game; with the real game connected the two would talk over each other."""
         fields = await request.json()
+        # The server has no login, so a page must not be able to spend the allowance by accident:
+        # a pretend zone with no music only has some made when the request says so outright.
+        self._pretend_may_make = bool(fields.pop("make_new_music", False))
         allowed = {field.name for field in dataclasses.fields(game.GameState)}
         unknown = sorted(set(fields) - allowed)
         if unknown:
@@ -310,6 +317,7 @@ class Conductor:
         previous = self.hub.state
         changed = frozenset(name for name in allowed
                             if previous is None or getattr(previous, name) != getattr(state, name))
+        self._pretend_state = state
         self.hub.publish(game.StateChanged(state=state, previous=previous, changed=changed))
         return web.json_response({"ok": True})
 

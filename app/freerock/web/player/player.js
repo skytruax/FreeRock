@@ -129,6 +129,7 @@
     const on = (field) => document.querySelector('#pretend [data-field="' + field + '"]').checked;
     const targetClass = $("p-target").value, weather = $("p-weather").value;
     return {
+      make_new_music: $("p-make").checked,
       zone_name: $("p-zone").value, indoors: on("indoors"), resting: on("resting"),
       swimming: on("submerged"), submerged: on("submerged"), mounted: on("mounted"),
       on_taxi: on("on_taxi"), flying: on("on_taxi"), stealthed: on("stealthed"),

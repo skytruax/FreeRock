@@ -333,3 +333,21 @@ async def test_the_volume_set_in_the_game_reaches_the_player(tmp_path):
         await socket.close()
     finally:
         await client.close()
+
+
+async def test_the_pretend_game_makes_new_music_only_when_asked_to(tmp_path):
+    clock = Clock()
+    client, app, conductor, assets = await running(tmp_path, failures=[], clock=clock)
+    try:
+        await client.post("/api/pretend", json={"zone_name": "Westfall", "daytime": True})
+        await asyncio.sleep(0.4)
+        clock.now += 30
+        await asyncio.sleep(0.8)
+        assert conductor.ingest.calls == [], "a page spent the allowance without being asked to"
+        await client.post("/api/pretend", json={"zone_name": "Westfall", "daytime": True, "make_new_music": True})
+        await asyncio.sleep(0.4)
+        clock.now += 5
+        await asyncio.sleep(1.0)
+        assert conductor.ingest.calls == [("Westfall", False)]
+    finally:
+        await client.close()
