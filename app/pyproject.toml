@@ -1,0 +1,57 @@
+[project]
+name = "freerock"
+version = "0.1.0"
+description = "Generated game music that follows World of Warcraft: Forever"
+requires-python = ">=3.11,<3.14"
+dependencies = [
+    "aiohttp>=3.9",
+    "httpx>=0.27",
+    "numpy>=1.26",
+    "scipy>=1.11",
+    "soundfile>=0.12",
+    "av>=12",
+    "pyloudnorm>=0.1.1",
+    "pillow>=10",
+]
+
+[project.optional-dependencies]
+# Splitting a track into drums, bass and everything else. Heavy (PyTorch), so the machine that
+# only runs the sensor does not need it.
+stems = [
+    "torch>=2.2",
+    "torchaudio>=2.2",
+    "demucs>=4.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio>=0.23",
+    "hypothesis>=6",
+    "lupa>=2.4",
+]
+
+[project.scripts]
+freerock = "freerock.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["freerock"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+# PyTorch's CPU build: this machine has no GPU the separator can use, and the CUDA build is
+# several gigabytes larger.
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
+torchaudio = { index = "pytorch-cpu" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true

@@ -1,0 +1,23 @@
+# Secrets: API keys live in .env and must never be committed
+.env
+.env.*
+
+# Personal editor files
+*.code-workspace
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.hypothesis/
+*.egg-info/
+dist/
+build/
+
+# Everything FreeRock generates or downloads at run time: the music library and its ledger,
+# captured strips, session logs and recordings. None of it belongs in the repository.
+var/
+
+# Output of the simulator run (tools/sim)
+tools/sim/out/
