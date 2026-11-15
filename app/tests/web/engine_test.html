@@ -1,0 +1,226 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>FreeRock engine tests</title></head>
+<body>
+<pre id="result">running</pre>
+<script src="/engine.js"></script>
+<script>
+// Renders the player's engine offline with made-up music whose every sample is known, and
+// measures what comes out. The numbers go into #result as JSON; test_engine.py holds them
+// against pass lines.
+"use strict";
+
+const RATE = 48000, BAR = 96000, BEAT = 24000, CELL = 4 * BAR;   // 120 beats a minute
+
+// Six sections laid end to end. Each has its own bed tone so the output says which is playing.
+function makeAsset() {
+  const plan = [["Arrival", "arrival", 1, 0], ["Wander A", "wander", 2, -6], ["Wander B", "wander", 2, -6],
+                ["Battle", "battle", 2, 0], ["Depths", "depths", 1, -3], ["Ember", "ember", 1, -9]];
+  const sections = [];
+  let frame = 0;
+  plan.forEach(([name, role, cells, gain], index) => {
+    const section = { name, role, start: frame, gain_db: gain, tone: 300 + 200 * index, cells: [] };
+    for (let i = 0; i < cells; i++) { section.cells.push({ start: frame, end: frame + CELL }); frame += CELL; }
+    section.end = frame;
+    sections.push(section);
+  });
+  return { id: "test", rate: RATE, bpm: 120, bar_frames: BAR, frames: frame, sections };
+}
+
+// kind "marks": drums and bass are single-sample clicks on every beat, the bed is the section's tone.
+// kind "tones": bass is a steady 80 Hz tone, drums are noise, the bed is the section's tone.
+// kind "loud":  every layer is the same full-scale tone, to push the limiter.
+function makeLoader(asset, kind) {
+  return async (assetId, layer, first, last) => {
+    const out = new Int16Array((last - first) * 2);
+    let seed = 99;
+    for (let i = 0; i < last - first; i++) {
+      const frame = first + i;
+      let value = 0;
+      if (frame >= 0 && frame < asset.frames) {
+        const section = asset.sections.find((s) => frame >= s.start && frame < s.end);
+        if (kind === "loud") {
+          value = 0.9 * Math.sin(2 * Math.PI * 440 * frame / RATE);
+        } else if (layer === "bed") {
+          value = 0.2 * Math.sin(2 * Math.PI * section.tone * frame / RATE);
+        } else if (kind === "marks") {
+          if (frame % BEAT === 0) value = layer === "drums" ? 0.5 : 0.25;
+        } else if (layer === "bass") {
+          value = 0.3 * Math.sin(2 * Math.PI * 80 * frame / RATE);
+        } else {
+          seed = (seed * 1103515245 + 12345 + frame) & 0x7fffffff;
+          value = 0.2 * (seed / 0x3fffffff - 1);
+        }
+      }
+      const sample = Math.max(-32768, Math.min(32767, Math.round(value * 32768)));
+      out[2 * i] = sample;
+      out[2 * i + 1] = sample;
+    }
+    return out.buffer;
+  };
+}
+
+// Runs the engine for `seconds`. `script` is a list of [time, action]; tick() is called after
+// each action and every `tickEvery` seconds, as the live page does from its timer.
+async function render(seconds, options) {
+  const asset = makeAsset();
+  const ctx = new OfflineAudioContext(2, seconds * RATE, RATE);
+  const engine = new FreeRockEngine(ctx, makeLoader(asset, options.kind || "marks"),
+                                    { limiter: options.limiter === true, random: () => 0 });
+  await engine.setAsset(asset);
+  await engine.setTarget(options.target || {});
+  await engine.start();
+  const moments = new Map();
+  for (let t = options.tickEvery || 0.5; t < seconds; t += options.tickEvery || 0.5) moments.set(Math.round(t * 1000), []);
+  for (const [time, action] of options.script || []) {
+    const key = Math.round(time * 1000);
+    if (!moments.has(key)) moments.set(key, []);
+    moments.get(key).push(action);
+  }
+  for (const [key, actions] of moments) {
+    ctx.suspend(key / 1000).then(async () => {
+      for (const action of actions) await action(engine);
+      await engine.tick();
+      ctx.resume();
+    });
+  }
+  const buffer = await ctx.startRendering();
+  return { data: buffer.getChannelData(0), right: buffer.getChannelData(1), engine, asset };
+}
+
+const at = (seconds) => Math.round(seconds * RATE);
+function rms(data, from, to) {
+  let sum = 0;
+  for (let i = at(from); i < at(to); i++) sum += data[i] * data[i];
+  return Math.sqrt(sum / (at(to) - at(from)));
+}
+function peak(data, from, to) {
+  let best = 0, where = at(from);
+  for (let i = at(from); i < at(to); i++) if (Math.abs(data[i]) > best) { best = Math.abs(data[i]); where = i; }
+  return { value: best, frame: where };
+}
+// How strongly one frequency is present in a stretch.
+function strength(data, from, to, hz) {
+  let re = 0, im = 0;
+  for (let i = at(from); i < at(to); i++) {
+    re += data[i] * Math.cos(2 * Math.PI * hz * i / RATE);
+    im += data[i] * Math.sin(2 * Math.PI * hz * i / RATE);
+  }
+  return 2 * Math.sqrt(re * re + im * im) / (at(to) - at(from));
+}
+// Roughness: the size of the step from one sample to the next. High frequencies and clicks raise it.
+function roughness(data, from, to) {
+  let sum = 0;
+  for (let i = at(from) + 1; i < at(to); i++) { const d = data[i] - data[i - 1]; sum += d * d; }
+  return Math.sqrt(sum / (at(to) - at(from)));
+}
+function biggestStep(data, from, to) {
+  let best = 0;
+  for (let i = at(from) + 1; i < at(to); i++) best = Math.max(best, Math.abs(data[i] - data[i - 1]));
+  return best;
+}
+// The moment `rising` takes over from `falling`, looking in 2 ms steps.
+function handover(data, from, to, falling, rising) {
+  for (let t = from; t < to; t += 0.002) {
+    if (strength(data, t, t + 0.004, rising) > strength(data, t, t + 0.004, falling)) return t;
+  }
+  return null;
+}
+
+const FIRST = 0.12;       // the engine starts its first cell this long after start()
+const tests = {};
+
+// The drum and bass clicks must land on the same sample, on every beat, cell after cell.
+tests.lock = async () => {
+  const both = await render(30, { target: { bed: 0, drums: 1, bass: 1 } });
+  const drumsOnly = await render(30, { target: { bed: 0, drums: 1, bass: 0 } });
+  const offsets = [], ratios = [];
+  for (let beat = 4; beat < 58; beat++) {
+    const expected = FIRST + beat * 0.5;
+    const found = peak(both.data, expected - 0.004, expected + 0.004);
+    const alone = peak(drumsOnly.data, expected - 0.004, expected + 0.004);
+    offsets.push(found.frame - at(expected));
+    ratios.push(found.value / alone.value);
+  }
+  return { worstOffsetFrames: Math.max(...offsets.map(Math.abs)), minRatio: Math.min(...ratios),
+           maxRatio: Math.max(...ratios), beats: offsets.length,
+           sameLeftAndRight: peak(both.right, 5, 6).frame === peak(both.data, 5, 6).frame };
+};
+
+// With only the bed playing, one cell must run into the next without a dip or a click.
+tests.joins = async () => {
+  const run = await render(30, { target: { bed: 1, drums: 0, bass: 0, bed_highpass_hz: 20 } });
+  const join = FIRST + 16;                  // Arrival (8 s), then Wander A cell 0 runs into cell 1
+  const steady = rms(run.data, join - 1.0, join - 0.5);
+  const across = [];
+  for (let t = join - 0.05; t < join + 0.05; t += 0.005) across.push(rms(run.data, t, t + 0.01) / steady);
+  return { order: run.engine.log.map((entry) => entry.section + " " + entry.cell),
+           starts: run.engine.log.map((entry) => entry.at),
+           minAcrossJoin: Math.min(...across), maxAcrossJoin: Math.max(...across),
+           stepAtJoin: biggestStep(run.data, join - 0.03, join + 0.03),
+           stepElsewhere: biggestStep(run.data, join - 1.0, join - 0.5),
+           sectionGain: rms(run.data, FIRST + 10, FIRST + 12) / rms(run.data, FIRST + 2, FIRST + 4),
+           late: run.engine.late };
+};
+
+// A change of place asked for mid-bar must land on the next bar line; one marked "beat", on the next beat.
+tests.cuts = async () => {
+  const run = await render(22, {
+    target: { bed: 1, drums: 0, bass: 0, bed_highpass_hz: 20 },
+    script: [[10.3, (engine) => engine.setTarget({ place: "battle" })],
+             [14.2, (engine) => engine.setTarget({ place: "depths", cut: "beat" })]] });
+  const barLine = FIRST + 12, beatLine = FIRST + 14.5;
+  return { barLine, toBattle: handover(run.data, barLine - 0.1, barLine + 0.1, 500, 900),
+           beatLine, toDepths: handover(run.data, beatLine - 0.1, beatLine + 0.1, 900, 1100),
+           wanderBefore: strength(run.data, barLine - 0.5, barLine - 0.1, 500),
+           battleAfter: strength(run.data, barLine + 0.1, barLine + 0.5, 900),
+           wanderAfter: strength(run.data, barLine + 0.1, barLine + 0.5, 500),
+           log: run.engine.log };
+};
+
+// Levels and tone must move as soon as the target changes.
+tests.levels = async () => {
+  const run = await render(20, {
+    kind: "tones", target: { bed: 0, drums: 1, bass: 0 },
+    script: [[9.0, (engine) => engine.setTarget({ bass: 1, bed_highpass_hz: 20 })],
+             [12.0, (engine) => engine.setTarget({ lowpass_hz: 700, fade_s: 0.15 })],
+             [15.0, (engine) => engine.setTarget({ lowpass_hz: 20000, reverb: 0.5, fade_s: 0.4 })],
+             [17.0, (engine) => engine.setTarget({ silent: true, fade_s: 0.3 })]] });
+  const d = run.data;
+  return { bassBefore: strength(d, 8.5, 8.95, 80), bassAfter100ms: strength(d, 9.1, 9.5, 80),
+           brightBefore: roughness(d, 11.5, 11.95), brightAfterMuffle: roughness(d, 12.3, 12.8),
+           brightAfterRelease: roughness(d, 15.6, 16.5),
+           levelBeforeSilence: rms(d, 16.5, 16.95), levelAfterSilence: rms(d, 17.5, 19.5) };
+};
+
+// Three full-scale layers at once must not pass full scale with the limiter in.
+tests.limiter = async () => {
+  const run = await render(8, { kind: "loud", limiter: true, target: { bed: 1, drums: 1, bass: 1, bed_highpass_hz: 20 } });
+  const plain = await render(8, { kind: "loud", limiter: false, target: { bed: 1, drums: 1, bass: 1, bed_highpass_hz: 20 } });
+  return { peakWithLimiter: peak(run.data, 0, 8).value, peakWithout: peak(plain.data, 0, 8).value,
+           levelWithLimiter: rms(run.data, 4, 6) };
+};
+
+// Left alone, with tick() called only every 2.5 s (a throttled background window), the music must keep going.
+tests.unattended = async () => {
+  const run = await render(60, { tickEvery: 2.5, target: { bed: 1, drums: 0, bass: 0, bed_highpass_hz: 20 } });
+  let quietest = Infinity;
+  for (let t = 1; t < 59; t += 0.05) quietest = Math.min(quietest, rms(run.data, t, t + 0.05));
+  return { quietestWindow: quietest, cells: run.engine.log.length, late: run.engine.late,
+           order: run.engine.log.map((entry) => entry.section + " " + entry.cell) };
+};
+
+(async () => {
+  const results = {};
+  for (const [name, test] of Object.entries(tests)) {
+    try { results[name] = await test(); }
+    catch (error) { results[name] = { error: String(error && error.stack || error) }; }
+  }
+  document.getElementById("result").textContent = JSON.stringify(results);
+  // Rendering happens outside the page's own clock, so the test runner cannot tell when it is
+  // finished by watching the page load. The results are handed to it directly.
+  await fetch("/done", { method: "POST", body: JSON.stringify(results) });
+})();
+</script>
+</body>
+</html>
