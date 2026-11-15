@@ -1,0 +1,27 @@
+{
+  "about": "A dungeon: zoning in, a pull, the boss, a death, and the boss going down. No position inside. About 40 seconds.",
+  "screen": [1920, 1080],
+  "cell": 4,
+  "edge": "bottom",
+  "inset": [24, 2],
+  "start": {
+    "zone": "Westfall", "subzone": "Moonbrook", "map_id": 1436, "x": 0.42, "y": 0.72,
+    "pvp": "contested", "weather": null, "weather_intensity": null, "day": null, "clock": null, "group": true
+  },
+  "steps": [
+    {"at": 2.0, "say": "Loading screen into the Deadmines", "set": {"loading": true}, "hidden": true},
+    {"at": 5.0, "say": "Inside the Deadmines", "hidden": false,
+     "set": {"loading": false, "zone": "The Deadmines", "subzone": "", "map_id": 0, "x": null, "y": null, "pvp": null,
+             "in_instance": true, "instance_kind": "party", "instance_id": 36, "instance_name": "The Deadmines", "difficulty": 1, "indoors": true}},
+    {"at": 8.0, "say": "A pull", "set": {"combat": true, "target": "elite"}},
+    {"at": 13.0, "say": "The pull is dead", "set": {"combat": false, "target": null}},
+    {"at": 16.0, "say": "The boss: Edwin VanCleef", "set": {"combat": true, "encounter": true, "encounter_id": 1144,
+     "encounter_name": "Edwin VanCleef", "boss": true, "target": "worldboss"}},
+    {"at": 24.0, "say": "You die", "set": {"dead": true, "combat": false, "target": null}, "moment": "died"},
+    {"at": 30.0, "say": "The boss goes down", "set": {"encounter": false, "encounter_id": 0, "encounter_name": "", "boss": false},
+     "moment": "boss_defeated"},
+    {"at": 33.0, "say": "Back on your feet", "set": {"dead": false}},
+    {"at": 36.0, "say": "A cinematic", "set": {"cinematic": true}},
+    {"at": 39.0, "say": "Done", "set": {"cinematic": false}}
+  ]
+}

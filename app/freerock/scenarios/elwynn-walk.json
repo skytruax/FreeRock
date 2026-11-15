@@ -1,0 +1,35 @@
+{
+  "about": "A walk through Elwynn Forest: into a mine, a fight, rain, nightfall, a level, and over the border into Westfall. About 50 seconds.",
+  "screen": [2560, 1440],
+  "cell": 3,
+  "edge": "top",
+  "inset": [16, 0],
+  "start": {
+    "zone": "Elwynn Forest", "subzone": "Goldshire", "map_id": 1429, "x": 0.42, "y": 0.65,
+    "pvp": "friendly", "weather": "clear", "weather_intensity": 0.0, "day": true, "clock": "17:40", "resting": true
+  },
+  "steps": [
+    {"at": 1.0, "say": "The addon's test pattern (/rock test)", "test": 2.0},
+    {"at": 4.0, "say": "Leaving Goldshire on foot, heading south", "set": {"resting": false, "subzone": ""},
+     "walk": {"x": 0.39, "y": 0.80, "seconds": 8}},
+    {"at": 8.0, "say": "Mounting up", "set": {"mounted": true}},
+    {"at": 12.0, "say": "Fargodeep Mine: dismount and walk in", "set": {"mounted": false, "subzone": "Fargodeep Mine"}},
+    {"at": 13.0, "say": "Inside the mine", "set": {"indoors": true}},
+    {"at": 16.0, "say": "Stealth", "set": {"stealth": true}},
+    {"at": 19.0, "say": "A kobold: the fight starts", "set": {"stealth": false, "combat": true, "target": "normal"}},
+    {"at": 23.0, "say": "An elite joins", "set": {"target": "elite"}},
+    {"at": 27.0, "say": "The fight is over", "set": {"combat": false, "target": null}},
+    {"at": 28.0, "say": "Level up", "moment": "level_up"},
+    {"at": 30.0, "say": "Out of the mine", "set": {"indoors": false, "subzone": "The Stonefield Farm"},
+     "walk": {"x": 0.22, "y": 0.82, "seconds": 14}},
+    {"at": 32.0, "say": "It starts to rain", "set": {"weather": "rain", "weather_intensity": 0.35}},
+    {"at": 35.0, "say": "The rain gets heavy", "set": {"weather_intensity": 0.9}},
+    {"at": 37.0, "say": "/rock skip", "command": "skip"},
+    {"at": 39.0, "say": "Night falls", "set": {"day": false, "clock": "19:05"}},
+    {"at": 42.0, "say": "A loading screen: the strip is not on screen for three seconds", "hidden": true},
+    {"at": 45.0, "say": "Across the border into Westfall", "hidden": false,
+     "set": {"zone": "Westfall", "subzone": "", "map_id": 1436, "x": 0.62, "y": 0.18, "pvp": "contested", "weather": "clear", "weather_intensity": 0.0}},
+    {"at": 48.0, "say": "/rock love", "command": "love"},
+    {"at": 50.0, "say": "Done"}
+  ]
+}

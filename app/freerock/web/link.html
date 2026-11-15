@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FreeRock: game link</title>
+<link rel="stylesheet" href="/static/link.css">
+</head>
+<body>
+<header>
+  <h1>FreeRock</h1>
+  <p class="sub">What FreeRock sees in the game</p>
+  <p id="link" class="pill" data-link="never">Waiting</p>
+</header>
+
+<p id="offline" class="banner" hidden>This page has lost its connection to FreeRock. Trying again.</p>
+
+<main>
+  <section aria-labelledby="h-link">
+    <h2 id="h-link">The link</h2>
+    <p id="summary" class="lead"></p>
+    <dl class="facts">
+      <div><dt>Sensor</dt><dd id="sensor">none connected</dd></div>
+      <div><dt>Game window</dt><dd id="window">not known</dd></div>
+      <div><dt>Screen copies</dt><dd id="copy">not known</dd></div>
+      <div><dt>Changed strips read a second</dt><dd id="rate">0</dd></div>
+      <div><dt>Pictures read / received</dt><dd id="reads">0 / 0</dd></div>
+      <div><dt>Failed the checksum</dt><dd id="checksum">0</dd></div>
+      <div><dt>Strip</dt><dd id="strip">not found</dd></div>
+      <div><dt>Test pattern</dt><dd id="test">not seen (type /rock test in the game)</dd></div>
+    </dl>
+    <figure>
+      <img id="picture" alt="The strip as the gaming PC captured it" hidden>
+      <figcaption id="caption">No strip has been captured yet.</figcaption>
+    </figure>
+  </section>
+
+  <section aria-labelledby="h-state">
+    <h2 id="h-state">The game</h2>
+    <dl class="facts" id="place">
+      <div><dt>Zone</dt><dd id="zone">not known</dd></div>
+      <div><dt>Subzone</dt><dd id="subzone">not known</dd></div>
+      <div><dt>Position</dt><dd id="position">not known</dd></div>
+      <div><dt>Instance</dt><dd id="instance">none</dd></div>
+      <div><dt>Boss fight</dt><dd id="encounter">none</dd></div>
+      <div><dt>Target</dt><dd id="target">none</dd></div>
+      <div><dt>Weather</dt><dd id="weather">not reported</dd></div>
+      <div><dt>Daylight</dt><dd id="daylight">not reported</dd></div>
+      <div><dt>Game clock</dt><dd id="clock">not reported</dd></div>
+      <div><dt>Territory</dt><dd id="pvp">not reported</dd></div>
+      <div><dt>Volume</dt><dd id="volume">not known</dd></div>
+    </dl>
+    <ul class="chips" id="flags" aria-label="Yes or no states"></ul>
+  </section>
+
+  <section aria-labelledby="h-log">
+    <h2 id="h-log">What changed</h2>
+    <ol id="log" class="log" reversed></ol>
+    <p id="nolog" class="quiet">Nothing yet.</p>
+  </section>
+</main>
+<script src="/static/link.js"></script>
+</body>
+</html>
