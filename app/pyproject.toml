@@ -44,6 +44,7 @@ packages = ["freerock"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 
 # PyTorch's CPU build: this machine has no GPU the separator can use, and the CUDA build is
 # several gigabytes larger.
