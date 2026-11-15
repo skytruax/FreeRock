@@ -48,15 +48,16 @@ def test_roles():
 
 def test_sections_and_cells_sit_on_bar_lines(stored):
     library, asset, mix, _ = stored
-    assert asset.bar_frames == 96000 and asset.frames == len(mix) and asset.minutes == pytest.approx(2.8)
-    assert [s.name for s in asset.sections] == ["Arrival", "Wander A", "Wander B", "Battle", "Ember", "Depths"]
-    assert [len(s.cells) for s in asset.sections] == [1, 4, 4, 4, 4, 4]
+    assert asset.bar_frames == 96000 and asset.frames == len(mix) and asset.minutes == pytest.approx(152 / 60, abs=0.001)
+    assert [s.name for s in asset.sections] == ["Arrival", "Wander A", "Wander B", "Wander C", "Storm", "Battle",
+                                                "Battle B", "Boss", "Ember", "Depths"]
+    assert [len(s.cells) for s in asset.sections] == [1] + [2] * 9      # eight bars: two four-bar cells
     for section in asset.sections:
         assert section.start % asset.bar_frames == 0
         assert section.cells[0].start == section.start and section.cells[-1].end == section.end
         for cell in section.cells:
             assert cell.end - cell.start == 4 * asset.bar_frames
-    assert [s.name for s in asset.sections_for("wander")] == ["Wander A", "Wander B"]
+    assert [s.name for s in asset.sections_for("wander")] == ["Wander A", "Wander B", "Wander C"]
 
 
 def test_each_section_is_brought_to_its_own_loudness(stored):
@@ -79,7 +80,7 @@ def test_it_can_be_found_again_and_marked(stored):
 
 def test_stored_layers_add_up_to_the_stored_mix(stored):
     library, asset, mix, _ = stored
-    cell = asset.section("Wander B").cells[2]
+    cell = asset.section("Wander B").cells[1]
     parts = [np.frombuffer(library.samples(asset, layer, cell.start, cell.end), dtype="<i2").astype(np.int32)
              for layer in LAYERS]
     expected = np.round(np.clip(mix[cell.start:cell.end], -1, 32767 / 32768) * 32768).astype(np.int32).reshape(-1)
@@ -122,12 +123,13 @@ def test_a_places_music_is_described_as_one_body_from_several_requests(tmp_path)
     view = merged(usable)
     assert view["id"] == "+".join(made[name].id for name in ("core", "second", "fresh"))
     assert view["zone"] == "elwynn" and view["set"] == "core + second + fresh" and view["bar_frames"] == 96000
-    assert view["minutes"] == pytest.approx(2.8 + 3.2 + 3.2)
+    assert view["minutes"] == pytest.approx((152 + 160 + 160) / 60, abs=0.01)
     names = [section["name"] for section in view["sections"]]
-    assert names[:6] == ["Arrival", "Wander A", "Wander B", "Battle", "Ember", "Depths"] and "Storm" in names and "Wander G" in names
+    assert names[:4] == ["Arrival", "Wander A", "Wander B", "Wander C"] and "Storm B" in names and "Wander K" in names
     by_name = {section["name"]: section for section in view["sections"]}
-    assert by_name["Wander A"]["asset_id"] == made["core"].id and by_name["Boss"]["asset_id"] == made["second"].id
-    assert by_name["Boss"]["cells"][0] == {"start": by_name["Boss"]["start"], "end": by_name["Boss"]["start"] + 4 * 96000}
+    assert by_name["Wander A"]["asset_id"] == made["core"].id and by_name["Boss B"]["asset_id"] == made["second"].id
+    assert by_name["Boss B"]["cells"][0] == {"start": by_name["Boss B"]["start"], "end": by_name["Boss B"]["start"] + 4 * 96000}
+    assert all(section["tag"] is None for section in view["sections"]), "a zone's sets belong to no one place in it"
     with pytest.raises(ValueError):
         merged([])
 
@@ -139,3 +141,22 @@ def test_banned_and_retired_music_is_kept_but_not_played(stored):
     assert [a.id for a in library.assets()] == [asset.id] and Library(library.root).get(asset.id).retired
     library.mark(asset.id, retired=False, banned=True)
     assert library.usable() == [] and library.get(asset.id).banned and not library.get(asset.id).retired
+
+
+def test_a_piece_made_for_a_named_place_says_which(tmp_path):
+    """A place's own piece is filed with the zone's music and carries the place's name, so the
+    player plays it there and nowhere else."""
+    from freerock.composer import place_piece
+    library = Library(tmp_path)
+    core_request, piece_request = core_suite(ZONE, seed=1), place_piece(ZONE, seed=2)
+    mix, layers = made_up_track(core_request)
+    core = library.add(zone="ironforge", set_name="core", request=core_request, mix=mix, layers=layers)
+    mix, layers = made_up_track(piece_request, seed=2)
+    piece = library.add(zone="ironforge", set_name="place", request=piece_request, mix=mix, layers=layers,
+                        subzone="the-great-forge")
+    assert piece.subzone == "the-great-forge" and core.subzone is None
+    assert Library(tmp_path).get(piece.id).subzone == "the-great-forge", "it is remembered"
+    assert [section.role for section in piece.sections] == ["wander", "wander"]
+    view = merged(library.usable("ironforge"))
+    tags = {section["name"]: section["tag"] for section in view["sections"]}
+    assert tags["Theme A"] == tags["Theme B"] == "the-great-forge" and tags["Wander A"] is None

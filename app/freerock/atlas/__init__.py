@@ -34,6 +34,77 @@ KEYWORDS = (
 ELSEWHERE = {"bpm": 120, "tonic": "A minor", "colours": ["twelve-string guitar", "frame drum"], "mood": ["unknown country", "wary"]}
 
 
+# For a named place inside a zone (the Hall of Thanes, Goldshire, Crystal Lake): words in its name
+# and what they bring to the zone's music. A place keeps the zone's tempo and key; these only
+# colour its own short piece.
+PLACE_WORDS = (
+    (("hall", "throne", "seat", "court", "palace", "chamber", "council", "thane", "king", "royal"),
+     ["stately twin guitars in harmony", "slow proud drum march", "low horn-like swells"], ["a great stone hall", "proud and echoing"]),
+    (("forge", "anvil", "smith", "foundry", "smelter"),
+     ["anvil hits on the backbeat", "chugging low guitar", "bellows-like swells"], ["heat and hammering", "busy"]),
+    (("inn", "tavern", "pub", "alehouse", "brewery", "distillery", "pig"),
+     ["fiddle reel", "hand claps and stomps", "mandolin"], ["a merry tavern", "warm"]),
+    (("bank", "vault", "counting", "treasury", "auction"),
+     ["clockwork-tight muted guitar", "coin-like chimes", "walking bass"], ["brisk business", "tidy"]),
+    (("market", "commons", "square", "trade", "bazaar", "plaza", "exchange", "shop"),
+     ["bright strummed guitars", "tambourine", "whistle tune"], ["bustling", "cheerful"]),
+    (("mystic", "mage", "arcane", "wizard", "magic", "enchant", "library", "explorer", "academy", "tinker"),
+     ["chiming guitar harmonics", "delay-echo arpeggios", "music-box lute"], ["curious", "sparkling"]),
+    (("military", "barracks", "arms", "ward", "command", "garrison", "guard", "watch", "post", "outpost", "camp", "fort"),
+     ["marching snare", "horn-like twin guitars", "steady war drums"], ["on duty", "disciplined"]),
+    (("temple", "cathedral", "chapel", "abbey", "shrine", "church", "sanctum", "altar"),
+     ["church organ", "bell-like harmonics", "slow solemn melody"], ["solemn", "echoing"]),
+    (("mine", "quarry", "dig", "excavation", "pit"),
+     ["pickaxe strikes on the backbeat", "low drone", "clanking chains"], ["underground", "torchlit"]),
+    (("cave", "cavern", "grotto", "den", "burrow", "lair", "hollow", "tunnel", "deeprun", "depths"),
+     ["echoing guitar harmonics", "low drone", "floor toms"], ["dark", "close"]),
+    (("crypt", "tomb", "grave", "graveyard", "cemetery", "barrow", "catacomb"),
+     ["organ", "tolling bell", "tremolo guitar"], ["dread", "hushed"]),
+    (("lake", "pond", "river", "falls", "waterfall", "spring", "stream", "loch", "shore", "coast", "bay",
+      "harbor", "harbour", "docks", "dock", "beach", "strand", "isle", "island", "sea", "cove", "reef"),
+     ["cymbal swells like water", "clean rippling guitar arpeggios", "tin whistle"], ["by the water", "open air"]),
+    (("farm", "farmstead", "stead", "field", "orchard", "vineyard", "ranch", "pasture", "mill", "homestead", "garden"),
+     ["acoustic strum", "fiddle", "hand claps"], ["homely", "sunlit"]),
+    (("forest", "wood", "woods", "grove", "glade", "thicket", "glen", "vale", "copse"),
+     ["wooden flute", "twelve-string guitar", "hand drums"], ["under the trees", "dappled"]),
+    (("tower", "keep", "castle", "citadel", "stronghold", "fortress", "gate", "wall", "bastion"),
+     ["war drums", "horn-like twin guitars", "marching snare"], ["stone walls", "watchful"]),
+    (("ruins", "ruin", "remnants", "wreck", "fallen", "lost", "forgotten", "ancient"),
+     ["harp-like guitar harmonics", "low bowed drone", "bell-like harmonics"], ["faded grandeur", "watchful"]),
+    (("peak", "summit", "ridge", "mountain", "cliff", "pass", "crag", "heights", "overlook", "airfield"),
+     ["wide open power chords", "soaring lead guitar", "rolling toms"], ["high and windy", "far views"]),
+    (("road", "bridge", "crossing", "crossroads", "way", "path", "trail", "station", "tram"),
+     ["galloping palm-muted guitar", "driving snare", "fiddle"], ["on the road", "going somewhere"]),
+    (("village", "town", "hamlet", "shire", "landing", "haven", "rest", "refuge", "home"),
+     ["mandolin", "fiddle", "bright strummed guitars"], ["friendly", "at ease"]),
+)
+
+
+def place_flavour(name: str | None) -> tuple[list[str], list[str]] | None:
+    """The colours and mood the words in a place's name bring, or None when they say nothing."""
+    if not name:
+        return None
+    words = set(slug(name).split("-"))
+    words |= {word[:-1] for word in words if word.endswith("s")}
+    for keys, colours, mood in PLACE_WORDS:
+        if any(_names(word, key) for word in words for key in keys):
+            return list(colours), list(mood)
+    return None
+
+
+def place_profile(zone_name: str | None, place_name: str | None) -> ZoneProfile:
+    """The profile for a named place inside a zone: the zone's own tempo and key, so the place's
+    piece sits among the zone's other music, coloured by what the place's name says about it."""
+    zone = profile_for(zone_name)
+    flavour = place_flavour(place_name)
+    if flavour is None:
+        return ZoneProfile(key=zone.key, bpm=zone.bpm, tonic=zone.tonic, colours=list(zone.colours),
+                           mood=["a new corner of the same country"] + list(zone.mood[:1]))
+    colours, mood = flavour
+    return ZoneProfile(key=zone.key, bpm=zone.bpm, tonic=zone.tonic,
+                       colours=colours + zone.colours[:1], mood=mood)
+
+
 def slug(name: str) -> str:
     """A place's name as the library and the ledger file it: "Un'Goro Crater" -> "un-goro-crater"."""
     return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
@@ -78,6 +149,11 @@ def profile_for(name: str | None) -> ZoneProfile:
     for keys, entry in KEYWORDS:
         if any(_names(word, key) for word in words for key in keys):
             return _profile(name, entry)
+    # Nothing says what kind of country it is; its name may still say what kind of place (a hall,
+    # a forge, a harbour), which is worth more than "unknown country".
+    flavour = place_flavour(name)
+    if flavour is not None:
+        return _profile(name, {**ELSEWHERE, "colours": flavour[0], "mood": flavour[1]})
     return _profile(name, ELSEWHERE)
 
 
@@ -89,11 +165,8 @@ def _names(word: str, key: str) -> bool:
 
 
 def part_bars(bpm: int) -> int:
-    """How many bars a full-length part gets at this tempo. Sixteen for most. At the slowest
-    tempo a request of sixteen-bar parts would run close to five minutes, so it uses twelve; at
-    the two fastest it would be short, so they use twenty-four."""
-    if bpm <= 80:
-        return 12
-    if bpm >= 150:
-        return 24
-    return 16
+    """How many bars a piece gets at this tempo. Eight for most: the player gives a piece the
+    floor for eight bars at a time, and a request of ten eight-bar pieces carries ten ideas where
+    one of five sixteen-bar pieces carried five. At the two fastest tempos eight bars is under
+    thirteen seconds, so they use sixteen."""
+    return 16 if bpm >= 150 else 8

@@ -22,15 +22,22 @@
   const FADE = 0.015;        // length of the crossfade between two cells
   const NOTICE = 0.12;       // a cut is never asked for closer than this to now
   const QUEUE_AHEAD = 3.0;   // the next cell is chosen and loaded this long before it is needed
-  const REST_IN = 1.5;       // how long the music takes to come back after a rest
+  const REST_IN = 3.5;       // how long the music takes to fade back in after a rest
+  const REST_IN_FAST = 0.2;  // ...unless something has just happened, a fight say: then it is there at once
   const LOG_LENGTH = 500;    // how many scheduled cells are remembered
   const OPEN_HZ = 20000;
   const FALLBACK = { boss: "battle", battle: "wander", storm: "wander", night: "ember",
                      depths: "ember", ember: "wander", arrival: "wander" };
-  // How fast a layer comes up and goes down, in seconds. The bass arrives almost at once and
-  // leaves over two bars; a target may ask for everything to move faster (stealth does).
-  const UP = { bed: 0.4, drums: 0.5, bass: 0.06 };
-  const DOWN = { bed: 0.4, drums: 2.0, bass: 4.0 };
+  // How fast a layer comes up and goes down, in seconds. Layers arrive almost at once, so the
+  // music answers what the player does; they leave a little more slowly so that it does not
+  // flicker. A target may ask for everything to move faster still (stealth does).
+  const UP = { bed: 0.3, drums: 0.12, bass: 0.06 };
+  const DOWN = { bed: 0.4, drums: 0.9, bass: 1.6 };
+  const RAW_LIMIT = 48;      // cells kept as they came from the server, ready to be played at once
+  const TURN_CELLS = 2;      // a section has the floor for this many cells (eight bars), then another has a turn
+  const WIND_DOWN = 1.2;     // how long the music takes to run down, like a record stopping, at a death
+  // Which sections are fetched ahead first: the ones a change in the game jumps to.
+  const AHEAD = ["battle", "boss", "depths", "storm", "ember", "wander", "night", "arrival"];
 
   function gainOf(db) { return Math.pow(10, db / 20); }
 
@@ -43,7 +50,7 @@
       this.loader = loader;
       this.random = options.random || Math.random;
       this.asset = null;
-      this.target = { place: "wander", also: [], scene: 0, cut: "bar", bed: 1, drums: 0, bass: 0,
+      this.target = { place: "wander", also: [], scene: 0, scene_tag: null, cut: "bar", bed: 1, drums: 0, bass: 0,
                       bed_highpass_hz: 110, lowpass_hz: OPEN_HZ, highpass_hz: 20, reverb: 0, volume: 1,
                       silent: false, rest: false, fade_s: 0.4 };
       this.userVolume = 1;
@@ -52,11 +59,17 @@
       this.started = false;
       this.cache = new Map();    // "asset:startFrame" -> { bed, drums, bass } AudioBuffers
       this.cacheLimit = options.cacheLimit || 10;
+      // The same cells as the server sent them, 16 bits a sample: a third of the size, and what
+      // is fetched ahead of time so that a change of section never waits for the network.
+      this.raw = new Map();      // "asset:startFrame" -> Promise of { bed, drums, bass } ArrayBuffers
+      this.ahead = options.ahead !== false;
       this.late = 0;             // cells that could not be loaded in time and started late
       this.restSince = null;     // when the rest that is going on began, on the audio clock
       this.played = new Map();   // section key -> its turn number the last time it was started
       this.turn = 0;
       this.scenePending = false; // the player crossed into another part of the zone: change riff
+      this.resume = new Map();   // section key -> the cell it goes on from when its turn comes round again
+      this.holdUntil = 0;        // nothing new starts before this (the music is running down)
       this.log = [];             // what was scheduled and when, for the status page and the tests
       this._busy = Promise.resolve();
 
@@ -161,12 +174,37 @@
         const before = this.asset;
         const changed = !before || before.id !== asset.id;
         const samePlace = before && before.zone !== undefined && before.zone === asset.zone &&
-                          before.bar_frames === asset.bar_frames;
+                          before.genre === asset.genre && before.bar_frames === asset.bar_frames;
+        const had = new Set(before ? before.sections.map((section) => section.key) : []);
         this.asset = asset;
+        if (changed && this.ahead) this._fetchAhead(asset);
         if (changed && this.started && !samePlace && !this.target.rest) {
           await this._moveTo(this._sectionFor(this.target.place, true), "bar");
+        } else if (changed && this.started && samePlace && !this.target.rest) {
+          // More music for the zone that is playing does not interrupt it, with one exception:
+          // a piece made for the very place the player is standing in is what they are waiting
+          // for, and it comes in on the next bar.
+          const here = this.target.scene_tag || null;
+          const fresh = asset.sections.find((section) => here && section.tag === here && !had.has(section.key));
+          const playing = this.queued || this.current;
+          if (fresh && playing && this._pool().includes(fresh.role) && this._pool().includes(playing.section.role)) {
+            await this._moveTo(fresh, "bar");
+          }
         }
       });
+    }
+
+    // Fetches the first cell of every section in the background, the ones a change in the game
+    // jumps to first. Nothing waits for this; a cell that is needed before its turn comes is
+    // fetched at once by whoever needs it. A fetch that fails is reported by the page (it is an
+    // unhandled rejection there) and tried again when the cell is needed.
+    _fetchAhead(asset) {
+      const order = asset.sections.slice().sort((a, b) => AHEAD.indexOf(a.role) - AHEAD.indexOf(b.role));
+      let chain = Promise.resolve();
+      for (const section of order) {
+        chain = chain.then(() => (this.asset === asset ? this._raw(asset, section, 0) : null));
+      }
+      return chain;
     }
 
     _roles() { return new Set(this.asset.sections.map((section) => section.role)); }
@@ -196,8 +234,12 @@
 
     // The section of these kinds that has gone longest without being played. `except` is the one
     // playing now; it is not chosen again while there is anything else.
+    // A section made for one named place inside the zone (it carries that place's tag) is in
+    // the running only while the player is there.
     _pick(roles, except) {
-      let choices = this.asset.sections.filter((section) => roles.includes(section.role));
+      const here = this.target.scene_tag || null;
+      let choices = this.asset.sections.filter((section) =>
+        roles.includes(section.role) && (!section.tag || section.tag === here));
       if (except && choices.length > 1) choices = choices.filter((section) => section.key !== except.key);
       let oldest = Infinity, longest = [];
       for (const section of choices) {
@@ -218,52 +260,92 @@
       return this._pick([role], null);
     }
 
-    // What follows a cell when nothing has changed: the next cell of its section, and after the
-    // last one, whichever section in rotation has gone longest unheard. When the player has just
-    // crossed into another part of the zone, the change of riff comes at once, on this cell's end.
+    // Where a section goes on from when its turn comes round: the cell after the last one it
+    // played, or its beginning.
+    _resumeAt(section) {
+      const index = this.resume.get(section.key) || 0;
+      return index < section.cells.length ? index : 0;
+    }
+
+    // Leaves a section for another: remembers where it had got to, and fetches that cell now so
+    // that it is ready when the section's turn comes round again.
+    _leave(section, nextIndex) {
+      const index = nextIndex < section.cells.length ? nextIndex : 0;
+      this.resume.set(section.key, index);
+      if (this.ahead && this.asset.sections.includes(section)) this._raw(this.asset, section, index);
+    }
+
+    // What follows a cell when nothing has changed. A section has the floor for a couple of
+    // cells (eight bars), then whichever section in rotation has gone longest unheard has a turn,
+    // going on from where it left off. So the riff changes often, and no pass through a riff is
+    // the same stretch of it as the last. Where there is only one section to play (a fight), it
+    // simply carries on.
     _following(cell) {
       const section = cell.section, pool = this._pool();
-      const more = cell.index + 1 < section.cells.length;
-      const crossed = this.scenePending;
+      const next = cell.index + 1, more = next < section.cells.length;
       this.scenePending = false;
-      if (more && crossed) {
+      const turnOver = !more || (cell.run || 1) >= TURN_CELLS;
+      if (turnOver) {
         const other = this._pick(pool, section);
-        if (other.key !== section.key) return { section: other, index: 0 };
+        if (other.key !== section.key) {
+          this._leave(section, next);
+          return { section: other, index: this._resumeAt(other), run: 1 };
+        }
       }
-      if (more) return { section, index: cell.index + 1 };
-      return { section: this._pick(pool, section), index: 0 };
+      return { section, index: more ? next : 0, run: (cell.run || 1) + 1 };
     }
 
     // --- loading -----------------------------------------------------------------------------
 
-    async _load(asset, section, index) {
+    // The three layers of one cell as the server sends them. Asked for once however many want it;
+    // a fetch that failed is forgotten, so the next one to need the cell tries again.
+    _raw(asset, section, index) {
       const cell = section.cells[index];
       const from = section.asset_id;                  // which request's audio this section is in
       const key = from + ":" + cell.start;
+      if (this.raw.has(key)) {
+        const found = this.raw.get(key);
+        this.raw.delete(key);
+        this.raw.set(key, found);            // most recently used goes to the back
+        return found;
+      }
+      const rate = asset.rate;
+      const first = cell.start - Math.round(LEAD * rate);
+      const last = cell.end - Math.round(LEAD * rate) + Math.round(FADE * rate);
+      const fetched = Promise.all(LAYERS.map(async (layer) => {
+        const bytes = await this.loader(from, layer, first, last);
+        if (bytes.byteLength !== (last - first) * 4) {
+          throw new Error("Asked for " + (last - first) + " frames of " + layer + ", got " + bytes.byteLength / 4);
+        }
+        return bytes;
+      })).then((layers) => ({ frames: last - first, bed: layers[0], drums: layers[1], bass: layers[2] }));
+      fetched.catch(() => { if (this.raw.get(key) === fetched) this.raw.delete(key); });
+      this.raw.set(key, fetched);
+      while (this.raw.size > RAW_LIMIT) this.raw.delete(this.raw.keys().next().value);
+      return fetched;
+    }
+
+    async _load(asset, section, index) {
+      const cell = section.cells[index];
+      const key = section.asset_id + ":" + cell.start;
       if (this.cache.has(key)) {
         const found = this.cache.get(key);
         this.cache.delete(key);
         this.cache.set(key, found);          // most recently used goes to the back
         return found;
       }
-      const rate = asset.rate;
-      const first = cell.start - Math.round(LEAD * rate);
-      const last = cell.end - Math.round(LEAD * rate) + Math.round(FADE * rate);
+      const raw = await this._raw(asset, section, index);
       const loaded = {};
-      await Promise.all(LAYERS.map(async (layer) => {
-        const bytes = await this.loader(from, layer, first, last);
-        const samples = new Int16Array(bytes);
-        if (samples.length !== (last - first) * 2) {
-          throw new Error("Asked for " + (last - first) + " frames of " + layer + ", got " + samples.length / 2);
-        }
-        const buffer = this.ctx.createBuffer(2, last - first, rate);
+      for (const layer of LAYERS) {
+        const samples = new Int16Array(raw[layer]);
+        const buffer = this.ctx.createBuffer(2, raw.frames, asset.rate);
         const left = buffer.getChannelData(0), right = buffer.getChannelData(1);
-        for (let i = 0, n = last - first; i < n; i++) {
+        for (let i = 0, n = raw.frames; i < n; i++) {
           left[i] = samples[2 * i] / 32768;
           right[i] = samples[2 * i + 1] / 32768;
         }
         loaded[layer] = buffer;
-      }));
+      }
       this.cache.set(key, loaded);
       while (this.cache.size > this.cacheLimit) this.cache.delete(this.cache.keys().next().value);
       return loaded;
@@ -272,14 +354,15 @@
     // --- scheduling --------------------------------------------------------------------------
 
     // Starts a cell so that its first bar line falls at `when`. All three layers start together.
-    _schedule(section, index, buffers, when, fadeIn) {
+    _schedule(section, index, buffers, when, fadeIn, run) {
       const ctx = this.ctx, cell = section.cells[index];
       const length = (cell.end - cell.start) / this.asset.rate;
       const base = gainOf(section.gain_db);
       // The length of a bar is kept with the cell: when the zone changes, the music that is
-      // playing is still cut on its own bar line, not on the new music's.
+      // playing is still cut on its own bar line, not on the new music's. `run` counts the cells
+      // this section has played in a row.
       const playing = { section, index, start: when, end: when + length, base, sources: [], gains: [],
-                        bar: this.asset.bar_frames / this.asset.rate };
+                        bar: this.asset.bar_frames / this.asset.rate, run: run || 1 };
       for (const layer of LAYERS) {
         const source = ctx.createBufferSource();
         source.buffer = buffers[layer];
@@ -300,6 +383,7 @@
       }
       this.turn += 1;
       this.played.set(section.key, this.turn);
+      if (this.ahead && index + 1 < section.cells.length) this._raw(this.asset, section, index + 1);
       this.log.push({ at: when, section: section.name, cell: index, from: section.asset_id });
       if (this.log.length > LOG_LENGTH) this.log.splice(0, this.log.length - LOG_LENGTH);
       return playing;
@@ -320,22 +404,27 @@
       for (const source of playing.sources) { source.stop(0); source.disconnect(); }
     }
 
-    // Goes to `section` on the next bar or beat line.
-    async _moveTo(section, cut) {
-      const buffers = await this._load(this.asset, section, 0);
+    // Goes to `section` on the next bar or beat line, from its beginning unless told otherwise.
+    async _moveTo(section, cut, index) {
+      index = index || 0;
+      const buffers = await this._load(this.asset, section, index);
       const now = this.ctx.currentTime;
       if (this.queued) { this._drop(this.queued); this.queued = null; }
       let when;
       if (!this.current || this.current.end <= now) {
-        when = now + NOTICE;
-        this.queued = this._schedule(section, 0, buffers, when, false);
+        when = Math.max(now + NOTICE, this.holdUntil);
+        this.queued = this._schedule(section, index, buffers, when, false);
         this.current = null;
       } else {
         const unit = cut === "beat" ? this.current.bar / 4 : this.current.bar;
         const steps = Math.ceil((now + NOTICE - this.current.start) / unit - 1e-9);
         when = Math.min(this.current.start + Math.max(steps, 0) * unit, this.current.end);
         if (when < this.current.end - 1e-6) this._cut(this.current, when);
-        this.queued = this._schedule(section, 0, buffers, when, true);
+        if (this.current.section.key !== section.key) {
+          const reached = this.current.index + Math.ceil((when - this.current.start) / (this.current.end - this.current.start) - 1e-9);
+          this._leave(this.current.section, Math.max(reached, this.current.index + 1));
+        }
+        this.queued = this._schedule(section, index, buffers, when, true);
       }
       return when;
     }
@@ -371,18 +460,21 @@
           when = this.ctx.currentTime + NOTICE;
           this.late += 1;
         }
-        this.queued = this._schedule(next.section, next.index, buffers, when, true);
+        this.queued = this._schedule(next.section, next.index, buffers, when, true, next.run);
       });
     }
 
     // --- the target --------------------------------------------------------------------------
 
     setTarget(target) {
+      // The levels and the tone move the moment the target arrives, whatever else the engine is
+      // in the middle of. Only the choice of section waits its turn behind a cell being loaded.
+      const before = this.target;
+      this.target = Object.assign({}, before, target);
+      if (this.target.rest && !before.rest) this.restSince = this.ctx.currentTime;
+      if (this.target.scene !== before.scene) this.scenePending = true;
+      this._levels(before);
       return this._serial(async () => {
-        const before = this.target;
-        this.target = Object.assign({}, before, target);
-        if (this.target.rest && !before.rest) this.restSince = this.ctx.currentTime;
-        this._levels(before);
         if (!this.started || !this.asset) return;
         if (this.target.rest) return;                    // the music fades away; tick() tidies up
         if (before.rest) {
@@ -393,7 +485,6 @@
           await this._moveTo(this._sectionFor(this.target.place, true), "bar");
           return;
         }
-        if (this.target.scene !== before.scene) this.scenePending = true;
         const wanted = this._playable(this.target.place), pool = this._pool();
         const heading = this.queued ? this.queued.section.role : this.current ? this.current.section.role : null;
         // A change of place is answered at once, on the next bar or beat, with a section of that
@@ -402,7 +493,17 @@
         const moved = this._playable(before.place) !== wanted;
         const settled = heading === wanted || (heading === "arrival" && pool.includes("wander")) ||
                         (!moved && pool.includes(heading));
-        if (!settled) await this._moveTo(this._sectionFor(this.target.place, false), this.target.cut);
+        if (!settled) {
+          await this._moveTo(this._sectionFor(this.target.place, false), this.target.cut);
+        } else if (this.scenePending) {
+          // The player has crossed into another part of the zone: another riff, on the next bar.
+          this.scenePending = false;
+          const playing = this.queued || this.current;
+          if (playing && pool.includes(playing.section.role)) {
+            const other = this._pick(pool, playing.section);
+            if (other.key !== playing.section.key) await this._moveTo(other, "bar", this._resumeAt(other));
+          }
+        }
       });
     }
 
@@ -427,7 +528,8 @@
       this._ramp(this.toneHigh.frequency, Math.max(t.highpass_hz, 20), t.fade_s, true);
       this._ramp(this.send.gain, t.reverb, t.fade_s);
       const comingBack = before.rest && !t.rest;
-      if (this.started) this._ramp(this.master.gain, this._loudness(), comingBack ? REST_IN : t.fade_s);
+      const back = t.bass > 0 ? REST_IN_FAST : REST_IN;
+      if (this.started) this._ramp(this.master.gain, this._loudness(), comingBack ? back : t.fade_s);
     }
 
     // How loud the whole player is right now: nothing during a rest or a cinematic.
@@ -451,7 +553,7 @@
           await this.ctx.resume();
         }
         this.started = true;
-        this._ramp(this.master.gain, this._loudness(), 0.3);
+        this._ramp(this.master.gain, this._loudness(), 2.0);      // the first music fades in
         if (!this.target.rest) await this._moveTo(this._sectionFor(this.target.place, true), "bar");
       });
     }
@@ -466,6 +568,30 @@
           if (playing) for (const source of playing.sources) source.stop(now + 0.35);
         }
         this.current = this.queued = null;
+      });
+    }
+
+    // Something happened in the game that the music marks in its own way. A death runs the
+    // music down like a record stopping; what follows starts when it has run down.
+    moment(name) {
+      return this._serial(async () => {
+        if (name !== "died" || !this.started) return;
+        const now = this.ctx.currentTime;
+        for (const playing of [this.current, this.queued]) {
+          if (!playing) continue;
+          for (const source of playing.sources) {
+            source.playbackRate.setValueAtTime(1, now);
+            source.playbackRate.linearRampToValueAtTime(0.3, now + WIND_DOWN);
+            source.stop(now + WIND_DOWN + 0.05);
+          }
+          for (const gain of playing.gains) {
+            gain.gain.cancelScheduledValues(now);
+            gain.gain.setValueAtTime(playing.base, now);
+            gain.gain.linearRampToValueAtTime(0, now + WIND_DOWN);
+          }
+        }
+        this.current = this.queued = null;
+        this.holdUntil = now + WIND_DOWN;
       });
     }
 

@@ -40,12 +40,16 @@ TICK_S = 1.0           # how often the players are nudged, so their queue never 
 DWELL_S = 4.0          # how long the player has been in a zone before music is made for it
 TRIES = 2              # how many times music is asked for when a track fails its checks
 PAUSE_S = 600.0        # no new music for this long after ElevenLabs reports a problem
-SECOND_AFTER_S = 600.0   # time in a place before its music gets a second set
-FRESH_EVERY_S = 7200.0   # time in a place between fresh sets after that
-MAX_FRESH = 3            # fresh sets a place keeps in rotation; an older one is retired for a newer
+SECOND_AFTER_S = 120.0   # time in a place before its music gets a second set (it has the Boss part)
+FRESH_EVERY_S = 1800.0   # time in a place between fresh sets, once it has plenty
+FRESH_SOON_S = 600.0     # ...and while it has fewer than PLENTY sets
+PLENTY = 5               # sets (core, second and fresh ones) after which a place's music grows slowly
+MAX_FRESH = 6            # fresh sets a place keeps in rotation; an older one is retired for a newer
 GROWTH_SHARE = 0.6       # the part of the monthly allowance that goes on growing places' music
 GROWTH_FLOAT = 6.0       # minutes of growth allowed before any hours have been played
 MIN_PLAY_S = 150.0       # however little music a place has, at least this much between rests
+PLACE_DWELL_S = 2.0      # how long in a named place inside a zone before it gets a piece of its own
+STOP_WAIT_S = 180.0      # how long a stopping server waits for music that is being made
 
 
 def page_version() -> str:
@@ -75,6 +79,7 @@ class Conductor:
         self.making: str | None = None   # the zone music is being made for right now
         self._making_task: asyncio.Task | None = None
         self._seen_in: tuple[str, float] | None = None   # (zone, when the player was first seen there)
+        self._seen_at: tuple[str, float] | None = None   # (named place inside the zone, since when)
         # How many times each piece of music has been asked for today. Kept in a file, so that a
         # restart does not ask again for music that has just been turned away twice.
         self._tries_file = self.settings.var_dir / "tries.json"
@@ -115,13 +120,31 @@ class Conductor:
         """Names exactly the music that is playing, sets and all; it changes when a set is added."""
         return "+".join(asset.id for asset in self.assets) if self.assets else None
 
+    @property
+    def genre(self) -> str:
+        """The style in force: what is played, and what new music is made in."""
+        return self.settings.genre
+
+    def _in_style(self, zone: str | None = None, usable_only: bool = True) -> list[Asset]:
+        """The library's music in the style in force, for one zone or for all."""
+        found = self.library.usable(zone) if usable_only else self.library.assets(zone)
+        return [asset for asset in found if asset.genre == self.genre]
+
     def choose(self, state: game.GameState) -> tuple[list[Asset], bool]:
-        """The music for where the player is: everything the place has of its own, otherwise the
-        music that was already playing, otherwise the newest place's. Returns (music, borrowed)."""
-        usable = self.library.usable()
-        if not usable:
-            return [], False
+        """The music for where the player is, in the style in force: everything the place has of
+        its own, otherwise the music that was already playing, otherwise the newest place's. If
+        there is nothing at all in that style yet, the place's music in another style, so that
+        there is sound while the first of the new style is made. Returns (music, borrowed)."""
+        usable = self._in_style()
         wanted = self.place_key(state)
+        if not usable:
+            others = self.library.usable()
+            if not others:
+                return [], False
+            here = [asset for asset in others if asset.zone == wanted] or \
+                [asset for asset in others if asset.zone == max(others, key=lambda a: a.created).zone]
+            style = here[0].genre
+            return [asset for asset in here if asset.genre == style], True
         own = [asset for asset in usable if asset.zone == wanted]
         if own:
             return own, False
@@ -157,9 +180,16 @@ class Conductor:
     def _asset_message(self) -> dict[str, Any]:
         return {"type": "asset", "borrowed": self.borrowed, "asset": merged(self.assets)}
 
+    def scene_tag(self, state: game.GameState | None) -> str | None:
+        """The named place inside the zone the player is in, as its music is filed: the pieces
+        made for that place are played there and nowhere else."""
+        return slug(state.subzone_name) if state is not None else None
+
     def _target_message(self) -> dict[str, Any]:
         state = self.hub.state
-        return {"type": "target", "target": self.target.as_dict(), "link": self.hub.link.value,
+        target = self.target.as_dict()
+        target["scene_tag"] = self.scene_tag(state)
+        return {"type": "target", "target": target, "link": self.hub.link.value,
                 # The volume set in the game with /rock volume, 0 to 100; the page's own volume
                 # control follows it whenever it changes.
                 "game_volume": state.volume if state else None,
@@ -172,7 +202,13 @@ class Conductor:
         """Looks at the game once and tells the players whatever has changed."""
         state = self.hub.state
         if state is None:
-            return                      # nothing has been heard from the game yet
+            # Nothing has been heard from the game since the program started. A player page that
+            # was playing before a restart is told to be quiet, not left playing to itself.
+            waiting = Target(silent=True, fade_s=2.0, why=("the game has not been seen yet",))
+            if self.target != waiting:
+                self.target = waiting
+                await self._broadcast(self._target_message())
+            return
         now = self.clock()
         live = self.hub.link is game.Link.LIVE and state.enabled
         if self._last_step is not None and live:
@@ -199,7 +235,7 @@ class Conductor:
             self._sent_asset = self.view_id
             self._pace_the_rests()
             await self._broadcast(self._asset_message())
-        told = (target, state.volume, self.view_id, self.borrowed)
+        told = (target, state.volume, self.view_id, self.borrowed, self.scene_tag(state))
         if told != self._told:
             self.target, self._volume, self._told = target, state.volume, told
             await self._broadcast(self._target_message())
@@ -256,13 +292,17 @@ class Conductor:
         if now - self._seen_in[1] < DWELL_S or now < self._paused_until:
             return
         name = self.place_name(state)
-        if not any(asset.zone == key for asset in self.library.assets()):
-            kind = "core"                # the place has no music at all (banned music is not remade)
+        spot = None
+        if not self._in_style(key, usable_only=False):
+            kind = "core"                # the place has no music in this style (banned music is not remade)
         else:
-            kind = self._growth_due(name, key)
+            # A named place inside the zone that has no piece of its own comes first: it is
+            # where the player is standing, and its piece is short and quick to make.
+            spot = self._place_due(state, key, now)
+            kind = "place" if spot else self._growth_due(name, key)
             if kind is None:
                 return
-        tried = key + ":" + kind
+        tried = self.genre + ":" + key + ("/" + slug(spot) if spot else "") + ":" + kind
         if self._tries.get(tried, 0) >= TRIES:
             return
         self.making = key
@@ -270,33 +310,59 @@ class Conductor:
         self._save_tries()
         again = self._tries[tried] > 1
         if kind == "core":
-            self.notes.append("Making music for %s." % name)
+            self.notes.append("Making music for %s (%s)." % (name, composer.GENRES[self.genre]["label"]))
             job = self.ingest.core_suite(name, reroll=again)
+        elif kind == "place":
+            self.notes.append("Making a piece for %s." % spot)
+            core = next(asset for asset in self._in_style(key) if asset.set == "core")
+            job = self.ingest.place_piece(core, name, spot, reroll=again)
+            name = spot
         else:
             self.notes.append("Making more music for %s (a %s set)." % (name, kind))
-            core = next(asset for asset in self.library.usable(key) if asset.set == "core")
+            core = next(asset for asset in self._in_style(key) if asset.set == "core")
             job = self.ingest.later_set(core, name, kind, reroll=again)
         self._making_task = asyncio.create_task(job, name="freerock-making-" + tried)
-        self._making_task.add_done_callback(lambda task: self._made(name, key, kind, task))
+        self._making_task.add_done_callback(lambda task: self._made(name, key, kind, task, tried))
+
+    def _place_due(self, state: game.GameState, key: str, now: float) -> str | None:
+        """The named place inside the zone the player is in, if it should get a piece of its own
+        now: it has a name of its own, the player has been in it a moment, nothing has been made
+        for it before, and the zone has a core suite for the piece to belong to."""
+        spot = state.subzone_name
+        tag = slug(spot)
+        if not tag or tag == key:
+            self._seen_at = None
+            return None
+        if self._seen_at is None or self._seen_at[0] != tag:
+            self._seen_at = (tag, now)
+        if now - self._seen_at[1] < PLACE_DWELL_S:
+            return None
+        if any(asset.subzone == tag for asset in self._in_style(key, usable_only=False)):
+            return None
+        if not any(asset.set == "core" for asset in self._in_style(key)):
+            return None
+        return spot
 
     def _growth_due(self, name: str | None, key: str) -> str | None:
         """Whether the place the player is in has earned more music, and which kind: a second set
         once some time has been spent there, a fresh set every couple of hours after that. None
         if it has not, or if the month's growth has run ahead of the hours played."""
-        own = self.library.usable(key)
+        own = self._in_style(key)
         if not any(asset.set == "core" for asset in own):
             return None                  # its core suite was banned; nothing to grow from
-        if not any(asset.set == "second" for asset in self.library.assets(key)):
+        if not any(asset.set == "second" for asset in self._in_style(key, usable_only=False)):
             if self.playtime.place_seconds(key) < SECOND_AFTER_S:
                 return None
             kind = "second"
         else:
-            if self.playtime.since_set(key) < FRESH_EVERY_S:
+            every = FRESH_SOON_S if len(own) < PLENTY else FRESH_EVERY_S
+            if self.playtime.since_set(key) < every:
                 return None
             kind = "fresh"
         profile = atlas.profile_for(name)
         maker = composer.second_set if kind == "second" else composer.fresh_set
-        minutes = maker(profile, part_bars=atlas.part_bars(profile.bpm)).minutes
+        bars = atlas.part_bars(composer.for_genre(profile, self.genre).bpm)
+        minutes = maker(profile, part_bars=bars, genre=self.genre).minutes
         return kind if self.growth_left() >= minutes else None
 
     def growth_left(self) -> float:
@@ -311,7 +377,7 @@ class Conductor:
     def _retire_old_sets(self, key: str) -> None:
         """A place keeps a few fresh sets in rotation. When a newer one arrives the oldest that has
         not been marked as loved is set aside (kept on disk, no longer played)."""
-        fresh = [asset for asset in self.library.usable(key) if asset.set == "fresh"]
+        fresh = [asset for asset in self._in_style(key) if asset.set == "fresh"]
         spare = [asset for asset in fresh if not asset.loved]
         while len(fresh) > MAX_FRESH and spare:
             oldest = spare.pop(0)
@@ -319,21 +385,21 @@ class Conductor:
             fresh.remove(oldest)
             self.notes.append("Set aside an older set (%s) to make room for the new one." % oldest.id)
 
-    def _made(self, name: str, key: str, kind: str, task: asyncio.Task) -> None:
+    def _made(self, name: str, key: str, kind: str, task: asyncio.Task, tried: str | None = None) -> None:
         self.making = None
-        tried = key + ":" + kind
+        tried = tried or key + ":" + kind
         if task.cancelled():
             return
         error = task.exception()
         if error is None:
             made = task.result()
-            if kind != "core":
+            if kind in ("second", "fresh"):
                 self.playtime.set_made(key, made.asset.minutes)
                 self._retire_old_sets(key)
+            what = {"core": "New music", "place": "A piece of its own"}.get(kind, "More music (a %s set)" % kind)
             self.notes.append("%s for %s is ready (first audio after %.1f s, all of it after %.1f s, "
                               "layers split in %.0f s)." % (
-                                  "New music" if kind == "core" else "More music (a %s set)" % kind, name,
-                                  made.first_audio_s or 0.0, made.total_s or 0.0, made.split_s))
+                                  what, name, made.first_audio_s or 0.0, made.total_s or 0.0, made.split_s))
         elif isinstance(error, TrackFailedChecks):
             again = self._tries.get(tried, 0) < TRIES
             self.notes.append("%s %s" % (error, "Trying once more." if again else "Not trying again today."))
@@ -478,6 +544,29 @@ class Conductor:
         self.hub.publish(game.StateChanged(state=state, previous=previous, changed=changed))
         return web.json_response({"ok": True})
 
+    def _styles(self) -> dict[str, Any]:
+        have = {}
+        for asset in self.library.usable():
+            have.setdefault(asset.genre, set()).add(asset.zone)
+        return {"genre": self.genre,
+                "genres": [{"key": key, "label": recipe["label"], "about": recipe["about"],
+                            "places": len(have.get(key, ()))} for key, recipe in composer.GENRES.items()]}
+
+    async def style(self, request: web.Request) -> web.Response:
+        """Which style is in force and which there are; a POST changes it. The change is kept
+        (var/settings.json) and takes effect at once: what the library has in the new style is
+        played, and the place the player is in gets music in it if it has none."""
+        if request.method == "POST":
+            wanted = (await request.json()).get("genre")
+            try:
+                self.settings.change("genre", wanted)
+            except ValueError as error:
+                raise web.HTTPBadRequest(text=str(error))
+            self.settings.save()
+            self._seen_in = self._seen_at = None      # the wait before making music starts again
+            self.notes.append("The style is now %s." % composer.GENRES[self.genre]["label"])
+        return web.json_response(self._styles())
+
     async def zones(self, request: web.Request) -> web.Response:
         have = {asset.zone for asset in self.library.assets() if not asset.banned}
         return web.json_response([{"name": name, "has_music": atlas.slug(name) in have}
@@ -491,7 +580,7 @@ class Conductor:
             "growth_minutes_left": round(self.growth_left(), 2),
             "target": self.target.as_dict() if self.target else None,
             "players": list(self.statuses.values()), "players_connected": len(self.players),
-            "making": self.making, "notes": self.notes[-20:]})
+            "making": self.making, "genre": self.genre, "notes": self.notes[-20:]})
 
 
 def _ended(conductor: Conductor, task: asyncio.Task) -> None:
@@ -519,9 +608,18 @@ async def _stop(app: web.Application) -> None:
         await socket.close()
     conductor.playtime.save()
     if conductor._making_task is not None and not conductor._making_task.done():
-        conductor._making_task.cancel()
-        with contextlib.suppress(asyncio.CancelledError):
-            await conductor._making_task
+        # Music that is being made has been paid for by the time the request is out. Stopping
+        # in the middle would throw it away, so the server waits for it to be finished and stored.
+        log.warning("music is being made for %s; waiting for it before stopping", conductor.making)
+        try:
+            await asyncio.wait_for(asyncio.shield(conductor._making_task), timeout=STOP_WAIT_S)
+        except asyncio.TimeoutError:
+            log.error("the music for %s was not finished in %.0f s and is given up", conductor.making, STOP_WAIT_S)
+            conductor._making_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await conductor._making_task
+        except Exception as error:   # what went wrong with the track itself was reported when it happened
+            log.warning("the music being made ended with %r", error)
     if conductor._task is not None and not conductor._task.done():
         conductor._task.cancel()
         # Being cancelled is how this loop is meant to end; any other error was already reported
@@ -549,6 +647,8 @@ def attach(app: web.Application, library: Library | None = None,
     app.router.add_get("/audio/{asset}/{layer}", conductor.audio)
     app.router.add_get("/api/music", conductor.status)
     app.router.add_get("/api/zones", conductor.zones)
+    app.router.add_get("/api/style", conductor.style)
+    app.router.add_post("/api/style", conductor.style)
     app.router.add_post("/api/pretend", conductor.pretend)
     app.on_startup.append(_start)
     app.on_cleanup.append(_stop)

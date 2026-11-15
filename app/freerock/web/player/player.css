@@ -35,3 +35,8 @@ summary { cursor: pointer; font-weight: 600; }
 .checks { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 2px 12px; margin: 10px 0 4px; }
 .checks label { display: block; margin-top: 4px; }
 .checks input { accent-color: var(--accent); }
+
+/* The three styles: one is chosen. */
+.styles { display: flex; flex-wrap: wrap; gap: 8px; }
+.styles button { flex: 1 1 8rem; }
+.styles button.chosen { outline: 2px solid currentColor; font-weight: 700; }

@@ -191,12 +191,13 @@ def test_kinds_of_section_take_turns(results):
     assert turns["late"] == 0
 
 
-def test_crossing_into_another_area_changes_the_riff_at_the_end_of_the_cell(results):
+def test_crossing_into_another_area_changes_the_riff_on_the_next_bar(results):
     scene = of(results, "newScene")
-    # Arrival, then Wander A; the crossing at 10 s is answered when A's first cell ends at 16 s,
-    # where A's second cell would otherwise have followed. After that B runs its whole length.
-    assert scene["order"][:6] == ["Arrival 0", "Wander A 0", "Wander B 0", "Wander B 1", "Wander A 0", "Wander A 1"]
-    assert scene["starts"][2] == pytest.approx(0.12 + 16, abs=0.001)
+    # Arrival, then Wander A; the crossing at 10 s is answered on the next bar line, at 10.12 s
+    # (bars are two seconds long and Wander A began at 8.12). When A's turn comes round again it
+    # goes on from its second cell.
+    assert scene["order"][:5] == ["Arrival 0", "Wander A 0", "Wander B 0", "Wander B 1", "Wander A 1"]
+    assert scene["starts"][2] == pytest.approx(0.12 + 10, abs=0.001)
     assert scene["toneAfter"] > 10 * scene["toneOfTheOld"]
     assert scene["late"] == 0
 
@@ -216,3 +217,45 @@ def test_after_a_rest_the_riff_that_has_gone_longest_unheard_comes_first(results
     # has not been heard yet. (It used to be Wander A after every rest.)
     assert rest["sections"][:4] == ["Arrival", "Wander A", "Arrival", "Wander B"]
     assert rest["late"] == 0
+
+
+def test_a_riff_has_eight_bars_then_another_has_a_turn_and_each_goes_on_where_it_left_off(results):
+    turns = of(results, "turns")
+    assert turns["order"][:11] == ["Arrival 0", "Wander A 0", "Wander A 1", "Wander B 0", "Wander B 1",
+                                   "Wander A 2", "Wander A 3", "Wander B 2", "Wander B 3",
+                                   "Wander A 0", "Wander A 1"]
+    assert turns["late"] == 0
+
+
+def test_a_fight_carries_on_through_its_one_section_and_the_riff_goes_on_after(results):
+    fight = of(results, "oneSectionCarriesOn")
+    order = fight["order"]
+    # Arrival, Wander A; the fight at 12 s cuts in on the next beat (12.12 s) and Battle runs its
+    # four cells and round again; back to the riffs at 56 s, with Wander B, the one not yet heard.
+    assert order[:3] == ["Arrival 0", "Wander A 0", "Battle 0"]
+    assert fight["starts"][2] == pytest.approx(0.12 + 12, abs=0.001)
+    assert order[3:8] == ["Battle 1", "Battle 2", "Battle 3", "Battle 0", "Battle 1"]
+    after = [name for name in order[8:] if not name.startswith("Battle")]
+    assert after[0] == "Wander B 0", "after the fight comes the riff that has gone longest unheard"
+    assert "Wander A 1" in after, "and the riff the fight interrupted goes on from where it had got to"
+    assert fight["late"] == 0
+
+
+def test_every_section_is_fetched_before_it_is_needed(results):
+    ahead = of(results, "fetchedAhead")
+    assert set(ahead["sectionStarts"]) <= set(ahead["beforeTheFight"]), "a section's first cell was not fetched ahead"
+    assert ahead["beforeTheFight"].index(ahead["battleStart"]) <= 1, "the Battle part is fetched first of all"
+    assert ahead["battleStart"] not in ahead["afterIt"], "going to Battle asked the server for it again"
+    # Asked for at 12.3 s: the next beat line is 12.62 s, and nothing waited for the network.
+    assert ahead["battleAt"] == pytest.approx(0.12 + 12.5, abs=0.001)
+    assert ahead["late"] == 0
+
+
+def test_a_death_runs_the_music_down_like_a_record_stopping(results):
+    down = of(results, "windDown")
+    assert down["runningDown"] < 0.7 * down["before"] and down["runningDown"] > 0.2 * down["before"]
+    assert down["gone"] < 0.08 * down["before"]
+    # The pitch falls with it: the note that was playing is no longer at its own pitch.
+    assert down["toneWhileRunningDown"] < 0.3 * down["toneBefore"]
+    assert down["nextAt"] == pytest.approx(10.0 + 1.2, abs=0.01), "the next music starts when the old has run down"
+    assert down["late"] == 0

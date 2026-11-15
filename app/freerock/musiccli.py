@@ -116,7 +116,8 @@ def _adopt(arguments: argparse.Namespace) -> int:
 # -- settings -----------------------------------------------------------------------------------
 def _settings_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("name", nargs="?", help="one of: " + ", ".join(Settings.CHANGEABLE))
-    parser.add_argument("value", nargs="?", type=float, help="the new value")
+    parser.add_argument("value", nargs="?", help="the new value (a number, or for genre one of: %s)"
+                        % ", ".join(Settings.GENRES))
 
 
 def _show_settings(arguments: argparse.Namespace) -> int:
@@ -126,7 +127,12 @@ def _show_settings(arguments: argparse.Namespace) -> int:
             print("Give a value as well, for example: freerock settings %s 40" % arguments.name, file=sys.stderr)
             return 1
         try:
-            settings.change(arguments.name, arguments.value)
+            value = arguments.value if arguments.name == "genre" else float(arguments.value)
+        except ValueError:
+            print("%s takes a number, not %r" % (arguments.name, arguments.value), file=sys.stderr)
+            return 1
+        try:
+            settings.change(arguments.name, value)
         except ValueError as problem:
             print(str(problem), file=sys.stderr)
             return 1
@@ -138,6 +144,7 @@ def _show_settings(arguments: argparse.Namespace) -> int:
     print("rock                %g   how much of the rock the calm parts of new music carry, 0 to 1" % settings.rock)
     print("rest_every_minutes  %g   about this much calm music between rests (0: never rest)" % settings.rest_every_minutes)
     print("rest_seconds        %g   about this long without music in a rest" % settings.rest_seconds)
+    print("genre               %s   the style played and made: %s" % (settings.genre, ", ".join(Settings.GENRES)))
     return 0
 
 
@@ -149,8 +156,9 @@ def _library(arguments: argparse.Namespace) -> int:
         return 0
     for asset in assets:
         marks = (" loved" if asset.loved else "") + (" banned" if asset.banned else "")
-        print("%-22s %-6s %s  %.2f min  %3d BPM  %-20s %s%s" % (
-            asset.zone, asset.set, asset.id, asset.minutes, asset.bpm, asset.tonic,
+        where = asset.zone + (" / " + asset.subzone if asset.subzone else "")
+        print("%-34s %-8s %-6s %s  %.2f min  %3d BPM  %-14s %s%s" % (
+            where, asset.genre, asset.set, asset.id, asset.minutes, asset.bpm, asset.tonic,
             time.strftime("%Y-%m-%d %H:%M", time.localtime(asset.created)), marks))
     print("%d pieces of music for %d places, %.1f minutes in all."
           % (len(assets), len({asset.zone for asset in assets}), sum(asset.minutes for asset in assets)))

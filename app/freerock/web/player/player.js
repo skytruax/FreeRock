@@ -47,7 +47,8 @@
     if (!ctx) {
       // The player runs at the music's own sample rate, so nothing is resampled and the three
       // layers stay locked.
-      ctx = new AudioContext({ sampleRate: asset.rate, latencyHint: "playback" });
+      // A short path to the speakers, so that a change is heard as soon as it is made.
+      ctx = new AudioContext({ sampleRate: asset.rate, latencyHint: "interactive" });
       engine = new FreeRockEngine(ctx, loader);
       engine.setVolume(volume());
       if (target) await engine.setTarget(target);
@@ -112,6 +113,7 @@
       }
       show(message);
     } else if (message.type === "skip" && engine) await engine.skip();
+    else if (message.type === "moment" && engine) await engine.moment(message.name);
     // Every message is also a nudge to look at the queue, so the music never depends on a timer
     // that the browser may slow down while the game is in front.
     if (engine) await engine.tick();
@@ -140,6 +142,38 @@
   $("skip").addEventListener("click", () => {
     if (engine) engine.skip().catch((error) => problem(String(error)));
   });
+
+  // --- the style ---------------------------------------------------------------------------------
+  // Three kinds of music. The one in force is what is played and what new music is made in; a
+  // place that has nothing in it yet gets some, and plays what it has meanwhile.
+  function drawStyles(styles) {
+    $("styles").replaceChildren(...styles.genres.map((genre) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = genre.label;
+      button.title = genre.about + (genre.places ? " (music for " + genre.places + " places so far)" : " (no music made yet)");
+      button.className = genre.key === styles.genre ? "chosen" : "quiet";
+      button.setAttribute("aria-pressed", genre.key === styles.genre ? "true" : "false");
+      button.addEventListener("click", () => chooseStyle(genre.key));
+      return button;
+    }));
+    const chosen = styles.genres.find((genre) => genre.key === styles.genre);
+    $("styleAbout").textContent = chosen
+      ? chosen.label + ": " + chosen.about + ". New music is made in this style; a place with none yet gets some within a minute or two."
+      : "";
+  }
+  async function loadStyles() {
+    const response = await fetch("/api/style");
+    if (!response.ok) throw new Error("The styles could not be fetched (" + response.status + ")");
+    drawStyles(await response.json());
+  }
+  async function chooseStyle(key) {
+    const response = await fetch("/api/style", { method: "POST", headers: { "Content-Type": "application/json" },
+                                                 body: JSON.stringify({ genre: key }) });
+    if (!response.ok) { problem("The style was not changed: " + await response.text()); return; }
+    drawStyles(await response.json());
+  }
+  loadStyles().catch((error) => problem(String(error)));
 
   // --- the pretend game ----------------------------------------------------------------------
   // Stands in for the game while it is not connected: every change is sent to the server as if

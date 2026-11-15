@@ -78,6 +78,11 @@ class Settings:
     # Battle and Boss are always the full band.
     rock: float = 0.5
 
+    # The kind of music: "knight" (riff rock with lute and hurdy-gurdy), "warcraft" (an orchestral
+    # fantasy score in the old style) or "trance". New music is made in it, and what the library
+    # already has in it is what is played. See composer.GENRES.
+    genre: str = "knight"
+
     # Rests: about this many minutes of calm music, then about this many seconds without any, as
     # the game's own music has between pieces. rest_every_minutes of 0 means the music never rests.
     rest_every_minutes: float = 6.0
@@ -100,7 +105,8 @@ class Settings:
 
     # The settings that may be changed in var/settings.json or with `freerock settings`.
     CHANGEABLE = ("monthly_minutes", "daily_minutes", "hours_per_month", "rock",
-                  "rest_every_minutes", "rest_seconds")
+                  "rest_every_minutes", "rest_seconds", "genre")
+    GENRES = ("knight", "warcraft", "trance")
 
     @property
     def file(self) -> Path:
@@ -119,9 +125,14 @@ class Settings:
             settings.change(name, value)
         return settings
 
-    def change(self, name: str, value: float) -> None:
+    def change(self, name: str, value: float | str) -> None:
         if name not in self.CHANGEABLE:
             raise ValueError("%r is not a setting; the settings are %s" % (name, ", ".join(self.CHANGEABLE)))
+        if name == "genre":
+            if value not in self.GENRES:
+                raise ValueError("genre must be one of %s, not %r" % (", ".join(self.GENRES), value))
+            self.genre = str(value)
+            return
         if isinstance(value, bool) or not isinstance(value, (int, float)):
             raise ValueError("%s must be a number, not %r" % (name, value))
         if name == "rock" and not 0.0 <= value <= 1.0:

@@ -515,6 +515,29 @@ async def test_a_place_with_little_music_rests_sooner(tmp_path):
         await client.close()
 
 
+async def test_a_page_left_playing_over_a_restart_is_told_to_be_quiet(tmp_path):
+    """After a restart the program has not seen the game yet. A player page that reconnects (it
+    may still be playing what it had) is sent silence until the game is seen."""
+    client, app, conductor, assets = await running(tmp_path)
+    try:
+        socket = await client.ws_connect("/ws/player")
+        quiet = await next_of(socket, "target")
+        assert quiet["target"]["silent"] is True and quiet["target"]["why"] == ["the game has not been seen yet"]
+        assert quiet["where"] == {"zone": None, "subzone": None, "instance": None}
+        late = await client.ws_connect("/ws/player")
+        assert (await next_of(late, "target"))["target"]["silent"] is True, "a page that connects later hears it too"
+        publish(app, zone_name="Elwynn Forest")
+        while True:
+            target = (await next_of(socket, "target"))["target"]
+            if not target["silent"]:
+                break
+        assert target["place"] == "wander"
+        await socket.close()
+        await late.close()
+    finally:
+        await client.close()
+
+
 # --- a place's music growing with the time spent there --------------------------------------------
 
 async def test_a_place_with_several_sets_is_played_as_one_body_of_music(tmp_path):

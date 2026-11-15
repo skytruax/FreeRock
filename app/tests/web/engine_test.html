@@ -49,15 +49,31 @@ function makeSlowAsset() {
   return { id: "slow", rate: RATE, bpm: 96, bar_frames: bar, frames: 3 * cell, sections };
 }
 
+// Two riffs of sixteen bars each (four cells), as real music has, after a one-cell opening.
+function makeLongAsset() {
+  const plan = [["Arrival", "arrival", 1, 0], ["Wander A", "wander", 4, -6], ["Wander B", "wander", 4, -6],
+                ["Battle", "battle", 4, 0]];
+  const sections = [];
+  let frame = 0;
+  plan.forEach(([name, role, cells, gain], index) => {
+    const section = { name, role, start: frame, gain_db: gain, tone: 300 + 200 * index, cells: [] };
+    for (let i = 0; i < cells; i++) { section.cells.push({ start: frame, end: frame + CELL }); frame += CELL; }
+    section.end = frame;
+    sections.push(section);
+  });
+  return { id: "long", zone: "test-zone", rate: RATE, bpm: 120, bar_frames: BAR, frames: frame, sections };
+}
+
 // kind "marks": drums and bass are single-sample clicks on every beat, the bed is the section's tone.
 // kind "tones": bass is a steady 80 Hz tone, drums are noise, the bed is the section's tone.
 // kind "loud":  every layer is the same full-scale tone, to push the limiter.
-function makeLoader(firstAsset, kind) {
-  const known = { test: makeAsset(), slow: makeSlowAsset(),
+function makeLoader(firstAsset, kind, fetched) {
+  const known = { test: makeAsset(), slow: makeSlowAsset(), long: makeLongAsset(),
                   extra: { frames: 2 * CELL, sections: [EXTRA] } };
   return async (assetId, layer, first, last) => {
     const asset = known[assetId];
     if (!asset) throw new Error("The test has no audio for " + assetId);
+    if (fetched) fetched.push({ asset: assetId, layer, first });
     const out = new Int16Array((last - first) * 2);
     let seed = 99;
     for (let i = 0; i < last - first; i++) {
@@ -91,7 +107,7 @@ function makeLoader(firstAsset, kind) {
 async function render(seconds, options) {
   const asset = options.asset || makeAsset();
   const ctx = new OfflineAudioContext(2, seconds * RATE, RATE);
-  const engine = new FreeRockEngine(ctx, makeLoader(asset, options.kind || "marks"),
+  const engine = new FreeRockEngine(ctx, makeLoader(asset, options.kind || "marks", options.fetched),
                                     { limiter: options.limiter === true, random: () => 0 });
   await engine.setAsset(asset);
   await engine.setTarget(options.target || {});
@@ -310,6 +326,52 @@ tests.afterARest = async () => {
     script: [[20.0, (engine) => engine.setTarget({ rest: true, fade_s: 1 })],
              [26.0, (engine) => engine.setTarget({ rest: false, fade_s: 0.4 })]] });
   return { sections: sectionsInOrder(run.engine.log), late: run.engine.late };
+};
+
+// A riff has the floor for eight bars, then the other has a turn, and each goes on from where it
+// left off: no pass through a riff is the same stretch of it as the last.
+tests.turns = async () => {
+  const run = await render(120, { asset: makeLongAsset(), target: { bed: 1, drums: 0, bass: 0, bed_highpass_hz: 20 } });
+  return { order: run.engine.log.map((entry) => entry.section + " " + entry.cell), late: run.engine.late };
+};
+
+// A fight has one section to play: it carries on through all of it and round again, and the
+// riff it interrupted goes on afterwards from where it had got to.
+tests.oneSectionCarriesOn = async () => {
+  const run = await render(80, {
+    asset: makeLongAsset(), target: { bed: 1, drums: 0, bass: 0, bed_highpass_hz: 20 },
+    script: [[12.0, (engine) => engine.setTarget({ place: "battle", cut: "beat" })],
+             [56.0, (engine) => engine.setTarget({ place: "wander", cut: "bar" })]] });
+  const log = run.engine.log;
+  return { order: log.map((entry) => entry.section + " " + entry.cell), starts: log.map((entry) => entry.at),
+           late: run.engine.late };
+};
+
+// Every section's first cell is fetched as soon as the music is known, the ones a change in the
+// game jumps to first, so that going there later asks the server for nothing.
+tests.fetchedAhead = async () => {
+  const fetched = [];
+  const run = await render(30, {
+    fetched, target: { bed: 1, drums: 0, bass: 0, bed_highpass_hz: 20 },
+    script: [[12.3, (engine) => { fetched.push("the fight starts"); return engine.setTarget({ place: "battle", cut: "beat" }); }]] });
+  const mark = fetched.indexOf("the fight starts");
+  const lead = Math.round(FreeRockEngine.LEAD * RATE);
+  const battle = run.asset.sections.find((section) => section.role === "battle");
+  const firstOf = (list) => list.filter((entry) => typeof entry !== "string" && entry.layer === "bed").map((entry) => entry.first + lead);
+  return { beforeTheFight: firstOf(fetched.slice(0, mark)), afterIt: firstOf(fetched.slice(mark + 1)),
+           battleStart: battle.start, sectionStarts: run.asset.sections.map((section) => section.start),
+           battleAt: (run.engine.log.find((entry) => entry.section === "Battle") || {}).at, late: run.engine.late };
+};
+
+// A death runs the music down like a record stopping, and what follows starts once it has.
+tests.windDown = async () => {
+  const run = await render(20, {
+    target: { bed: 1, drums: 0, bass: 0, bed_highpass_hz: 20 },
+    script: [[10.0, (engine) => engine.moment("died")]] });
+  const d = run.data, log = run.engine.log;
+  return { before: rms(d, 9.0, 9.9), runningDown: rms(d, 10.5, 10.7), gone: rms(d, 11.12, 11.2),
+           toneBefore: strength(d, 9.0, 9.9, 500), toneWhileRunningDown: strength(d, 10.6, 11.1, 500),
+           nextAt: (log.find((entry) => entry.at > 10.0) || {}).at, late: run.engine.late };
 };
 
 // Levels and tone must move as soon as the target changes.

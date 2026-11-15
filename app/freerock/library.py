@@ -40,6 +40,8 @@ def role_of(part_name: str) -> str:
     if len(words) > 1 and len(words[-1]) == 1:
         words = words[:-1]
     role = " ".join(words)
+    if role == "theme":
+        role = "wander"            # a place's own piece is played where the zone's riffs are
     if role not in TARGET_LUFS:
         raise ValueError("Unknown kind of part: %r" % part_name)
     return role
@@ -80,6 +82,8 @@ class Asset:
     loved: bool = False
     banned: bool = False
     retired: bool = False       # set aside to make room for a newer set; kept on disk, not played
+    subzone: str | None = None  # the named place inside the zone this piece was made for, if any
+    genre: str = "knight"       # the style it is in: knight | warcraft | trance (composer.GENRES)
 
     @property
     def usable(self) -> bool:
@@ -124,7 +128,8 @@ class Library:
     # --- adding ----------------------------------------------------------------------------------
 
     def add(self, *, zone: str, set_name: str, request: Request, mix: np.ndarray, layers: Layers,
-            song_id: str | None = None, checks: dict[str, Any] | None = None) -> Asset:
+            song_id: str | None = None, checks: dict[str, Any] | None = None,
+            subzone: str | None = None, genre: str = "knight") -> Asset:
         """Stores a finished track. `mix` is what ElevenLabs sent; `layers` is its split."""
         rate = layers.rate
         if len(mix) != len(layers.bed):
@@ -152,7 +157,7 @@ class Library:
         asset = Asset(id=uuid.uuid4().hex[:12], zone=zone, set=set_name, bpm=request.bpm,
                       tonic=request.tonic, rate=rate, frames=len(mix), minutes=round(request.minutes, 3),
                       created=time.time(), sections=sections, seed=request.seed, song_id=song_id,
-                      checks=checks or {})
+                      checks=checks or {}, subzone=subzone, genre=genre)
         folder = self._folder(asset)
         folder.mkdir(parents=True)
         # Whole samples, with the bed as what is left of the mix after drums and bass, so the three
@@ -240,8 +245,10 @@ def merged(assets: list[Asset]) -> dict[str, Any]:
         raise ValueError("No music to describe")
     first = assets[0]
     same = [asset for asset in assets if asset.bpm == first.bpm and asset.rate == first.rate]
-    sections = [{**asdict(section), "asset_id": asset.id} for asset in same for section in asset.sections]
-    return {"id": "+".join(asset.id for asset in same), "zone": first.zone,
+    # A section made for one named place says so ("tag"); the player plays it there and nowhere else.
+    sections = [{**asdict(section), "asset_id": asset.id, "tag": asset.subzone}
+                for asset in same for section in asset.sections]
+    return {"id": "+".join(asset.id for asset in same), "zone": first.zone, "genre": first.genre,
             "set": " + ".join(asset.set for asset in same), "bpm": first.bpm, "tonic": first.tonic,
             "rate": first.rate, "bar_frames": first.bar_frames,
             "minutes": round(sum(asset.minutes for asset in same), 2), "sections": sections}
