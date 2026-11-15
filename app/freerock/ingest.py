@@ -18,7 +18,7 @@ from typing import Any, Callable
 import numpy as np
 
 from . import analysis, atlas, composer
-from .audio import PcmStream, write_flac
+from .audio import PcmStream, read_audio, write_flac
 from .eleven import Gateway
 from .library import Asset, Library
 from .stems import Layers, split
@@ -64,7 +64,6 @@ def check(request: composer.Request, mix: np.ndarray, layers: Layers, rate: int)
     got = len(mix) / rate
     if abs(got - asked) > MAX_LENGTH_OFF_S:
         failed.append("asked for %.2f s, got %.2f s" % (asked, got))
-    tonic = analysis.parse_tonic(request.tonic)
     parts, agree = {}, 0
     for part in request.parts:
         start = part.start_ms * rate // 1000
@@ -75,9 +74,12 @@ def check(request: composer.Request, mix: np.ndarray, layers: Layers, rate: int)
         key = analysis.estimate_key(mix[start:end], rate)
         off = (grid.bpm / request.bpm - 1.0) * 100.0
         to_beat = grid.distance_to_beat_s(part.start_ms / 1000.0) * 1000.0
-        agree += key.agrees_with(tonic)
+        # The parts are held to the notes of the key that was asked for, not to its name: see
+        # KeyEstimate.in_family for why a key finder names a different key from part to part.
+        fits = key.in_family(request.tonic)
+        agree += fits
         parts[part.name] = {"tempo_off_percent": round(off, 3), "start_to_beat_ms": round(to_beat, 1),
-                            "heard_as": key.name, "key_agrees": key.agrees_with(tonic),
+                            "heard_as": key.name, "key_agrees": fits,
                             "tuning_cents": round(key.tuning_cents, 1)}
         # The opening part is a drone and one guitar, with little to fit a beat to; it is noted
         # but only the parts with a full band are held to the tempo.
@@ -87,7 +89,7 @@ def check(request: composer.Request, mix: np.ndarray, layers: Layers, rate: int)
             if abs(to_beat) > MAX_START_TO_BEAT_MS:
                 failed.append("%s starts %.0f ms from a beat" % (part.name, to_beat))
     if parts and agree < len(parts) - 1:
-        failed.append("only %d of %d parts are in %s" % (agree, len(parts), request.tonic))
+        failed.append("only %d of %d parts use the notes of %s" % (agree, len(parts), request.tonic))
     if layers.vocal_leak_db > MAX_VOCAL_LEAK_DB:
         failed.append("there seems to be singing (%.1f dB)" % layers.vocal_leak_db)
     return {"failed": failed, "parts": parts, "vocal_leak_db": round(layers.vocal_leak_db, 1),
@@ -145,6 +147,26 @@ class Ingest:
             "parts": [{"name": part.name, "bars": part.bars, "start_ms": part.start_ms, "end_ms": part.end_ms}
                       for part in request.parts]}, indent=2) + "\n", encoding="utf-8")
         return folder
+
+    async def adopt(self, folder: Path, set_name: str = "core") -> Made:
+        """Looks again at a track that was kept after failing its checks and, if it passes them as
+        they are now, puts it in the library. Costs nothing: the audio is already here."""
+        noted = json.loads((Path(folder) / "checks.json").read_text(encoding="utf-8"))
+        mix, rate = read_audio(Path(folder) / "mix.flac")
+        if rate != RATE:
+            raise ValueError("The kept track is at %d Hz, not %d" % (rate, RATE))
+        request = composer.Request(
+            plan=noted["plan"], bpm=noted["bpm"], tonic=noted["tonic"], seed=noted["seed"],
+            parts=[composer.Part(part["name"], part["bars"], part["start_ms"], part["end_ms"])
+                   for part in noted["parts"]])
+        layers = await asyncio.to_thread(self.splitter, mix, RATE)
+        checks = await asyncio.to_thread(check, request, mix, layers, RATE)
+        if checks["failed"]:
+            raise TrackFailedChecks(noted["zone"], checks, Path(folder))
+        asset = await asyncio.to_thread(
+            self.library.add, zone=noted["zone"], set_name=set_name, request=request, mix=mix,
+            layers=layers, song_id=noted.get("song_id"), checks=checks)
+        return Made(asset=asset, first_audio_s=None, total_s=None, split_s=layers.seconds)
 
     async def core_suite(self, place_name: str | None, *, rock: float = 0.5, seed: int | None = None,
                          reroll: bool = False) -> Made:

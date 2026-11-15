@@ -192,6 +192,29 @@ class KeyEstimate:
         order = np.argsort(-self.chroma)
         return int(np.where(order == pitch_class % 12)[0][0]) + 1
 
+    def scale_shares(self) -> np.ndarray:
+        """For each of the twelve major scales, the share of the track's energy that falls on
+        its seven notes. Entry 0 is the scale of C major (the white keys), entry 7 that of G."""
+        return np.array([sum(self.chroma[(root + step) % 12] for step in MAJOR_SCALE) for root in range(12)])
+
+    def in_family(self, key_name: str) -> bool:
+        """Whether the track uses the notes of `key_name`, give or take one.
+
+        Riff rock and folk tunes move their weight around inside one set of seven notes: a piece
+        asked for in D minor may sit on A for a section, or lean on the major sixth and so sound
+        Dorian. A key finder then names a different key each time, though nothing has gone wrong
+        and the parts still join and layer. So this asks which seven-note scale the audio fits
+        best, and accepts the scale `key_name` belongs to or a neighbour that differs from it by
+        a single note.
+        """
+        wanted = parent_scale(key_name)
+        shares = self.scale_shares()
+        family = max(shares[wanted], shares[(wanted + 7) % 12], shares[(wanted + 5) % 12])
+        # "As well as any scale could, within three points": a sparse part (a drone, power chords
+        # of root and fifth) fits several scales equally, and must not fail for which one a tie
+        # happens to name.
+        return bool(family >= shares.max() - 0.03)
+
     def agrees_with(self, tonic: int) -> bool:
         """True when `tonic` is this estimate's tonic, or the tonic of its relative key, or one of
         the two strongest pitch classes. Modal music (Dorian, Mixolydian) is often heard by a
@@ -215,18 +238,29 @@ def estimate_key(audio: np.ndarray, rate: int) -> KeyEstimate:
     keep = (freqs >= 60.0) & (freqs <= 2000.0)
     freqs, power = freqs[keep], spectrum[keep]
 
-    # Tuning: where the spectral peaks sit between two semitones, as an average around the circle.
+    # Only the peaks of the spectrum are used, each placed by fitting a curve through it and its
+    # two neighbours. Taking every bin instead smears a low note into the semitones either side
+    # of it (the bins are about 6 Hz apart, and at 80 Hz a semitone is under 5 Hz wide), which is
+    # enough to make a drone on E look as if it had F in it.
     is_peak = np.zeros(len(power), dtype=bool)
-    is_peak[1:-1] = (power[1:-1] > power[:-2]) & (power[1:-1] > power[2:])
-    is_peak &= power > np.percentile(power, 90)
-    semitones = 12.0 * np.log2(freqs[is_peak] / 440.0)
+    is_peak[1:-1] = (power[1:-1] > power[:-2]) & (power[1:-1] >= power[2:])
+    is_peak &= power > power.max() * 1e-4
+    at = np.flatnonzero(is_peak)
+    left, mid, right = (np.log(power[at + shift] + 1e-30) for shift in (-1, 0, 1))
+    curve = left - 2.0 * mid + right
+    shift = np.where(curve < 0, 0.5 * (left - right) / np.where(curve < 0, curve, -1.0), 0.0)
+    peak_freqs = freqs[at] + np.clip(shift, -0.5, 0.5) * (freqs[1] - freqs[0])
+    weight = np.sqrt(power[at])
+
+    # Tuning: where the peaks sit between two semitones, as an average around the circle.
+    semitones = 12.0 * np.log2(peak_freqs / 440.0)
     fraction = semitones - np.round(semitones)
-    angle = np.angle(np.sum(power[is_peak] * np.exp(2j * np.pi * fraction)))
+    strong = power[at] > np.percentile(power, 90)
+    angle = np.angle(np.sum(power[at][strong] * np.exp(2j * np.pi * fraction[strong])))
     tuning_cents = float(angle / (2 * np.pi) * 100.0)
 
-    all_semitones = 12.0 * np.log2(freqs / 440.0) - tuning_cents / 100.0
-    pitch_class = (np.round(all_semitones).astype(int) + 9) % 12  # A is pitch class 9
-    chroma = np.bincount(pitch_class, weights=np.sqrt(power), minlength=12)
+    pitch_class = (np.round(semitones - tuning_cents / 100.0).astype(int) + 9) % 12  # A is pitch class 9
+    chroma = np.bincount(pitch_class, weights=weight, minlength=12)
     chroma = chroma / (chroma.sum() + 1e-12)
 
     best = (-2.0, 0, "major")
@@ -238,6 +272,23 @@ def estimate_key(audio: np.ndarray, rate: int) -> KeyEstimate:
                 best = (correlation, tonic, mode)
     return KeyEstimate(tonic=best[1], mode=best[2], correlation=best[0],
                        tuning_cents=tuning_cents, chroma=chroma)
+
+
+MAJOR_SCALE = (0, 2, 4, 5, 7, 9, 11)
+# How far above its parent major scale's key note each mode starts, in semitones: D Dorian uses
+# the notes of C major, two semitones below D.
+MODE_STEPS = {"major": 0, "ionian": 0, "dorian": 2, "phrygian": 4, "lydian": 5, "mixolydian": 7,
+              "minor": 9, "aeolian": 9, "locrian": 11}
+
+
+def parent_scale(key_name: str) -> int:
+    """The major scale whose seven notes a key uses, as the pitch class of that scale's key
+    note: "A minor", "D dorian" and "G mixolydian" all give 0, the scale of C major."""
+    words = key_name.strip().lower().split()
+    mode = words[1] if len(words) > 1 else "major"
+    if mode not in MODE_STEPS:
+        raise ValueError("Unknown mode %r in %r" % (mode, key_name))
+    return (parse_tonic(key_name) - MODE_STEPS[mode]) % 12
 
 
 def parse_tonic(name: str) -> int:

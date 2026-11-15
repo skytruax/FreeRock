@@ -148,3 +148,19 @@ async def test_nothing_is_made_past_the_allowance(tmp_path):
         await ingest.core_suite("Westfall")
     assert len(seen) == 1 and len(library.assets()) == 1
     await gateway.aclose()
+
+
+async def test_a_kept_track_can_be_adopted_once_it_passes(tmp_path):
+    # Rejected for singing by one splitter; looked at again with another, it passes and is stored.
+    strict, library, gateway = make(tmp_path, [], splitter=stand_in_splitter(leak_db=-12.0))
+    with pytest.raises(TrackFailedChecks) as failure:
+        await strict.core_suite("Westfall")
+    kept = failure.value.kept
+    with pytest.raises(TrackFailedChecks):
+        await strict.adopt(kept)                               # still fails by the same measure
+    lenient = Ingest(gateway, library, splitter=stand_in_splitter())
+    made = await lenient.adopt(kept)
+    assert made.asset.zone == "westfall" and made.asset.song_id == "song-1" and made.asset.bpm == 96
+    assert [asset.id for asset in library.assets("westfall")] == [made.asset.id]
+    assert gateway.ledger.month_minutes() == pytest.approx(3.5), "adopting must not cost anything more"
+    await gateway.aclose()

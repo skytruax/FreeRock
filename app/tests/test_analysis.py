@@ -96,6 +96,24 @@ def test_modal_music_agrees_with_its_tonic():
     assert key.agrees_with(analysis.parse_tonic("D dorian"))
 
 
+def test_parent_scale():
+    assert [analysis.parent_scale(n) for n in ("C major", "A minor", "D dorian", "G mixolydian", "E phrygian")] == [0] * 5
+    assert analysis.parent_scale("D minor") == 5 and analysis.parent_scale("F# phrygian") == 2
+    assert analysis.parent_scale("E phrygian dominant") == 0       # the second word names the mode
+    with pytest.raises(ValueError):
+        analysis.parent_scale("D spooky")
+
+
+def test_a_piece_is_in_its_keys_family_wherever_its_weight_sits():
+    dorian = analysis.estimate_key(progression(D_DORIAN), RATE)
+    assert dorian.in_family("D dorian") and dorian.in_family("D minor") and dorian.in_family("A minor")
+    assert dorian.in_family("G mixolydian")                    # the same seven notes
+    assert not dorian.in_family("E major") and not dorian.in_family("F# minor")
+    minor = analysis.estimate_key(progression(A_MINOR), RATE)   # Am Dm E: A harmonic minor
+    assert minor.in_family("A minor") and minor.in_family("D minor") and not minor.in_family("B major")
+    assert dorian.scale_shares().shape == (12,) and dorian.scale_shares()[0] == pytest.approx(dorian.scale_shares().max())
+
+
 def test_tuning_offset_is_measured():
     sharp = analysis.estimate_key(progression(A_MINOR, cents=25), RATE)
     assert sharp.tuning_cents == pytest.approx(25, abs=5) and sharp.agrees_with(9)

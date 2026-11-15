@@ -1,6 +1,7 @@
 """The music commands of `freerock`: make a zone's music now, list the library, show the spend.
 
     freerock make "Duskwood"       make that zone's first music now (uses the allowance)
+    freerock adopt <folder>        look again at a track that failed its checks; keep it if it passes now
     freerock library               what music FreeRock has
     freerock ledger                what has been spent this month and what is left
 """
@@ -76,6 +77,29 @@ def _make(arguments: argparse.Namespace) -> int:
     return asyncio.run(run())
 
 
+# -- adopt --------------------------------------------------------------------------------------
+def _adopt_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("folder", help="a folder under var/rejected holding a track that failed its checks")
+
+
+def _adopt(arguments: argparse.Namespace) -> int:
+    settings = _settings()
+
+    async def run() -> int:
+        ingest, gateway = _ingest(settings)
+        try:
+            made = await ingest.adopt(arguments.folder)
+        except TrackFailedChecks as failed:
+            print("It still fails: %s." % "; ".join(failed.checks["failed"]), file=sys.stderr)
+            return 1
+        finally:
+            await gateway.aclose()
+        print("Put in the library as %s (%s, %.2f minutes)." % (made.asset.id, made.asset.zone, made.asset.minutes))
+        return 0
+
+    return asyncio.run(run())
+
+
 # -- library ------------------------------------------------------------------------------------
 def _library(arguments: argparse.Namespace) -> int:
     assets = Library(_settings().library_dir).assets()
@@ -123,5 +147,7 @@ def _ledger(arguments: argparse.Namespace) -> int:
 
 
 add_command("make", "make a zone's first music now", _make_arguments, _make)
+add_command("adopt", "look again at a track that failed its checks and keep it if it now passes",
+            _adopt_arguments, _adopt)
 add_command("library", "list the music FreeRock has", lambda parser: None, _library)
 add_command("ledger", "what has been spent this month and what is left", lambda parser: None, _ledger)
