@@ -165,6 +165,14 @@ def test_night_cinematic_and_switched_off():
     assert loading.lowpass_hz == 800.0 and loading.volume == pytest.approx(0.5)
 
 
+def test_each_reason_is_given_once():
+    inn_at_night = play([(1, {"indoors": True, "resting": True, "daytime": False})], 6)(6)
+    assert len(inn_at_night.why) == len(set(inn_at_night.why))
+    assert "quieter while resting" in inn_at_night.why and "darker at night" in inn_at_night.why
+    cave = play([(1, {"indoors": True})], 6)(6)
+    assert cave.why == ("indoors for a while", "indoors: muffled and echoing")
+
+
 def test_tints_combine_lowest_lowpass_and_largest_reverb():
     both = play([(1, {"indoors": True, "weather": "snow", "weather_intensity": 1.0, "daytime": False})], 2)(2)
     assert both.lowpass_hz == 2500.0 and both.reverb == pytest.approx(0.45)

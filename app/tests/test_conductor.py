@@ -130,8 +130,20 @@ async def test_a_zone_without_music_borrows_and_says_so(tmp_path):
         publish(app, zone_name="Westfall")
         asset = await next_of(socket, "asset")
         assert asset["borrowed"] is True and asset["asset"]["zone"] == "elwynn-forest"
+        assert (await next_of(socket, "target"))["music"] == {"zone": "elwynn-forest", "borrowed": True}
         status = await (await client.get("/api/music")).json()
         assert "Westfall has no music of its own yet" in " ".join(status["notes"])
+        # Walking home, then on into another zone that also has none: the same music carries on,
+        # and the player is told each time whether the place is borrowing it.
+        publish(app, zone_name="Elwynn Forest")
+        home = await next_of(socket, "target")
+        assert home["music"] == {"zone": "elwynn-forest", "borrowed": False}
+        publish(app, zone_name="Duskwood")
+        away = await next_of(socket, "target")
+        assert away["music"] == {"zone": "elwynn-forest", "borrowed": True}
+        notes = (await (await client.get("/api/music")).json())["notes"]
+        assert notes[-1] == "Duskwood has no music of its own yet; playing elwynn-forest's."
+        assert notes.count("Westfall has no music of its own yet; playing elwynn-forest's.") == 1
         await socket.close()
     finally:
         await client.close()

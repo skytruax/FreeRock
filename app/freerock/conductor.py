@@ -69,6 +69,8 @@ class Conductor:
         self._sent_asset: str | None = None
         self._volume: int | None = None  # the volume last passed on from the game
         self._pretend_state: game.GameState | None = None   # the last state the pretend game set
+        self._noted: tuple | None = None     # the place and music last written to the notes
+        self._told: tuple | None = None      # what the players were last told
         self._pretend_may_make = False
 
     # --- choosing the music ----------------------------------------------------------------------
@@ -123,6 +125,7 @@ class Conductor:
                 # The volume set in the game with /rock volume, 0 to 100; the page's own volume
                 # control follows it whenever it changes.
                 "game_volume": state.volume if state else None,
+                "music": {"zone": self.asset.zone if self.asset else None, "borrowed": self.borrowed},
                 "where": {"zone": state.zone_name if state else None,
                           "subzone": state.subzone_name if state else None,
                           "instance": state.instance_name if state else None}}
@@ -137,16 +140,22 @@ class Conductor:
         else:
             target = self.director.update(state, self.clock())
         asset, borrowed = self.choose_asset(state)
-        if asset is not None and (self.asset is None or asset.id != self.asset.id):
+        if asset is not None:
+            # Said once for each place, and again if the music under it changes: whose music is
+            # playing, and whether the place is borrowing it.
+            place = (self.place_key(state), asset.id, borrowed)
+            if place[0] and place != self._noted:
+                self._noted = place
+                self.notes.append("%s has no music of its own yet; playing %s's."
+                                  % (self.place_name(state), asset.zone)
+                                  if borrowed else "Playing %s's music." % asset.zone)
             self.asset, self.borrowed = asset, borrowed
-            where = state.zone_name or "this zone"
-            self.notes.append("%s has no music of its own yet; playing %s's." % (where, asset.zone)
-                              if borrowed else "Playing %s's music." % asset.zone)
         if self.asset is not None and self._sent_asset != self.asset.id:
             self._sent_asset = self.asset.id
             await self._broadcast(self._asset_message())
-        if target != self.target or state.volume != self._volume:
-            self.target, self._volume = target, state.volume
+        told = (target, state.volume, self.asset.id if self.asset else None, self.borrowed)
+        if told != self._told:
+            self.target, self._volume, self._told = target, state.volume, told
             await self._broadcast(self._target_message())
         self._consider_making(state)
 

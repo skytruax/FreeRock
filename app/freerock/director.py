@@ -220,7 +220,7 @@ class Director:
             place = "battle"       # the next pull may be coming; do not leave Battle yet
         elif m.in_depths:
             place = "depths"
-            why.append("indoors")
+            why.append("indoors for a while")
         elif state.resting:
             place = "ember"
             why.append("resting")
@@ -260,10 +260,10 @@ class Director:
         elif state.weather == "sandstorm" and strength > 0:
             tint("sandstorm", low=3000.0 + 5000.0 * (1.0 - strength), high=300.0 * strength)
         if state.daytime is False:
-            tint("night", low=5000.0)
+            tint("darker at night", low=5000.0)
             drums *= 0.7
         if state.resting:
-            tint("resting", gain=0.63)                # about 4 dB down
+            tint("quieter while resting", gain=0.63)   # about 4 dB down
             bass = 0.0
         if state.on_taxi:
             tint("flight path", high=150.0, wet=0.30)
@@ -292,7 +292,7 @@ class Director:
                       bed_highpass_hz=FLOOR_HZ if bass > 0 else 110.0,
                       lowpass_hz=round(lowpass, 1), highpass_hz=round(highpass, 1),
                       reverb=round(min(reverb, 0.6), 3), volume=round(volume, 3), fade_s=fade,
-                      intensity=round(intensity, 3), why=tuple(why))
+                      intensity=round(intensity, 3), why=tuple(dict.fromkeys(why)))
 
 
 def playable(place: str, roles: set[str]) -> str:

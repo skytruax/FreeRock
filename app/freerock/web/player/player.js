@@ -12,6 +12,7 @@
   let retry = 500;              // milliseconds until the next attempt to reconnect
   let lostAt = null;            // when the server was last lost, if it is lost now
   let gameVolume = null;        // the volume last set from inside the game
+  let playing = null;           // the music the server last sent
   const problems = [];
 
   // Anything that goes wrong is shown on the page and sent to the server, never dropped.
@@ -50,8 +51,8 @@
       if (target) await engine.setTarget(target);
     }
     await engine.setAsset(asset);
-    $("music").textContent = (message.borrowed ? "This zone has no music of its own yet. Playing " : "Music for ")
-      + asset.zone + " (" + asset.set + " set, " + asset.bpm + " BPM, " + asset.tonic + ").";
+    playing = asset;
+    musicLine(message.borrowed);
     await begin();
   }
 
@@ -64,8 +65,16 @@
     await engine.start();
   }
 
+  // Whose music is playing, and whether this place is only borrowing it.
+  function musicLine(borrowed) {
+    if (!playing) return;
+    $("music").textContent = (borrowed ? "This place has no music of its own yet. Playing music made for " : "Music for ")
+      + playing.zone + " (" + playing.set + " set, " + playing.bpm + " BPM, " + playing.tonic + ").";
+  }
+
   function show(message) {
     const t = message.target, where = message.where || {};
+    if (message.music) musicLine(message.music.borrowed);
     $("where").textContent = [where.instance || where.zone, where.subzone].filter(Boolean).join(", ") || "Waiting for the game";
     $("place").textContent = t.silent ? "silence" : t.place + (t.cut === "beat" ? " (on the beat)" : "");
     for (const name of ["intensity", "bed", "drums", "bass"]) $(name).style.width = Math.round(100 * t[name]) + "%";
