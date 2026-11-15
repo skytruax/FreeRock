@@ -4,6 +4,9 @@
     freerock sim <scenario>        play a scripted session against a running server, without the game
     freerock sim --list            the scenarios that come with FreeRock
     freerock read <picture>        read the strip out of a saved picture and say what it holds
+    freerock make "<zone>"         make a zone's first music now
+    freerock library               list the music FreeRock has
+    freerock ledger                what has been spent this month and what is left
 
 Other parts of FreeRock add their own commands by calling add_command() before main() runs.
 """
@@ -101,9 +104,12 @@ def _read(arguments: argparse.Namespace) -> int:
     return 0
 
 
-add_command("serve", "run the FreeRock server", _serve_arguments, _serve)
+add_command("serve", "run FreeRock: the game link, the music and the pages", _serve_arguments, _serve)
 add_command("sim", "play a scripted session against a running server", _sim_arguments, _sim)
 add_command("read", "read the strip out of a saved picture", _read_arguments, _read)
+
+# The music commands (make, library, ledger) live with the music and add themselves here.
+from freerock import musiccli  # noqa: E402,F401
 
 
 def build_parser() -> argparse.ArgumentParser:
