@@ -38,13 +38,14 @@ PLAYER_FILES = {"player.html": "text/html", "player.js": "application/javascript
 STEP_S = 0.25          # how often the director is asked again while nothing changes
 TICK_S = 1.0           # how often the players are nudged, so their queue never depends on a timer
 DWELL_S = 4.0          # how long the player has been in a zone before music is made for it
-TRIES = 2              # how many times music is asked for when a track fails its checks
+TRIES = 3              # how many times music is asked for when a track fails its checks
 PAUSE_S = 600.0        # no new music for this long after ElevenLabs reports a problem
-SECOND_AFTER_S = 120.0   # time in a place before its music gets a second set (it has the Boss part)
-FRESH_EVERY_S = 1800.0   # time in a place between fresh sets, once it has plenty
-FRESH_SOON_S = 600.0     # ...and while it has fewer than PLENTY sets
-PLENTY = 5               # sets (core, second and fresh ones) after which a place's music grows slowly
-MAX_FRESH = 6            # fresh sets a place keeps in rotation; an older one is retired for a newer
+AHEAD = 1                # songs a place keeps ready that have not been heard yet: when the last
+                         # unheard one starts playing, the next is begun, so every song is a new one
+BETWEEN_S = 45.0         # at least this long between two sets for one place, whatever the count says
+FRESH_EVERY_S = 480.0    # and a new song is begun this often in any case, wherever the player is
+RETRY_AFTER_S = 1800.0   # after TRIES failures in a row for one thing, it is left alone this long
+MAX_FRESH = 12           # fresh sets a place keeps in rotation; an older one is retired for a newer
 GROWTH_SHARE = 0.6       # the part of the monthly allowance that goes on growing places' music
 GROWTH_FLOAT = 6.0       # minutes of growth allowed before any hours have been played
 MIN_PLAY_S = 150.0       # however little music a place has, at least this much between rests
@@ -80,11 +81,15 @@ class Conductor:
         self._making_task: asyncio.Task | None = None
         self._seen_in: tuple[str, float] | None = None   # (zone, when the player was first seen there)
         self._seen_at: tuple[str, float] | None = None   # (named place inside the zone, since when)
+        self._zone_of_map: dict[int, str] = {}           # the zone each of the game's maps belongs to
         # How many times each piece of music has been asked for today. Kept in a file, so that a
         # restart does not ask again for music that has just been turned away twice.
         self._tries_file = self.settings.var_dir / "tries.json"
         self._tries: dict[str, int] = self._load_tries()
         self._paused_until = 0.0
+        self._last_made = clock()        # when new music last arrived, for any place
+        self._asked_at: dict[str, float] = {}   # when a set was last asked for, by place
+        self._song_heard: str | None = None     # the music whose song a player was last heard playing
         self.players: set[web.WebSocketResponse] = set()
         self.assets: list[Asset] = []    # the music that is playing: a core suite and any later sets
         self.borrowed = False            # the zone has no music of its own yet; another zone's is playing
@@ -101,11 +106,31 @@ class Conductor:
 
     # --- choosing the music ----------------------------------------------------------------------
 
-    @staticmethod
-    def place_name(state: game.GameState) -> str | None:
+    def place_name(self, state: game.GameState) -> str | None:
         """The name music is filed under for where the player is: the dungeon inside one, the
-        zone otherwise. None while the name has not arrived from the game yet."""
-        return state.instance_name if state.in_instance else state.zone_name
+        zone otherwise. None while the name has not arrived from the game yet.
+
+        Inside some buildings the game gives the building's name as the zone's (the Scarlet
+        Raven Tavern in Duskwood) while the map stays the zone's. The zone is then the one that
+        map was last known to be, and the building is a named place inside it."""
+        if state.in_instance:
+            return state.instance_name
+        name = state.zone_name
+        if name and state.map_id:
+            if atlas.is_known(name) or state.map_id not in self._zone_of_map:
+                self._zone_of_map[state.map_id] = name
+            else:
+                return self._zone_of_map[state.map_id]
+        return name
+
+    def spot_name(self, state: game.GameState) -> str | None:
+        """The named place inside the zone the player is in: the subzone, or a building whose
+        name the game gave as the zone's."""
+        if state.subzone_name:
+            return state.subzone_name
+        if not state.in_instance and state.zone_name and state.zone_name != self.place_name(state):
+            return state.zone_name
+        return None
 
     def place_key(self, state: game.GameState) -> str | None:
         return slug(self.place_name(state))
@@ -183,7 +208,7 @@ class Conductor:
     def scene_tag(self, state: game.GameState | None) -> str | None:
         """The named place inside the zone the player is in, as its music is filed: the pieces
         made for that place are played there and nowhere else."""
-        return slug(state.subzone_name) if state is not None else None
+        return slug(self.spot_name(state)) if state is not None else None
 
     def _target_message(self) -> dict[str, Any]:
         state = self.hub.state
@@ -194,8 +219,8 @@ class Conductor:
                 # control follows it whenever it changes.
                 "game_volume": state.volume if state else None,
                 "music": {"zone": self.asset.zone if self.asset else None, "borrowed": self.borrowed},
-                "where": {"zone": state.zone_name if state else None,
-                          "subzone": state.subzone_name if state else None,
+                "where": {"zone": self.place_name(state) if state and not state.in_instance else None,
+                          "subzone": self.spot_name(state) if state else None,
                           "instance": state.instance_name if state else None}}
 
     async def step(self) -> None:
@@ -247,6 +272,11 @@ class Conductor:
         never later than the setting says."""
         if self._rest_every_s <= 0:
             return
+        # Music made as songs brings its own silences: each song is played to its end and
+        # followed by one. Cutting across a song on a timer as well would spoil it.
+        if any(section.song for asset in self.assets for section in asset.sections if not asset.subzone):
+            self.director.rules.rest_every_s = 0.0
+            return
         exploring = sum((section.end - section.start) / asset.rate for asset in self.assets
                         for section in asset.sections if section.role in ("wander", "ember"))
         self.director.rules.rest_every_s = min(self._rest_every_s, max(MIN_PLAY_S, 2.0 * exploring))
@@ -258,16 +288,31 @@ class Conductor:
         return datetime.date.today().isoformat()
 
     def _load_tries(self) -> dict[str, int]:
-        """Today's count of requests for each piece of music; yesterday's are forgotten."""
+        """How many times in a row each piece of music has been asked for without success, and
+        when it was last asked for. Kept in a file, so that a restart does not ask again at once
+        for music that has just been turned away three times."""
+        self._tried_at: dict[str, float] = {}
         if not self._tries_file.exists():
             return {}
         kept = json.loads(self._tries_file.read_text(encoding="utf-8"))
-        return dict(kept["tries"]) if kept.get("day") == self._today() else {}
+        self._tried_at = {key: float(when) for key, when in kept.get("at", {}).items()}
+        return dict(kept.get("tries", {}))
 
     def _save_tries(self) -> None:
         self._tries_file.parent.mkdir(parents=True, exist_ok=True)
-        self._tries_file.write_text(json.dumps({"day": self._today(), "tries": self._tries}, indent=1) + "\n",
+        self._tries_file.write_text(json.dumps({"tries": self._tries, "at": self._tried_at}, indent=1) + "\n",
                                     encoding="utf-8")
+
+    def _may_try(self, tried: str) -> bool:
+        """Whether a piece of music may be asked for now. Three failures in a row and it is
+        left alone for half an hour; then it may be tried again. It is never given up for good:
+        a place is not left without new music for a day because its checks failed."""
+        if self._tries.get(tried, 0) < TRIES:
+            return True
+        if time.time() - self._tried_at.get(tried, 0.0) >= RETRY_AFTER_S:
+            self._tries[tried] = 0
+            return True
+        return False
 
     def _consider_making(self, state: game.GameState) -> None:
         """Starts making music for the zone the player is in, if it has none of its own, the
@@ -303,32 +348,76 @@ class Conductor:
             if kind is None:
                 return
         tried = self.genre + ":" + key + ("/" + slug(spot) if spot else "") + ":" + kind
-        if self._tries.get(tried, 0) >= TRIES:
-            return
+        if not self._may_try(tried):
+            if kind != "second":
+                return
+            # A second set that keeps failing does not hold up the songs that would follow it.
+            kind = "fresh"
+            tried = self.genre + ":" + key + ":" + kind
+            if not self._may_try(tried):
+                return
         self.making = key
         self._tries[tried] = self._tries.get(tried, 0) + 1
+        self._tried_at[tried] = time.time()
         self._save_tries()
         again = self._tries[tried] > 1
+        self._asked_at[key] = now
+        moment = self.moment_words(state)
         if kind == "core":
             self.notes.append("Making music for %s (%s)." % (name, composer.GENRES[self.genre]["label"]))
-            job = self.ingest.core_suite(name, reroll=again)
+            job = self.ingest.core_suite(name, reroll=again, context=moment)
         elif kind == "place":
             self.notes.append("Making a piece for %s." % spot)
             core = next(asset for asset in self._in_style(key) if asset.set == "core")
             job = self.ingest.place_piece(core, name, spot, reroll=again)
             name = spot
         else:
-            self.notes.append("Making more music for %s (a %s set)." % (name, kind))
+            self.notes.append("Writing a new song for %s%s." % (name, ": " + "; ".join(moment) if moment else ""))
             core = next(asset for asset in self._in_style(key) if asset.set == "core")
-            job = self.ingest.later_set(core, name, kind, reroll=again)
+            job = self.ingest.later_set(core, name, kind, reroll=again, context=moment)
         self._making_task = asyncio.create_task(job, name="freerock-making-" + tried)
         self._making_task.add_done_callback(lambda task: self._made(name, key, kind, task, tried))
+
+    def moment_words(self, state: game.GameState) -> list[str]:
+        """What is true in the game as a song is about to be written, in words for the request:
+        the hour, the weather, how much fighting and riding there has been. A song is written
+        for the moment it is asked for in, which is one more thing that keeps two songs apart."""
+        words = []
+        if state.daytime is False:
+            words.append("a song for the night: cooler, with more space in it")
+        strength = state.weather_intensity or 0.0
+        if state.weather == "rain" and strength >= 0.3:
+            words.append("rain on the road: a driving wet-weather song")
+        elif state.weather == "snow" and strength >= 0.3:
+            words.append("falling snow: hushed verses and a warm chorus")
+        elif state.weather == "sandstorm" and strength >= 0.3:
+            words.append("a dry wind blowing: a gritty, swaying song")
+        if self.director.heat >= 0.6:
+            words.append("after a run of fights: restless and hard-driving")
+        elif state.resting:
+            words.append("in town and at ease: an easy-going song")
+        elif state.mounted:
+            words.append("a riding song with a galloping feel in the verses")
+        return words
+
+    def _count_play(self, report: dict[str, Any]) -> None:
+        """Notes that a player has started a song, once for each start. A song that a fight cut
+        into and that then went on is still the same start."""
+        asset_id = report.get("asset_id")
+        if not report.get("song") or not asset_id or asset_id == self._song_heard:
+            return
+        self._song_heard = asset_id
+        try:
+            self.library.played(asset_id)
+        except KeyError:
+            # The page is still playing music the library no longer has. Nothing to count.
+            log.warning("a player is playing %s, which is not in the library", asset_id)
 
     def _place_due(self, state: game.GameState, key: str, now: float) -> str | None:
         """The named place inside the zone the player is in, if it should get a piece of its own
         now: it has a name of its own, the player has been in it a moment, nothing has been made
         for it before, and the zone has a core suite for the piece to belong to."""
-        spot = state.subzone_name
+        spot = self.spot_name(state)
         tag = slug(spot)
         if not tag or tag == key:
             self._seen_at = None
@@ -350,15 +439,18 @@ class Conductor:
         own = self._in_style(key)
         if not any(asset.set == "core" for asset in own):
             return None                  # its core suite was banned; nothing to grow from
-        if not any(asset.set == "second" for asset in self._in_style(key, usable_only=False)):
-            if self.playtime.place_seconds(key) < SECOND_AFTER_S:
-                return None
-            kind = "second"
-        else:
-            every = FRESH_SOON_S if len(own) < PLENTY else FRESH_EVERY_S
-            if self.playtime.since_set(key) < every:
-                return None
-            kind = "fresh"
+        # A place keeps one song ready that nobody has heard. The moment that song starts
+        # playing, the next is begun, so that the music is a run of new songs and not a round of
+        # the same ones. And in any case a new one is begun every eight minutes, wherever the
+        # player is and whether or not they have changed zone.
+        now = self.clock()
+        if now - self._asked_at.get(key, -1e9) < BETWEEN_S:
+            return None
+        unheard = [asset for asset in own if asset.has_song and not asset.subzone and asset.plays == 0]
+        overdue = (self.playtime.since_set(key) >= FRESH_EVERY_S or now - self._last_made >= FRESH_EVERY_S)
+        if len(unheard) >= AHEAD and not overdue:
+            return None
+        kind = "fresh" if any(asset.set == "second" for asset in self._in_style(key, usable_only=False)) else "second"
         profile = atlas.profile_for(name)
         maker = composer.second_set if kind == "second" else composer.fresh_set
         bars = atlas.part_bars(composer.for_genre(profile, self.genre).bpm)
@@ -393,16 +485,21 @@ class Conductor:
         error = task.exception()
         if error is None:
             made = task.result()
+            if kind != "place":
+                self._last_made = self.clock()
             if kind in ("second", "fresh"):
                 self.playtime.set_made(key, made.asset.minutes)
                 self._retire_old_sets(key)
+            self._tries[tried] = 0           # it worked: the count of failures in a row starts again
+            self._save_tries()
             what = {"core": "New music", "place": "A piece of its own"}.get(kind, "More music (a %s set)" % kind)
             self.notes.append("%s for %s is ready (first audio after %.1f s, all of it after %.1f s, "
                               "layers split in %.0f s)." % (
                                   what, name, made.first_audio_s or 0.0, made.total_s or 0.0, made.split_s))
         elif isinstance(error, TrackFailedChecks):
             again = self._tries.get(tried, 0) < TRIES
-            self.notes.append("%s %s" % (error, "Trying once more." if again else "Not trying again today."))
+            self.notes.append("%s %s" % (error, "Trying once more." if again
+                                         else "Leaving it for half an hour before trying again."))
         elif isinstance(error, AllowanceExceeded):
             self._tries[tried] -= 1      # nothing was asked for, so it does not count as a try
             self._save_tries()
@@ -488,6 +585,7 @@ class Conductor:
                 report = json.loads(message.data)
                 if report.get("type") == "status":
                     self.statuses[id(socket)] = report
+                    self._count_play(report)
                 elif report.get("type") == "problem":
                     note = "The player page reported a problem: %s" % report.get("message")
                     log.error(note)

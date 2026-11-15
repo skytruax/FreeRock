@@ -36,6 +36,10 @@
   const RAW_LIMIT = 48;      // cells kept as they came from the server, ready to be played at once
   const TURN_CELLS = 2;      // a section has the floor for this many cells (eight bars), then another has a turn
   const WIND_DOWN = 1.2;     // how long the music takes to run down, like a record stopping, at a death
+  const SONG_END = 2.5;      // the last seconds of a song fade away
+  const SONG_IN = 3.0;       // a new song fades in over this long, under whatever it follows
+  const SOFT = 1.0;          // a calm change (back to the song after a fight, another riff) is a short crossfade
+  const GAP = 30;            // seconds of silence between songs, unless the target says otherwise
   // Which sections are fetched ahead first: the ones a change in the game jumps to.
   const AHEAD = ["battle", "boss", "depths", "storm", "ember", "wander", "night", "arrival"];
 
@@ -70,6 +74,8 @@
       this.scenePending = false; // the player crossed into another part of the zone: change riff
       this.resume = new Map();   // section key -> the cell it goes on from when its turn comes round again
       this.holdUntil = 0;        // nothing new starts before this (the music is running down)
+      this.gapUntil = 0;         // between songs: nothing plays before this
+      this.songResume = null;    // the section of a song that something cut into, to go back to
       this.log = [];             // what was scheduled and when, for the status page and the tests
       this._busy = Promise.resolve();
 
@@ -170,6 +176,8 @@
         for (const section of asset.sections) {
           section.asset_id = section.asset_id || asset.id;
           section.key = section.asset_id + ":" + section.name;
+          // The sections of one song are played in order, start to finish.
+          section.songKey = section.song ? section.asset_id + ":song:" + section.song : null;
         }
         const before = this.asset;
         const changed = !before || before.id !== asset.id;
@@ -236,17 +244,32 @@
     // playing now; it is not chosen again while there is anything else.
     // A section made for one named place inside the zone (it carries that place's tag) is in
     // the running only while the player is there.
+    // A song is chosen as a whole: its first section stands for it, and it is as lately heard
+    // as the latest of its sections.
     _pick(roles, except) {
       const here = this.target.scene_tag || null;
       let choices = this.asset.sections.filter((section) =>
-        roles.includes(section.role) && (!section.tag || section.tag === here));
-      if (except && choices.length > 1) choices = choices.filter((section) => section.key !== except.key);
+        roles.includes(section.role) && (!section.tag || section.tag === here) &&
+        (!section.songKey || section.order === 0));
+      // Where a place has songs, the short riffs made for it before are left out of the
+      // exploring music: a song and a silence, not eight bars of this and eight of that.
+      if (choices.some((section) => section.role === "wander" && section.songKey && !section.tag)) {
+        choices = choices.filter((section) => section.role !== "wander" || section.songKey || section.tag);
+      }
+      const same = (section) => except.songKey ? section.songKey === except.songKey : section.key === except.key;
+      if (except && choices.length > 1) {
+        const others = choices.filter((section) => !same(section));
+        if (others.length) choices = others;
+      }
       let oldest = Infinity, longest = [];
       for (const section of choices) {
         const last = this.played.has(section.key) ? this.played.get(section.key) : -1;
         if (last < oldest) { oldest = last; longest = [section]; }
         else if (last === oldest) longest.push(section);
       }
+      // Between songs that have gone equally long unheard (as a rule, never heard at all), the
+      // newest comes first: it was written for this moment.
+      if (longest.length > 1 && longest.every((section) => section.songKey)) return longest[longest.length - 1];
       return longest[Math.floor(this.random() * longest.length) % longest.length];
     }
 
@@ -257,7 +280,32 @@
         const arrival = this.asset.sections.find((section) => section.role === "arrival");
         if (arrival) return arrival;
       }
-      return this._pick([role], null);
+      // Back to the exploring music after something cut into a song: the song goes on from the
+      // section it was in.
+      const back = !arriving && role === "wander" ? this._takeResume() : null;
+      return back || this._pick([role], null);
+    }
+
+    // The sections of a song, in order.
+    _songOf(section) {
+      return this.asset.sections.filter((other) => other.songKey === section.songKey)
+        .sort((a, b) => a.order - b.order);
+    }
+
+    _songNext(section) {
+      const song = this._songOf(section);
+      return song[song.findIndex((other) => other.key === section.key) + 1] || null;
+    }
+
+    // The section of a song that was cut into, if it is still part of this music and may be
+    // played where the player now is. Asking for it uses it up.
+    _takeResume() {
+      const kept = this.songResume;
+      this.songResume = null;
+      if (!kept) return null;
+      const here = this.target.scene_tag || null;
+      const found = this.asset.sections.find((section) => section.key === kept.key);
+      return found && (!found.tag || found.tag === here) ? found : null;
     }
 
     // Where a section goes on from when its turn comes round: the cell after the last one it
@@ -284,8 +332,21 @@
       const section = cell.section, pool = this._pool();
       const next = cell.index + 1, more = next < section.cells.length;
       this.scenePending = false;
+      if (section.songKey) {
+        // A song is played through: every cell of a section, then the next section, to the end.
+        if (more) return { section, index: next, run: 1 };
+        const after = this._songNext(section);
+        if (after) return { section: after, index: 0, run: 1 };
+        // The song is over. If it had cut into another (a place's own piece does), that one
+        // goes on; otherwise there is a silence, and then another song.
+        const back = this._takeResume();
+        if (back && back.songKey !== section.songKey) return { section: back, index: 0, run: 1 };
+        return { gap: true };
+      }
       const turnOver = !more || (cell.run || 1) >= TURN_CELLS;
       if (turnOver) {
+        const back = this._takeResume();
+        if (back) { this._leave(section, next); return { section: back, index: 0, run: 1 }; }
         const other = this._pick(pool, section);
         if (other.key !== section.key) {
           this._leave(section, next);
@@ -363,18 +424,28 @@
       // this section has played in a row.
       const playing = { section, index, start: when, end: when + length, base, sources: [], gains: [],
                         bar: this.asset.bar_frames / this.asset.rate, run: run || 1 };
+      const ending = Boolean(section.songKey) && index === section.cells.length - 1 && !this._songNext(section);
       for (const layer of LAYERS) {
         const source = ctx.createBufferSource();
         source.buffer = buffers[layer];
         const gain = ctx.createGain();
         if (fadeIn) {
+          // `fadeIn` is how long the cell takes to come up: the few milliseconds of a join
+          // between two cells, or the seconds a new song takes to fade in.
+          const rise = typeof fadeIn === "number" ? Math.min(fadeIn, length / 2) : FADE;
           gain.gain.setValueAtTime(0, when - LEAD);
-          gain.gain.linearRampToValueAtTime(base, when - LEAD + FADE);
+          gain.gain.linearRampToValueAtTime(base, when - LEAD + rise);
         } else {
           gain.gain.setValueAtTime(base, when - LEAD);
         }
-        gain.gain.setValueAtTime(base, playing.end - LEAD);
-        gain.gain.linearRampToValueAtTime(0, playing.end - LEAD + FADE);
+        if (ending) {
+          // The last cell of a song: its last seconds fade away, as a record's do.
+          gain.gain.setValueAtTime(base, Math.max(playing.end - SONG_END, when));
+          gain.gain.linearRampToValueAtTime(0, playing.end - LEAD + FADE);
+        } else {
+          gain.gain.setValueAtTime(base, playing.end - LEAD);
+          gain.gain.linearRampToValueAtTime(0, playing.end - LEAD + FADE);
+        }
         source.connect(gain).connect(this.layerGain[layer]);
         source.start(when - LEAD);
         source.stop(playing.end - LEAD + FADE + 0.005);
@@ -383,21 +454,33 @@
       }
       this.turn += 1;
       this.played.set(section.key, this.turn);
+      if (section.songKey) this.played.set(this._songOf(section)[0].key, this.turn);   // the song as a whole
       if (this.ahead && index + 1 < section.cells.length) this._raw(this.asset, section, index + 1);
       this.log.push({ at: when, section: section.name, cell: index, from: section.asset_id });
       if (this.log.length > LOG_LENGTH) this.log.splice(0, this.log.length - LOG_LENGTH);
       return playing;
     }
 
-    // Ends a cell early, at `when`, fading it out under whatever starts there.
-    _cut(playing, when) {
+    // Ends a cell early, at `when`, fading it out under whatever starts there over `fall`
+    // seconds: the few milliseconds of a cut on the beat, or the seconds of a crossfade.
+    _cut(playing, when, fall) {
+      const audible = Math.min(fall || FADE, Math.max(playing.end - when, FADE));
       for (const gain of playing.gains) {
         gain.gain.cancelScheduledValues(when - LEAD);
         gain.gain.setValueAtTime(playing.base, when - LEAD);
-        gain.gain.linearRampToValueAtTime(0, when - LEAD + FADE);
+        gain.gain.linearRampToValueAtTime(0, when - LEAD + audible);
       }
-      for (const source of playing.sources) source.stop(when - LEAD + FADE + 0.005);
+      for (const source of playing.sources) source.stop(when - LEAD + audible + 0.005);
       playing.end = when;
+    }
+
+    // How a move to `section` should sound. A change the game forces (a fight, a cave, on the
+    // beat) is a cut. The start of a song fades in over a few seconds, under whatever it follows.
+    // Anything else calm is a short crossfade.
+    _rise(section, cut, index) {
+      if (cut === "beat") return FADE;
+      const opening = section.role === "arrival" || (section.songKey && section.order === 0 && !index);
+      return opening ? SONG_IN : SOFT;
     }
 
     _drop(playing) {
@@ -409,22 +492,34 @@
       index = index || 0;
       const buffers = await this._load(this.asset, section, index);
       const now = this.ctx.currentTime;
+      this.gapUntil = 0;                       // whatever starts now ends a silence between songs
       if (this.queued) { this._drop(this.queued); this.queued = null; }
+      // Cutting into a song for something else (a fight, a place's own piece): the song goes
+      // on afterwards from its next section, not from the start of the one it was in. Going
+      // back to the same verse after every fight is how a song turns into a loop; this way a
+      // fight moves the song forward, and a fight in the last section ends it.
+      const leaving = this.current && this.current.end > now ? this.current.section : null;
+      if (leaving && leaving.songKey && leaving.songKey !== section.songKey && !leaving.tag) {
+        this.songResume = this._songNext(leaving);
+        if (!this.songResume) this.played.set(this._songOf(leaving)[0].key, this.turn);   // that song is done
+      }
+      const rise = this._rise(section, cut, index);
       let when;
       if (!this.current || this.current.end <= now) {
+        // Out of silence: a song fades in; anything else simply starts.
         when = Math.max(now + NOTICE, this.holdUntil);
-        this.queued = this._schedule(section, index, buffers, when, false);
+        this.queued = this._schedule(section, index, buffers, when, rise === SONG_IN ? SONG_IN : false);
         this.current = null;
       } else {
         const unit = cut === "beat" ? this.current.bar / 4 : this.current.bar;
         const steps = Math.ceil((now + NOTICE - this.current.start) / unit - 1e-9);
         when = Math.min(this.current.start + Math.max(steps, 0) * unit, this.current.end);
-        if (when < this.current.end - 1e-6) this._cut(this.current, when);
+        if (when < this.current.end - 1e-6) this._cut(this.current, when, rise);
         if (this.current.section.key !== section.key) {
           const reached = this.current.index + Math.ceil((when - this.current.start) / (this.current.end - this.current.start) - 1e-9);
           this._leave(this.current.section, Math.max(reached, this.current.index + 1));
         }
-        this.queued = this._schedule(section, index, buffers, when, true);
+        this.queued = this._schedule(section, index, buffers, when, rise);
       }
       return when;
     }
@@ -444,6 +539,10 @@
           return;
         }
         if (this.queued) return;
+        if (now < this.gapUntil) {                    // between songs: nothing plays
+          if (this.current && this.current.end <= now) this.current = null;
+          return;
+        }
         if (!this.current) {
           await this._moveTo(this._sectionFor(this.target.place, true), "bar");
           return;
@@ -451,16 +550,28 @@
         if (this.current.end - now > QUEUE_AHEAD) return;
         const pool = this._pool();
         const role = this.current.section.role;
-        const next = pool.includes(role) || (role === "arrival" && pool.includes("wander"))
+        let next = pool.includes(role) || (role === "arrival" && pool.includes("wander"))
           ? this._following(this.current)
           : { section: this._sectionFor(this.target.place, false), index: 0 };
+        if (next.gap) {
+          // A song has ended. Silence for a while, then another song from its beginning. With
+          // no silence asked for, the next song follows at once.
+          const quiet = this.target.gap_s === undefined ? GAP : this.target.gap_s;
+          if (quiet > 0) {
+            this.gapUntil = this.current.end + quiet * (0.6 + 0.8 * this.random());
+            return;
+          }
+          next = { section: this._pick(pool, this.current.section), index: 0, run: 1 };
+        }
         const buffers = await this._load(this.asset, next.section, next.index);
         let when = this.current.end;
         if (when - LEAD < this.ctx.currentTime + 0.02) {      // the load took too long
           when = this.ctx.currentTime + NOTICE;
           this.late += 1;
         }
-        this.queued = this._schedule(next.section, next.index, buffers, when, true, next.run);
+        const fresh = next.section.songKey && next.section.order === 0 && next.index === 0 &&
+                      next.section.songKey !== this.current.section.songKey;
+        this.queued = this._schedule(next.section, next.index, buffers, when, fresh ? SONG_IN : true, next.run);
       });
     }
 
@@ -491,15 +602,24 @@
         // kind. Without one, whatever is in rotation may carry on, and what has just left the
         // rotation (the calm part once the player moves again) gives way.
         const moved = this._playable(before.place) !== wanted;
+        // In the silence between songs nothing starts for a change of level or tone; only a
+        // change of place (a fight, a cave) or a place with a piece of its own ends it.
+        const inGap = this.ctx.currentTime < this.gapUntil;
         const settled = heading === wanted || (heading === "arrival" && pool.includes("wander")) ||
-                        (!moved && pool.includes(heading));
+                        (!moved && (pool.includes(heading) || inGap));
         if (!settled) {
           await this._moveTo(this._sectionFor(this.target.place, false), this.target.cut);
         } else if (this.scenePending) {
-          // The player has crossed into another part of the zone: another riff, on the next bar.
+          // The player has crossed into another part of the zone. If that place has a piece of
+          // its own, it comes in on the next bar. Otherwise a song plays on, and riffs change.
           this.scenePending = false;
           const playing = this.queued || this.current;
-          if (playing && pool.includes(playing.section.role)) {
+          const here = this.target.scene_tag || null;
+          const own = here ? this.asset.sections.find((section) => section.tag === here && pool.includes(section.role) &&
+                                                      (!section.songKey || section.order === 0)) : null;
+          if (own && (!playing || playing.section.tag !== here)) {
+            await this._moveTo(own, "bar");
+          } else if (playing && !playing.section.songKey && pool.includes(playing.section.role) && !inGap) {
             const other = this._pick(pool, playing.section);
             if (other.key !== playing.section.key) await this._moveTo(other, "bar", this._resumeAt(other));
           }
@@ -613,7 +733,8 @@
         section: playing ? playing.section.name : null, cell: playing ? playing.index : null,
         // Which request the section that is playing came from: what /rock love and ban apply to.
         asset_id: playing ? playing.section.asset_id : null,
-        resting: this.target.rest === true,
+        resting: this.target.rest === true || this.ctx.currentTime < this.gapUntil,
+        song: playing && playing.section.songKey ? playing.section.song : null,
         place: this.target.place, late: this.late, cached: this.cache.size, time: this.ctx.currentTime,
       };
     }

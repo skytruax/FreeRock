@@ -34,14 +34,19 @@ TARGET_LUFS = {"arrival": -16.0, "wander": -16.0, "ember": -19.0, "night": -18.0
                "storm": -15.0, "battle": -14.0, "boss": -13.0}
 
 
+SONG_PARTS = ("intro", "verse", "chorus", "bridge", "solo", "outro")
+
+
 def role_of(part_name: str) -> str:
     """What a part is for: "Wander B" and "Wander C" are both wander, "Battle B" is battle."""
     words = part_name.lower().split()
     if len(words) > 1 and len(words[-1]) == 1:
         words = words[:-1]
     role = " ".join(words)
-    if role == "theme":
-        role = "wander"            # a place's own piece is played where the zone's riffs are
+    if role == "theme" or role in SONG_PARTS:
+        role = "wander"            # a place's own piece, and the sections of a song, are exploring music
+    if role == "fight":
+        role = "battle"
     if role not in TARGET_LUFS:
         raise ValueError("Unknown kind of part: %r" % part_name)
     return role
@@ -62,6 +67,8 @@ class Section:
     gain_db: float              # applied to all three layers alike, so they still add up
     measured_lufs: float
     cells: list[Cell]
+    song: str | None = None     # the song this section belongs to; its sections are played in order
+    order: int = 0              # this section's place in its song
 
 
 @dataclass
@@ -84,6 +91,11 @@ class Asset:
     retired: bool = False       # set aside to make room for a newer set; kept on disk, not played
     subzone: str | None = None  # the named place inside the zone this piece was made for, if any
     genre: str = "knight"       # the style it is in: knight | warcraft | trance (composer.GENRES)
+    plays: int = 0              # how many times its song has been started by a player
+
+    @property
+    def has_song(self) -> bool:
+        return any(section.song for section in self.sections)
 
     @property
     def usable(self) -> bool:
@@ -152,7 +164,17 @@ class Library:
                 raise ValueError("%s has fewer than %d bars, too short to play from" % (part.name, BARS_PER_CELL))
             sections.append(Section(name=part.name, role=role, start=start, end=end,
                                     gain_db=round(TARGET_LUFS[role] - measured, 2),
-                                    measured_lufs=round(measured, 2), cells=cells))
+                                    measured_lufs=round(measured, 2), cells=cells,
+                                    song=getattr(part, "song", None)))
+        # A song keeps its own dynamics: a quiet verse and a loud chorus are not pulled to the
+        # same level. The whole song is brought to the exploring level by one gain, and its
+        # sections are numbered in the order they are played.
+        for song in {section.song for section in sections if section.song}:
+            members = [section for section in sections if section.song == song]
+            whole = np.concatenate([mix[section.start:section.end] for section in members])
+            gain = round(TARGET_LUFS["wander"] - analysis.loudness_lufs(whole, rate), 2)
+            for order, section in enumerate(members):
+                section.gain_db, section.order = gain, order
 
         asset = Asset(id=uuid.uuid4().hex[:12], zone=zone, set=set_name, bpm=request.bpm,
                       tonic=request.tonic, rate=rate, frames=len(mix), minutes=round(request.minutes, 3),
@@ -197,6 +219,13 @@ class Library:
         order = {"core": 0, "second": 1}
         return sorted((asset for asset in self.assets(zone) if asset.usable),
                       key=lambda asset: (asset.zone, order.get(asset.set, 2), asset.created))
+
+    def played(self, asset_id: str) -> Asset:
+        """Counts one more start of an asset's song."""
+        asset = self.get(asset_id)
+        asset.plays += 1
+        self._write(asset)
+        return asset
 
     def mark(self, asset_id: str, *, loved: bool | None = None, banned: bool | None = None,
              retired: bool | None = None) -> Asset:

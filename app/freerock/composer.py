@@ -102,6 +102,20 @@ KNIGHT = {
               ["the same theme answered", "the melody moves to another instrument", "a lift in the last four bars"]),
     "soft avoid": ["distorted guitars"],
     "colours": "all",          # the zone's instruments are this style's own
+    # A song: what each of its sections is, in this style. The verse and the bridge also take a
+    # feel from the list above, so that no two songs are built the same.
+    "song": {
+        "Intro": ["intro: one guitar states the main riff alone", "the band crashes in on the last bar"],
+        "Verse": ["verse: tight and dry, leaving room"],
+        "Chorus": ["chorus: big open chords and the hook, a tune to shout along to",
+                   "lead guitar and lute play the hook together", "crash cymbals"],
+        "Verse B": ["second verse: the riff of the first verse again", "a new answering melody on top"],
+        "Chorus B": ["chorus again: the same hook, a little bigger"],
+        "Bridge": ["bridge: a change of scene"],
+        "Solo": ["solo: the lead guitar takes a blues-scale solo over the verse riff", "the band digs in behind it"],
+        "Chorus C": ["last chorus: the same hook at full strength", "lead guitar soaring over it"],
+        "Outro": ["outro: the main riff one last time", "ends on a single held chord left to ring"],
+    },
 }
 
 WARCRAFT = {
@@ -172,6 +186,18 @@ WARCRAFT = {
               ["the same theme answered by another section of the orchestra", "a lift in the last four bars"]),
     "soft avoid": ["loud brass"],
     "colours": "acoustic",     # the zone's instruments, without the guitars and the rock band
+    "song": {
+        "Intro": ["introduction: a solo horn states the theme over a soft string chord"],
+        "Verse": ["first statement of the tune, unhurried"],
+        "Chorus": ["the main theme on full strings, broad and warm", "horns answer each phrase", "harp sweeping"],
+        "Verse B": ["the opening tune again on a different solo instrument", "a counter-melody in the violas"],
+        "Chorus B": ["the main theme again, fuller"],
+        "Bridge": ["a quieter middle section with a new tune"],
+        "Solo": ["a solo passage: one instrument sings a variation of the tune over quiet strings",
+                 "the orchestra gathers under it"],
+        "Chorus C": ["the main theme at its grandest: the full orchestra, timpani rolling"],
+        "Outro": ["closing: the theme winds down to harp and one held string chord", "ends softly"],
+    },
 }
 
 TRANCE = {
@@ -241,9 +267,35 @@ TRANCE = {
               ["the same hook answered by a brighter lead", "a lift in the last four bars"]),
     "soft avoid": ["distorted lead"],
     "colours": "none",         # a zone gives trance its key and its mood, not its instruments
+    "song": {
+        "Intro": ["intro: kick drum and a filtered arpeggio", "the filter slowly opens"],
+        "Verse": ["the groove settles in"],
+        "Chorus": ["the drop: a supersaw lead plays the anthem hook over the full groove", "crash on the downbeat"],
+        "Verse B": ["breakdown: the kick drops out", "pads and the hook on a soft lead",
+                    "a snare roll builds in the last two bars"],
+        "Chorus B": ["the drop again: the same anthem hook, brighter"],
+        "Bridge": ["a stripped-back stretch of groove"],
+        "Solo": ["the build: a snare roll and a rising sweep over the arpeggio", "everything climbs toward the final drop"],
+        "Chorus C": ["final drop: the anthem with a counter-melody on top, full energy"],
+        "Outro": ["outro: the parts drop away one by one", "ends on the kick and one last pad chord"],
+    },
 }
 
 GENRES = {"knight": KNIGHT, "warcraft": WARCRAFT, "trance": TRANCE}
+# What kind of song the next one is. Each song a place gets takes the next of these, so that
+# one song after another is not the same song again.
+CHARACTERS = (
+    "an anthem with a big hook that sticks",
+    "a light-footed travelling song",
+    "a brooding slow-burner that builds to a blaze",
+    "a swaggering mid-tempo stomp",
+    "a wistful song that opens out in the chorus",
+    "a tense, coiled song that lets go in the chorus",
+    "a triumphant march of a song",
+    "a playful, cheeky song with a spring in its step",
+    "a wide-open song for the long road",
+    "a dark, heavy song with a defiant chorus",
+)
 DEFAULT_GENRE = "knight"
 # Kept for callers that only want the rock recipe's words.
 ROCK = KNIGHT["base"][:-1]
@@ -282,10 +334,11 @@ class Reference:
 class PartSpec:
     """One part of a request before it is given a place in time."""
     name: str
-    bars: int
+    bars: int                     # 16 stands for "a full piece" and 32 for "twice that"; see build()
     styles: list[str]
     avoid: list[str]
     adherence: str = "medium"     # how closely the part follows what came before it
+    song: bool = False            # a section of the request's song, played in order with the others
 
 
 @dataclass
@@ -294,6 +347,7 @@ class Part:
     bars: int
     start_ms: int
     end_ms: int
+    song: str | None = None       # the song this part is a section of, if it is one
 
     @property
     def seconds(self) -> float:
@@ -402,16 +456,36 @@ def vocabulary(profile: ZoneProfile, rock: float = 0.5, turn: int = 0,
     def boss(name: str, index: int) -> PartSpec:
         return PartSpec(name, 16, list(recipe["boss"][index % len(recipe["boss"])]) + profile.colours, loud)
 
+    # The sections of a song. The verse and the bridge each take a feel, a different pair for
+    # every song a zone gets; the choruses share one hook and are told to stay close to it.
+    said = recipe["song"]
+    # Said of every section of a song: it goes somewhere. Without it a sixteen-bar verse comes
+    # back as one four-bar riff played four times.
+    onward = ["the tune keeps developing: no four bars the same as the last"]
+    song = [
+        PartSpec("Intro", 4, list(said["Intro"]) + zone, [], "high", song=True),
+        PartSpec("Verse", 32, list(said["Verse"]) + feel("wander", 0) + onward + calm + zone, quiet, "high", song=True),
+        PartSpec("Chorus", 16, list(said["Chorus"]) + zone, loud, "medium", song=True),
+        PartSpec("Verse B", 16, list(said["Verse B"]) + onward + calm, quiet, "high", song=True),
+        PartSpec("Chorus B", 16, list(said["Chorus B"]), loud, "high", song=True),
+        PartSpec("Bridge", 16, list(said["Bridge"]) + feel("wander", 1) + onward + calm, quiet, "medium", song=True),
+        PartSpec("Solo", 16, list(said["Solo"]) + onward, loud, "high", song=True),
+        PartSpec("Chorus C", 16, list(said["Chorus C"]), loud, "high", song=True),
+        PartSpec("Outro", 4, list(said["Outro"]), [], "high", song=True),
+    ]
     theme_a, theme_b = recipe["theme"]
-    parts = [
+    parts = song + [
         PartSpec("Arrival", 4, [words.format(tonic=tonic) for words in recipe["arrival"]], [], "high"),
         wander("A", 0, "high"),
         *[wander(letter, index) for index, letter in enumerate("BCDEFGHIJKL", start=1)],
         # A named place's own piece: eight bars of theme and eight that answer it.
-        PartSpec("Theme A", 8, list(theme_a) + calm + zone, quiet, "high"),
-        PartSpec("Theme B", 8, list(theme_b) + calm + zone, quiet),
+        PartSpec("Theme A", 8, list(theme_a) + calm + zone, quiet, "high", song=True),
+        PartSpec("Theme B", 8, list(theme_b) + calm + zone, quiet, song=True),
         battle("Battle", 0), battle("Battle B", 1), battle("Battle C", 2),
         battle("Battle D", 3), battle("Battle E", 4), battle("Battle F", 5),
+        # In a song set the battle piece is twice the length: there is one of it, and fights are long.
+        PartSpec("Fight", 32, feel("battle", 0) + recipe["battle always"]
+                 + ["it develops: a second riff answers the first half-way through"] + profile.colours, loud),
         boss("Boss", 0), boss("Boss B", 1),
         storm("Storm", 0), storm("Storm B", 1), storm("Storm C", 2),
         PartSpec("Ember", 16, ["calm after the fight"] + feel("calm", 0) + zone, soft),
@@ -426,22 +500,26 @@ def vocabulary(profile: ZoneProfile, rock: float = 0.5, turn: int = 0,
     return {part.name: part for part in parts}
 
 
-# What a request holds. Every piece but the opening is eight bars (see atlas.part_bars): short
-# enough that a request carries ten different ideas, long enough to stand as a loop. A zone's
-# first request has the whole ladder in it, from the calm part to the boss.
-CORE_SUITE = ("Arrival", "Wander A", "Wander B", "Wander C", "Storm", "Battle", "Battle B", "Boss",
-              "Ember", "Depths")
-SECOND_SET = ("Wander D", "Wander E", "Wander F", "Wander G", "Night", "Storm B", "Battle C", "Battle D",
-              "Boss B", "Ember B")
-FRESH_SET = ("Wander H", "Wander I", "Wander J", "Wander K", "Storm C", "Battle E", "Battle F",
-             "Ember C", "Depths B", "Night B")
+# What a request holds. Its heart is a song: an intro, a long verse, a chorus, a second verse,
+# the chorus again, a bridge, a solo, the last chorus and an ending, played in that order from
+# start to finish: seventy-two bars, two and a half to three and a half minutes of music that goes
+# somewhere. With it comes a battle piece of twice the usual length, and after a zone's first
+# request one more piece the game calls for, a different one each time. Every set a place gets
+# is another song.
+SONG = ("Intro", "Verse", "Chorus", "Verse B", "Chorus B", "Bridge", "Solo", "Chorus C", "Outro")
+CORE_SUITE = SONG + ("Fight",)
+SECOND_SET = SONG + ("Fight", "Ember")
+EXTRAS = ("Storm", "Boss", "Depths", "Night")     # one with each fresh set, in turn
+FRESH_SET = SONG + ("Fight", "Storm")
 PLACE_PIECE = ("Theme A", "Theme B")
+# The older kind of request: ten short pieces. Still understood, for music made before.
+PIECES = ("Arrival", "Wander A", "Wander B", "Wander C", "Storm", "Battle", "Battle B", "Boss", "Ember", "Depths")
 
 
 def build(profile: ZoneProfile, names: tuple[str, ...] | list[str], seed: int | None = None,
           rock: float = 0.5, bars: dict[str, int] | None = None,
           reference: Reference | None = None, part_bars: int = 8, turn: int = 0,
-          genre: str = DEFAULT_GENRE) -> Request:
+          genre: str = DEFAULT_GENRE, context: list[str] | None = None) -> Request:
     """A request for the named parts, in order.
 
     The first part carries the whole style, because ElevenLabs takes its tone from there. With a
@@ -460,10 +538,18 @@ def build(profile: ZoneProfile, names: tuple[str, ...] | list[str], seed: int | 
     chunks, parts, clock = [], [], 0
     for index, name in enumerate(names):
         spec = words[name]
-        count = (bars or {}).get(name, part_bars if spec.bars == 16 else spec.bars)
+        # A long verse is twice a piece at a brisk tempo; at a slow one that is the best part of
+        # a minute on one idea, so it is a single piece there.
+        full = {16: part_bars, 32: 2 * part_bars if profile.bpm >= 110 else part_bars}.get(spec.bars, spec.bars)
+        count = (bars or {}).get(name, full)
         length = bars_ms(profile.bpm, count)
         if index == 0:
-            styles = tempo + ["instrumental"] + recipe["base"] + profile.colours + profile.mood + spec.styles
+            # `context` is what is true in the game as the song is written (night, rain, a run of
+            # fights); with the song's character it goes at the head, where the whole song takes
+            # its tone from.
+            moment = ([CHARACTERS[turn % len(CHARACTERS)]] if any(words[n].song for n in names) else []) \
+                + list(context or [])
+            styles = tempo + ["instrumental"] + recipe["base"] + moment + profile.colours + profile.mood + spec.styles
             avoid = recipe["never"] + [word for word in spec.avoid if word not in recipe["never"]]
         else:
             styles = tempo + ["instrumental"] + spec.styles
@@ -477,34 +563,37 @@ def build(profile: ZoneProfile, names: tuple[str, ...] | list[str], seed: int | 
                                          "range": {"start_ms": reference.start_ms, "end_ms": reference.end_ms}}
             chunk["condition_strength"] = reference.strength
         chunks.append(chunk)
-        parts.append(Part(name, count, clock, clock + length))
+        parts.append(Part(name, count, clock, clock + length, song="a" if spec.song else None))
         clock += length
     return Request(plan={"chunks": chunks}, parts=parts, bpm=profile.bpm, tonic=profile.tonic, seed=seed)
 
 
 def core_suite(profile: ZoneProfile, seed: int | None = None, rock: float = 0.5,
                bars: dict[str, int] | None = None, part_bars: int = 8,
-               genre: str = DEFAULT_GENRE) -> Request:
-    """A zone's first music, the whole ladder: an opening, three exploring pieces, a hard
-    piece, two Battle pieces, a Boss piece, a calm one and one for caves."""
-    return build(profile, CORE_SUITE, seed=seed, rock=rock, bars=bars, part_bars=part_bars, genre=genre)
+               genre: str = DEFAULT_GENRE, context: list[str] | None = None) -> Request:
+    """A zone's first music: a song and a battle piece."""
+    return build(profile, CORE_SUITE, seed=seed, rock=rock, bars=bars, part_bars=part_bars, genre=genre,
+                 context=context)
 
 
 def second_set(profile: ZoneProfile, seed: int | None = None, rock: float = 0.5,
                reference: Reference | None = None, part_bars: int = 8,
-               genre: str = DEFAULT_GENRE) -> Request:
-    """Added soon after: four more exploring pieces, Night, and more hard, battle and boss pieces."""
+               genre: str = DEFAULT_GENRE, context: list[str] | None = None) -> Request:
+    """Added soon after: a second song, another battle piece and a calm piece. Its words go one
+    step down the lists of feels from the first song's."""
     return build(profile, SECOND_SET, seed=seed, rock=rock, reference=reference, part_bars=part_bars,
-                 genre=genre)
+                 turn=1, genre=genre, context=context)
 
 
 def fresh_set(profile: ZoneProfile, seed: int | None = None, rock: float = 0.5,
               reference: Reference | None = None, part_bars: int = 8, turn: int = 0,
-              genre: str = DEFAULT_GENRE) -> Request:
-    """Added while the player stays: ten more pieces. `turn` is how many fresh sets the place
-    already has; each goes further down the lists of feels."""
-    return build(profile, FRESH_SET, seed=seed, rock=rock, reference=reference, part_bars=part_bars,
-                 turn=turn + 1, genre=genre)
+              genre: str = DEFAULT_GENRE, context: list[str] | None = None) -> Request:
+    """Added while the player stays: another song, another battle piece, and one more piece the
+    game calls for (a hard piece, a boss piece, one for caves, one for night, in turn). `turn`
+    is how many fresh sets the place already has; each goes further down the lists of feels."""
+    names = SONG + ("Fight", EXTRAS[turn % len(EXTRAS)])
+    return build(profile, names, seed=seed, rock=rock, reference=reference, part_bars=part_bars,
+                 turn=turn + 2, genre=genre, context=context)
 
 
 def place_piece(profile: ZoneProfile, seed: int | None = None, rock: float = 0.5,

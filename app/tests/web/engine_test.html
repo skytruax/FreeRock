@@ -64,11 +64,27 @@ function makeLongAsset() {
   return { id: "long", zone: "test-zone", rate: RATE, bpm: 120, bar_frames: BAR, frames: frame, sections };
 }
 
+// A song (an intro, a verse of two cells, a chorus and an ending) and a battle piece.
+function makeSongAsset() {
+  const plan = [["Intro", "wander", 1, "a"], ["Verse", "wander", 2, "a"], ["Chorus", "wander", 1, "a"],
+                ["Outro", "wander", 1, "a"], ["Fight", "battle", 2, null]];
+  const sections = [];
+  let frame = 0, order = 0;
+  plan.forEach(([name, role, cells, song], index) => {
+    const section = { name, role, start: frame, gain_db: -6, tone: 300 + 200 * index, cells: [],
+                      song, order: song ? order++ : 0 };
+    for (let i = 0; i < cells; i++) { section.cells.push({ start: frame, end: frame + CELL }); frame += CELL; }
+    section.end = frame;
+    sections.push(section);
+  });
+  return { id: "song", zone: "test-zone", genre: "knight", rate: RATE, bpm: 120, bar_frames: BAR, frames: frame, sections };
+}
+
 // kind "marks": drums and bass are single-sample clicks on every beat, the bed is the section's tone.
 // kind "tones": bass is a steady 80 Hz tone, drums are noise, the bed is the section's tone.
 // kind "loud":  every layer is the same full-scale tone, to push the limiter.
 function makeLoader(firstAsset, kind, fetched) {
-  const known = { test: makeAsset(), slow: makeSlowAsset(), long: makeLongAsset(),
+  const known = { test: makeAsset(), slow: makeSlowAsset(), long: makeLongAsset(), song: makeSongAsset(),
                   extra: { frames: 2 * CELL, sections: [EXTRA] } };
   return async (assetId, layer, first, last) => {
     const asset = known[assetId];
@@ -372,6 +388,42 @@ tests.windDown = async () => {
   return { before: rms(d, 9.0, 9.9), runningDown: rms(d, 10.5, 10.7), gone: rms(d, 11.12, 11.2),
            toneBefore: strength(d, 9.0, 9.9, 500), toneWhileRunningDown: strength(d, 10.6, 11.1, 500),
            nextAt: (log.find((entry) => entry.at > 10.0) || {}).at, late: run.engine.late };
+};
+
+// A song is played from its first section to its last, then there is silence, then a song again.
+tests.aSong = async () => {
+  const run = await render(90, { asset: makeSongAsset(),
+                                 target: { bed: 1, drums: 0, bass: 0, bed_highpass_hz: 20, gap_s: 10 } });
+  const d = run.data, log = run.engine.log;
+  // Intro 0.12-8.12, Verse 8.12-24.12, Chorus 24.12-32.12, Outro 32.12-40.12, then the silence.
+  const again = (log[5] || {}).at || 0;       // when the song starts again after the silence
+  return { order: log.map((entry) => entry.section + " " + entry.cell), starts: log.map((entry) => entry.at),
+           inTheVerse: rms(d, 10, 20), endingStart: rms(d, 32.5, 36.5), endingLast: rms(d, 39.9, 40.1),
+           silence: rms(d, 41, 45),
+           comingIn: rms(d, again + 0.05, again + 0.45), halfIn: rms(d, again + 1.3, again + 1.7),
+           allIn: rms(d, again + 3.5, again + 6.5), late: run.engine.late };
+};
+
+// A fight cuts into a song on the beat; afterwards the song goes on from the section it was in.
+tests.aSongAndAFight = async () => {
+  const run = await render(70, {
+    asset: makeSongAsset(), target: { bed: 1, drums: 0, bass: 0, bed_highpass_hz: 20, gap_s: 10 },
+    script: [[12.3, (engine) => engine.setTarget({ place: "battle", cut: "beat" })],
+             [26.0, (engine) => engine.setTarget({ place: "wander", cut: "bar" })]] });
+  const log = run.engine.log;
+  return { order: log.map((entry) => entry.section + " " + entry.cell), starts: log.map((entry) => entry.at),
+           late: run.engine.late };
+};
+
+// In the silence between songs a change of level starts nothing; a fight does, at once.
+tests.theSilenceHolds = async () => {
+  const run = await render(64, {
+    asset: makeSongAsset(), target: { bed: 1, drums: 0, bass: 0, bed_highpass_hz: 20, gap_s: 40 },
+    script: [[44.0, (engine) => engine.setTarget({ drums: 0.6 })],
+             [50.0, (engine) => engine.setTarget({ place: "battle", cut: "beat", bass: 1, drums: 1 })]] });
+  const d = run.data, log = run.engine.log;
+  return { afterTheLevelChange: rms(d, 45, 49.5), fightAt: (log.find((entry) => entry.section === "Fight") || {}).at,
+           inTheFight: rms(d, 52, 56), late: run.engine.late };
 };
 
 // Levels and tone must move as soon as the target changes.

@@ -45,6 +45,9 @@ MAX_VOCAL_LEAK_DB = -30.0        # below this the vocals layer is too quiet to b
 LOUD_VOCAL_LEAK_DB = -12.0       # above this it is a large part of the track whatever it is made of
 MAX_VOCAL_WORDS_DB = -45.0       # the vocals layer between 2.5 and 8 kHz, relative to the whole mix
 MAX_LENGTH_OFF_S = 0.1
+# Parts with little to fit a beat to: one guitar alone, a drone, a chord left to ring. They are
+# measured and noted, and not held to the tempo or the beat.
+SPARSE_PARTS = ("Arrival", "Intro", "Outro")
 
 
 class TrackFailedChecks(RuntimeError):
@@ -117,6 +120,7 @@ def check(request: composer.Request, mix: np.ndarray, layers: Layers, rate: int)
     if abs(got - asked) > MAX_LENGTH_OFF_S:
         failed.append("asked for %.2f s, got %.2f s" % (asked, got))
     parts, starts, keys = {}, {}, []
+    astray: dict[str, list[str]] = {}       # part name -> what is off about its timing
     for part in request.parts:
         start = part.start_ms * rate // 1000
         end = min(part.end_ms * rate // 1000, len(mix))
@@ -132,18 +136,29 @@ def check(request: composer.Request, mix: np.ndarray, layers: Layers, rate: int)
         parts[part.name] = {"tempo_off_percent": round(off, 3), "start_to_beat_ms": round(to_beat, 1),
                             "heard_as": key.name, "key_agrees": key.in_family(request.tonic),
                             "tuning_cents": round(key.tuning_cents, 1)}
-        # The opening part is a drone and one guitar, with little to fit a beat to; it is noted
-        # but only the parts with a full band are held to the tempo.
-        if part.name != "Arrival":
+        if part.name not in SPARSE_PARTS:
             if abs(off) > MAX_TEMPO_OFF_PERCENT:
-                failed.append("%s is %.2f%% off tempo" % (part.name, off))
+                astray.setdefault(part.name, []).append("%s is %.2f%% off tempo" % (part.name, off))
             starts[part.name] = to_beat
+    # Half a beat apart counts as together. Whether the beat finder hears the beat or the
+    # off-beat depends on which is louder in a part (the kick, or the open hi-hat and bass between
+    # the kicks), and in dance music it changes from part to part; the parts themselves start
+    # where they were asked to. (Measured on 2026-11-15: trance parts read 232 ms apart at 128
+    # beats a minute, where half a beat is 234 ms.)
     beat_ms = 60000.0 / request.bpm
-    offset, apart = beat_offset(list(starts.values()), beat_ms)
+    offset, apart = beat_offset(list(starts.values()), beat_ms / 2.0)
     for (name, _), distance in zip(starts.items(), apart):
         parts[name]["off_the_shared_beat_ms"] = round(distance, 1)
         if abs(distance) > MAX_START_SPREAD_MS:
-            failed.append("%s starts %.0f ms off the beat the other parts keep" % (name, distance))
+            astray.setdefault(name, []).append(
+                "%s starts %.0f ms off the beat the other parts keep" % (name, distance))
+    # One part in five may read off without the track being turned away. ElevenLabs has held
+    # the tempo it was asked for in every track measured; a single part that reads otherwise (a
+    # breakdown with no drums, a solo passage) is far more often the measurement than the music,
+    # and a track thrown away costs as much as one kept.
+    noted = [words for found in astray.values() for words in found]
+    if len(astray) > len(starts) // 5:
+        failed.extend(noted)
     # The parts have to agree with each other on a set of notes (give or take one), so that going
     # from one to another is not a lurch. Which set is the music's own business: hard rock asked
     # for in A minor comes back leaning major as often as not, and is no worse for it. (Measured
@@ -157,7 +172,8 @@ def check(request: composer.Request, mix: np.ndarray, layers: Layers, rate: int)
             layers.vocal_leak_db > LOUD_VOCAL_LEAK_DB or layers.vocal_words_db > MAX_VOCAL_WORDS_DB):
         failed.append("there seems to be singing (%.1f dB, and %.1f dB where sung words are)"
                       % (layers.vocal_leak_db, layers.vocal_words_db))
-    return {"failed": failed, "parts": parts, "vocal_leak_db": round(layers.vocal_leak_db, 1),
+    return {"failed": failed, "noted": [] if failed else noted, "parts": parts,
+            "vocal_leak_db": round(layers.vocal_leak_db, 1),
             "vocal_words_db": round(layers.vocal_words_db, 1), "beat_offset_ms": round(offset, 1),
             "shared_scale": "%s major" % analysis.PITCH_NAMES[scale] if keys else None,
             "seconds": round(got, 3)}
@@ -219,7 +235,7 @@ class Ingest:
         profile = atlas.place_profile(zone_name, place_name)
         reference = None
         if core.song_id:
-            riff = core.section("Wander A")
+            riff = self._signature(core)
             start_ms = riff.start * 1000 // core.rate
             reference = composer.Reference(core.song_id, start_ms, start_ms + min(30_000, int(riff.end - riff.start) * 1000 // core.rate))
         request = composer.place_piece(profile, seed=seed if seed is not None else self.rng.randrange(2 ** 31),
@@ -240,8 +256,8 @@ class Ingest:
             "zone": zone, "set": set_name, "subzone": subzone, "genre": genre,
             "bpm": request.bpm, "tonic": request.tonic, "seed": request.seed,
             "song_id": song_id, "checks": checks, "plan": request.plan,
-            "parts": [{"name": part.name, "bars": part.bars, "start_ms": part.start_ms, "end_ms": part.end_ms}
-                      for part in request.parts]}, indent=2) + "\n", encoding="utf-8")
+            "parts": [{"name": part.name, "bars": part.bars, "start_ms": part.start_ms, "end_ms": part.end_ms,
+                       "song": part.song} for part in request.parts]}, indent=2) + "\n", encoding="utf-8")
         return folder
 
     async def adopt(self, folder: Path, set_name: str | None = None) -> Made:
@@ -255,7 +271,7 @@ class Ingest:
             raise ValueError("The kept track is at %d Hz, not %d" % (rate, RATE))
         request = composer.Request(
             plan=noted["plan"], bpm=noted["bpm"], tonic=noted["tonic"], seed=noted["seed"],
-            parts=[composer.Part(part["name"], part["bars"], part["start_ms"], part["end_ms"])
+            parts=[composer.Part(part["name"], part["bars"], part["start_ms"], part["end_ms"], part.get("song"))
                    for part in noted["parts"]])
         layers = await asyncio.to_thread(self.splitter, mix, RATE)
         checks = await asyncio.to_thread(check, request, mix, layers, RATE)
@@ -268,14 +284,26 @@ class Ingest:
         return Made(asset=asset, first_audio_s=None, total_s=None, split_s=layers.seconds)
 
     async def core_suite(self, place_name: str | None, *, rock: float | None = None,
-                         seed: int | None = None, reroll: bool = False) -> Made:
+                         seed: int | None = None, reroll: bool = False,
+                         context: list[str] | None = None) -> Made:
         """A zone's first music, from the zone's name as the game gives it, in the style the
         settings name."""
         profile, genre = atlas.profile_for(place_name), self.genre
         request = composer.core_suite(profile, seed=seed if seed is not None else self.rng.randrange(2 ** 31),
-                                      rock=self._rock(rock), part_bars=self._part_bars(profile, genre), genre=genre)
+                                      rock=self._rock(rock), part_bars=self._part_bars(profile, genre), genre=genre,
+                                      context=context)
         return await self._make(request, zone=profile.key, set_name="core",
                                 purpose="core suite", reroll=reroll, genre=genre)
+
+    @staticmethod
+    def _signature(core: Asset):
+        """The stretch of a zone's first music that later music is told to stay close to: the
+        chorus of its song, or for music made before there were songs its first riff."""
+        for name in ("Chorus", "Wander A"):
+            for section in core.sections:
+                if section.name == name:
+                    return section
+        return core.sections[0]
 
     @staticmethod
     def _part_bars(profile: composer.ZoneProfile, genre: str) -> int:
@@ -284,7 +312,7 @@ class Ingest:
 
     async def later_set(self, core: Asset, place_name: str | None, kind: str, *,
                         rock: float | None = None, seed: int | None = None,
-                        reroll: bool = False) -> Made:
+                        reroll: bool = False, context: list[str] | None = None) -> Made:
         """More music for a zone that already has its core suite: kind is "second" or "fresh". It
         is told to stay close to thirty seconds of the core suite's first Wander riff, so it
         sounds like the same band."""
@@ -293,19 +321,19 @@ class Ingest:
         profile, genre = atlas.profile_for(place_name), core.genre     # more of the same style as its core
         reference = None
         if core.song_id:
-            riff = core.section("Wander A")
+            riff = self._signature(core)
             start_ms = riff.start * 1000 // core.rate
-            reference = composer.Reference(core.song_id, start_ms, start_ms + 30_000)
+            reference = composer.Reference(core.song_id, start_ms, start_ms + min(30_000, (core.frames - riff.start) * 1000 // core.rate))
         chosen = seed if seed is not None else self.rng.randrange(2 ** 31)
         bars = self._part_bars(profile, genre)
         if kind == "second":
             request = composer.second_set(profile, seed=chosen, rock=self._rock(rock), reference=reference,
-                                          part_bars=bars, genre=genre)
+                                          part_bars=bars, genre=genre, context=context)
         else:
             # Each fresh set goes further down the lists of feels than the one before it.
             had = sum(1 for asset in self.library.assets(core.zone)
                       if asset.set == "fresh" and asset.genre == genre)
             request = composer.fresh_set(profile, seed=chosen, rock=self._rock(rock), reference=reference,
-                                         part_bars=bars, turn=had, genre=genre)
+                                         part_bars=bars, turn=had, genre=genre, context=context)
         return await self._make(request, zone=profile.key, set_name=kind,
                                 purpose="%s set" % kind, reroll=reroll, genre=genre)

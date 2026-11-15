@@ -38,7 +38,8 @@ NEVER = ["vocals", "singing", "choir", "spoken word", "synthesizer", "electronic
 
 
 def gateway() -> Gateway:
-    return Gateway(Settings())
+    """The gateway with the allowances as they are set (var/settings.json), not the defaults."""
+    return Gateway(Settings.load())
 
 
 def save(name: str, audio: np.ndarray, rate: int) -> dict[str, str]:

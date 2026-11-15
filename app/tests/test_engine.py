@@ -259,3 +259,41 @@ def test_a_death_runs_the_music_down_like_a_record_stopping(results):
     assert down["toneWhileRunningDown"] < 0.3 * down["toneBefore"]
     assert down["nextAt"] == pytest.approx(10.0 + 1.2, abs=0.01), "the next music starts when the old has run down"
     assert down["late"] == 0
+
+
+# --- songs ------------------------------------------------------------------------------------------
+
+def test_a_song_is_played_from_start_to_finish_then_silence_then_a_song_again(results):
+    song = of(results, "aSong")
+    assert song["order"][:5] == ["Intro 0", "Verse 0", "Verse 1", "Chorus 0", "Outro 0"]
+    assert song["starts"][:5] == pytest.approx([0.12, 8.12, 16.12, 24.12, 32.12], abs=0.001)
+    assert song["endingLast"] < 0.15 * song["endingStart"], "the last seconds of a song fade away"
+    assert song["silence"] < 0.001 * song["inTheVerse"], "then nothing plays"
+    again = song["starts"][5]
+    assert song["order"][5] == "Intro 0" and 40.12 + 6 <= again <= 40.12 + 14 + 0.2, "six to fourteen seconds of quiet"
+    # The next song fades in: barely there at first, about half way after a second and a half.
+    assert song["comingIn"] < 0.15 * song["allIn"]
+    assert 0.3 * song["allIn"] < song["halfIn"] < 0.7 * song["allIn"]
+    assert song["late"] == 0
+
+
+def test_a_fight_cuts_into_a_song_and_the_song_goes_on_after(results):
+    fight = of(results, "aSongAndAFight")
+    order = fight["order"]
+    assert order[:3] == ["Intro 0", "Verse 0", "Fight 0"]
+    assert fight["starts"][2] == pytest.approx(0.12 + 12.5, abs=0.001), "on the next beat"
+    back = next(index for index, name in enumerate(order) if index > 2 and not name.startswith("Fight"))
+    # The song goes on from the section after the one the fight cut into (the chorus, not the
+    # verse again), on a bar line, and from there to its end.
+    assert order[back:back + 2] == ["Chorus 0", "Outro 0"], "the verse came round again after the fight"
+    assert (fight["starts"][back] - fight["starts"][2]) % 2.0 == pytest.approx(0.0, abs=0.002) or \
+        (fight["starts"][back] - fight["starts"][2]) % 2.0 == pytest.approx(2.0, abs=0.002)
+    assert fight["late"] == 0
+
+
+def test_the_silence_between_songs_holds_until_something_happens(results):
+    quiet = of(results, "theSilenceHolds")
+    assert quiet["afterTheLevelChange"] < 1e-4, "a change of level in the silence started the music"
+    assert quiet["fightAt"] == pytest.approx(50.12, abs=0.01), "a fight ends the silence at once"
+    assert quiet["inTheFight"] > 0.01
+    assert quiet["late"] == 0

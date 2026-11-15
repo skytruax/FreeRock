@@ -55,6 +55,7 @@ class Target:
     volume: float = 1.0               # 0 to 1, on top of the player's own volume control
     silent: bool = False              # fade right out (a cinematic, or FreeRock switched off in game)
     rest: bool = False                # a stretch without music, as the game has between pieces
+    gap_s: float = 30.0               # about how long the silence after a song is
     fade_s: float = 0.4               # how long the levels and tone take to get there
     intensity: float = 0.0            # 0 to 1, for the log and the control page
     why: tuple[str, ...] = ()         # the rules in force, for the log
@@ -206,6 +207,11 @@ class Director:
         self.rules = rules or Rules()
         self.rng = rng or random.Random()
         self._m = _Memory()
+
+    @property
+    def heat(self) -> float:
+        """How much fighting there has been lately, 0 to 1."""
+        return self._m.heat
 
     def _about(self, seconds: float) -> float:
         """`seconds`, give or take the spread, so rests do not come round like clockwork."""
@@ -575,7 +581,7 @@ class Director:
             fade = rules.rest_fade_s
             why.append("a rest, as the game has between pieces")
 
-        return Target(place=place, also=tuple(also), scene=m.scene, cut=cut,
+        return Target(place=place, also=tuple(also), scene=m.scene, cut=cut, gap_s=rules.rest_for_s,
                       bed=round(bed, 3), drums=_step(drums), bass=_step(bass),
                       bed_highpass_hz=FLOOR_HZ if bass > 0 else 110.0,
                       lowpass_hz=round(lowpass, 1), highpass_hz=round(highpass, 1),
