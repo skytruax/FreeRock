@@ -267,3 +267,39 @@ def band_level_db(audio: np.ndarray, rate: int, low_hz: float, high_hz: float) -
 
 def peak(audio: np.ndarray) -> float:
     return float(np.max(np.abs(audio))) if audio.size else 0.0
+
+
+# --- comparing the sound of two recordings ---------------------------------------------------
+
+def band_profile(audio: np.ndarray, rate: int, low_hz: float = 50.0, high_hz: float = 12_800.0,
+                 per_octave: int = 3) -> np.ndarray:
+    """The average level in each third of an octave from `low_hz` to `high_hz`, in dB.
+
+    It is a rough picture of a recording's tone: how much low end, how bright, where the guitars
+    sit. Two recordings by the same band in the same room have similar pictures.
+    """
+    mono = to_mono(audio).astype(np.float32)
+    size = 8192
+    if len(mono) < size:
+        raise ValueError("Too short to take a band profile")
+    window = np.hanning(size).astype(np.float32)
+    frames = np.lib.stride_tricks.sliding_window_view(mono, size)[::size // 2]
+    power = np.zeros(size // 2 + 1, dtype=np.float64)
+    for start in range(0, len(frames), 256):
+        power += (np.abs(np.fft.rfft(frames[start:start + 256] * window, axis=1)) ** 2).sum(axis=0)
+    power /= len(frames)
+    freqs = np.fft.rfftfreq(size, 1.0 / rate)
+    count = int(round(np.log2(high_hz / low_hz) * per_octave))
+    edges = low_hz * 2.0 ** (np.arange(count + 1) / per_octave)
+    levels = np.empty(count)
+    for index in range(count):
+        inside = (freqs >= edges[index]) & (freqs < edges[index + 1])
+        levels[index] = 10.0 * np.log10(power[inside].sum() + 1e-20)
+    return levels
+
+
+def profile_difference_db(first: np.ndarray, second: np.ndarray) -> float:
+    """How different two band profiles are, in dB, ignoring that one may simply be louder.
+    Around 1 to 2 dB is the same sound; 4 dB and up is a clearly different mix."""
+    gap = (first - first.mean()) - (second - second.mean())
+    return float(np.sqrt(np.mean(gap ** 2)))
