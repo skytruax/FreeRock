@@ -42,6 +42,40 @@
     <button id="skip" type="button" class="quiet">Play something else</button>
   </section>
 
+  <details class="card" id="pretend">
+    <summary>Pretend game: try the music without the game</summary>
+    <p class="soft">These controls stand in for the game. Use them only while the real game is not
+      connected. Choosing a zone that has no music yet has some made, which uses about three minutes
+      of the monthly allowance and takes a minute or two.</p>
+    <label for="p-zone">Zone</label>
+    <select id="p-zone"></select>
+    <div class="checks">
+      <label><input type="checkbox" data-field="indoors"> In a cave or building</label>
+      <label><input type="checkbox" data-field="resting"> In an inn or city</label>
+      <label><input type="checkbox" data-field="submerged"> Under water</label>
+      <label><input type="checkbox" data-field="mounted"> Mounted</label>
+      <label><input type="checkbox" data-field="on_taxi"> On a flight path</label>
+      <label><input type="checkbox" data-field="stealthed"> Stealthed</label>
+      <label><input type="checkbox" data-field="in_combat"> In a fight</label>
+      <label><input type="checkbox" data-field="encounter"> Boss encounter</label>
+      <label><input type="checkbox" data-field="dead"> Dead</label>
+      <label><input type="checkbox" data-field="night"> Night</label>
+      <label><input type="checkbox" data-field="cinematic"> Cinematic</label>
+    </div>
+    <label for="p-target">Target</label>
+    <select id="p-target">
+      <option value="none">nothing</option><option value="normal">ordinary</option>
+      <option value="elite">elite</option><option value="worldboss">world boss</option>
+    </select>
+    <label for="p-weather">Weather</label>
+    <select id="p-weather">
+      <option value="clear">clear</option><option value="rain">rain</option>
+      <option value="snow">snow</option><option value="sandstorm">sandstorm</option>
+    </select>
+    <label for="p-strength">Weather strength <output id="p-strengthValue">50</output></label>
+    <input id="p-strength" type="range" min="0" max="100" value="50">
+  </details>
+
   <p id="problems" class="problems" hidden></p>
 </main>
 <script src="/player/engine.js"></script>

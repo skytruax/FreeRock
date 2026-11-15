@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import dataclasses
 import json
 import logging
 import time
@@ -286,6 +287,33 @@ class Conductor:
         return web.FileResponse(PLAYER_DIR / name, headers={"Content-Type": PLAYER_FILES[name],
                                                             "Cache-Control": "no-cache"})
 
+    async def pretend(self, request: web.Request) -> web.Response:
+        """Says the game is in the state given, as if the strip had been read. For trying the
+        music without the game; with the real game connected the two would talk over each other."""
+        fields = await request.json()
+        allowed = {field.name for field in dataclasses.fields(game.GameState)}
+        unknown = sorted(set(fields) - allowed)
+        if unknown:
+            raise web.HTTPBadRequest(text="The game state has no %s" % ", ".join(unknown))
+        if "position" in fields and fields["position"] is not None:
+            fields["position"] = tuple(fields["position"])
+        try:
+            state = game.GameState(**fields)
+        except TypeError as error:
+            raise web.HTTPBadRequest(text="Cannot make a game state from that: %s" % error)
+        if self.hub.link is not game.Link.LIVE:
+            self.hub.publish(game.LinkChanged(link=game.Link.LIVE, previous=self.hub.link))
+        previous = self.hub.state
+        changed = frozenset(name for name in allowed
+                            if previous is None or getattr(previous, name) != getattr(state, name))
+        self.hub.publish(game.StateChanged(state=state, previous=previous, changed=changed))
+        return web.json_response({"ok": True})
+
+    async def zones(self, request: web.Request) -> web.Response:
+        have = {asset.zone for asset in self.library.assets() if not asset.banned}
+        return web.json_response([{"name": name, "has_music": atlas.slug(name) in have}
+                                  for name in atlas.names()])
+
     async def status(self, request: web.Request) -> web.Response:
         return web.json_response({
             "asset": self.asset.id if self.asset else None,
@@ -342,6 +370,8 @@ def attach(app: web.Application, library: Library | None = None,
     app.router.add_get("/ws/player", conductor.player_socket)
     app.router.add_get("/audio/{asset}/{layer}", conductor.audio)
     app.router.add_get("/api/music", conductor.status)
+    app.router.add_get("/api/zones", conductor.zones)
+    app.router.add_post("/api/pretend", conductor.pretend)
     app.on_startup.append(_start)
     app.on_cleanup.append(_stop)
     return conductor

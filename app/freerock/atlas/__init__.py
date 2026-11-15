@@ -53,6 +53,13 @@ def zones() -> dict[str, ZoneProfile]:
     return {slug(name): _profile(name, entry) for name, entry in data["zones"].items()}
 
 
+@lru_cache(maxsize=1)
+def names() -> list[str]:
+    """The zones that have a hand-written profile, by the names the game uses, in A to Z order."""
+    data = json.loads(ZONES_FILE.read_text(encoding="utf-8"))
+    return sorted(data["zones"])
+
+
 def is_known(name: str | None) -> bool:
     return bool(name) and slug(name) in zones()
 

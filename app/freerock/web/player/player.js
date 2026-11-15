@@ -114,7 +114,48 @@
     if (engine) engine.skip().catch((error) => problem(String(error)));
   });
 
+  // --- the pretend game ----------------------------------------------------------------------
+  // Stands in for the game while it is not connected: every change is sent to the server as if
+  // the strip had been read.
+  function pretendState() {
+    const on = (field) => document.querySelector('#pretend [data-field="' + field + '"]').checked;
+    const targetClass = $("p-target").value, weather = $("p-weather").value;
+    return {
+      zone_name: $("p-zone").value, indoors: on("indoors"), resting: on("resting"),
+      swimming: on("submerged"), submerged: on("submerged"), mounted: on("mounted"),
+      on_taxi: on("on_taxi"), flying: on("on_taxi"), stealthed: on("stealthed"),
+      in_combat: on("in_combat"), encounter: on("encounter"), dead: on("dead"),
+      daytime: !on("night"), cinematic: on("cinematic"),
+      has_target: targetClass !== "none", target_class: targetClass,
+      weather: weather, weather_intensity: weather === "clear" ? 0 : Number($("p-strength").value) / 100,
+    };
+  }
+  function sendPretend() {
+    fetch("/api/pretend", { method: "POST", headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(pretendState()) })
+      .then(async (response) => { if (!response.ok) problem("The pretend game was refused: " + await response.text()); })
+      .catch((error) => problem("The pretend game could not reach the server: " + error));
+  }
+  async function fillZones() {
+    const response = await fetch("/api/zones");
+    if (!response.ok) throw new Error("The list of zones could not be fetched (" + response.status + ")");
+    const chosen = $("p-zone").value;
+    $("p-zone").replaceChildren(...(await response.json()).map((zone) => {
+      const option = document.createElement("option");
+      option.value = zone.name;
+      option.textContent = zone.name + (zone.has_music ? "" : "  (no music yet)");
+      option.selected = zone.name === (chosen || "Elwynn Forest");
+      return option;
+    }));
+  }
+  $("pretend").addEventListener("toggle", () => {
+    if ($("pretend").open) fillZones().then(sendPretend).catch((error) => problem(String(error)));
+  });
+  $("pretend").addEventListener("change", sendPretend);
+  $("p-strength").addEventListener("input", () => { $("p-strengthValue").textContent = $("p-strength").value; });
+
   setInterval(() => {
+    if ($("pretend").open && Date.now() % 15000 < 1000) fillZones().catch((error) => problem(String(error)));
     if (!engine) return;
     engine.tick().catch((error) => problem(String(error && error.stack || error)));
     const status = engine.status();

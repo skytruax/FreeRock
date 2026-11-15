@@ -300,3 +300,23 @@ async def test_at_the_allowance_it_waits_and_says_why(tmp_path):
         assert [asset.zone for asset in conductor.library.assets("westfall")] == ["westfall"]
     finally:
         await client.close()
+
+
+async def test_the_pretend_game_moves_the_music_like_the_real_one(tmp_path):
+    client, app, conductor, assets = await running(tmp_path)
+    try:
+        socket = await client.ws_connect("/ws/player")
+        answer = await client.post("/api/pretend", json={"zone_name": "Elwynn Forest", "daytime": True, "indoors": True})
+        assert answer.status == 200
+        assert (await next_of(socket, "asset"))["asset"]["zone"] == "elwynn-forest"
+        target = await next_of(socket, "target")
+        assert target["target"]["lowpass_hz"] == 6000.0 and target["link"] == "live"
+        await client.post("/api/pretend", json={"zone_name": "Elwynn Forest", "daytime": True, "in_combat": True})
+        assert (await next_of(socket, "target"))["target"]["bass"] == 1.0
+        assert (await client.post("/api/pretend", json={"health": 12})).status == 400
+        zones = await (await client.get("/api/zones")).json()
+        assert len(zones) == 50
+        assert {"name": "Elwynn Forest", "has_music": True} in zones and {"name": "Westfall", "has_music": False} in zones
+        await socket.close()
+    finally:
+        await client.close()
