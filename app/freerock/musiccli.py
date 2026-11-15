@@ -55,8 +55,10 @@ def _make(arguments: argparse.Namespace) -> int:
         try:
             made = await ingest.core_suite(arguments.zone, rock=arguments.rock)
         except TrackFailedChecks as failed:
-            print("It came back, but not as asked for, and was not kept: %s" % "; ".join(failed.checks["failed"]),
-                  file=sys.stderr)
+            print("It came back, but not as asked for, and was not put in the library: %s."
+                  % "; ".join(failed.checks["failed"]), file=sys.stderr)
+            if failed.kept is not None:
+                print("The audio and the measurements are in %s" % failed.kept, file=sys.stderr)
             return 1
         except (AllowanceExceeded, ElevenError, MissingKey) as refused:
             print(str(refused), file=sys.stderr)

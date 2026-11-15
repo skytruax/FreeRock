@@ -66,7 +66,7 @@ def test_make_says_why_when_it_cannot(home, capsys):
     settings, library, made = home
     made["failure"] = TrackFailedChecks("duskwood", {"failed": ["Battle is 2.50% off tempo"]})
     assert cli.main(["make", "Duskwood"]) == 1
-    assert "not kept: Battle is 2.50% off tempo" in capsys.readouterr().err
+    assert "not put in the library: Battle is 2.50% off tempo." in capsys.readouterr().err
     made["failure"] = AllowanceExceeded("FreeRock did not make this call (core suite): 3.20 min asked for, 1.00 left of today\'s allowance.")
     assert cli.main(["make", "Duskwood"]) == 1
     assert "today\'s allowance" in capsys.readouterr().err and library.assets() == []

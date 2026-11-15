@@ -8,14 +8,17 @@ checks is not stored; the caller decides whether to try again.
 from __future__ import annotations
 
 import asyncio
+import json
 import random
+import time
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Callable
 
 import numpy as np
 
 from . import analysis, atlas, composer
-from .audio import PcmStream
+from .audio import PcmStream, write_flac
 from .eleven import Gateway
 from .library import Asset, Library
 from .stems import Layers, split
@@ -31,12 +34,18 @@ MAX_LENGTH_OFF_S = 0.1
 
 
 class TrackFailedChecks(RuntimeError):
-    """The music came back but is not what was asked for. `checks` says what was measured."""
+    """The music came back but is not what was asked for. `checks` says what was measured, and
+    `kept` is the folder the audio was put in, so it can be listened to and the checks themselves
+    can be checked."""
 
-    def __init__(self, zone: str, checks: dict[str, Any]):
+    def __init__(self, zone: str, checks: dict[str, Any], kept: Path | None = None):
         self.zone = zone
         self.checks = checks
-        super().__init__("New music for %s failed its checks: %s" % (zone, "; ".join(checks["failed"])))
+        self.kept = kept
+        message = "New music for %s failed its checks: %s." % (zone, "; ".join(checks["failed"]))
+        if kept is not None:
+            message += " The audio is kept in %s." % kept
+        super().__init__(message)
 
 
 @dataclass
@@ -114,12 +123,28 @@ class Ingest:
         layers = await asyncio.to_thread(self.splitter, mix, RATE)
         checks = await asyncio.to_thread(check, request, mix, layers, RATE)
         if checks["failed"]:
-            raise TrackFailedChecks(zone, checks)
+            kept = await asyncio.to_thread(self._keep_rejected, zone, request, mix, checks, stream.song_id)
+            raise TrackFailedChecks(zone, checks, kept)
         asset = await asyncio.to_thread(
             self.library.add, zone=zone, set_name=set_name, request=request, mix=mix, layers=layers,
             song_id=stream.song_id, checks=checks)
         return Made(asset=asset, first_audio_s=stream.first_audio_s, total_s=stream.total_s,
                     split_s=layers.seconds)
+
+    def _keep_rejected(self, zone: str, request: composer.Request, mix: np.ndarray,
+                       checks: dict[str, Any], song_id: str | None) -> Path:
+        """A track that failed its checks cost the same as one that passed. It is kept, out of
+        the library, with what was asked for and what was measured: either the track is at fault
+        and the request wants changing, or the checks are, and only the audio can say which."""
+        folder = self.library.root.parent / "rejected" / ("%s-%s" % (zone, time.strftime("%Y%m%d-%H%M%S")))
+        folder.mkdir(parents=True)
+        write_flac(folder / "mix.flac", mix, RATE)
+        (folder / "checks.json").write_text(json.dumps({
+            "zone": zone, "bpm": request.bpm, "tonic": request.tonic, "seed": request.seed,
+            "song_id": song_id, "checks": checks, "plan": request.plan,
+            "parts": [{"name": part.name, "bars": part.bars, "start_ms": part.start_ms, "end_ms": part.end_ms}
+                      for part in request.parts]}, indent=2) + "\n", encoding="utf-8")
+        return folder
 
     async def core_suite(self, place_name: str | None, *, rock: float = 0.5, seed: int | None = None,
                          reroll: bool = False) -> Made:

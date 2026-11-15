@@ -97,6 +97,13 @@ async def test_music_off_tempo_is_not_stored_but_is_still_counted(tmp_path):
         await ingest.core_suite("Elwynn Forest")
     assert "off tempo" in str(failure.value) and failure.value.zone == "elwynn-forest"
     assert library.assets() == []
+    # It is kept outside the library, with what was asked for and what was measured.
+    kept = failure.value.kept
+    assert kept.parent == tmp_path / "rejected" and str(kept) in str(failure.value)
+    assert (kept / "mix.flac").stat().st_size > 100_000
+    noted = json.loads((kept / "checks.json").read_text())
+    assert noted["bpm"] == 120 and noted["song_id"] == "song-1" and noted["checks"]["failed"]
+    assert [part["name"] for part in noted["parts"]][:2] == ["Arrival", "Wander A"]
     assert gateway.ledger.month_minutes() == pytest.approx(2.8), "ElevenLabs made it, so it counts"
     await gateway.aclose()
 
