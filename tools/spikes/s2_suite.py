@@ -20,7 +20,7 @@ from freerock.stems import Layers, split
 
 FORMAT, RATE, CHANNELS = "pcm_48000", 48000, 2
 SEED = 1102
-ZONE = ZoneProfile(key="elwynn", bpm=120, tonic="G mixolydian",
+ZONE = ZoneProfile(key="elwynn-forest", bpm=120, tonic="G mixolydian",
                    colours=["chiming clean electric guitar arpeggios", "fiddle"],
                    mood=["pastoral", "sunny", "hopeful"])
 BANDED = ("Wander A", "Wander B", "Battle", "Ember", "Depths")   # the parts with a full band

@@ -22,6 +22,8 @@ from aiohttp import WSMsgType, web
 from . import atlas
 from . import state as game
 from .director import Director, Target
+from .eleven import AllowanceExceeded, ElevenError
+from .ingest import Ingest, TrackFailedChecks
 from .library import Asset, Library
 from .settings import Settings
 
@@ -32,6 +34,9 @@ PLAYER_FILES = {"player.html": "text/html", "player.js": "application/javascript
                 "engine.js": "application/javascript", "player.css": "text/css"}
 STEP_S = 0.25          # how often the director is asked again while nothing changes
 TICK_S = 1.0           # how often the players are nudged, so their queue never depends on a timer
+DWELL_S = 4.0          # how long the player has been in a zone before music is made for it
+TRIES = 2              # how many times music is asked for when a track fails its checks
+PAUSE_S = 600.0        # no new music for this long after ElevenLabs reports a problem
 
 
 def slug(name: str | None) -> str | None:
@@ -42,11 +47,17 @@ def slug(name: str | None) -> str | None:
 
 class Conductor:
     def __init__(self, hub: game.Hub, library: Library, director: Director | None = None,
-                 clock=time.monotonic):
+                 clock=time.monotonic, ingest: Ingest | None = None):
         self.hub = hub
         self.library = library
         self.director = director or Director()
         self.clock = clock
+        self.ingest = ingest             # None: play what the library has, make nothing new
+        self.making: str | None = None   # the zone music is being made for right now
+        self._making_task: asyncio.Task | None = None
+        self._seen_in: tuple[str, float] | None = None   # (zone, when the player was first seen there)
+        self._tries: dict[str, int] = {}
+        self._paused_until = 0.0
         self.players: set[web.WebSocketResponse] = set()
         self.asset: Asset | None = None
         self.borrowed = False            # the zone has no music of its own yet; another zone's is playing
@@ -58,15 +69,23 @@ class Conductor:
 
     # --- choosing the music ----------------------------------------------------------------------
 
+    @staticmethod
+    def place_name(state: game.GameState) -> str | None:
+        """The name music is filed under for where the player is: the dungeon inside one, the
+        zone otherwise. None while the name has not arrived from the game yet."""
+        return state.instance_name if state.in_instance else state.zone_name
+
+    def place_key(self, state: game.GameState) -> str | None:
+        return slug(self.place_name(state))
+
     def choose_asset(self, state: game.GameState) -> tuple[Asset | None, bool]:
         """The music for where the player is: the zone's own if the library has any, otherwise the
         most recent music from anywhere. Returns (asset, borrowed)."""
         usable = [asset for asset in self.library.assets() if not asset.banned]
         if not usable:
             return None, False
-        wanted = {slug(state.instance_name) if state.in_instance else slug(state.zone_name)}
-        own = [asset for asset in usable if asset.zone in wanted or slug(asset.zone) in wanted
-               or any(name and name.startswith(asset.zone) for name in wanted)]
+        wanted = self.place_key(state)
+        own = [asset for asset in usable if asset.zone == wanted]
         if own:
             keep = [asset for asset in own if self.asset and asset.id == self.asset.id]
             return (keep[0] if keep else own[-1]), False
@@ -122,6 +141,67 @@ class Conductor:
         if target != self.target:
             self.target = target
             await self._broadcast(self._target_message())
+        self._consider_making(state)
+
+    # --- making new music --------------------------------------------------------------------
+
+    def _consider_making(self, state: game.GameState) -> None:
+        """Starts making music for the zone the player is in, if it has none of its own, the
+        player has stayed a moment, and nothing else is being made."""
+        if self.ingest is None or self.making is not None:
+            return
+        now = self.clock()
+        key = self.place_key(state)
+        if not key:
+            self._seen_in = None
+            return
+        if self._seen_in is None or self._seen_in[0] != key:
+            self._seen_in = (key, now)
+        # A flight path crosses zones without stopping, a loading screen is not yet anywhere,
+        # and with the game out of sight there is nobody to make music for.
+        if (self.hub.link is not game.Link.LIVE or not state.enabled or state.on_taxi
+                or state.loading or state.cinematic):
+            self._seen_in = (key, now)
+            return
+        if now - self._seen_in[1] < DWELL_S or now < self._paused_until:
+            return
+        if any(asset.zone == key for asset in self.library.assets()):
+            return                       # it has music (banned music is not made again by itself)
+        if self._tries.get(key, 0) >= TRIES:
+            return
+        name = self.place_name(state)
+        self.making = key
+        self._tries[key] = self._tries.get(key, 0) + 1
+        self.notes.append("Making music for %s." % name)
+        self._making_task = asyncio.create_task(
+            self.ingest.core_suite(name, reroll=self._tries[key] > 1), name="freerock-making-" + key)
+        self._making_task.add_done_callback(lambda task: self._made(name, key, task))
+
+    def _made(self, name: str, key: str, task: asyncio.Task) -> None:
+        self.making = None
+        if task.cancelled():
+            return
+        error = task.exception()
+        if error is None:
+            made = task.result()
+            self.notes.append("New music for %s is ready (first audio after %.1f s, all of it after %.1f s, "
+                              "layers split in %.0f s)." % (name, made.first_audio_s or 0.0,
+                                                           made.total_s or 0.0, made.split_s))
+        elif isinstance(error, TrackFailedChecks):
+            again = self._tries.get(key, 0) < TRIES
+            self.notes.append("%s %s" % (error, "Trying once more." if again else "Not trying again."))
+        elif isinstance(error, AllowanceExceeded):
+            self._tries[key] -= 1        # nothing was asked for, so it does not count as a try
+            self._paused_until = self.clock() + PAUSE_S
+            self.notes.append(str(error))
+        elif isinstance(error, ElevenError):
+            self._paused_until = self.clock() + PAUSE_S
+            self.notes.append("ElevenLabs would not make music for %s: %s No new music for ten minutes." % (name, error))
+        else:
+            self._paused_until = self.clock() + PAUSE_S
+            note = "Making music for %s failed: %r. No new music for ten minutes." % (name, error)
+            log.error(note, exc_info=error)
+            self.notes.append(note)
 
     async def _handle(self, event: object) -> None:
         if isinstance(event, game.CommandReceived):
@@ -212,7 +292,7 @@ class Conductor:
             "zone_of_asset": self.asset.zone if self.asset else None, "borrowed": self.borrowed,
             "target": self.target.as_dict() if self.target else None,
             "players": list(self.statuses.values()), "players_connected": len(self.players),
-            "notes": self.notes[-20:]})
+            "making": self.making, "notes": self.notes[-20:]})
 
 
 def _ended(conductor: Conductor, task: asyncio.Task) -> None:
@@ -238,6 +318,10 @@ async def _stop(app: web.Application) -> None:
     conductor: Conductor = app["conductor"]
     for socket in list(conductor.players):
         await socket.close()
+    if conductor._making_task is not None and not conductor._making_task.done():
+        conductor._making_task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await conductor._making_task
     if conductor._task is not None and not conductor._task.done():
         conductor._task.cancel()
         # Being cancelled is how this loop is meant to end; any other error was already reported
@@ -247,9 +331,11 @@ async def _stop(app: web.Application) -> None:
 
 
 def attach(app: web.Application, library: Library | None = None,
-           director: Director | None = None, clock=time.monotonic) -> Conductor:
-    """Adds the music side to a server made by server.create_app()."""
-    conductor = Conductor(app["hub"], library or Library(Settings().library_dir), director, clock)
+           director: Director | None = None, clock=time.monotonic,
+           ingest: Ingest | None = None) -> Conductor:
+    """Adds the music side to a server made by server.create_app(). With an `ingest`, music is
+    made for zones that have none; without one, only what is in the library is played."""
+    conductor = Conductor(app["hub"], library or Library(Settings().library_dir), director, clock, ingest)
     app["conductor"] = conductor
     app.router.add_get("/player", conductor.page)
     app.router.add_get("/player/{name}", conductor.page)

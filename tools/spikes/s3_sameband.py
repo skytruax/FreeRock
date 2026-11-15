@@ -21,7 +21,7 @@ from freerock.composer import Reference, ZoneProfile, build
 from freerock.eleven import ElevenError
 
 FORMAT, RATE, CHANNELS = "pcm_48000", 48000, 2
-ZONE = ZoneProfile(key="elwynn", bpm=120, tonic="G mixolydian",
+ZONE = ZoneProfile(key="elwynn-forest", bpm=120, tonic="G mixolydian",
                    colours=["chiming clean electric guitar arpeggios", "fiddle"],
                    mood=["pastoral", "sunny", "hopeful"])
 BAR = RATE * 60 * 4 // ZONE.bpm
