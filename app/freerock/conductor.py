@@ -67,6 +67,7 @@ class Conductor:
         self.notes: list[str] = []       # things worth showing on the control page
         self._task: asyncio.Task | None = None
         self._sent_asset: str | None = None
+        self._volume: int | None = None  # the volume last passed on from the game
 
     # --- choosing the music ----------------------------------------------------------------------
 
@@ -117,6 +118,9 @@ class Conductor:
     def _target_message(self) -> dict[str, Any]:
         state = self.hub.state
         return {"type": "target", "target": self.target.as_dict(), "link": self.hub.link.value,
+                # The volume set in the game with /rock volume, 0 to 100; the page's own volume
+                # control follows it whenever it changes.
+                "game_volume": state.volume if state else None,
                 "where": {"zone": state.zone_name if state else None,
                           "subzone": state.subzone_name if state else None,
                           "instance": state.instance_name if state else None}}
@@ -139,8 +143,8 @@ class Conductor:
         if self.asset is not None and self._sent_asset != self.asset.id:
             self._sent_asset = self.asset.id
             await self._broadcast(self._asset_message())
-        if target != self.target:
-            self.target = target
+        if target != self.target or state.volume != self._volume:
+            self.target, self._volume = target, state.volume
             await self._broadcast(self._target_message())
         self._consider_making(state)
 

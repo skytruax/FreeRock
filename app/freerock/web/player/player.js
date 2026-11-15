@@ -11,6 +11,7 @@
   let target = null;            // the last target the server sent, kept for when the engine is made
   let retry = 500;              // milliseconds until the next attempt to reconnect
   let lostAt = null;            // when the server was last lost, if it is lost now
+  let gameVolume = null;        // the volume last set from inside the game
   const problems = [];
 
   // Anything that goes wrong is shown on the page and sent to the server, never dropped.
@@ -83,6 +84,13 @@
     else if (message.type === "target") {
       target = message.target;
       if (engine) await engine.setTarget(target);
+      // /rock volume in the game moves this page's volume control.
+      if (message.game_volume !== null && message.game_volume !== gameVolume) {
+        gameVolume = message.game_volume;
+        $("volume").value = gameVolume;
+        $("volumeValue").textContent = gameVolume;
+        if (engine) engine.setVolume(volume());
+      }
       show(message);
     } else if (message.type === "skip" && engine) await engine.skip();
     // Every message is also a nudge to look at the queue, so the music never depends on a timer

@@ -320,3 +320,16 @@ async def test_the_pretend_game_moves_the_music_like_the_real_one(tmp_path):
         await socket.close()
     finally:
         await client.close()
+
+
+async def test_the_volume_set_in_the_game_reaches_the_player(tmp_path):
+    client, app, conductor, assets = await running(tmp_path)
+    try:
+        socket = await client.ws_connect("/ws/player")
+        publish(app, zone_name="Elwynn Forest")
+        assert (await next_of(socket, "target"))["game_volume"] == 70       # the addon's starting volume
+        publish(app, zone_name="Elwynn Forest", volume=35)
+        assert (await next_of(socket, "target"))["game_volume"] == 35
+        await socket.close()
+    finally:
+        await client.close()
