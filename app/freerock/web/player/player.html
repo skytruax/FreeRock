@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FreeRock player</title>
+<link rel="stylesheet" href="/player/player.css">
+</head>
+<body>
+<main>
+  <header>
+    <h1>FreeRock</h1>
+    <p id="link" class="soft">Connecting to the FreeRock server…</p>
+  </header>
+
+  <div id="banner" class="banner" hidden></div>
+
+  <section id="gate" class="card gate" hidden>
+    <p>Your browser needs one click before a page may play sound.</p>
+    <button id="start" type="button">Start the music</button>
+    <p class="soft">The FreeRock launcher opens this page with sound already allowed.</p>
+  </section>
+
+  <section class="card">
+    <h2 id="where">Waiting for the game</h2>
+    <p id="music" class="soft">No music loaded yet.</p>
+    <dl>
+      <div><dt>Playing</dt><dd id="section">nothing</dd></div>
+      <div><dt>Asked for</dt><dd id="place">nothing</dd></div>
+      <div><dt>Intensity</dt><dd><div class="meter"><span id="intensity"></span></div></dd></div>
+      <div><dt>Bed</dt><dd><div class="meter"><span id="bed"></span></div></dd></div>
+      <div><dt>Drums</dt><dd><div class="meter"><span id="drums"></span></div></dd></div>
+      <div><dt>Bass</dt><dd><div class="meter"><span id="bass"></span></div></dd></div>
+      <div><dt>Tone</dt><dd id="tone">open</dd></div>
+      <div><dt>Because</dt><dd id="why">nothing is happening</dd></div>
+    </dl>
+  </section>
+
+  <section class="card">
+    <label for="volume">Volume <output id="volumeValue">80</output></label>
+    <input id="volume" type="range" min="0" max="100" value="80">
+    <button id="skip" type="button" class="quiet">Play something else</button>
+  </section>
+
+  <p id="problems" class="problems" hidden></p>
+</main>
+<script src="/player/engine.js"></script>
+<script src="/player/player.js"></script>
+</body>
+</html>

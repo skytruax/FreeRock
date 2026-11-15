@@ -1,0 +1,132 @@
+// The FreeRock player page: connects the audio engine (engine.js) to the FreeRock server.
+//
+// The server says which music to play and what the target is; this page fetches the audio the
+// engine asks for and shows what is going on. If the server cannot be reached the music that is
+// playing carries on, and after a minute it fades out under a notice.
+(function () {
+  "use strict";
+
+  const $ = (id) => document.getElementById(id);
+  let ctx = null, engine = null, socket = null;
+  let target = null;            // the last target the server sent, kept for when the engine is made
+  let retry = 500;              // milliseconds until the next attempt to reconnect
+  let lostAt = null;            // when the server was last lost, if it is lost now
+  const problems = [];
+
+  // Anything that goes wrong is shown on the page and sent to the server, never dropped.
+  function problem(text) {
+    problems.push(new Date().toLocaleTimeString() + "  " + text);
+    $("problems").hidden = false;
+    $("problems").textContent = problems.slice(-6).join("\n");
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ type: "problem", message: text }));
+    }
+  }
+  window.addEventListener("error", (event) => problem(event.message + " (" + event.filename + ":" + event.lineno + ")"));
+  window.addEventListener("unhandledrejection", (event) => problem(String(event.reason && event.reason.stack || event.reason)));
+
+  function banner(text) {
+    $("banner").hidden = !text;
+    $("banner").textContent = text || "";
+  }
+
+  async function loader(assetId, layer, start, end) {
+    const response = await fetch("/audio/" + assetId + "/" + layer + "?start=" + start + "&end=" + end);
+    if (!response.ok) throw new Error("The server would not give audio (" + response.status + "): " + await response.text());
+    return response.arrayBuffer();
+  }
+
+  function volume() { return Number($("volume").value) / 100; }
+
+  async function useAsset(message) {
+    const asset = message.asset;
+    if (!ctx) {
+      // The player runs at the music's own sample rate, so nothing is resampled and the three
+      // layers stay locked.
+      ctx = new AudioContext({ sampleRate: asset.rate, latencyHint: "playback" });
+      engine = new FreeRockEngine(ctx, loader);
+      engine.setVolume(volume());
+      if (target) await engine.setTarget(target);
+    }
+    await engine.setAsset(asset);
+    $("music").textContent = (message.borrowed ? "This zone has no music of its own yet. Playing " : "Music for ")
+      + asset.zone + " (" + asset.set + " set, " + asset.bpm + " BPM, " + asset.tonic + ").";
+    await begin();
+  }
+
+  // Browsers only let a page make sound after a click, unless they were started with sound
+  // allowed (the FreeRock launcher does that). Until then the Start button is shown.
+  async function begin() {
+    if (!engine || engine.started) return;
+    if (ctx.state !== "running") { $("gate").hidden = false; return; }
+    $("gate").hidden = true;
+    await engine.start();
+  }
+
+  function show(message) {
+    const t = message.target, where = message.where || {};
+    $("where").textContent = [where.instance || where.zone, where.subzone].filter(Boolean).join(", ") || "Waiting for the game";
+    $("place").textContent = t.silent ? "silence" : t.place + (t.cut === "beat" ? " (on the beat)" : "");
+    for (const name of ["intensity", "bed", "drums", "bass"]) $(name).style.width = Math.round(100 * t[name]) + "%";
+    const tone = [];
+    if (t.lowpass_hz < 19000) tone.push("muffled above " + Math.round(t.lowpass_hz) + " Hz");
+    if (t.highpass_hz > 30) tone.push("thinned below " + Math.round(t.highpass_hz) + " Hz");
+    if (t.reverb > 0) tone.push("echo " + Math.round(100 * t.reverb) + "%");
+    if (t.volume < 1) tone.push("volume " + Math.round(100 * t.volume) + "%");
+    $("tone").textContent = tone.join(", ") || "open";
+    $("why").textContent = (t.why || []).join("; ") || "nothing is happening";
+    $("link").textContent = message.link === "live" ? "Following the game." : "Game link: " + message.link + ".";
+  }
+
+  async function receive(message) {
+    if (message.type === "asset") await useAsset(message);
+    else if (message.type === "target") {
+      target = message.target;
+      if (engine) await engine.setTarget(target);
+      show(message);
+    } else if (message.type === "skip" && engine) await engine.skip();
+    // Every message is also a nudge to look at the queue, so the music never depends on a timer
+    // that the browser may slow down while the game is in front.
+    if (engine) await engine.tick();
+  }
+
+  function connect() {
+    const scheme = location.protocol === "https:" ? "wss://" : "ws://";
+    socket = new WebSocket(scheme + location.host + "/ws/player");
+    socket.onopen = () => { retry = 500; lostAt = null; banner(""); $("link").textContent = "Connected. Waiting for the game."; };
+    socket.onmessage = (event) => { receive(JSON.parse(event.data)).catch((error) => problem(String(error && error.stack || error))); };
+    socket.onclose = () => {
+      if (lostAt === null) lostAt = Date.now();
+      banner("The FreeRock server cannot be reached. The music carries on for a minute; trying again…");
+      setTimeout(connect, retry);
+      retry = Math.min(retry * 2, 5000);
+    };
+  }
+
+  $("start").addEventListener("click", () => {
+    ctx.resume().then(begin).catch((error) => problem(String(error)));
+  });
+  $("volume").addEventListener("input", () => {
+    $("volumeValue").textContent = $("volume").value;
+    if (engine) engine.setVolume(volume());
+  });
+  $("skip").addEventListener("click", () => {
+    if (engine) engine.skip().catch((error) => problem(String(error)));
+  });
+
+  setInterval(() => {
+    if (!engine) return;
+    engine.tick().catch((error) => problem(String(error && error.stack || error)));
+    const status = engine.status();
+    $("section").textContent = status.section ? status.section + ", cell " + (status.cell + 1) : "nothing";
+    if (lostAt !== null && Date.now() - lostAt > 60000 && !engine.target.silent) {
+      banner("The FreeRock server has been out of reach for a minute. The music has faded out and returns when the server does.");
+      engine.setTarget({ silent: true, fade_s: 2 }).catch((error) => problem(String(error)));
+    }
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify(Object.assign({ type: "status", context: ctx.state }, status)));
+    }
+  }, 1000);
+
+  connect();
+})();

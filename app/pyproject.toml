@@ -45,6 +45,9 @@ packages = ["freerock"]
 testpaths = ["tests"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
+# The server keeps its parts under plain names (app["hub"], app["link"], app["conductor"]);
+# aiohttp suggests typed keys instead, which is a matter of style here.
+filterwarnings = ["ignore::aiohttp.web_exceptions.NotAppKeyWarning"]
 
 # PyTorch's CPU build: this machine has no GPU the separator can use, and the CUDA build is
 # several gigabytes larger.

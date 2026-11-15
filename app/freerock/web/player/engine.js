@@ -373,6 +373,18 @@
       });
     }
 
+    // Leaves what is playing for other music of the same kind, on the next bar line.
+    skip() {
+      return this._serial(async () => {
+        const playing = this.queued || this.current;
+        if (!this.started || !playing) return;
+        const same = this.asset.sections.filter((section) => section.role === playing.section.role);
+        const next = same[(same.indexOf(playing.section) + 1) % same.length];
+        const section = same.length > 1 ? next : this._sectionFor(this.target.place, false);
+        await this._moveTo(section, "bar");
+      });
+    }
+
     status() {
       const playing = this.current || this.queued;
       return {
