@@ -6,6 +6,7 @@ only an ear can judge are easy to get through. Costs nothing; it only reads the 
     cd app && uv run --no-sync python ../tools/spikes/build_page.py
 """
 import html
+import json
 import time
 
 from common import OUT, read_report
@@ -83,6 +84,20 @@ def main() -> None:
                     "Does the first 16 seconds stand up on its own as calm zone music?"))
     out.append(clip("3. Walking into a cave", demos["cave"]["files"], demos["cave"]["what"],
                     "Does the change at 0:08 read as going indoors, and is the move to Depths at 0:12 natural?"))
+
+    # --- the real player, playing a scripted session ------------------------------------------
+    demos_dir = OUT.parent / "demos"
+    sessions = sorted(demos_dir.glob("session-*.json")) if demos_dir.is_dir() else []
+    if sessions:
+        out.append("<h2>The real player on a scripted session</h2>")
+        out.append('<p class="soft">Rendered by the same engine the gaming PC will run, with the music in '
+                   "the library. Nothing here is mocked up.</p>")
+        for path in sessions:
+            session = json.loads(path.read_text(encoding="utf-8"))
+            out.append(clip("Music for " + session["zone"], {"mp3": "../demos/" + path.stem + ".mp3"},
+                            session["story"],
+                            "Does each change land where it should, and does it sound like one piece of music throughout?"))
+            out.append('<div class="card">%s</div>' % checks(session["passes"]))
 
     # --- layers ---------------------------------------------------------------------------------
     out.append("<h2>The three layers of Wander A</h2>")
