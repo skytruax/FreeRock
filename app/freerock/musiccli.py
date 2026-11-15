@@ -37,6 +37,9 @@ def _make_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--rock", type=float,
                         help="how much of the rock the calm parts carry, 0 to 1 (default: the rock setting)")
     parser.add_argument("--again", action="store_true", help="make it even if the zone already has music")
+    parser.add_argument("--set", choices=("core", "second", "fresh"), default="core",
+                        help="which music to make: the zone's first (core), or a later set that adds to it "
+                             "(second has Night, Storm and Boss; fresh has more riffs)")
 
 
 def _make(arguments: argparse.Namespace) -> int:
@@ -44,9 +47,15 @@ def _make(arguments: argparse.Namespace) -> int:
     profile = atlas.profile_for(arguments.zone)
     library = Library(settings.library_dir)
     have = library.assets(profile.key)
-    if have and not arguments.again:
-        print("%s already has music (%s). Use --again to make more." % (arguments.zone, ", ".join(a.id for a in have)))
+    core = next((asset for asset in library.usable(profile.key) if asset.set == "core"), None)
+    if arguments.set == "core" and have and not arguments.again:
+        print("%s already has music (%s). Use --again to make more, or --set second to add to it."
+              % (arguments.zone, ", ".join(a.id for a in have)))
         return 0
+    if arguments.set != "core" and core is None:
+        print("%s has no core suite to add a %s set to. Make that first: freerock make \"%s\""
+              % (arguments.zone, arguments.set, arguments.zone), file=sys.stderr)
+        return 1
     if not atlas.is_known(arguments.zone):
         print("%r is not one of the game's zones FreeRock has a profile for; using one worked out from its name."
               % arguments.zone)
@@ -55,7 +64,10 @@ def _make(arguments: argparse.Namespace) -> int:
     async def run() -> int:
         ingest, gateway = _ingest(settings)
         try:
-            made = await ingest.core_suite(arguments.zone, rock=arguments.rock)
+            if arguments.set == "core":
+                made = await ingest.core_suite(arguments.zone, rock=arguments.rock)
+            else:
+                made = await ingest.later_set(core, arguments.zone, arguments.set, rock=arguments.rock)
         except TrackFailedChecks as failed:
             print("It came back, but not as asked for, and was not put in the library: %s."
                   % "; ".join(failed.checks["failed"]), file=sys.stderr)
@@ -68,8 +80,8 @@ def _make(arguments: argparse.Namespace) -> int:
         finally:
             await gateway.aclose()
         asset = made.asset
-        print("Done: %s, %.2f minutes of music. First audio after %.1f s, all of it after %.1f s, layers split in %.0f s."
-              % (asset.id, asset.minutes, made.first_audio_s or 0.0, made.total_s or 0.0, made.split_s))
+        print("Done: %s (%s set), %.2f minutes of music. First audio after %.1f s, all of it after %.1f s, layers split in %.0f s."
+              % (asset.id, asset.set, asset.minutes, made.first_audio_s or 0.0, made.total_s or 0.0, made.split_s))
         for name, part in asset.checks["parts"].items():
             print("  %-9s tempo %+.3f%%, starts %+.1f ms from a beat, heard as %s"
                   % (name, part["tempo_off_percent"], part["start_to_beat_ms"], part["heard_as"]))

@@ -20,6 +20,17 @@ class StandInIngest:
     def __init__(self, library, failure=None):
         self.library, self.failure, self.calls = library, failure, []
 
+    async def later_set(self, core, name, kind, *, rock=None, reroll=False):
+        self.calls.append((name, kind))
+        from freerock.composer import fresh_set, second_set
+        profile = atlas.profile_for(name)
+        maker = second_set if kind == "second" else fresh_set
+        request = maker(profile, seed=4, part_bars=atlas.part_bars(profile.bpm))
+        mix, layers = made_up_track(request)
+        asset = self.library.add(zone=profile.key, set_name=kind, request=request, mix=mix, layers=layers,
+                                 checks={"failed": [], "parts": {}})
+        return Made(asset=asset, first_audio_s=5.8, total_s=11.6, split_s=77.0)
+
     async def core_suite(self, name, *, rock=None, reroll=False):
         self.calls.append((name, rock))
         if self.failure:
@@ -137,3 +148,13 @@ def test_a_settings_file_with_something_wrong_in_it_is_an_error(tmp_path):
     (tmp_path / "settings.json").write_text('{"monthly_minutes": 120, "rock": 0.2}')
     loaded = Settings.load(tmp_path)
     assert loaded.monthly_minutes == 120 and loaded.rock == 0.2 and loaded.daily_minutes == 30
+
+
+def test_make_can_add_a_later_set_to_a_zone_that_has_its_core_suite(home, capsys):
+    settings, library, made = home
+    assert cli.main(["make", "Duskwood", "--set", "second"]) == 1
+    assert "has no core suite to add a second set to" in capsys.readouterr().err
+    assert cli.main(["make", "Duskwood"]) == 0
+    assert cli.main(["make", "Duskwood", "--set", "second"]) == 0
+    assert "(second set)" in capsys.readouterr().out and made["ingest"].calls[-1] == ("Duskwood", "second")
+    assert [asset.set for asset in library.usable("duskwood")] == ["core", "second"]

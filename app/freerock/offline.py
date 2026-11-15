@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import dataclasses
+import random
 import shutil
 import tempfile
 from pathlib import Path
@@ -20,7 +21,7 @@ from aiohttp import web
 
 from .audio import pcm16_to_float
 from .director import Director, Rules, playable
-from .library import Asset, Library
+from .library import Asset, Library, merged
 from .state import GameState
 
 PLAYER_DIR = Path(__file__).resolve().parent / "web" / "player"
@@ -39,17 +40,19 @@ def find_chrome() -> str | None:
     return None
 
 
-def timeline(session: list[tuple[float, dict[str, Any]]], seconds: float, asset: Asset,
-             start: GameState | None = None, rules: Rules | None = None) -> list[tuple[float, dict]]:
+def timeline(session: list[tuple[float, dict[str, Any]]], seconds: float, music: list[Asset],
+             start: GameState | None = None, rules: Rules | None = None,
+             seed: int = 1) -> list[tuple[float, dict]]:
     """The targets the player would be sent over a session: (time, target) each time it changes.
 
-    `session` is a list of (time, {field: value}) changes to the game's state. The place in each
-    target is already narrowed to a kind of section this asset has.
+    `session` is a list of (time, {field: value}) changes to the game's state, and `music` is
+    everything the place has (its core suite and any later sets). The place in each target is
+    already narrowed to a kind of section that music has.
     """
-    director = Director(rules)
+    director = Director(rules, rng=random.Random(seed))
     state = start or GameState(daytime=True)
     changes = sorted(session, key=lambda item: item[0])
-    roles = {section.role for section in asset.sections}
+    roles = {section.role for asset in music for section in asset.sections}
     out: list[tuple[float, dict]] = []
     last = None
     for tick in range(int(round(seconds / STEP_S)) + 1):
@@ -65,10 +68,11 @@ def timeline(session: list[tuple[float, dict[str, Any]]], seconds: float, asset:
     return out
 
 
-async def render(library: Library, asset: Asset, script: list[tuple[float, dict]], seconds: float,
+async def render(library: Library, music: list[Asset], script: list[tuple[float, dict]], seconds: float,
                  chrome: str | None = None, timeout: float = 300.0) -> tuple[np.ndarray, dict[str, Any]]:
-    """Renders `script` (from `timeline`) with the real engine. Returns (audio, what the engine
-    scheduled). Raises RenderFailed with the page's own words if it could not."""
+    """Renders `script` (from `timeline`) with the real engine and a place's whole music. Returns
+    (audio, what the engine scheduled). Raises RenderFailed with the page's own words if it
+    could not."""
     chrome = chrome or find_chrome()
     if chrome is None:
         raise RenderFailed("Chrome is not installed, and the player's engine needs a browser to run in")
@@ -82,12 +86,13 @@ async def render(library: Library, asset: Asset, script: list[tuple[float, dict]
         return web.FileResponse(PLAYER_DIR / "engine.js")
 
     async def job(request: web.Request) -> web.Response:
-        return web.json_response({"asset": {**asset.to_json(), "bar_frames": asset.bar_frames},
-                                  "seconds": seconds, "script": script})
+        return web.json_response({"asset": merged(music), "seconds": seconds, "script": script})
+
+    by_id = {asset.id: asset for asset in music}
 
     async def audio(request: web.Request) -> web.Response:
         try:
-            data = library.samples(asset, request.match_info["layer"],
+            data = library.samples(by_id[request.match_info["asset"]], request.match_info["layer"],
                                    int(request.query["start"]), int(request.query["end"]))
         except (KeyError, ValueError) as error:
             raise web.HTTPBadRequest(text=str(error))

@@ -87,14 +87,17 @@ def main() -> None:
 
     # --- the real player, playing a scripted session ------------------------------------------
     demos_dir = OUT.parent / "demos"
-    sessions = sorted(demos_dir.glob("session-*.json")) if demos_dir.is_dir() else []
+    sessions = sorted(list(demos_dir.glob("storm-*.json")) + list(demos_dir.glob("session-*.json"))) \
+        if demos_dir.is_dir() else []
     if sessions:
         out.append("<h2>The real player on a scripted session</h2>")
         out.append('<p class="soft">Rendered by the same engine the gaming PC will run, with the music in '
                    "the library. Nothing here is mocked up.</p>")
         for path in sessions:
             session = json.loads(path.read_text(encoding="utf-8"))
-            out.append(clip("Music for " + session["zone"], {"mp3": "../demos/" + path.stem + ".mp3"},
+            title = ("A rain storm and a rest, " if session.get("session") == "storm" else "A walk, a fight and a mine, ") \
+                + "with music for " + session["zone"]
+            out.append(clip(title, {"mp3": "../demos/" + path.stem + ".mp3"},
                             session["story"],
                             "Does each change land where it should, and does it sound like one piece of music throughout?"))
             out.append('<div class="card">%s</div>' % checks(session["passes"]))
