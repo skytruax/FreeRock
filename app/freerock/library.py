@@ -27,9 +27,11 @@ LAYERS = ("bed", "drums", "bass")
 BARS_PER_CELL = 4
 
 # How loud each kind of section is played, in LUFS. The suites come back from ElevenLabs at much
-# the same loudness whatever the part, so the difference between calm and battle is set here.
-TARGET_LUFS = {"arrival": -20.0, "wander": -20.0, "ember": -23.0, "night": -22.0, "depths": -21.0,
-               "storm": -19.0, "battle": -18.0, "boss": -17.0}
+# the same loudness whatever the part (about -10), so the difference between calm and battle is
+# set here. The whole scale sits a little under that, which leaves the limiter with nothing to do
+# in ordinary play while keeping the music loud; the volume control goes down from here.
+TARGET_LUFS = {"arrival": -16.0, "wander": -16.0, "ember": -19.0, "night": -18.0, "depths": -17.0,
+               "storm": -15.0, "battle": -14.0, "boss": -13.0}
 
 
 def role_of(part_name: str) -> str:

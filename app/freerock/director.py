@@ -236,6 +236,8 @@ class Director:
             why.append("a fight has started")
 
         # --- tone: the lowest low-pass, the highest high-pass and the largest reverb win -----
+        # The cut-offs are low because of what the music is: guitars and lute have little above
+        # 6 kHz, and a rendered session showed a 6 kHz cut changing nothing that could be measured.
         lowpass, highpass, reverb, volume, fade = OPEN_HZ, FLOOR_HZ, 0.0, 1.0, 0.4
 
         def tint(name: str, *, low: float = OPEN_HZ, high: float = FLOOR_HZ, wet: float = 0.0,
@@ -246,19 +248,19 @@ class Director:
             why.append(name)
 
         if state.indoors:
-            tint("indoors: muffled and echoing", low=6000.0, wet=0.30)
+            tint("indoors: muffled and echoing", low=2500.0, wet=0.40)
         if state.submerged:
-            tint("under water", low=700.0)
+            tint("under water", low=500.0)
             fade = 0.15
         if state.weather == "rain" and strength > 0:
-            tint("rain", low=12000.0 - 7000.0 * strength, wet=0.10 + 0.15 * strength)
+            tint("rain", low=8000.0 - 5000.0 * strength, wet=0.10 + 0.15 * strength)
         elif state.weather == "snow" and strength > 0:
-            tint("snow", low=10000.0, wet=0.20 + 0.25 * strength)
+            tint("snow", low=6000.0, wet=0.20 + 0.25 * strength)
             drums *= 1.0 - 0.3 * strength
         elif state.weather == "sandstorm" and strength > 0:
-            tint("sandstorm", low=3500.0 + 8000.0 * (1.0 - strength), high=300.0 * strength)
+            tint("sandstorm", low=3000.0 + 5000.0 * (1.0 - strength), high=300.0 * strength)
         if state.daytime is False:
-            tint("night", low=8000.0)
+            tint("night", low=5000.0)
             drums *= 0.7
         if state.resting:
             tint("resting", gain=0.63)                # about 4 dB down
@@ -283,7 +285,7 @@ class Director:
             why.append("stealth: the bass line alone")
         if fallen:
             bed, drums, bass = 1.0, 0.0, 0.0
-            lowpass, reverb, volume = min(lowpass, 1500.0), max(reverb, 0.6), volume * 0.4
+            lowpass, reverb, volume = min(lowpass, 1200.0), max(reverb, 0.6), volume * 0.4
             why.append("dead")
 
         return Target(place=place, cut=cut, bed=round(bed, 3), drums=round(drums, 3), bass=round(bass, 3),

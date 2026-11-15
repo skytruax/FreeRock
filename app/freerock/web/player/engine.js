@@ -63,10 +63,15 @@
         this.layerGain[layer] = gain;
         if (layer === "bed") gain.connect(this.bedHighpass).connect(this.bus); else gain.connect(this.bus);
       }
+      // Two low-pass filters in a row: twice as steep as one, so "muffled" is plain to hear even
+      // on guitars and lute, which have little at the very top to take away.
       this.toneLow = ctx.createBiquadFilter();
-      this.toneLow.type = "lowpass";
-      this.toneLow.frequency.value = this._ceiling(OPEN_HZ);
-      this.toneLow.Q.value = 0.707;
+      this.toneLow2 = ctx.createBiquadFilter();
+      for (const filter of [this.toneLow, this.toneLow2]) {
+        filter.type = "lowpass";
+        filter.frequency.value = this._ceiling(OPEN_HZ);
+        filter.Q.value = 0.707;
+      }
       this.toneHigh = ctx.createBiquadFilter();
       this.toneHigh.type = "highpass";
       this.toneHigh.frequency.value = 20;
@@ -77,7 +82,7 @@
       this.echo.buffer = this._room(1.6);
       this.master = ctx.createGain();
       this.master.gain.value = 0;
-      this.bus.connect(this.toneLow).connect(this.toneHigh);
+      this.bus.connect(this.toneLow).connect(this.toneLow2).connect(this.toneHigh);
       this.toneHigh.connect(this.master);
       this.toneHigh.connect(this.send).connect(this.echo).connect(this.master);
       if (options.limiter === false) {
@@ -335,6 +340,7 @@
       }
       this._ramp(this.bedHighpass.frequency, Math.max(t.bed_highpass_hz, 20), 0.06, true);
       this._ramp(this.toneLow.frequency, this._ceiling(t.lowpass_hz), t.fade_s, true);
+      this._ramp(this.toneLow2.frequency, this._ceiling(t.lowpass_hz), t.fade_s, true);
       this._ramp(this.toneHigh.frequency, Math.max(t.highpass_hz, 20), t.fade_s, true);
       this._ramp(this.send.gain, t.reverb, t.fade_s);
       if (this.started) this._ramp(this.master.gain, t.silent ? 0 : t.volume * this.userVolume, t.fade_s);

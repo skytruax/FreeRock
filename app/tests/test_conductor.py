@@ -117,7 +117,7 @@ async def test_a_player_that_joins_late_is_brought_up_to_date(tmp_path):
         socket = await client.ws_connect("/ws/player")
         assert (await next_of(socket, "asset"))["asset"]["id"] == assets["elwynn-forest"].id
         target = await next_of(socket, "target")
-        assert target["target"]["lowpass_hz"] == 6000.0
+        assert target["target"]["lowpass_hz"] == 2500.0
         await socket.close()
     finally:
         await client.close()
@@ -310,7 +310,7 @@ async def test_the_pretend_game_moves_the_music_like_the_real_one(tmp_path):
         assert answer.status == 200
         assert (await next_of(socket, "asset"))["asset"]["zone"] == "elwynn-forest"
         target = await next_of(socket, "target")
-        assert target["target"]["lowpass_hz"] == 6000.0 and target["link"] == "live"
+        assert target["target"]["lowpass_hz"] == 2500.0 and target["link"] == "live"
         await client.post("/api/pretend", json={"zone_name": "Elwynn Forest", "daytime": True, "in_combat": True})
         assert (await next_of(socket, "target"))["target"]["bass"] == 1.0
         assert (await client.post("/api/pretend", json={"health": 12})).status == 400
