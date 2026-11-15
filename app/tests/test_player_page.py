@@ -16,6 +16,7 @@ from freerock import state as game
 from freerock.composer import ZoneProfile, core_suite
 from freerock.library import Library
 from freerock.server import ServerConfig, create_app
+from freerock.settings import Settings
 from test_library import made_up_track
 
 CHROME = next((path for path in (shutil.which(name) for name in
@@ -52,7 +53,7 @@ async def test_the_page_connects_loads_the_music_and_plays(tmp_path):
     mix, layers = made_up_track(request)
     asset = library.add(zone="elwynn-forest", set_name="core", request=request, mix=mix, layers=layers)
     app = create_app(ServerConfig(var_dir=tmp_path / "var", keep_log=False))
-    conductor = music.attach(app, library=library)
+    conductor = music.attach(app, library=library, settings=Settings(var_dir=tmp_path / "var"))
     server = TestServer(app)
     await server.start_server()
     say(app)

@@ -9,11 +9,13 @@ from aiohttp.test_utils import TestClient, TestServer
 from freerock import atlas
 from freerock import conductor as music
 from freerock import state as game
-from freerock.composer import ZoneProfile, core_suite
+from freerock.composer import ZoneProfile, core_suite, fresh_set, second_set
 from freerock.eleven import AllowanceExceeded
 from freerock.ingest import Made, TrackFailedChecks
 from freerock.library import Library
+from freerock.playtime import Playtime
 from freerock.server import ServerConfig, create_app
+from freerock.settings import Settings
 from test_library import made_up_track
 
 ZONE = ZoneProfile(key="elwynn-forest", bpm=120, tonic="G mixolydian", colours=["fiddle"])
@@ -49,19 +51,38 @@ class StandInIngest:
         asset = self.library.add(zone=profile.key, set_name="core", request=request, mix=mix, layers=layers)
         return Made(asset=asset, first_audio_s=5.8, total_s=11.6, split_s=77.0)
 
+    async def later_set(self, core, name, kind, *, reroll=False):
+        self.calls.append((name, kind))
+        await asyncio.sleep(0.05)
+        if self.failures:
+            raise self.failures.pop(0)
+        asset = add_set(self.library, core.zone, kind, seed=len(self.calls) + 10)
+        return Made(asset=asset, first_audio_s=5.8, total_s=11.6, split_s=77.0)
 
-async def running(tmp_path, zones=("elwynn-forest",), failures=None, clock=None):
+
+def add_set(library, zone, kind, seed=3):
+    """Puts a made-up set of one kind into the library for a zone."""
+    request = {"core": core_suite, "second": second_set, "fresh": fresh_set}[kind](ZONE, seed=seed)
+    mix, layers = made_up_track(request, seed=seed)
+    return library.add(zone=zone, set_name=kind, request=request, mix=mix, layers=layers)
+
+
+async def running(tmp_path, zones=("elwynn-forest",), failures=None, clock=None, sets=("core",)):
     """A server with the music side attached and made-up music for `zones` in its library. With
-    `failures` (a list, possibly empty) it can also make music for zones that have none."""
+    `failures` (a list, possibly empty) it can also make music for zones that have none. Nothing
+    it writes goes outside the test's own folder."""
     library = Library(tmp_path / "library")
     assets = {}
     for zone in zones:
-        request = core_suite(ZONE, seed=3)
-        mix, layers = made_up_track(request)
-        assets[zone] = library.add(zone=zone, set_name="core", request=request, mix=mix, layers=layers)
+        for kind in sets:
+            made = add_set(library, zone, kind)
+            assets.setdefault(zone, made)
     app = create_app(ServerConfig(var_dir=tmp_path / "var", keep_log=False))
     ingest = StandInIngest(library, failures) if failures is not None else None
-    conductor = music.attach(app, library=library, ingest=ingest, **({"clock": clock} if clock else {}))
+    settings = Settings(var_dir=tmp_path / "var")
+    conductor = music.attach(app, library=library, ingest=ingest, settings=settings,
+                             playtime=Playtime(tmp_path / "var" / "playtime.json"),
+                             **({"clock": clock} if clock else {}))
     client = TestClient(TestServer(app))
     await client.start_server()
     return client, app, conductor, assets
@@ -361,5 +382,141 @@ async def test_the_pretend_game_makes_new_music_only_when_asked_to(tmp_path):
         clock.now += 5
         await asyncio.sleep(1.0)
         assert conductor.ingest.calls == [("Westfall", False)]
+    finally:
+        await client.close()
+
+
+# --- a place's music growing with the time spent there --------------------------------------------
+
+async def test_a_place_with_several_sets_is_played_as_one_body_of_music(tmp_path):
+    client, app, conductor, assets = await running(tmp_path, sets=("core", "second"))
+    try:
+        socket = await client.ws_connect("/ws/player")
+        publish(app, zone_name="Elwynn Forest")
+        asset = (await next_of(socket, "asset"))["asset"]
+        ids = [a.id for a in conductor.library.usable("elwynn-forest")]
+        assert asset["id"] == "+".join(ids) and asset["set"] == "core + second" and len(ids) == 2
+        names = [section["name"] for section in asset["sections"]]
+        assert names[:2] == ["Arrival", "Wander A"] and {"Storm", "Night", "Boss", "Wander D"} <= set(names)
+        assert {section["asset_id"] for section in asset["sections"]} == set(ids)
+        await socket.close()
+    finally:
+        await client.close()
+
+
+async def test_ten_minutes_in_a_place_earns_it_a_second_set(tmp_path):
+    clock = Clock()
+    client, app, conductor, assets = await running(tmp_path, failures=[], clock=clock)
+    try:
+        socket = await client.ws_connect("/ws/player")
+        publish(app, zone_name="Elwynn Forest")
+        first = (await next_of(socket, "asset"))["asset"]
+        clock.now += 30
+        await asyncio.sleep(0.8)
+        assert conductor.ingest.calls == [], "more music was made before the place had earned it"
+        conductor.playtime.add("elwynn-forest", 600)                  # ten minutes there
+        clock.now += 1
+        grown = (await next_of(socket, "asset", timeout=10))["asset"]
+        assert conductor.ingest.calls == [("Elwynn Forest", "second")]
+        assert grown["id"].startswith(first["id"] + "+") and grown["set"] == "core + second"
+        notes = " ".join(conductor.notes)
+        assert "Making more music for Elwynn Forest (a second set)." in notes
+        assert "More music (a second set) for Elwynn Forest is ready" in notes
+        assert conductor.playtime.since_set("elwynn-forest") < 5 and conductor.playtime.growth_minutes() == pytest.approx(3.2)
+        clock.now += 600
+        await asyncio.sleep(0.8)
+        assert len(conductor.ingest.calls) == 1, "a fresh set was made before two more hours there"
+        await socket.close()
+    finally:
+        await client.close()
+
+
+async def test_growth_is_paced_by_the_hours_played(tmp_path):
+    clock = Clock()
+    client, app, conductor, assets = await running(tmp_path, failures=[], clock=clock)
+    try:
+        assert conductor.growth_left() == pytest.approx(6.0)          # the float, before any hours
+        conductor.playtime.data["growth_minutes"] = 5.0                # most of it already used
+        conductor.playtime.add("elwynn-forest", 600)
+        assert conductor.growth_left() == pytest.approx(6.0 + 180 * (600 / 3600) / 100 - 5.0)
+        publish(app, zone_name="Elwynn Forest")
+        await asyncio.sleep(0.4)
+        clock.now += 30
+        await asyncio.sleep(0.8)
+        assert conductor.ingest.calls == [], "growth ran ahead of the hours played"
+        conductor.playtime.add(None, 5 * 3600)                         # five more hours played this month
+        assert conductor.growth_left() > 3.2
+        clock.now += 1
+        await asyncio.sleep(1.0)
+        assert conductor.ingest.calls == [("Elwynn Forest", "second")]
+        conductor.playtime.add(None, 500 * 3600)                       # however much is played...
+        assert conductor.growth_left() == pytest.approx(180 - 5.0 - 3.2)   # ...never more than its share of the month
+    finally:
+        await client.close()
+
+
+async def test_fresh_sets_come_every_two_hours_and_the_oldest_makes_room(tmp_path):
+    clock = Clock()
+    client, app, conductor, assets = await running(tmp_path, failures=[], clock=clock,
+                                                   sets=("core", "second", "fresh", "fresh", "fresh"))
+    try:
+        fresh = [a for a in conductor.library.usable("elwynn-forest") if a.set == "fresh"]
+        conductor.library.mark(fresh[0].id, loved=True)                # the oldest is loved, so it stays
+        conductor.playtime.add(None, 50 * 3600)
+        conductor.playtime.add("elwynn-forest", 7000)
+        publish(app, zone_name="Elwynn Forest")
+        await asyncio.sleep(0.4)
+        clock.now += 30
+        await asyncio.sleep(0.8)
+        assert conductor.ingest.calls == [], "a fresh set came before two hours since the last"
+        conductor.playtime.add("elwynn-forest", 300)
+        clock.now += 1
+        await asyncio.sleep(1.2)
+        assert conductor.ingest.calls == [("Elwynn Forest", "fresh")]
+        now = conductor.library.usable("elwynn-forest")
+        assert [a.set for a in now] == ["core", "second", "fresh", "fresh", "fresh"]
+        assert fresh[0].id in [a.id for a in now] and fresh[1].id not in [a.id for a in now]
+        assert conductor.library.get(fresh[1].id).retired
+        assert "Set aside an older set (%s)" % fresh[1].id in " ".join(conductor.notes)
+    finally:
+        await client.close()
+
+
+async def test_love_and_ban_are_about_the_set_that_is_playing(tmp_path):
+    client, app, conductor, assets = await running(tmp_path, sets=("core", "second"))
+    try:
+        core, second = conductor.library.usable("elwynn-forest")
+        socket = await client.ws_connect("/ws/player")
+        publish(app, zone_name="Elwynn Forest")
+        await next_of(socket, "asset")
+        await socket.send_str(json.dumps({"type": "status", "started": True, "section": "Storm", "asset_id": second.id}))
+        await asyncio.sleep(0.3)
+        app["hub"].publish(game.CommandReceived(name="love", count=1))
+        await asyncio.sleep(0.4)
+        assert conductor.library.get(second.id).loved and not conductor.library.get(core.id).loved
+        app["hub"].publish(game.CommandReceived(name="ban", count=2))
+        left = (await next_of(socket, "asset"))["asset"]              # the banned set drops out; the rest plays on
+        assert left["id"] == core.id and conductor.library.get(second.id).banned
+        await socket.close()
+    finally:
+        await client.close()
+
+
+async def test_a_rest_reaches_the_player(tmp_path):
+    client, app, conductor, assets = await running(tmp_path)
+    try:
+        conductor.director.rules.rest_every_s = 1.0
+        conductor.director.rules.rest_for_s = 1.0
+        conductor.director.rules.rest_spread = 0.0
+        socket = await client.ws_connect("/ws/player")
+        publish(app, zone_name="Elwynn Forest")
+        seen = []
+        for _ in range(12):
+            message = await next_of(socket, "target", timeout=5)
+            seen.append(message["target"]["rest"])
+            if seen[-2:] == [True, False]:
+                break
+        assert True in seen and seen[-2:] == [True, False], seen
+        await socket.close()
     finally:
         await client.close()

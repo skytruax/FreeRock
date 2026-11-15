@@ -79,6 +79,11 @@ class Asset:
     checks: dict[str, Any] = field(default_factory=dict)
     loved: bool = False
     banned: bool = False
+    retired: bool = False       # set aside to make room for a newer set; kept on disk, not played
+
+    @property
+    def usable(self) -> bool:
+        return not self.banned and not self.retired
 
     @property
     def bar_frames(self) -> int:
@@ -181,12 +186,22 @@ class Library:
                 return asset
         raise KeyError("No asset %r in the library" % asset_id)
 
-    def mark(self, asset_id: str, *, loved: bool | None = None, banned: bool | None = None) -> Asset:
+    def usable(self, zone: str | None = None) -> list[Asset]:
+        """The music that may be played: not banned and not retired. Core suite first, then the
+        second set, then fresh sets, oldest first."""
+        order = {"core": 0, "second": 1}
+        return sorted((asset for asset in self.assets(zone) if asset.usable),
+                      key=lambda asset: (asset.zone, order.get(asset.set, 2), asset.created))
+
+    def mark(self, asset_id: str, *, loved: bool | None = None, banned: bool | None = None,
+             retired: bool | None = None) -> Asset:
         asset = self.get(asset_id)
         if loved is not None:
             asset.loved = loved
         if banned is not None:
             asset.banned = banned
+        if retired is not None:
+            asset.retired = retired
         self._write(asset)
         return asset
 
@@ -212,3 +227,21 @@ class Library:
         if high > low:
             out[low - start:high - start] = data[low:high]
         return out.tobytes()
+
+
+def merged(assets: list[Asset]) -> dict[str, Any]:
+    """One description, for the player, of all the music a place has.
+
+    A place's music may come from several requests: its core suite and the sets added later. The
+    player treats them as one body of music; each section says which request its audio is in. Only
+    sets on the same tempo as the first are included, since they have to share bar lines.
+    """
+    if not assets:
+        raise ValueError("No music to describe")
+    first = assets[0]
+    same = [asset for asset in assets if asset.bpm == first.bpm and asset.rate == first.rate]
+    sections = [{**asdict(section), "asset_id": asset.id} for asset in same for section in asset.sections]
+    return {"id": "+".join(asset.id for asset in same), "zone": first.zone,
+            "set": " + ".join(asset.set for asset in same), "bpm": first.bpm, "tonic": first.tonic,
+            "rate": first.rate, "bar_frames": first.bar_frames,
+            "minutes": round(sum(asset.minutes for asset in same), 2), "sections": sections}

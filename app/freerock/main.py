@@ -11,6 +11,7 @@ import socket
 from aiohttp import web
 
 from . import conductor, server
+from .director import Director, Rules
 from .eleven import Gateway
 from .ingest import Ingest
 from .library import Library
@@ -49,7 +50,10 @@ def build_app(config: server.ServerConfig | None = None, *, music: bool = True, 
                 await gateway.aclose()
 
             app.on_cleanup.append(close_gateway)
-    music_side = conductor.attach(app, library=library, ingest=ingest)
+    # The rests come from the settings: about so many minutes of music, then so many seconds without.
+    rules = Rules(rest_every_s=settings.rest_every_minutes * 60.0, rest_for_s=settings.rest_seconds)
+    music_side = conductor.attach(app, library=library, ingest=ingest, director=Director(rules),
+                                  settings=settings)
     if note:
         music_side.notes.append(note)
     return app

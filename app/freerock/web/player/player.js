@@ -76,7 +76,9 @@
     const t = message.target, where = message.where || {};
     if (message.music) musicLine(message.music.borrowed);
     $("where").textContent = [where.instance || where.zone, where.subzone].filter(Boolean).join(", ") || "Waiting for the game";
-    $("place").textContent = t.silent ? "silence" : t.place + (t.cut === "beat" ? " (on the beat)" : "");
+    $("place").textContent = t.silent ? "silence"
+      : t.rest ? "a rest: no music for a little while, as in the game"
+      : t.place + (t.cut === "beat" ? " (on the beat)" : "");
     for (const name of ["intensity", "bed", "drums", "bass"]) $(name).style.width = Math.round(100 * t[name]) + "%";
     const tone = [];
     if (t.lowpass_hz < 19000) tone.push("muffled above " + Math.round(t.lowpass_hz) + " Hz");

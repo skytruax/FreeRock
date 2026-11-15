@@ -62,3 +62,16 @@ async def test_with_a_key_it_can_make_music_and_serves_both_halves(tmp_path, mon
 def test_addresses_are_plain_ip_addresses():
     for address in main.addresses():
         assert address.count(".") == 3 and all(part.isdigit() for part in address.split("."))
+
+
+def test_the_rests_and_the_pacing_come_from_the_settings(tmp_path, monkeypatch):
+    monkeypatch.setattr(main, "find_key", lambda: ("EL_BIG_BAD_KEY", "sk_test"))
+    settings = Settings(var_dir=tmp_path / "var", rest_every_minutes=9.0, rest_seconds=45.0, hours_per_month=60.0)
+    app = main.build_app(config(tmp_path), settings=settings)
+    music = app["conductor"]
+    assert music.director.rules.rest_every_s == 540.0 and music.director.rules.rest_for_s == 45.0
+    assert music.settings.hours_per_month == 60.0
+    assert music.playtime.path == tmp_path / "var" / "playtime.json"
+    never = main.build_app(config(tmp_path), settings=Settings(var_dir=tmp_path / "var", rest_every_minutes=0.0),
+                           new_music=False)
+    assert never["conductor"].director.rules.rest_every_s == 0.0

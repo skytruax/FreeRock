@@ -103,7 +103,7 @@ def test_ledger_shows_the_spend_and_the_account(home, capsys, monkeypatch):
     monkeypatch.setattr(Gateway, "subscription", subscription)
     assert cli.main(["ledger"]) == 0
     out = capsys.readouterr().out
-    assert "This month: 2.80 of 300 minutes (about $0.42). Today: 2.80 of 20 minutes." in out
+    assert "This month: 2.80 of 300 minutes (about $0.42). Today: 2.80 of 30 minutes." in out
     assert "core suite" in out and "ElevenLabs account: pro plan, 5220 of 781495 credits used." in out
 
 
@@ -111,11 +111,18 @@ def test_settings_can_be_shown_and_changed(home, capsys):
     settings, library, made = home
     assert cli.main(["settings"]) == 0
     out = capsys.readouterr().out
-    assert "monthly_minutes  300" in out and "daily_minutes    20" in out and "rock             0.5" in out
+    for line in ("monthly_minutes     300", "daily_minutes       30", "hours_per_month     100",
+                 "rock                0.5", "rest_every_minutes  6", "rest_seconds        60"):
+        assert line in out
     assert cli.main(["settings", "daily_minutes", "40"]) == 0
-    assert "daily_minutes    40" in capsys.readouterr().out
+    assert "daily_minutes       40" in capsys.readouterr().out
     assert Settings.load(settings.var_dir).daily_minutes == 40 and Settings.load(settings.var_dir).monthly_minutes == 300
     assert cli.main(["settings", "rock", "0.8"]) == 0 and Settings.load(settings.var_dir).rock == 0.8
+    assert cli.main(["settings", "hours_per_month", "60"]) == 0
+    assert cli.main(["settings", "rest_every_minutes", "0"]) == 0          # never rest
+    again = Settings.load(settings.var_dir)
+    assert again.hours_per_month == 60 and again.rest_every_minutes == 0 and again.rest_seconds == 60
+    assert cli.main(["settings", "hours_per_month", "0"]) == 1
     capsys.readouterr()
     assert cli.main(["settings", "rock", "3"]) == 1 and "between 0 and 1" in capsys.readouterr().err
     assert cli.main(["settings", "model_id", "1"]) == 1 and "is not a setting" in capsys.readouterr().err
@@ -129,4 +136,4 @@ def test_a_settings_file_with_something_wrong_in_it_is_an_error(tmp_path):
         Settings.load(tmp_path)
     (tmp_path / "settings.json").write_text('{"monthly_minutes": 120, "rock": 0.2}')
     loaded = Settings.load(tmp_path)
-    assert loaded.monthly_minutes == 120 and loaded.rock == 0.2 and loaded.daily_minutes == 20
+    assert loaded.monthly_minutes == 120 and loaded.rock == 0.2 and loaded.daily_minutes == 30

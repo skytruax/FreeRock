@@ -4,7 +4,8 @@ import pytest
 
 from freerock.audio import pcm16_to_float
 from freerock.composer import ZoneProfile, core_suite
-from freerock.library import LAYERS, TARGET_LUFS, Library, role_of
+from freerock.composer import fresh_set, second_set
+from freerock.library import LAYERS, TARGET_LUFS, Library, merged, role_of
 from freerock.stems import Layers
 
 RATE = 48000
@@ -107,3 +108,34 @@ def test_a_track_of_the_wrong_length_is_refused(tmp_path):
                    vocal_leak_db=-40.0, seconds=1.0, model="test")
     with pytest.raises(ValueError):
         Library(tmp_path).add(zone="elwynn", set_name="core", request=request, mix=mix[:-RATE], layers=short)
+
+
+def test_a_places_music_is_described_as_one_body_from_several_requests(tmp_path):
+    library = Library(tmp_path)
+    made = {}
+    for name, request in (("fresh", fresh_set(ZONE, seed=3)), ("core", core_suite(ZONE, seed=1)),
+                          ("second", second_set(ZONE, seed=2))):
+        mix, layers = made_up_track(request)
+        made[name] = library.add(zone="elwynn", set_name=name, request=request, mix=mix, layers=layers)
+    usable = library.usable("elwynn")
+    assert [asset.set for asset in usable] == ["core", "second", "fresh"]     # whatever order they were made in
+    view = merged(usable)
+    assert view["id"] == "+".join(made[name].id for name in ("core", "second", "fresh"))
+    assert view["zone"] == "elwynn" and view["set"] == "core + second + fresh" and view["bar_frames"] == 96000
+    assert view["minutes"] == pytest.approx(2.8 + 3.2 + 3.2)
+    names = [section["name"] for section in view["sections"]]
+    assert names[:6] == ["Arrival", "Wander A", "Wander B", "Battle", "Ember", "Depths"] and "Storm" in names and "Wander G" in names
+    by_name = {section["name"]: section for section in view["sections"]}
+    assert by_name["Wander A"]["asset_id"] == made["core"].id and by_name["Boss"]["asset_id"] == made["second"].id
+    assert by_name["Boss"]["cells"][0] == {"start": by_name["Boss"]["start"], "end": by_name["Boss"]["start"] + 4 * 96000}
+    with pytest.raises(ValueError):
+        merged([])
+
+
+def test_banned_and_retired_music_is_kept_but_not_played(stored):
+    library, asset, _, _ = stored
+    assert [a.id for a in library.usable()] == [asset.id]
+    assert not library.mark(asset.id, retired=True).usable and library.usable() == []
+    assert [a.id for a in library.assets()] == [asset.id] and Library(library.root).get(asset.id).retired
+    library.mark(asset.id, retired=False, banned=True)
+    assert library.usable() == [] and library.get(asset.id).banned and not library.get(asset.id).retired

@@ -103,7 +103,7 @@ def _adopt(arguments: argparse.Namespace) -> int:
 
 # -- settings -----------------------------------------------------------------------------------
 def _settings_arguments(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("name", nargs="?", help="monthly_minutes, daily_minutes or rock")
+    parser.add_argument("name", nargs="?", help="one of: " + ", ".join(Settings.CHANGEABLE))
     parser.add_argument("value", nargs="?", type=float, help="the new value")
 
 
@@ -120,9 +120,12 @@ def _show_settings(arguments: argparse.Namespace) -> int:
             return 1
         settings.save()
         print("Saved in %s. A running server uses it from its next start." % settings.file)
-    print("monthly_minutes  %g   new music FreeRock may make in a calendar month" % settings.monthly_minutes)
-    print("daily_minutes    %g   and in one day" % settings.daily_minutes)
-    print("rock             %g   how much of the rock the calm parts of new music carry, 0 to 1" % settings.rock)
+    print("monthly_minutes     %g   new music FreeRock may make in a calendar month" % settings.monthly_minutes)
+    print("daily_minutes       %g   and in one day" % settings.daily_minutes)
+    print("hours_per_month     %g   hours of play the month's music is paced over" % settings.hours_per_month)
+    print("rock                %g   how much of the rock the calm parts of new music carry, 0 to 1" % settings.rock)
+    print("rest_every_minutes  %g   about this much calm music between rests (0: never rest)" % settings.rest_every_minutes)
+    print("rest_seconds        %g   about this long without music in a rest" % settings.rest_seconds)
     return 0
 
 

@@ -67,13 +67,21 @@ class Settings:
     # How many minutes of new music FreeRock may generate in a calendar month, and in one day.
     # 300 sits under the lower of the two monthly caps ElevenLabs publishes for the Pro plan.
     monthly_minutes: float = 300.0
-    daily_minutes: float = 20.0
+    daily_minutes: float = 30.0
+    # How many hours a month the game is played with FreeRock on. The minutes that go on growing
+    # a place's music are paced against this, so the month's allowance lasts the month.
+    hours_per_month: float = 100.0
     # Held back from the monthly allowance for re-rolls when a track fails its checks.
     reroll_reserve: float = 0.10
 
     # How much of the rock the calm parts of new music carry, from 0 (hardly any) to 1 (a lot).
     # Battle and Boss are always the full band.
     rock: float = 0.5
+
+    # Rests: about this many minutes of calm music, then about this many seconds without any, as
+    # the game's own music has between pieces. rest_every_minutes of 0 means the music never rests.
+    rest_every_minutes: float = 6.0
+    rest_seconds: float = 60.0
 
     model_id: str = "music_v2_5"
     api_base: str = "https://api.elevenlabs.io"
@@ -91,7 +99,8 @@ class Settings:
         return self.var_dir / "library"
 
     # The settings that may be changed in var/settings.json or with `freerock settings`.
-    CHANGEABLE = ("monthly_minutes", "daily_minutes", "rock")
+    CHANGEABLE = ("monthly_minutes", "daily_minutes", "hours_per_month", "rock",
+                  "rest_every_minutes", "rest_seconds")
 
     @property
     def file(self) -> Path:
@@ -119,6 +128,8 @@ class Settings:
             raise ValueError("rock must be between 0 and 1, not %r" % (value,))
         if name != "rock" and value < 0:
             raise ValueError("%s cannot be less than nothing" % name)
+        if name == "hours_per_month" and value <= 0:
+            raise ValueError("hours_per_month must be more than nothing")
         setattr(self, name, float(value))
 
     def save(self) -> None:
