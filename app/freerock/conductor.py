@@ -13,13 +13,13 @@ import asyncio
 import contextlib
 import json
 import logging
-import re
 import time
 from pathlib import Path
 from typing import Any
 
 from aiohttp import WSMsgType, web
 
+from . import atlas
 from . import state as game
 from .director import Director, Target
 from .library import Asset, Library
@@ -35,10 +35,9 @@ TICK_S = 1.0           # how often the players are nudged, so their queue never 
 
 
 def slug(name: str | None) -> str | None:
-    """A zone name as the library files it: "Elwynn Forest" -> "elwynn-forest"."""
-    if not name:
-        return None
-    return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-") or None
+    """A zone name as the library files it: "Elwynn Forest" -> "elwynn-forest". None if there is
+    no name to go on."""
+    return (atlas.slug(name) or None) if name else None
 
 
 class Conductor:

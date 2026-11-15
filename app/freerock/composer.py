@@ -191,18 +191,24 @@ FRESH_SET = ("Wander E", "Wander F", "Wander G", "Ember B", "Depths B", "Battle 
 
 def build(profile: ZoneProfile, names: tuple[str, ...] | list[str], seed: int | None = None,
           rock: float = 0.5, bars: dict[str, int] | None = None,
-          reference: Reference | None = None) -> Request:
+          reference: Reference | None = None, part_bars: int = 16) -> Request:
     """A request for the named parts, in order.
 
     The first part carries the whole style, because ElevenLabs takes its tone from there. With a
     `reference`, every part is told to stay close to that stretch of an earlier song.
+
+    `part_bars` is the length of the full-length parts (everything but Arrival). Sixteen suits
+    most tempos; a slow zone uses fewer so its music does not run past four minutes a request,
+    and a fast one uses more. `bars` sets single parts by name and wins over it.
     """
+    if part_bars % 4:
+        raise ValueError("Parts are cut into four-bar cells, so part_bars must be a multiple of 4")
     words = vocabulary(profile, rock)
     tempo = ["%d BPM" % profile.bpm, profile.tonic, "steady straight 4/4 rock beat"]
     chunks, parts, clock = [], [], 0
     for index, name in enumerate(names):
         spec = words[name]
-        count = (bars or {}).get(name, spec.bars)
+        count = (bars or {}).get(name, part_bars if spec.bars == 16 else spec.bars)
         length = bars_ms(profile.bpm, count)
         if index == 0:
             styles = tempo + ["instrumental"] + ROCK + KNIGHT + profile.colours + profile.mood + spec.styles
@@ -225,18 +231,18 @@ def build(profile: ZoneProfile, names: tuple[str, ...] | list[str], seed: int | 
 
 
 def core_suite(profile: ZoneProfile, seed: int | None = None, rock: float = 0.5,
-               bars: dict[str, int] | None = None) -> Request:
+               bars: dict[str, int] | None = None, part_bars: int = 16) -> Request:
     """A zone's first music: Arrival, two Wander riffs, Battle, Ember, Depths."""
-    return build(profile, CORE_SUITE, seed=seed, rock=rock, bars=bars)
+    return build(profile, CORE_SUITE, seed=seed, rock=rock, bars=bars, part_bars=part_bars)
 
 
 def second_set(profile: ZoneProfile, seed: int | None = None, rock: float = 0.5,
-               reference: Reference | None = None) -> Request:
+               reference: Reference | None = None, part_bars: int = 16) -> Request:
     """Added after a while in a zone: two more Wander riffs, Night, Storm, a second Battle, Boss."""
-    return build(profile, SECOND_SET, seed=seed, rock=rock, reference=reference)
+    return build(profile, SECOND_SET, seed=seed, rock=rock, reference=reference, part_bars=part_bars)
 
 
 def fresh_set(profile: ZoneProfile, seed: int | None = None, rock: float = 0.5,
-              reference: Reference | None = None) -> Request:
+              reference: Reference | None = None, part_bars: int = 16) -> Request:
     """Added on later visits: three more Wander riffs, a second Ember and Depths, a third Battle."""
-    return build(profile, FRESH_SET, seed=seed, rock=rock, reference=reference)
+    return build(profile, FRESH_SET, seed=seed, rock=rock, reference=reference, part_bars=part_bars)
