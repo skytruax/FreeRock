@@ -137,7 +137,6 @@
       return this._serial(async () => {
         const changed = !this.asset || this.asset.id !== asset.id;
         this.asset = asset;
-        this.bar = asset.bar_frames / asset.rate;
         if (asset.rate !== this.ctx.sampleRate) {
           throw new Error("The music is at " + asset.rate + " Hz and the player at " + this.ctx.sampleRate +
                           " Hz; they have to match for the layers to stay locked");
@@ -223,7 +222,10 @@
       const ctx = this.ctx, cell = section.cells[index];
       const length = (cell.end - cell.start) / this.asset.rate;
       const base = gainOf(section.gain_db);
-      const playing = { section, index, start: when, end: when + length, base, sources: [], gains: [] };
+      // The length of a bar is kept with the cell: when the zone changes, the music that is
+      // playing is still cut on its own bar line, not on the new music's.
+      const playing = { section, index, start: when, end: when + length, base, sources: [], gains: [],
+                        bar: this.asset.bar_frames / this.asset.rate };
       for (const layer of LAYERS) {
         const source = ctx.createBufferSource();
         source.buffer = buffers[layer];
@@ -272,7 +274,7 @@
         this.queued = this._schedule(section, 0, buffers, when, false);
         this.current = null;
       } else {
-        const unit = cut === "beat" ? this.bar / 4 : this.bar;
+        const unit = cut === "beat" ? this.current.bar / 4 : this.current.bar;
         const steps = Math.ceil((now + NOTICE - this.current.start) / unit - 1e-9);
         when = Math.min(this.current.start + Math.max(steps, 0) * unit, this.current.end);
         if (when < this.current.end - 1e-6) this._cut(this.current, when);

@@ -115,6 +115,19 @@ async def test_a_change_of_place_lands_on_the_bar_or_the_beat(results):
     assert sections[:4] == ["Arrival", "Wander A", "Battle", "Depths"]
 
 
+async def test_a_new_zone_at_another_tempo_cuts_in_on_the_old_bar_line(results):
+    change = of(results, "zoneChange")
+    assert change["handover"] is not None and abs(change["handover"] - change["barLine"]) <= 0.012
+    sections = [(entry["section"], round(entry["at"], 2)) for entry in change["log"]]
+    # The new zone opens with its Arrival on the old music's bar line, and its own cells are then
+    # ten seconds long (four bars at 96 beats a minute).
+    assert sections[0] == ("Arrival", round(change["barLine"], 2))
+    assert sections[1] == ("Wander A", round(change["barLine"] + 10, 2))
+    assert sections[2] == ("Wander A", round(change["barLine"] + 20, 2))
+    assert change["arrivalTone"] > 0.15 and change["wanderTone"] > 0.15
+    assert change["oldAfter"] < 0.005, "the old zone's music kept playing"
+
+
 async def test_levels_and_tone_move_at_once(results):
     levels = of(results, "levels")
     # The bass tone is 0.3 and the section playing is stored 6 dB down, so fully in it reads 0.15.

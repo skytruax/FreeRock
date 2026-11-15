@@ -27,11 +27,24 @@ function makeAsset() {
   return { id: "test", rate: RATE, bpm: 120, bar_frames: BAR, frames: frame, sections };
 }
 
+// Music for another zone at another tempo: 96 beats a minute, so a bar is 2.5 s and a cell 10 s.
+function makeSlowAsset() {
+  const bar = 120000, cell = 4 * bar;
+  const sections = [
+    { name: "Arrival", role: "arrival", start: 0, end: cell, gain_db: 0, tone: 2100, cells: [{ start: 0, end: cell }] },
+    { name: "Wander A", role: "wander", start: cell, end: 3 * cell, gain_db: 0, tone: 2500,
+      cells: [{ start: cell, end: 2 * cell }, { start: 2 * cell, end: 3 * cell }] },
+  ];
+  return { id: "slow", rate: RATE, bpm: 96, bar_frames: bar, frames: 3 * cell, sections };
+}
+
 // kind "marks": drums and bass are single-sample clicks on every beat, the bed is the section's tone.
 // kind "tones": bass is a steady 80 Hz tone, drums are noise, the bed is the section's tone.
 // kind "loud":  every layer is the same full-scale tone, to push the limiter.
-function makeLoader(asset, kind) {
+function makeLoader(firstAsset, kind) {
+  const known = { [firstAsset.id]: firstAsset, slow: makeSlowAsset() };
   return async (assetId, layer, first, last) => {
+    const asset = known[assetId];
     const out = new Int16Array((last - first) * 2);
     let seed = 99;
     for (let i = 0; i < last - first; i++) {
@@ -176,6 +189,20 @@ tests.cuts = async () => {
            battleAfter: strength(run.data, barLine + 0.1, barLine + 0.5, 900),
            wanderAfter: strength(run.data, barLine + 0.1, barLine + 0.5, 500),
            log: run.engine.log };
+};
+
+// Walking into another zone: its music has another tempo. The music that is playing must still be
+// cut on its own bar line, and the new music then keeps its own time.
+tests.zoneChange = async () => {
+  const run = await render(40, {
+    target: { bed: 1, drums: 0, bass: 0, bed_highpass_hz: 20 },
+    script: [[10.3, (engine) => engine.setAsset(makeSlowAsset())]] });
+  const barLine = FIRST + 12;            // the fast music's next bar line after 10.3 s plus notice
+  return { barLine, handover: handover(run.data, barLine - 0.1, barLine + 0.1, 500, 2100),
+           log: run.engine.log.filter((entry) => entry.at > 10),
+           arrivalTone: strength(run.data, barLine + 1, barLine + 9, 2100),
+           wanderTone: strength(run.data, barLine + 11, barLine + 19, 2500),
+           oldAfter: strength(run.data, barLine + 1, barLine + 9, 500) };
 };
 
 // Levels and tone must move as soon as the target changes.
