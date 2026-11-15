@@ -2,8 +2,8 @@
 
 Generated music for World of Warcraft: Forever that follows the game. Every zone gets its own
 music, made with ElevenLabs in an instrumental knight-rock style. It goes muffled and echoing when
-you walk into a cave, follows the weather and the time of day, and the bass line and drums come in
-under the same music when a fight starts.
+you walk into a cave, the bass line and drums come in under the same music when a fight starts,
+a rain storm brings the whole band in, and now and then it rests, as the game's own music does.
 
 FreeRock is two parts. A small addon draws what the game is doing as a thin strip of squares along
 the top of the screen. A program outside the game reads that strip, decides what should be heard,
@@ -73,12 +73,25 @@ Each of the game's 50 zones has a profile (tempo, key, instruments, mood) in
 `app/freerock/atlas/zones.json`. A place without one, such as a dungeon, gets a profile from the
 words in its name.
 
+**It grows where you spend time.** Ten minutes in a place earns it a second set (two more riffs,
+Night, Storm, a second Battle, Boss), and every two hours after that a fresh set (three more
+riffs, a second Ember and Depths, a third Battle). Later sets are told to stay close to the core
+suite so they sound like the same band. A place keeps three fresh sets in rotation; an older one
+makes room for a newer one unless you have marked it with `/rock love`.
+
+**Planned for 100 hours a month.** The minutes that go on growing music are released as the hours
+are played, so the month's allowance lasts the month. `freerock settings` shows the numbers.
+
+**Rain and rests.** Steady rain brings the drums in, and a rain storm the whole band; rain is
+never muffled. After about six minutes of calm music the music rests for about a minute and comes
+back with a fresh opening. Anything happening brings it straight back.
+
 | Command | What it does |
 |---|---|
-| `freerock make "<zone>"` | Makes a zone's first music now, instead of on the first visit |
+| `freerock make "<zone>"` | Makes a zone's first music now, instead of on the first visit. `--set second` or `--set fresh` adds a later set. |
 | `freerock library` | Lists the music FreeRock has |
 | `freerock ledger` | What has been spent this month and today, and the account's credit balance |
-| `freerock settings [name value]` | Shows or changes `monthly_minutes` (300), `daily_minutes` (20) and `rock` (0.5) |
+| `freerock settings [name value]` | Shows or changes `monthly_minutes` (300), `daily_minutes` (30), `hours_per_month` (100), `rock` (0.5), `rest_every_minutes` (6; 0 for no rests) and `rest_seconds` (60) |
 | `freerock adopt <folder>` | Looks again at a track that failed its checks; keeps it if it now passes |
 | `freerock sim <scenario>` | Plays a scripted session against a running server, drawing and reading the real strip |
 | `freerock read <picture>` | Reads the strip out of a saved picture and says what it holds |
@@ -89,9 +102,9 @@ At the allowance FreeRock stops making music and plays what it has. A track that
 is kept in `var/rejected/` rather than thrown away.
 
 **Tools for listening and measuring.** `tools/spikes/` holds the experiments that settled the
-design, with a listening page (`var/spikes/index.html`). `tools/render_session.py` plays a scripted
-minute and a half through the real player faster than real time and writes the result to
-`var/demos/`.
+design, with a listening page (`var/spikes/index.html`). `tools/render_session.py walk|storm [zone]`
+plays a scripted stretch of play through the real player faster than real time (a fight, a mine
+and stealth; or a rain storm and a rest) and writes the clip and its measurements to `var/demos/`.
 
 ## Staying within the rules
 

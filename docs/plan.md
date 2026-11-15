@@ -25,6 +25,12 @@ Sky's decisions so far (2026-11-15):
   rules (see "Staying within the rules").
 - The strip carries **zone and coordinates** as well as the cave, weather and combat state.
 
+Added by Sky after hearing the first clips (2026-11-15):
+
+- **Rock during a rain storm.** Rain is not muffled; a storm brings the whole band in.
+- **Planned for 100 hours of play a month.**
+- **Moments without music**, as the game has, though less often.
+
 ## What I checked
 
 **The game (Forever 1.60.1; Blizzard's generated API docs, and the client lists already in
@@ -236,7 +242,8 @@ performance they are locked together. This costs no ElevenLabs minutes.
 | Stealth | The band drops away to the bass line and quiet drums | |
 | Mounted | Drums come up, brighter | |
 | Flight path | Thin and airy, bass out | Zones passed overhead are ignored until you land |
-| Rain, snow, sandstorm | Over a few seconds the tone follows the intensity: rain darker and wetter, snow soft and wide, sandstorm narrow and gritty | Storm on the next bar once the weather has been heavy for ten seconds |
+| Rain | The drums come in once it is raining steadily. A rain storm brings the whole band in at once, harder the heavier it is. Rain is never muffled. | Storm, a hard-rocking part of its own, on the next bar once the storm has lasted ten seconds |
+| Snow, sandstorm | Over a few seconds the tone follows the intensity: snow soft and wide, sandstorm narrow and gritty | |
 | Night falls | A slow change: darker, drums back | Night joins the rotation |
 | Moving through the zone | | The Wander riffs change with the part of the zone you are in |
 | Standing still for a while | | A calmer mix; Ember favoured |
@@ -253,11 +260,16 @@ key and a hit start at once, and the request is streamed with Arrival first, so 
 music follows as soon as the first audio arrives. The layers are ready about a minute later; until
 then fights are answered with tone changes, hits and the Battle part.
 
-**Keeping it fresh:** each part is cut into four-bar cells, and the player moves between cells
-that join well rather than looping one stretch. Different parts of a zone favour different Wander
-riffs. The mix sometimes drops to one layer for a few bars and takes a short rest every ten minutes
-or so, as the game's own music does. Later sets use a new seed and, where ElevenLabs allows it, are
-conditioned on the core suite so they sound like the same band.
+**Keeping it fresh:** each part is cut into four-bar cells, and the player moves through a
+place's riffs in turn rather than looping one stretch. Later sets use a new seed and are told to
+stay close to thirty seconds of the core suite, so they sound like the same band; a place keeps
+its core suite, a second set and three fresh sets in rotation, and an older fresh set makes room
+for a newer one unless it has been marked with `/rock love`.
+
+**Rests.** After about six minutes of calm music the music fades away for about a minute, then
+comes back with a fresh opening, as the game's own music does between pieces (less often than the
+game). A fight, a storm, stealth or a new place brings it straight back, and nothing rests while
+something is going on. Both lengths are settings; 0 switches rests off.
 
 ## Staying within the rules
 
@@ -281,6 +293,13 @@ conditioned on the core suite so they sound like the same band.
 - **Allowance: 300 minutes of new music a month by default**, one setting. That is under the lower
   of the two caps ElevenLabs publishes for Pro (304 and 660) and uses about $45 of the plan's
   credits at $0.15 a minute.
+- **Planned for 100 hours of play a month.** With rests, that is about 85 hours of music, of which
+  5 hours are new each month; the rest is the library, which keeps growing, played in a different
+  order with different layers. Three fifths of the allowance goes on growing the places where time
+  is spent, released as the hours are played (1.8 minutes of new music per hour, about one new set
+  every two hours), so there is still new music coming in the last week of the month. The rest is
+  for the first music of new places and for re-rolls. If the real cap turns out to be 660, raising
+  `monthly_minutes` doubles all of this.
 - What 300 minutes buys in a typical month: 15 new zones (42), a dozen second sets (38), about 30
   fresh sets (96), half a dozen dungeons (19), look-ahead for up to ten neighbours (28), and 30
   held back for re-rolls when a track fails its checks, leaving about 45 spare. The whole world
@@ -288,8 +307,8 @@ conditioned on the core suite so they sound like the same band.
   goes to fresh music.
 - Every paid call goes through one function that checks the allowance first and writes a ledger
   (minutes, what it was for, which zone). The control page shows used, left, and where it went.
-- Hard stops: the monthly allowance and 20 minutes in any one day. How quickly a zone earns its
-  second and fresh sets is a setting. Nothing is generated on a flight path, while the game is
+- Hard stops: the monthly allowance and 30 minutes in any one day. A place earns its second set
+  after ten minutes there and a fresh set every two hours after that. Nothing is generated on a flight path, while the game is
   closed, or while the player page is not connected. One of the two request slots is kept free for
   the zone you have just walked into.
 - At the cap, a new zone borrows a suite from a similar zone, and the control page says so.

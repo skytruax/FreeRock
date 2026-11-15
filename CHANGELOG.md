@@ -1,5 +1,21 @@
 # Changelog
 
+## After the first listen (2026-11-15)
+
+- **Rock during a rain storm.** Rain used to darken and soften the music. Now steady rain brings
+  the drums in and a rain storm brings the whole band in at once, with nothing muffled, and the
+  Storm part is hard rock of its own.
+- **Rests.** After about six minutes of calm music the music fades away for about a minute and
+  comes back with a fresh opening, as the game's music does between pieces. A fight, a storm,
+  stealth or a new place ends a rest at once. `rest_every_minutes` and `rest_seconds` set it.
+- **Planned for 100 hours a month.** Hours played are counted. A place's music grows with the time
+  spent there (a second set after ten minutes, a fresh set every two hours, three fresh sets in
+  rotation), and the minutes that go on that are released as the hours are played. The daily
+  stop is now 30 minutes.
+- The player plays a place's core suite and later sets as one body of music, and more music
+  arriving for the place that is playing does not interrupt it.
+- `freerock make "<zone>" --set second|fresh`; `tools/render_session.py storm`.
+
 ## 0.1.0 (2026-11-15)
 
 First working version. Built and measured on Linux; not yet run in the game or on Windows.
