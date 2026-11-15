@@ -16,6 +16,7 @@ local state = {
 	zone = "",
 	subzone = "",
 	x = nil, y = nil,     -- position on the zone map, 0 to 1; nil where the game gives none (dungeons)
+	speed = nil,          -- how fast the player is moving, in half yards a second; nil when not known
 	inInstance = false,
 	instanceKind = 0,     -- protocol number, see INSTANCE_KINDS
 	instanceID = 0,
@@ -25,7 +26,7 @@ local state = {
 	mounted = false, flying = false, taxi = false, stealth = false,
 	dead = false, ghost = false, combat = false,
 	encounter = false, encounterID = 0, encounterName = "",
-	hasTarget = false, targetClass = 0, bossPresent = false, inGroup = false,
+	hasTarget = false, targetClass = 0, targetHostile = false, bossPresent = false, inGroup = false,
 	pvpKind = 0,
 	weatherKnown = false, weatherKind = 15, weatherIntensity = nil,
 	weatherRaw = "not read yet", -- exactly what the game answered, for /rock status
@@ -46,6 +47,7 @@ Signals.MOMENT_BOSS_DEFEATED = 2
 Signals.MOMENT_BOSS_LOST = 3
 Signals.MOMENT_DIED = 4
 Signals.MOMENT_QUEST = 5
+Signals.MOMENT_ACHIEVEMENT = 6
 
 local changed = false
 
@@ -139,6 +141,18 @@ local function ReadPosition()
 	state.x, state.y = x, y
 end
 
+-- How fast the player is moving: nothing standing, about 7 yards a second running, 14 on a
+-- mount. The app brings the drums in with it. It is sent in half yards a second, so a change
+-- smaller than that is not worth redrawing for; 254 half yards is faster than anything moves.
+local function ReadSpeed()
+	local speed = Plain((GetUnitSpeed("player")))
+	if type(speed) == "number" and speed >= 0 then
+		Put("speed", math.min(math.floor(speed * 2 + 0.5), 254))
+	else
+		Put("speed", nil)
+	end
+end
+
 local function ReadFlags()
 	Put("indoors", Flag(IsIndoors()))
 	Put("resting", Flag(IsResting()))
@@ -161,8 +175,11 @@ local function ReadTarget()
 	if has then
 		local class = Plain(UnitClassification("target"))
 		Put("targetClass", type(class) == "string" and TARGET_CLASSES[class] or OTHER)
+		-- Whether it is something to fight: the music leans in before the pull.
+		Put("targetHostile", Flag(UnitCanAttack("player", "target")))
 	else
 		Put("targetClass", 0)
+		Put("targetHostile", false)
 	end
 end
 
@@ -238,6 +255,7 @@ end
 local function ReadEverything()
 	ReadZone()
 	ReadPosition()
+	ReadSpeed()
 	ReadFlags()
 	ReadTarget()
 	ReadEncounter()
@@ -288,6 +306,14 @@ function Signals:Start()
 		"PLAYER_ALIVE", "PLAYER_UNGHOST", "GROUP_ROSTER_UPDATE", "INSTANCE_ENCOUNTER_ENGAGE_UNIT" }) do
 		ns.On(event, OnFlags)
 	end
+
+	local function OnMoving()
+		ReadSpeed()
+		ReadPosition()
+		Flush()
+	end
+	ns.On("PLAYER_STARTED_MOVING", OnMoving)
+	ns.On("PLAYER_STOPPED_MOVING", OnMoving)
 
 	ns.On("PLAYER_REGEN_DISABLED", function()
 		Put("combat", true)
@@ -365,6 +391,10 @@ function Signals:Start()
 		Moment(Signals.MOMENT_QUEST)
 		Flush()
 	end)
+	ns.On("ACHIEVEMENT_EARNED", function()
+		Moment(Signals.MOMENT_ACHIEVEMENT)
+		Flush()
+	end)
 
 	ReadEverything()
 	Flush()
@@ -379,6 +409,7 @@ function Signals:Poll(everything)
 		ReadEverything()
 	else
 		ReadPosition()
+		ReadSpeed()
 		ReadFlags()
 		ReadTarget()
 		ReadEncounter()
@@ -408,6 +439,11 @@ function Signals:Describe()
 	else
 		Add("Position: the game gives none here.")
 	end
+	if state.speed then
+		Add("Speed: %.1f yards a second.", state.speed / 2)
+	else
+		Add("Speed: the game gives none.")
+	end
 	if state.inInstance then
 		Add("Instance: %s (kind %d, number %d, difficulty %d).", state.instanceName, state.instanceKind,
 			state.instanceID, state.difficulty)
@@ -427,7 +463,8 @@ function Signals:Describe()
 	else
 		Add("Boss encounter: none. Boss unit present: %s.", YesNo(state.bossPresent))
 	end
-	Add("Target: %s (class %d). Zone PvP kind %d.", YesNo(state.hasTarget), state.targetClass, state.pvpKind)
+	Add("Target: %s (class %d), can be attacked: %s. Zone PvP kind %d.", YesNo(state.hasTarget), state.targetClass,
+		YesNo(state.targetHostile), state.pvpKind)
 	if state.weatherKnown then
 		Add("Weather: %s, intensity %s. The game said: %s.", WEATHER_NAMES[state.weatherKind] or ("kind " .. state.weatherKind),
 			state.weatherIntensity and ("%.3f"):format(state.weatherIntensity) or "not given", state.weatherRaw)

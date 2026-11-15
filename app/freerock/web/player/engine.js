@@ -6,6 +6,9 @@
 // target asks for another kind of section, and moves the layer levels and the tone (muffle,
 // echo, volume) as soon as the target changes.
 //
+// What plays next is always the section that has gone longest unheard among the kinds in
+// rotation, so nothing comes round in a fixed order and no single part is left to loop.
+//
 // Nothing here waits on a timer to keep the music going: every start, cut and fade is scheduled
 // ahead on the audio clock. tick() only decides what to queue next, and is safe to call late.
 //
@@ -40,9 +43,9 @@
       this.loader = loader;
       this.random = options.random || Math.random;
       this.asset = null;
-      this.target = { place: "wander", cut: "bar", bed: 1, drums: 0, bass: 0, bed_highpass_hz: 110,
-                      lowpass_hz: OPEN_HZ, highpass_hz: 20, reverb: 0, volume: 1, silent: false, rest: false,
-                      fade_s: 0.4 };
+      this.target = { place: "wander", also: [], scene: 0, cut: "bar", bed: 1, drums: 0, bass: 0,
+                      bed_highpass_hz: 110, lowpass_hz: OPEN_HZ, highpass_hz: 20, reverb: 0, volume: 1,
+                      silent: false, rest: false, fade_s: 0.4 };
       this.userVolume = 1;
       this.current = null;       // the cell that is playing
       this.queued = null;        // the cell that will follow it
@@ -51,6 +54,9 @@
       this.cacheLimit = options.cacheLimit || 10;
       this.late = 0;             // cells that could not be loaded in time and started late
       this.restSince = null;     // when the rest that is going on began, on the audio clock
+      this.played = new Map();   // section key -> its turn number the last time it was started
+      this.turn = 0;
+      this.scenePending = false; // the player crossed into another part of the zone: change riff
       this.log = [];             // what was scheduled and when, for the status page and the tests
       this._busy = Promise.resolve();
 
@@ -177,6 +183,31 @@
       return place;
     }
 
+    // The kinds of section in rotation right now: the kind the target asks for, and the kinds it
+    // says take turns with it (the zone's riffs in a cave, the Night part at night). Kinds this
+    // music does not have are left out.
+    _pool() {
+      const roles = this._roles(), pool = [this._playable(this.target.place)];
+      for (const role of this.target.also || []) {
+        if (roles.has(role) && !pool.includes(role)) pool.push(role);
+      }
+      return pool;
+    }
+
+    // The section of these kinds that has gone longest without being played. `except` is the one
+    // playing now; it is not chosen again while there is anything else.
+    _pick(roles, except) {
+      let choices = this.asset.sections.filter((section) => roles.includes(section.role));
+      if (except && choices.length > 1) choices = choices.filter((section) => section.key !== except.key);
+      let oldest = Infinity, longest = [];
+      for (const section of choices) {
+        const last = this.played.has(section.key) ? this.played.get(section.key) : -1;
+        if (last < oldest) { oldest = last; longest = [section]; }
+        else if (last === oldest) longest.push(section);
+      }
+      return longest[Math.floor(this.random() * longest.length) % longest.length];
+    }
+
     // The section to go to for a place. Arriving somewhere new starts with the Arrival part.
     _sectionFor(place, arriving) {
       const role = this._playable(place);
@@ -184,19 +215,23 @@
         const arrival = this.asset.sections.find((section) => section.role === "arrival");
         if (arrival) return arrival;
       }
-      const choices = this.asset.sections.filter((section) => section.role === role);
-      return choices[Math.floor(this.random() * choices.length) % choices.length];
+      return this._pick([role], null);
     }
 
     // What follows a cell when nothing has changed: the next cell of its section, and after the
-    // last one, the next section of the same kind (Wander A, then Wander B, then A again).
+    // last one, whichever section in rotation has gone longest unheard. When the player has just
+    // crossed into another part of the zone, the change of riff comes at once, on this cell's end.
     _following(cell) {
-      const section = cell.section;
-      if (cell.index + 1 < section.cells.length) return { section, index: cell.index + 1 };
-      const role = section.role === "arrival" ? "wander" : section.role;
-      const same = this.asset.sections.filter((other) => other.role === this._playable(role));
-      const at = same.findIndex((other) => other.key === section.key);
-      return { section: same[(at + 1) % same.length], index: 0 };
+      const section = cell.section, pool = this._pool();
+      const more = cell.index + 1 < section.cells.length;
+      const crossed = this.scenePending;
+      this.scenePending = false;
+      if (more && crossed) {
+        const other = this._pick(pool, section);
+        if (other.key !== section.key) return { section: other, index: 0 };
+      }
+      if (more) return { section, index: cell.index + 1 };
+      return { section: this._pick(pool, section), index: 0 };
     }
 
     // --- loading -----------------------------------------------------------------------------
@@ -263,6 +298,8 @@
         playing.sources.push(source);
         playing.gains.push(gain);
       }
+      this.turn += 1;
+      this.played.set(section.key, this.turn);
       this.log.push({ at: when, section: section.name, cell: index, from: section.asset_id });
       if (this.log.length > LOG_LENGTH) this.log.splice(0, this.log.length - LOG_LENGTH);
       return playing;
@@ -323,9 +360,9 @@
           return;
         }
         if (this.current.end - now > QUEUE_AHEAD) return;
-        const wanted = this._playable(this.target.place);
+        const pool = this._pool();
         const role = this.current.section.role;
-        const next = role === wanted || (role === "arrival" && wanted === "wander")
+        const next = pool.includes(role) || (role === "arrival" && pool.includes("wander"))
           ? this._following(this.current)
           : { section: this._sectionFor(this.target.place, false), index: 0 };
         const buffers = await this._load(this.asset, next.section, next.index);
@@ -356,9 +393,15 @@
           await this._moveTo(this._sectionFor(this.target.place, true), "bar");
           return;
         }
-        const wanted = this._playable(this.target.place);
+        if (this.target.scene !== before.scene) this.scenePending = true;
+        const wanted = this._playable(this.target.place), pool = this._pool();
         const heading = this.queued ? this.queued.section.role : this.current ? this.current.section.role : null;
-        const settled = heading === wanted || (heading === "arrival" && wanted === "wander");
+        // A change of place is answered at once, on the next bar or beat, with a section of that
+        // kind. Without one, whatever is in rotation may carry on, and what has just left the
+        // rotation (the calm part once the player moves again) gives way.
+        const moved = this._playable(before.place) !== wanted;
+        const settled = heading === wanted || (heading === "arrival" && pool.includes("wander")) ||
+                        (!moved && pool.includes(heading));
         if (!settled) await this._moveTo(this._sectionFor(this.target.place, false), this.target.cut);
       });
     }
@@ -431,10 +474,9 @@
       return this._serial(async () => {
         const playing = this.queued || this.current;
         if (!this.started || !playing) return;
-        const same = this.asset.sections.filter((section) => section.role === playing.section.role);
-        const next = same[(same.findIndex((section) => section.key === playing.section.key) + 1) % same.length];
-        const section = same.length > 1 ? next : this._sectionFor(this.target.place, false);
-        await this._moveTo(section, "bar");
+        const pool = this._pool();
+        const roles = pool.includes(playing.section.role) ? pool : [playing.section.role];
+        await this._moveTo(this._pick(roles, playing.section), "bar");
       });
     }
 

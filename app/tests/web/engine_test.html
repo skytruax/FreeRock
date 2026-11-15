@@ -262,6 +262,56 @@ tests.moreMusic = async () => {
            steadyAcross: rms(run.data, 12.0, 12.3) / rms(run.data, 11.5, 11.8), late: run.engine.late };
 };
 
+// The order the sections came in, each named once however many cells of it were played.
+function sectionsInOrder(log) {
+  const names = [];
+  for (const entry of log) if (names[names.length - 1] !== entry.section) names.push(entry.section);
+  return names;
+}
+
+// Kinds that take turns: in a cave the Depths part and the zone's riffs come round one after the
+// other, instead of the Depths part alone on a loop.
+tests.takingTurns = async () => {
+  const run = await render(100, {
+    target: { place: "depths", also: ["wander"], bed: 1, drums: 0, bass: 0, bed_highpass_hz: 20 } });
+  return { sections: sectionsInOrder(run.engine.log), late: run.engine.late };
+};
+
+// Crossing into another part of the zone changes the riff at the end of the cell that is
+// playing, not at the end of the whole section; staying put lets the section run its length.
+tests.newScene = async () => {
+  const run = await render(46, {
+    target: { bed: 1, drums: 0, bass: 0, bed_highpass_hz: 20 },
+    script: [[10.0, (engine) => engine.setTarget({ scene: 1 })]] });
+  const log = run.engine.log;
+  return { order: log.map((entry) => entry.section + " " + entry.cell), starts: log.map((entry) => entry.at),
+           toneAfter: strength(run.data, FIRST + 17, FIRST + 23, 700),      // Wander B's tone
+           toneOfTheOld: strength(run.data, FIRST + 17, FIRST + 23, 500), late: run.engine.late };
+};
+
+// The calm part that joined the rotation while the player stood still gives way on the next bar
+// line once they move again.
+tests.leavingTheRotation = async () => {
+  const run = await render(60, {
+    target: { place: "wander", also: ["ember"], bed: 1, drums: 0, bass: 0, bed_highpass_hz: 20 },
+    script: [[43.3, (engine) => engine.setTarget({ also: [] })]] });
+  const log = run.engine.log;
+  const ember = log.findIndex((entry) => entry.section === "Ember");
+  return { sections: sectionsInOrder(log), emberAt: ember >= 0 ? log[ember].at : null,
+           nextAt: ember >= 0 && log[ember + 1] ? log[ember + 1].at : null,
+           next: ember >= 0 && log[ember + 1] ? log[ember + 1].section : null, late: run.engine.late };
+};
+
+// After a rest the music comes back with the riff that has gone longest unheard, not always the
+// same one.
+tests.afterARest = async () => {
+  const run = await render(60, {
+    target: { bed: 1, drums: 0, bass: 0, bed_highpass_hz: 20 },
+    script: [[20.0, (engine) => engine.setTarget({ rest: true, fade_s: 1 })],
+             [26.0, (engine) => engine.setTarget({ rest: false, fade_s: 0.4 })]] });
+  return { sections: sectionsInOrder(run.engine.log), late: run.engine.late };
+};
+
 // Levels and tone must move as soon as the target changes.
 tests.levels = async () => {
   const run = await render(20, {

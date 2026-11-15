@@ -91,9 +91,77 @@ def test_half_a_pixel_off_the_grid(cell):
 def test_the_smallest_squares_have_a_limit_and_it_fails_safe():
     """The limit, stated: squares of 2 px read when drawn pixel for pixel, and stop reading when
     the picture is shrunk so that they are a pixel and a half wide. 3 px is the default for that
-    reason. Nothing wrong is ever read."""
+    reason. Squares of 1 px read only when every square is exactly one pixel of the picture.
+    Nothing wrong is ever read."""
     assert reads_sample(band(2))
     assert not reads_sample(lh.rescale(band(2), 0.75))
+    assert reads_sample(band(1))
+    assert not reads_sample(lh.rescale(band(1), 1.1))
+    assert not reads_sample(lh.blur(band(1), 0.6))
+
+
+def faint(cell, ink, **options):
+    """A strip whose lit squares are drawn at `ink` of 255 on its black backing, on a busy screen."""
+    return lh.screen_band(beacon.render(PAYLOAD, cell=cell, white=ink).astype(np.float32), **options)
+
+
+@pytest.mark.parametrize("cell", (1, 2, 3, 5))
+@pytest.mark.parametrize("ink", (128, 64, 51, 38, 26))
+def test_a_faint_strip_is_read_beside_a_bright_screen(cell, ink):
+    """The squares may be drawn dark grey so the strip is hard to see. The screen around it is
+    far brighter than they are, which is the case that needs more than one look."""
+    for seed in range(6):
+        reading = beacon.read(lh.as_picture(faint(cell, ink, seed=seed)))
+        assert reading.frame == SAMPLE, f"{reading.problem} at {cell} px, ink {ink}, screen {seed}"
+        assert reading.pitch == pytest.approx(cell, abs=0.01)
+    assert reading.look > 0 or ink == 128, "a faint strip is not found by the first look"
+
+
+def test_a_bright_strip_is_still_found_by_the_first_look():
+    assert beacon.read(lh.as_picture(band(3))).look == 0
+    assert beacon.read(lh.as_picture(band(3)), look_first=3).look in (0, 3)
+
+
+def test_the_look_that_worked_can_be_tried_first_or_alone():
+    picture = lh.as_picture(faint(2, 51, seed=4))
+    found = beacon.read(picture)
+    assert found.ok and found.look > 0
+    assert beacon.read(picture, look_first=found.look, every_look=False).frame == SAMPLE
+    alone = beacon.read(picture, look_first=0, every_look=False)
+    assert not alone.ok and alone.problem == "no strip", "the first look alone does not see a faint strip"
+
+
+FAINT_SPOILERS = {
+    "gamma 0.8": lambda p, c: lh.gamma(p, 0.8),
+    "gamma 1.25": lambda p, c: lh.gamma(p, 1.25),
+    "contrast 0.7": lambda p, c: lh.levels(p, 0, 178),
+    "raised black": lambda p, c: lh.levels(p, 12, 255),
+    "noise": lambda p, c: lh.noise(p, 6),
+    "warm tint": lambda p, c: lh.tint(p),
+    "blur, 0.2 of a square": lambda p, c: lh.blur(p, 0.2 * c),
+    "dimming across, 1.0 to 0.6": lambda p, c: lh.dim_across(p, 1.0, 0.6),
+}
+
+
+@pytest.mark.parametrize("name", FAINT_SPOILERS)
+@pytest.mark.parametrize("cell", (2, 3))
+def test_a_faint_strip_survives_what_a_screen_does_to_it(name, cell):
+    """At the brightness /rock strip faint uses (a fifth of white), from 2 px squares up."""
+    for seed in range(4):
+        assert reads_sample(FAINT_SPOILERS[name](faint(cell, 51, seed=seed), cell)), f"{name} at {cell} px"
+
+
+@given(frame=frames(), cell=st.sampled_from((1, 2, 3)), ink=st.integers(20, 255), seed=st.integers(0, 10_000),
+       data=st.data())
+@settings(max_examples=80, deadline=None)
+def test_a_faint_strip_never_reads_as_something_else(frame, cell, ink, seed, data):
+    """However faint and however spoiled, a reading is the frame that was drawn or nothing."""
+    payload = beacon.pack(frame)
+    picture = lh.screen_band(beacon.render(payload, cell=cell, white=ink).astype(np.float32), seed=seed)
+    picture = lh.noise(picture, data.draw(st.floats(0, 25)), seed=seed)
+    picture = lh.gamma(picture, data.draw(st.floats(0.5, 2.2)))
+    reading = beacon.read(lh.as_picture(picture))
+    assert reading.frame in (None, frame)
 
 
 def test_no_strip():

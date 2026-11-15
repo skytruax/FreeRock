@@ -12,6 +12,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import dataclasses
+import datetime
 import json
 import logging
 import time
@@ -44,6 +45,12 @@ FRESH_EVERY_S = 7200.0   # time in a place between fresh sets after that
 MAX_FRESH = 3            # fresh sets a place keeps in rotation; an older one is retired for a newer
 GROWTH_SHARE = 0.6       # the part of the monthly allowance that goes on growing places' music
 GROWTH_FLOAT = 6.0       # minutes of growth allowed before any hours have been played
+MIN_PLAY_S = 150.0       # however little music a place has, at least this much between rests
+
+
+def page_version() -> str:
+    """Changes whenever a file of the player page changes."""
+    return str(max(int((PLAYER_DIR / name).stat().st_mtime) for name in PLAYER_FILES))
 
 
 def slug(name: str | None) -> str | None:
@@ -59,6 +66,7 @@ class Conductor:
         self.hub = hub
         self.library = library
         self.director = director or Director()
+        self._rest_every_s = self.director.rules.rest_every_s   # the longest the music goes without a rest
         self.clock = clock
         self.ingest = ingest             # None: play what the library has, make nothing new
         self.settings = settings or Settings()
@@ -67,7 +75,10 @@ class Conductor:
         self.making: str | None = None   # the zone music is being made for right now
         self._making_task: asyncio.Task | None = None
         self._seen_in: tuple[str, float] | None = None   # (zone, when the player was first seen there)
-        self._tries: dict[str, int] = {}
+        # How many times each piece of music has been asked for today. Kept in a file, so that a
+        # restart does not ask again for music that has just been turned away twice.
+        self._tries_file = self.settings.var_dir / "tries.json"
+        self._tries: dict[str, int] = self._load_tries()
         self._paused_until = 0.0
         self.players: set[web.WebSocketResponse] = set()
         self.assets: list[Asset] = []    # the music that is playing: a core suite and any later sets
@@ -186,6 +197,7 @@ class Conductor:
             self.assets, self.borrowed = music, borrowed
         if self.assets and self._sent_asset != self.view_id:
             self._sent_asset = self.view_id
+            self._pace_the_rests()
             await self._broadcast(self._asset_message())
         told = (target, state.volume, self.view_id, self.borrowed)
         if told != self._told:
@@ -193,7 +205,33 @@ class Conductor:
             await self._broadcast(self._target_message())
         self._consider_making(state)
 
+    def _pace_the_rests(self) -> None:
+        """Where a place has little music, hearing it a third and fourth time is worse than a
+        pause. The music rests after about twice round what the place has for exploring, and
+        never later than the setting says."""
+        if self._rest_every_s <= 0:
+            return
+        exploring = sum((section.end - section.start) / asset.rate for asset in self.assets
+                        for section in asset.sections if section.role in ("wander", "ember"))
+        self.director.rules.rest_every_s = min(self._rest_every_s, max(MIN_PLAY_S, 2.0 * exploring))
+
     # --- making new music --------------------------------------------------------------------
+
+    @staticmethod
+    def _today() -> str:
+        return datetime.date.today().isoformat()
+
+    def _load_tries(self) -> dict[str, int]:
+        """Today's count of requests for each piece of music; yesterday's are forgotten."""
+        if not self._tries_file.exists():
+            return {}
+        kept = json.loads(self._tries_file.read_text(encoding="utf-8"))
+        return dict(kept["tries"]) if kept.get("day") == self._today() else {}
+
+    def _save_tries(self) -> None:
+        self._tries_file.parent.mkdir(parents=True, exist_ok=True)
+        self._tries_file.write_text(json.dumps({"day": self._today(), "tries": self._tries}, indent=1) + "\n",
+                                    encoding="utf-8")
 
     def _consider_making(self, state: game.GameState) -> None:
         """Starts making music for the zone the player is in, if it has none of its own, the
@@ -210,9 +248,9 @@ class Conductor:
         if self._seen_in is None or self._seen_in[0] != key:
             self._seen_in = (key, now)
         # A flight path crosses zones without stopping, a loading screen is not yet anywhere,
-        # and with the game out of sight there is nobody to make music for.
+        # and with the game out of sight or no player page open there is nobody to make music for.
         if (self.hub.link is not game.Link.LIVE or not state.enabled or state.on_taxi
-                or state.loading or state.cinematic):
+                or state.loading or state.cinematic or not self.players):
             self._seen_in = (key, now)
             return
         if now - self._seen_in[1] < DWELL_S or now < self._paused_until:
@@ -229,6 +267,7 @@ class Conductor:
             return
         self.making = key
         self._tries[tried] = self._tries.get(tried, 0) + 1
+        self._save_tries()
         again = self._tries[tried] > 1
         if kind == "core":
             self.notes.append("Making music for %s." % name)
@@ -297,9 +336,10 @@ class Conductor:
                                   made.first_audio_s or 0.0, made.total_s or 0.0, made.split_s))
         elif isinstance(error, TrackFailedChecks):
             again = self._tries.get(tried, 0) < TRIES
-            self.notes.append("%s %s" % (error, "Trying once more." if again else "Not trying again."))
+            self.notes.append("%s %s" % (error, "Trying once more." if again else "Not trying again today."))
         elif isinstance(error, AllowanceExceeded):
             self._tries[tried] -= 1      # nothing was asked for, so it does not count as a try
+            self._save_tries()
             self._paused_until = self.clock() + PAUSE_S
             self.notes.append(str(error))
         elif isinstance(error, ElevenError):
@@ -323,6 +363,10 @@ class Conductor:
                                   banned=True if event.name == "ban" else None)
                 self.notes.append("%s marked as %s." % (which, "loved" if event.name == "love" else "banned"))
         elif isinstance(event, game.MomentReceived):
+            # A level gained, a quest handed in, a boss beaten: the director brings the whole
+            # band in for a few seconds, and the next step tells the players.
+            if self.director.moment(event.name, self.clock()):
+                self.notes.append("A moment in the game: %s." % event.name.replace("_", " "))
             await self._broadcast({"type": "moment", "name": event.name})
 
     async def run(self) -> None:
@@ -351,12 +395,23 @@ class Conductor:
 
     # --- the routes ------------------------------------------------------------------------------
 
+    def heard(self) -> dict[str, int]:
+        """How many player pages are open, and how many of them say they are making sound."""
+        playing = sum(1 for status in self.statuses.values()
+                      if status.get("started") and status.get("context") == "running")
+        return {"connected": len(self.players), "playing": playing}
+
     async def player_socket(self, request: web.Request) -> web.WebSocketResponse:
         socket = web.WebSocketResponse(heartbeat=20)
         await socket.prepare(request)
         self.players.add(socket)
+        link = request.app.get("link")
+        if link is not None:
+            link.note("A player page was opened from %s." % (request.remote or "an unknown address"), "player")
         try:
-            await self._send(socket, {"type": "hello"})
+            # The page keeps the version it was loaded with; a different one after a reconnect
+            # means the server was updated under it, and it says so.
+            await self._send(socket, {"type": "hello", "version": page_version()})
             if self.assets:
                 await self._send(socket, self._asset_message())
             if self.target is not None:
@@ -374,6 +429,8 @@ class Conductor:
         finally:
             self.players.discard(socket)
             self.statuses.pop(id(socket), None)
+            if link is not None:
+                link.note("The player page at %s was closed." % (request.remote or "an unknown address"), "player")
         return socket
 
     async def audio(self, request: web.Request) -> web.Response:
@@ -484,6 +541,8 @@ def attach(app: web.Application, library: Library | None = None,
     conductor = Conductor(app["hub"], library or Library(settings.library_dir), director, clock, ingest,
                           settings=settings, playtime=playtime)
     app["conductor"] = conductor
+    if "link" in app:
+        app["link"].music = conductor.heard   # so the game link can say when nothing can be heard
     app.router.add_get("/player", conductor.page)
     app.router.add_get("/player/{name}", conductor.page)
     app.router.add_get("/ws/player", conductor.player_socket)

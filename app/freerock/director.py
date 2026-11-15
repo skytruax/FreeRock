@@ -12,6 +12,12 @@ it waits until the game has stayed the same for a moment.
 Only state the game leaves unsealed is used. Health and threat are not available and are not
 needed: intensity comes from combat, what is targeted, boss encounters, where the player is, and
 the weather (a rain storm brings the whole band in).
+
+The music follows what the player does, not only where they are. Moving brings the drums in and
+standing still takes them out; fights close together keep the band in between them; a level
+gained or a quest handed in gets the whole band for a moment; crossing into another part of the
+zone changes the riff. And no single part is left to loop: at night, in a cave, in a city and in
+a storm the part made for that joins the zone's other riffs instead of replacing them.
 """
 from __future__ import annotations
 
@@ -34,6 +40,10 @@ FLOOR_HZ = 20.0       # a high-pass down here does nothing
 class Target:
     """What the player should be doing right now."""
     place: str = "wander"
+    # Other kinds of section that take turns with `place` for as long as it lasts, so that one
+    # part is never left to loop: the zone's riffs in a cave, the Night part at night.
+    also: tuple[str, ...] = ()
+    scene: int = 0                    # goes up when the player crosses into another part of the zone
     cut: str = "bar"                  # how soon a change of place should land: bar | beat
     bed: float = 1.0                  # layer levels, 0 to 1
     drums: float = 0.0
@@ -61,7 +71,7 @@ class Rules:
     base_resting: float = 0.0
     base_dungeon: float = 0.35
     combat_start: float = 0.60
-    combat_rise_per_s: float = 0.02
+    combat_rise_per_s: float = 0.05
     combat_ceiling: float = 0.80
     elite_floor: float = 0.80
     hold_after_combat_s: float = 5.0
@@ -69,8 +79,8 @@ class Rules:
     bass_on: float = 0.55
     bass_off: float = 0.40
     battle_at: float = 0.75
-    battle_after_s: float = 6.0       # a fight this long moves to the Battle section...
-    battle_after_elite_s: float = 2.0  # ...sooner against an elite
+    battle_after_s: float = 3.0       # a fight this long moves to the Battle section...
+    battle_after_elite_s: float = 1.0  # ...sooner against an elite
     afterglow_s: float = 8.0          # Ember after a fight that reached Battle
     depths_after_s: float = 2.5
     depths_release_s: float = 4.0
@@ -83,6 +93,29 @@ class Rules:
     storm_ceiling: float = 0.8        # ...and in the thick of one
     mounted_after_s: float = 1.0
     calm_drums: float = 0.0           # drums while nothing is happening; 0 leaves the bed alone
+    # Movement: the music follows your feet. Standing still leaves the bed alone, moving brings
+    # the drums in, riding brings them in harder.
+    moving_after_s: float = 0.5       # on the move this long before the drums come in
+    still_after_s: float = 3.0        # stopped this long before they leave
+    linger_after_s: float = 30.0      # stopped this long and the calm part joins the rotation
+    foot_drums: float = 0.45
+    riding_drums: float = 0.7
+    dungeon_drums: float = 0.45       # in a dungeon with no word on movement at all: a steady pulse
+    # Sizing up a target: with something to fight selected, the bass leans in before the pull.
+    sizing_after_s: float = 0.4
+    sizing_bass: float = 0.5
+    big_game_bass: float = 0.7        # an elite, a rare or a boss in your sights
+    big_game_drums: float = 0.5
+    # A roll: fights close together keep the band in between them.
+    heat_per_fight: float = 0.34      # what each fight adds, out of 1
+    heat_half_life_s: float = 40.0    # how fast it cools between fights
+    roll_hold_s: float = 10.0         # on a full roll the band stays this much longer after a fight
+    roll_lift: float = 0.32           # ...the intensity between fights is this much higher
+    roll_start: float = 0.15          # ...and the next fight starts this much hotter
+    # Moments: what the whole band answers with, as (intensity, seconds).
+    moments: dict = field(default_factory=lambda: {
+        "level_up": (1.0, 10.0), "quest_turned_in": (0.7, 5.0), "boss_defeated": (0.9, 10.0),
+        "achievement": (0.8, 6.0)})
     stealth_bass: bool = True         # stealth drops the band to the bass line and quiet drums
     # Rests: after about this much calm music the music stops for a while, as the game's own does
     # between pieces. Anything happening brings it straight back. rest_every_s of 0 means never.
@@ -113,6 +146,18 @@ class _Memory:
     place_key: tuple | None = None       # where the player was last seen, to notice a new place
     play_until: float | None = None      # when the music next takes a rest
     rest_until: float | None = None      # when the rest that is going on ends
+    position: tuple | None = None        # (map, x, y) at the last look
+    moved_at: float | None = None        # when the position last changed
+    moving_since: float | None = None
+    still_since: float | None = None
+    on_the_move: bool = False
+    heat: float = 0.0                    # how many fights there have been lately, 0 to 1
+    swell_until: float = 0.0             # a moment is being answered until then...
+    swell_level: float = 0.0             # ...at this intensity...
+    swell_name: str = ""                 # ...because of this
+    subzone: str | None = None
+    scene: int = 0
+    sizing_since: float | None = None    # since when something to fight has been targeted
 
 
 def _weather_strength(state: GameState) -> float:
@@ -133,6 +178,51 @@ class Director:
         """`seconds`, give or take the spread, so rests do not come round like clockwork."""
         return seconds * (1.0 + self.rules.rest_spread * (2.0 * self.rng.random() - 1.0))
 
+    def moment(self, name: str, now: float) -> bool:
+        """Something happened in the game that the band answers at once: a level gained, a quest
+        handed in, a boss beaten. Returns whether this is a moment the rules know."""
+        if name not in self.rules.moments:
+            return False
+        level, seconds = self.rules.moments[name]
+        m = self._m
+        if now + seconds >= m.swell_until or level > m.swell_level:
+            m.swell_until, m.swell_level, m.swell_name = now + seconds, level, name
+        return True
+
+    def _movement(self, state: GameState, now: float) -> tuple[bool | None, bool]:
+        """Whether the player is on the move (None when there is no telling: an older addon in
+        a dungeon, where the game gives no position), and whether they have stood still for a
+        good while."""
+        rules, m = self.rules, self._m
+        if state.speed is not None:
+            # The addon says how fast the player is going. That works in dungeons too.
+            m.position = None
+            moving = state.speed > 0.5 and not state.on_taxi and not state.loading
+        elif state.position is None:
+            m.position = m.moved_at = m.moving_since = m.still_since = None
+            m.on_the_move = False
+            return None, False
+        else:
+            here = (state.map_id, state.position[0], state.position[1])
+            before, m.position = m.position, here
+            if before is not None and before[0] == here[0] and not state.on_taxi and not state.loading:
+                # One step of the strip's position is about a twentieth of a yard; anything is a move.
+                if abs(here[1] - before[1]) + abs(here[2] - before[2]) > 1e-5:
+                    m.moved_at = now
+            moving = m.moved_at is not None and now - m.moved_at <= 0.6 and not state.on_taxi
+        if moving:
+            m.still_since = None
+            m.moving_since = m.moving_since if m.moving_since is not None else now
+            if now - m.moving_since >= rules.moving_after_s:
+                m.on_the_move = True
+        else:
+            m.moving_since = None
+            m.still_since = m.still_since if m.still_since is not None else now
+            if now - m.still_since >= rules.still_after_s:
+                m.on_the_move = False
+        lingering = not moving and now - m.still_since >= rules.linger_after_s
+        return m.on_the_move, lingering
+
     def update(self, state: GameState, now: float) -> Target:
         """Call whenever the state changes, and a few times a second in between."""
         rules, m = self.rules, self._m
@@ -149,13 +239,20 @@ class Director:
         elite = state.in_combat and state.target_class in ("elite", "rareelite", "worldboss")
         dungeon = state.in_instance and state.instance_kind in ("party", "raid", "scenario")
         fallen = state.dead or state.ghost
+        on_the_move, lingering = self._movement(state, now)
 
         # --- intensity ---------------------------------------------------------------------------
         base = rules.base_resting if state.resting else rules.base_dungeon if dungeon else rules.base_world
+        # A roll is how far beyond one fight the heat has got: nothing after a single fight, full
+        # after three close together.
+        def roll() -> float:
+            return min(max(m.heat - rules.heat_per_fight, 0.0) / max(1.0 - rules.heat_per_fight, 1e-9), 1.0)
+
         if state.in_combat and not fallen:
             if m.combat_since is None:
+                m.heat = min(m.heat + rules.heat_per_fight, 1.0)
                 m.combat_since, m.combat_ended, m.reached_battle = now, None, False
-                m.intensity = max(m.intensity, rules.combat_start)
+                m.intensity = max(m.intensity, rules.combat_start + rules.roll_start * roll())
             else:
                 m.intensity = min(max(m.intensity, rules.combat_start) + rules.combat_rise_per_s * elapsed,
                                   max(rules.combat_ceiling, m.intensity))
@@ -167,19 +264,30 @@ class Director:
             if boss:
                 m.intensity = 1.0
         else:
+            m.heat *= 0.5 ** (elapsed / rules.heat_half_life_s)
+            hold = rules.hold_after_combat_s + rules.roll_hold_s * roll()
             if m.combat_since is not None:
                 m.combat_since, m.combat_ended, m.elite_since = None, now, None
                 if m.reached_battle:
-                    m.afterglow_until = now + rules.hold_after_combat_s + rules.afterglow_s
-            held = m.combat_ended is not None and now - m.combat_ended < rules.hold_after_combat_s
+                    m.afterglow_until = now + hold + rules.afterglow_s
+            held = m.combat_ended is not None and now - m.combat_ended < hold
             if fallen:
-                m.intensity, m.combat_ended, m.afterglow_until = 0.0, None, 0.0
+                m.intensity, m.combat_ended, m.afterglow_until, m.heat = 0.0, None, 0.0, 0.0
             elif not held:
-                m.intensity = max(m.intensity - rules.decay_per_s * elapsed, base)
+                m.intensity = max(m.intensity - rules.decay_per_s * elapsed, base + rules.roll_lift * roll())
             else:
                 why.append("holding after the fight")
+            if roll() >= 0.5 and not fallen:
+                why.append("on a roll: fights close together")
+        hold = rules.hold_after_combat_s + rules.roll_hold_s * roll()
         if m.intensity < base and not fallen:
             m.intensity = min(m.intensity + rules.decay_per_s * elapsed, base)
+        # A moment in the game (a level, a quest handed in) gets the whole band for a few seconds.
+        swelling = now < m.swell_until and not fallen
+        if swelling:
+            m.intensity = max(m.intensity, m.swell_level)
+            why.append({"level_up": "a level gained", "quest_turned_in": "a quest handed in",
+                        "boss_defeated": "the boss is down"}.get(m.swell_name, m.swell_name))
         # A rain storm rocks: out in heavy rain the whole band comes in, harder the heavier it is.
         strength = _weather_strength(state)
         storming = (state.weather == "rain" and strength >= rules.storm_at and not state.indoors
@@ -195,18 +303,34 @@ class Director:
         elif intensity < rules.bass_off:
             m.bass_in = False
         bass = 1.0 if m.bass_in else 0.0
-        drums = 0.75 + 0.25 * min((intensity - rules.bass_off) / (1.0 - rules.bass_off), 1.0) if m.bass_in \
-            else rules.calm_drums
+        if m.bass_in:
+            drums = 0.75 + 0.25 * min((intensity - rules.bass_off) / (1.0 - rules.bass_off), 1.0)
+        elif fallen:
+            drums = rules.calm_drums
+        elif on_the_move is None and dungeon:
+            drums = rules.dungeon_drums
+        elif on_the_move and state.mounted:
+            drums = rules.riding_drums
+            why.append("riding")
+        elif on_the_move:
+            drums = rules.foot_drums
+            why.append("on the move")
+        else:
+            drums = rules.calm_drums
+            if on_the_move is not None:
+                why.append("standing still")
         bed = 1.0
 
         # --- which section -------------------------------------------------------------------
-        in_combat_long = (m.combat_since is not None and intensity >= rules.battle_at
-                          and now - m.combat_since >= rules.battle_after_s)
+        in_combat_long = m.combat_since is not None and now - m.combat_since >= rules.battle_after_s
         elite_long = m.elite_since is not None and now - m.elite_since >= rules.battle_after_elite_s
         if in_combat_long or elite_long:
             m.reached_battle = True
 
-        if state.indoors and not state.resting:
+        # A dungeon is indoors from end to end; its own music is made for that. The cave rules
+        # are for stepping into a mine or a building out in the world.
+        cave = state.indoors and not dungeon
+        if cave and not state.resting:
             m.outdoors_since = None
             m.indoors_since = m.indoors_since if m.indoors_since is not None else now
             if now - m.indoors_since >= rules.depths_after_s:
@@ -229,36 +353,52 @@ class Director:
                 if now - m.calm_weather_since >= rules.storm_release_s:
                     m.in_storm = False
 
-        cut = "bar"
+        # The subzone the player is in: crossing into another one changes the riff.
+        if state.subzone_name and state.subzone_name != m.subzone:
+            if m.subzone is not None:
+                m.scene += 1
+            m.subzone = state.subzone_name
+
+        # `place` is where the music goes now; `also` is what takes turns with it for as long as
+        # it lasts, so that one part is never left to loop.
+        cut, also = "bar", []
         if boss and not fallen:
             place, cut = "boss", "beat"
+            also.append("battle")
             why.append("boss")
         elif m.combat_since is not None and m.reached_battle:
             place = "battle"
             why.append("a fight that has lasted")
         elif fallen:
             place = "ember"
-        elif now < m.afterglow_until and m.combat_ended is not None \
-                and now - m.combat_ended >= rules.hold_after_combat_s:
+            also.append("wander")
+        elif now < m.afterglow_until and m.combat_ended is not None and now - m.combat_ended >= hold:
             place = "ember"
             why.append("after the fight")
-        elif m.combat_ended is not None and m.reached_battle \
-                and now - m.combat_ended < rules.hold_after_combat_s:
+        elif m.combat_ended is not None and m.reached_battle and now - m.combat_ended < hold:
             place = "battle"       # the next pull may be coming; do not leave Battle yet
         elif m.in_depths:
             place = "depths"
+            also.append("wander")
             why.append("indoors for a while")
         elif state.resting:
             place = "ember"
+            also.append("wander")
             why.append("resting")
         elif m.in_storm and not state.indoors:
             place = "storm"
+            also.append("wander")
             why.append("a storm that has set in")
-        elif state.daytime is False:
-            place = "night"
-            why.append("night")
         else:
             place = "wander"
+            if dungeon:
+                also.append("depths")
+            if state.daytime is False:
+                also.append("night")
+                why.append("night")
+            if lingering:
+                also.append("ember")
+                why.append("standing still for a while")
         if m.combat_since is not None and not m.reached_battle:
             why.append("a fight has started")
 
@@ -274,7 +414,7 @@ class Director:
             volume *= gain
             why.append(name)
 
-        if state.indoors:
+        if cave:
             tint("indoors: muffled and echoing", low=2500.0, wet=0.40)
         if state.submerged:
             tint("under water", low=500.0)
@@ -304,11 +444,26 @@ class Director:
 
         if state.mounted and not state.on_taxi:
             m.mounted_since = m.mounted_since if m.mounted_since is not None else now
-            if now - m.mounted_since >= rules.mounted_after_s and not fallen:
-                drums = max(drums, 0.6)
+            # Where the game gives no position there is no telling whether the mount is moving.
+            if on_the_move is None and now - m.mounted_since >= rules.mounted_after_s and not fallen:
+                drums = max(drums, rules.riding_drums)
                 why.append("mounted")
         else:
             m.mounted_since = None
+
+        # Something to fight is targeted and the fight has not started: the bass leans in.
+        sizing_up = (state.has_target and state.target_hostile is True and m.combat_since is None
+                     and not fallen and not state.resting and not state.on_taxi)
+        if sizing_up:
+            m.sizing_since = m.sizing_since if m.sizing_since is not None else now
+            if now - m.sizing_since >= rules.sizing_after_s:
+                big = state.target_class in ("elite", "rare", "rareelite", "worldboss")
+                bass = max(bass, rules.big_game_bass if big else rules.sizing_bass)
+                if big:
+                    drums = max(drums, rules.big_game_drums)
+                why.append("something big in your sights" if big else "a target in your sights")
+        else:
+            m.sizing_since = None
 
         if state.stealthed and not state.in_combat and not fallen and rules.stealth_bass:
             bed, drums, bass = 0.0, 0.35, 0.7
@@ -327,7 +482,8 @@ class Director:
         new_place = m.place_key is not None and here != m.place_key
         m.place_key = here
         calm = (m.combat_since is None and intensity <= base + 0.02 and not fallen and not storming
-                and not state.stealthed and not state.loading and now >= m.afterglow_until)
+                and not swelling and not sizing_up and not state.stealthed and not state.loading
+                and now >= m.afterglow_until)
         rest = False
         if rules.rest_every_s > 0:
             if m.play_until is None:
@@ -347,7 +503,8 @@ class Director:
             fade = rules.rest_fade_s
             why.append("a rest, as the game has between pieces")
 
-        return Target(place=place, cut=cut, bed=round(bed, 3), drums=round(drums, 3), bass=round(bass, 3),
+        return Target(place=place, also=tuple(also), scene=m.scene, cut=cut,
+                      bed=round(bed, 3), drums=round(drums, 3), bass=round(bass, 3),
                       bed_highpass_hz=FLOOR_HZ if bass > 0 else 110.0,
                       lowpass_hz=round(lowpass, 1), highpass_hz=round(highpass, 1),
                       reverb=round(min(reverb, 0.6), 3), volume=round(volume, 3), rest=rest, fade_s=fade,

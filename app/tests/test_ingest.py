@@ -41,10 +41,10 @@ def stand_in_music(plan, tempo_factor=1.0, seconds_short=0.0, seed=8):
     return np.stack([audio, audio], axis=1)
 
 
-def stand_in_splitter(leak_db=-40.0):
+def stand_in_splitter(leak_db=-40.0, words_db=-70.0):
     def splitter(mix, rate):
         return Layers(bed=mix * 0.5, drums=mix * 0.3, bass=mix * 0.2, rate=rate,
-                      vocal_leak_db=leak_db, seconds=0.01, model="stand-in")
+                      vocal_leak_db=leak_db, seconds=0.01, model="stand-in", vocal_words_db=words_db)
     return splitter
 
 
@@ -109,10 +109,18 @@ async def test_music_off_tempo_is_not_stored_but_is_still_counted(tmp_path):
 
 
 async def test_singing_and_short_tracks_are_refused(tmp_path):
-    sung, library, gateway = make(tmp_path / "a", [], splitter=stand_in_splitter(leak_db=-12.0))
+    sung, library, gateway = make(tmp_path / "a", [], splitter=stand_in_splitter(leak_db=-15.0, words_db=-30.0))
     with pytest.raises(TrackFailedChecks) as failure:
         await sung.core_suite("Westfall")
     assert "singing" in str(failure.value) and library.assets() == []
+    assert failure.value.checks["vocal_leak_db"] == -15.0 and failure.value.checks["vocal_words_db"] == -30.0
+    await gateway.aclose()
+
+    # So loud that it is a large part of the track: turned away whatever it is made of.
+    loud, library, gateway = make(tmp_path / "c", [], splitter=stand_in_splitter(leak_db=-8.0, words_db=-60.0))
+    with pytest.raises(TrackFailedChecks) as failure:
+        await loud.core_suite("Westfall")
+    assert "singing" in str(failure.value)
     await gateway.aclose()
 
     short, library, gateway = make(tmp_path / "b", [], seconds_short=2.0)
@@ -150,9 +158,19 @@ async def test_nothing_is_made_past_the_allowance(tmp_path):
     await gateway.aclose()
 
 
+async def test_a_whistle_solo_is_not_taken_for_singing(tmp_path):
+    """The separator puts a whistle or a flute playing alone into its vocals layer. What was
+    measured on the first tin whistle: -21 dB overall, but -52 dB where sung words would be."""
+    whistle, library, gateway = make(tmp_path, [], splitter=stand_in_splitter(leak_db=-21.0, words_db=-52.0))
+    made = await whistle.core_suite("Westfall")
+    assert made.asset.checks["vocal_leak_db"] == -21.0 and made.asset.checks["vocal_words_db"] == -52.0
+    assert [asset.id for asset in library.assets("westfall")] == [made.asset.id]
+    await gateway.aclose()
+
+
 async def test_a_kept_track_can_be_adopted_once_it_passes(tmp_path):
     # Rejected for singing by one splitter; looked at again with another, it passes and is stored.
-    strict, library, gateway = make(tmp_path, [], splitter=stand_in_splitter(leak_db=-12.0))
+    strict, library, gateway = make(tmp_path, [], splitter=stand_in_splitter(leak_db=-15.0, words_db=-30.0))
     with pytest.raises(TrackFailedChecks) as failure:
         await strict.core_suite("Westfall")
     kept = failure.value.kept

@@ -86,14 +86,18 @@ def test_unpack_refuses_what_is_not_a_frame():
             with pytest.raises(beacon.BeaconError):
                 beacon.unpack(bytes(spoiled))
     # A later version of the format, correctly summed, is refused by name rather than misread.
-    body = bytes([0x20]) + payload[1:-2]
-    with pytest.raises(beacon.BeaconError, match="version 2"):
+    body = bytes([0x30]) + payload[1:-2]
+    with pytest.raises(beacon.BeaconError, match="version 3"):
         beacon.unpack(body + beacon.crc16(body).to_bytes(2, "big"))
+    # The version before this one is still read: the addon in the game may be older than the program.
+    body = bytes([0x10]) + payload[1:-2]
+    assert beacon.unpack(body + beacon.crc16(body).to_bytes(2, "big")) == dataclasses.replace(SAMPLE, version=1)
 
 
 def test_test_frames():
     payload = beacon.pack(beacon.Frame(kind=beacon.KIND_TEST))
-    assert payload[0] == 0x11
+    assert payload[0] == 0x21
+    assert beacon.pack(beacon.Frame(kind=beacon.KIND_TEST, version=1))[0] == 0x11
     assert list(payload[1:4]) == [(17 * i + 3) % 256 for i in (1, 2, 3)]
     assert beacon.unpack(payload).kind == beacon.KIND_TEST
     body = bytearray(payload[:-2])

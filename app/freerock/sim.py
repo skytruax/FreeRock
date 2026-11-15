@@ -10,11 +10,12 @@ Only two things are pretend: the game, and the screen copy.
 Scenario files live in app/freerock/scenarios. Each is JSON:
 
     "screen": [width, height]      the pretend game window, in pixels
-    "cell", "edge", "inset"        how the strip is drawn (square size, top or bottom, [x, y])
+    "cell", "edge", "inset", "ink" how the strip is drawn (square size, top or bottom, [x, y], and the
+                                   brightness of its squares in percent: 100 is white, 20 is faint)
     "start": {...}                 the game at time 0 (see SimGame for the names)
     "steps": [{"at": seconds, "say": "...", "set": {...}, "walk": {"x":, "y":, "seconds":},
                "command": "skip|love|ban", "moment": "level_up|...", "test": seconds,
-               "hidden": true|false, "in_front": true|false, "strip": {"cell":, "edge":, "inset":}}]
+               "hidden": true|false, "in_front": true|false, "strip": {"cell":, "edge":, "inset":, "ink":}}]
 
 The frames here are built by Python that follows protocol/beacon.md; the addon's own Lua is
 checked against the same protocol by the tests, not by this file.
@@ -51,6 +52,7 @@ class SimGame:
     map_id: int = 1429
     x: float | None = 0.42
     y: float | None = 0.65
+    speed: float | None = 0.0        # yards a second; None: the game does not give one
     in_instance: bool = False
     instance_kind: str = "none"
     instance_id: int = 0
@@ -73,6 +75,7 @@ class SimGame:
     boss: bool = False
     group: bool = False
     target: str | None = None        # None, or normal / elite / rare / rareelite / worldboss / trivial / minus
+    hostile: bool = False            # the target can be fought
     pvp: str = "friendly"
     weather: str | None = "clear"    # None: the game does not report weather
     weather_intensity: float | None = 0.0
@@ -165,6 +168,7 @@ class SimAddon:
             (game.weather is not None, beacon.FLAG_WEATHER_KNOWN), (game.x is not None and game.y is not None, beacon.FLAG_POSITION_KNOWN),
             (game.in_instance, beacon.FLAG_IN_INSTANCE), (game.target is not None, beacon.FLAG_HAS_TARGET),
             (game.boss, beacon.FLAG_BOSS_PRESENT), (game.group, beacon.FLAG_IN_GROUP), (game.ghost, beacon.FLAG_GHOST),
+            (game.target is not None and game.hostile, beacon.FLAG_TARGET_HOSTILE),
         ):
             if on:
                 flags |= bit
@@ -199,6 +203,7 @@ class SimAddon:
             moment=self.moment, moment_count=self.moment_count,
             volume=game.volume, difficulty=game.difficulty if game.in_instance else 0,
             subzone_hash=beacon.text_hash(self._texts[2]["bytes"]),
+            speed=beacon.UNKNOWN_SPEED if game.speed is None else max(0, min(254, int(game.speed * 2 + 0.5))),
             text_field=field, text_revision=entry["revision"] if entry else 0, text_chunk=chunk,
             text_length=len(entry["bytes"]) if entry else 0, text_bytes=piece,
         )
@@ -226,6 +231,7 @@ class SimSession:
         self.cell = int(scenario.get("cell", 3))
         self.edge = scenario.get("edge", "top")
         self.inset_x, self.inset_y = scenario.get("inset", [16, 0])
+        self.ink = int(scenario.get("ink", 100))
         self.game = SimGame()
         self.game.change(scenario.get("start", {}))
         self.addon = SimAddon(self.game)
@@ -310,12 +316,13 @@ class SimSession:
             self.hidden = bool(step["hidden"])
         if "strip" in step:  # the player moves or resizes the strip (/rock strip ...)
             strip = step["strip"]
-            unknown = set(strip) - {"cell", "edge", "inset"}
+            unknown = set(strip) - {"cell", "edge", "inset", "ink"}
             if unknown:
                 raise ValueError(f"a scenario changes parts of the strip this version does not know: {sorted(unknown)}")
             self.cell = int(strip.get("cell", self.cell))
             self.edge = strip.get("edge", self.edge)
             self.inset_x, self.inset_y = strip.get("inset", [self.inset_x, self.inset_y])
+            self.ink = int(strip.get("ink", self.ink))
             self._drawn = None
 
     # -- the screen ------------------------------------------------------------
@@ -325,7 +332,7 @@ class SimSession:
     def _strip(self) -> np.ndarray:
         payload = beacon.pack(self.addon.frame())
         if self._drawn is None or self._drawn[0] != payload:
-            self._drawn = (payload, beacon.render(payload, cell=self.cell))
+            self._drawn = (payload, beacon.render(payload, cell=self.cell, white=round(255 * self.ink / 100)))
         return self._drawn[1]
 
     def copy(self, left: int, top: int, width: int, height: int) -> bytes:

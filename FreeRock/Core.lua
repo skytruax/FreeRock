@@ -14,6 +14,7 @@ local DEFAULTS = {
 	muteGameMusic = true, -- turn the game's own music off while FreeRock is on
 	volume = 70,          -- how loud FreeRock should play, 0 to 100; the app reads it from the strip
 	cell = 3,             -- size of one square of the strip, in screen pixels
+	ink = 100,            -- how bright the strip's squares are drawn, in percent; lower is harder to see
 	edge = "top",         -- top | bottom: the edge of the screen the strip runs along
 	insetX = 16,          -- pixels in from the left edge of the screen
 	insetY = 0,           -- pixels in from the top (or bottom) edge
@@ -67,13 +68,14 @@ local function Sanitize(db)
 	if type(db.muteGameMusic) ~= "boolean" then Reset("muteGameMusic") end
 	if type(db.introShown) ~= "boolean" then Reset("introShown") end
 	if not IsWhole(db.volume, 0, 100) then Reset("volume") end
-	if not IsWhole(db.cell, 2, 8) then Reset("cell") end
+	if not IsWhole(db.cell, 1, 8) then Reset("cell") end
+	if not IsWhole(db.ink, 10, 100) then Reset("ink") end
 	if not IsOneOf(db.edge, "top", "bottom") then Reset("edge") end
 	if not IsWhole(db.insetX, 0, 2000) then Reset("insetX") end
 	if not IsWhole(db.insetY, 0, 500) then Reset("insetY") end
 	if not IsWhole(db.command, 0, 3) then Reset("command") end
 	if not IsWhole(db.commandCount, 0, 255) then Reset("commandCount") end
-	if not IsWhole(db.moment, 0, 5) then Reset("moment") end
+	if not IsWhole(db.moment, 0, 6) then Reset("moment") end
 	if not IsWhole(db.momentCount, 0, 255) then Reset("momentCount") end
 end
 

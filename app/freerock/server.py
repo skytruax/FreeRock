@@ -50,7 +50,7 @@ class ServerConfig:
 
 # Fields left out of the log of changes: two that change all the time and would drown it, and two
 # that only say whether another field has a value.
-_QUIET_FIELDS = {"position", "game_minutes", "has_subzone", "has_target"}
+_QUIET_FIELDS = {"position", "speed", "game_minutes", "has_subzone", "has_target"}
 
 # How each field is named in the log, for a person reading it against what they did in the game.
 _LABELS = {
@@ -60,10 +60,13 @@ _LABELS = {
     "swimming": "Swimming", "submerged": "Under water", "mounted": "Mounted", "flying": "Flying",
     "on_taxi": "Flight path", "stealthed": "Stealth", "dead": "Dead", "ghost": "Ghost", "in_combat": "In combat",
     "encounter": "Boss fight", "encounter_id": "Boss fight number", "encounter_name": "Boss",
-    "boss_present": "Boss present", "target_class": "Target", "in_group": "In a group", "pvp_kind": "Territory",
+    "boss_present": "Boss present", "target_class": "Target", "target_hostile": "Target can be fought",
+    "in_group": "In a group", "pvp_kind": "Territory",
     "weather": "Weather", "weather_intensity": "Weather intensity", "daytime": "Daylight",
     "cinematic": "Cinematic", "loading": "Loading screen", "volume": "Volume",
 }
+
+SOUND_GRACE = 10.0   # seconds a sensor has been connected before its window is told about the sound
 
 _LINK_WORDS = {
     state.Link.LIVE: "The strip is being read.",
@@ -102,6 +105,9 @@ class SensorConnection:
         self.hello: dict = {}
         self.copy_rate: float | None = None      # screen copies a second, from the sensor's own counts
         self._copies_at: tuple[float, int] | None = None
+        self.server_address = ""                 # how this sensor reaches the server, for telling it where a page is
+        self.orders: list[dict] = []             # things to say to the sensor the next time it is heard from
+        self.told_sound: str | None = None       # what its window was last told about the sound
 
 
 class LinkService:
@@ -123,6 +129,11 @@ class LinkService:
         self._ui: set[web.WebSocketResponse] = set()
         self._dirty = True
         self._log_file = None
+        self._look = 0          # the way of looking that last read a frame (beacon.read's look_first)
+        self._searches = 0      # bands of the screen gone through while looking for the strip
+        # Set by the music side: a function giving {"connected": pages open, "playing": pages
+        # making sound}. None when the server runs without music.
+        self.music = None
 
     # -- the log of changes --------------------------------------------------
     def note(self, text: str, kind: str = "note") -> None:
@@ -194,13 +205,26 @@ class LinkService:
             connection._copies_at = (now, copies)
             if message.get("note") != before:
                 self.note(f"Sensor: {message['note']}." if message.get("note") else "Sensor: copying the screen.", "sensor")
+            if message.get("window") is None:
+                # No game window at all: the game was closed. The strip being hidden for a while
+                # (the interface hidden for a screenshot, the game behind another window) is held
+                # through; this is not.
+                self.publish(self.tracker.gone())
         self._dirty = True
 
     def take_picture(self, picture: wire.Picture, connection: SensorConnection) -> dict | None:
         """Reads one picture from the sensor. Returns what to tell the sensor, if anything."""
         now = self.clock()
         pixels = np.frombuffer(picture.pixels, dtype=np.uint8).reshape(picture.height, picture.width, 4)
-        reading = beacon.read(pixels)
+        # A whole band of the screen is a lot to go through in every way the strip may have been
+        # drawn. While the strip is being looked for, a band is read the way that last worked, and
+        # every fifth band in every way (an odd number, so the top and the bottom band both get
+        # their turn). The small picture of the strip itself is always read in every way.
+        searching = picture.part != wire.PART_STRIP
+        if searching:
+            self._searches += 1
+        reading = beacon.read(pixels, look_first=self._look,
+                              every_look=not searching or self._searches % 5 == 0)
         self.counts["pictures"] += 1
         self._dirty = True
         if not reading.ok:
@@ -217,6 +241,10 @@ class LinkService:
         self.counts["read"] += 1
         self._good_times.append(now)
         connection.last_good = now
+        if (reading.look > 0) != (self._look > 0):
+            self.note("The strip's squares are faint now; it is read all the same." if reading.look > 0
+                      else "The strip's squares are bright again.", "strip")
+        self._look = reading.look
         x, y, width, height = reading.box
         self._strip_pixels = pixels[y:y + height, x:x + width]
         self._strip_read = True
@@ -237,7 +265,8 @@ class LinkService:
                 self.note(f"Strip found at {box[0]}, {box[1]}: {width} x {height} px, squares of {reading.pitch:.2f} px.", "strip")
             connection.mode, connection.roi = "track", roi
             order = {"type": "mode", "mode": "track", "roi": roi}
-        self.strip = {"found": True, "box": box, "pitch": round(reading.pitch, 3), "roi": connection.roi}
+        self.strip = {"found": True, "box": box, "pitch": round(reading.pitch, 3), "roi": connection.roi,
+                      "faint": reading.look > 0}
         self.publish(self.tracker.feed(reading.frame))
         return order
 
@@ -247,6 +276,40 @@ class LinkService:
         horizon = self.clock() - 5.0
         while self._good_times and self._good_times[0] < horizon:
             self._good_times.popleft()
+        self._say_about_the_sound()
+
+    def heard(self) -> dict | None:
+        """How many player pages are open and how many of them are making sound. None when the
+        server runs without the music side."""
+        return self.music() if self.music is not None else None
+
+    def _say_about_the_sound(self) -> None:
+        """The sound comes out of a player page, not out of the game or the sensor. Reading the
+        game with no such page open looks as if FreeRock were working while nothing can be heard,
+        so that is said where the person at the gaming PC is looking: in the sensor's window."""
+        heard = self.heard()
+        if heard is None:
+            return
+        for connection in self.sensors:
+            if self.tracker.link is not state.Link.LIVE or self.clock() - connection.connected_at < SOUND_GRACE:
+                continue
+            if heard["playing"]:
+                saying = "playing"
+            elif heard["connected"]:
+                saying = "waiting"
+            else:
+                saying = "none"
+            if saying == connection.told_sound or (saying == "playing" and connection.told_sound is None):
+                connection.told_sound = saying
+                continue
+            connection.told_sound = saying
+            page = connection.server_address + "/player"
+            connection.orders.append({"type": "note", "text": {
+                "none": f"the game is being read, but no player page is open, so nothing can be heard. "
+                        f"Open {page} in a browser on this PC and click Start the music.",
+                "waiting": f"the player page is open but has not started playing. Click Start the music on it ({page}).",
+                "playing": "the player page is playing.",
+            }[saying]})
 
     def read_rate(self) -> float:
         """Good reads a second over the last five seconds."""
@@ -273,6 +336,7 @@ class LinkService:
                 **{key: sensor.status.get(key) for key in ("window", "in_front", "note", "copy_ms", "sent", "unchanged")},
             },
             "strip": self.strip,
+            "player": self.heard(),
             "counts": {**self.counts, "names_rejected": tracker.name_rejects},
             "read_rate": self.read_rate(),
             "test_pattern_seconds_ago": since_test,
@@ -315,6 +379,7 @@ async def _sensor_socket(request: web.Request) -> web.WebSocketResponse:
     await socket.prepare(request)
     link: LinkService = request.app["link"]
     connection = link.sensor_connected(request.remote or "unknown")
+    connection.server_address = _address(request)
     try:
         async for message in socket:
             if message.type == WSMsgType.BINARY:
@@ -330,6 +395,10 @@ async def _sensor_socket(request: web.Request) -> web.WebSocketResponse:
                 link.take_status(json.loads(message.data), connection)
             elif message.type == WSMsgType.ERROR:
                 raise socket.exception()
+            # The sensor is heard from at least once a second; anything waiting to be said to it
+            # goes out then.
+            while connection.orders:
+                await socket.send_str(json.dumps(connection.orders.pop(0)))
     finally:
         link.sensor_disconnected(connection)
     return socket

@@ -37,6 +37,15 @@ FRAMES = {
         volume=85, subzone_hash=beacon.text_hash(b"Fargodeep Mine"),
         text_field=beacon.TEXT_SUBZONE, text_revision=2, text_chunk=2, text_length=14, text_bytes=b"ne\x00\x00\x00\x00",
     ),
+    "running up to a boar, sizing it up": beacon.Frame(
+        beat=31,
+        flags=beacon.FLAG_ENABLED | beacon.FLAG_DAYTIME | beacon.FLAG_DAYTIME_KNOWN | beacon.FLAG_WEATHER_KNOWN
+        | beacon.FLAG_POSITION_KNOWN | beacon.FLAG_HAS_TARGET | beacon.FLAG_TARGET_HOSTILE,
+        target_class=1, pvp_kind=3, weather_kind=0, weather_intensity=0,
+        map_id=1429, x=30111, y=44002, game_minutes=880, volume=70, speed=14,
+        subzone_hash=beacon.text_hash(b"Goldshire"),
+        text_field=beacon.TEXT_ZONE, text_revision=1, text_chunk=1, text_length=13, text_bytes=b" Fores",
+    ),
     "dungeon boss": beacon.Frame(
         beat=255,
         flags=beacon.FLAG_ENABLED | beacon.FLAG_INDOORS | beacon.FLAG_COMBAT | beacon.FLAG_ENCOUNTER
@@ -50,7 +59,7 @@ FRAMES = {
         beat=255, flags=0xFFFFFF, instance_kind=15, target_class=15, pvp_kind=15, weather_kind=15,
         weather_intensity=0xFFFF, map_id=0xFFFF, x=0xFFFF, y=0xFFFF, instance_id=0xFFFF,
         encounter_id=0xFFFF, game_minutes=0xFFFF, command=255, command_count=255, moment=255,
-        moment_count=255, volume=255, difficulty=255, subzone_hash=0xFFFF, reserved=255,
+        moment_count=255, volume=255, difficulty=255, subzone_hash=0xFFFF, speed=255,
         text_field=7, text_revision=3, text_chunk=7, text_length=255, text_bytes=b"\xff" * 6,
     ),
     "test frame": beacon.Frame(kind=beacon.KIND_TEST),

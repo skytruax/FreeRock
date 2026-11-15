@@ -245,6 +245,9 @@ async def test_the_link_goes_stale_while_nothing_is_read_and_the_state_is_kept(t
     assert shot["read_rate"] == 0.2
     clock["now"] += 40.0
     link.tick()
+    assert link.snapshot()["link"] == "stale", "half a minute with the interface hidden is held through"
+    clock["now"] += 90.0
+    link.tick()
     assert link.snapshot()["link"] == "lost"
     assert [entry["text"] for entry in link.log][-2:] == [
         "The strip cannot be read; the last state is being held.", "The strip has not been read for a long time."]
@@ -287,3 +290,85 @@ async def test_switching_away_from_the_game_stops_the_copying_at_once(running):
     # While the game was in front the strip was read steadily; after the switch nothing more came.
     assert link.counts["read"] == link.counts["pictures"] - 1
     assert link.counts["no_strip"] == 1, "only the bottom band of the first look had no strip"
+
+
+async def test_a_faint_strip_is_found_and_followed_end_to_end(running):
+    """The real sensor loop against a pretend game that draws its strip a fifth as bright, in
+    squares of two pixels: found within a second or so, then read as steadily as a bright one."""
+    app, address = running
+    scenario = {"screen": [1920, 1080], "cell": 2, "ink": 20,
+                "steps": [{"at": 3.0, "set": {"indoors": True}}, {"at": 6.0}]}
+    await play(scenario, address, speed=10.0)
+    shot = await get_json(address, "/api/snapshot")
+    assert shot["strip"]["found"] and shot["strip"]["faint"] is True and shot["strip"]["pitch"] == 2.0
+    assert shot["state"]["indoors"] is True and shot["counts"]["checksum"] == 0
+    texts = [entry["text"] for entry in shot["log"]]
+    assert "The strip's squares are faint now; it is read all the same." in texts
+    assert any(text.startswith("Strip found at 18, 2: 688 x 4 px") for text in texts)
+
+
+async def test_the_sensor_window_is_told_when_nothing_can_be_heard(tmp_path):
+    """The sound comes out of a player page. With the game being read and no such page open,
+    FreeRock looks as if it were working while nothing can be heard, so the sensor's window,
+    which is what the person at the gaming PC is looking at, is told. Once for each change."""
+    clock = {"now": 50.0}
+    app = server.create_app(server.ServerConfig(var_dir=tmp_path / "var"), clock=lambda: clock["now"])
+    link: server.LinkService = app["link"]
+    assert link.snapshot()["player"] is None, "a server without the music side says nothing about sound"
+    heard = {"connected": 0, "playing": 0}
+    link.music = lambda: heard
+    session = sim.SimSession({"screen": [1920, 1080]}, say=lambda *_: None)
+    connection = link.sensor_connected("test")
+    connection.server_address = "http://192.168.1.5:8765"
+
+    def look(seconds):
+        clock["now"] += seconds
+        picture = sensor.Picture(sensor.PART_TOP, 1920, sensor.BAND, 0, 0, 1920, 1080, 1,
+                                 session.copy(0, 0, 1920, sensor.BAND))
+        link.take_picture(picture, connection)
+        link.tick()
+        said, connection.orders = [order["text"] for order in connection.orders], []
+        return said
+
+    assert look(0) == [], "a sensor that has just connected: the player page may be on its way"
+    said = look(11)
+    assert len(said) == 1 and "no player page is open" in said[0] and "http://192.168.1.5:8765/player" in said[0]
+    assert look(5) == [] and look(5) == [], "said once"
+    heard["connected"] = 1
+    assert look(1) == ["the player page is open but has not started playing. Click Start the music on it "
+                       "(http://192.168.1.5:8765/player)."]
+    heard["playing"] = 1
+    assert look(1) == ["the player page is playing."]
+    assert look(30) == []
+    heard["connected"] = heard["playing"] = 0
+    assert "no player page is open" in look(1)[0]
+    assert link.snapshot()["player"] == {"connected": 0, "playing": 0}
+    link.close()
+
+
+async def test_a_sensor_that_finds_the_player_already_playing_is_told_nothing(tmp_path):
+    clock = {"now": 50.0}
+    app = server.create_app(server.ServerConfig(var_dir=tmp_path / "var"), clock=lambda: clock["now"])
+    link: server.LinkService = app["link"]
+    link.music = lambda: {"connected": 1, "playing": 1}
+    session = sim.SimSession({"screen": [1920, 1080]}, say=lambda *_: None)
+    connection = link.sensor_connected("test")
+    for _ in range(3):
+        clock["now"] += 11
+        link.take_picture(sensor.Picture(sensor.PART_TOP, 1920, sensor.BAND, 0, 0, 1920, 1080, 1,
+                                         session.copy(0, 0, 1920, sensor.BAND)), connection)
+        link.tick()
+    assert connection.orders == []
+    link.close()
+
+
+async def test_the_game_closing_ends_the_link_at_once(running):
+    app, address = running
+    scenario = {"screen": [1920, 1080], "steps": [{"at": 3.0}]}
+    await play(scenario, address, speed=10.0)
+    link = app["link"]
+    assert link.tracker.link in (state.Link.LIVE, state.Link.STALE)
+    connection = link.sensor_connected("after")
+    link.take_status({"type": "status", "window": None, "in_front": False, "note": "no window"}, connection)
+    assert link.tracker.link is state.Link.LOST
+    link.sensor_disconnected(connection)

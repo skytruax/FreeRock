@@ -181,3 +181,38 @@ async def test_left_alone_the_music_keeps_going(results):
     assert unattended["cells"] >= 7 and unattended["late"] == 0
     assert unattended["quietestWindow"] > 0.02, "the music stopped or dipped"
     assert unattended["order"][:6] == ["Arrival 0", "Wander A 0", "Wander A 1", "Wander B 0", "Wander B 1", "Wander A 0"]
+
+
+def test_kinds_of_section_take_turns(results):
+    """In a cave the Depths part and the zone's riffs come round one after the other: the part
+    made for the place is heard first, and nothing is left to loop."""
+    turns = of(results, "takingTurns")
+    assert turns["sections"][:7] == ["Depths", "Wander A", "Wander B", "Depths", "Wander A", "Wander B", "Depths"]
+    assert turns["late"] == 0
+
+
+def test_crossing_into_another_area_changes_the_riff_at_the_end_of_the_cell(results):
+    scene = of(results, "newScene")
+    # Arrival, then Wander A; the crossing at 10 s is answered when A's first cell ends at 16 s,
+    # where A's second cell would otherwise have followed. After that B runs its whole length.
+    assert scene["order"][:6] == ["Arrival 0", "Wander A 0", "Wander B 0", "Wander B 1", "Wander A 0", "Wander A 1"]
+    assert scene["starts"][2] == pytest.approx(0.12 + 16, abs=0.001)
+    assert scene["toneAfter"] > 10 * scene["toneOfTheOld"]
+    assert scene["late"] == 0
+
+
+def test_what_has_left_the_rotation_gives_way_on_the_next_bar(results):
+    left = of(results, "leavingTheRotation")
+    assert left["sections"][:4] == ["Arrival", "Wander A", "Wander B", "Ember"]
+    assert left["emberAt"] == pytest.approx(0.12 + 40, abs=0.001)
+    # Asked at 43.3 s: the next bar line is at 44 s, and a riff is playing from there.
+    assert left["nextAt"] == pytest.approx(0.12 + 44, abs=0.001) and left["next"].startswith("Wander")
+    assert left["late"] == 0
+
+
+def test_after_a_rest_the_riff_that_has_gone_longest_unheard_comes_first(results):
+    rest = of(results, "afterARest")
+    # Before the rest: Arrival, then Wander A. After it: the opening again, then Wander B, which
+    # has not been heard yet. (It used to be Wander A after every rest.)
+    assert rest["sections"][:4] == ["Arrival", "Wander A", "Arrival", "Wander B"]
+    assert rest["late"] == 0

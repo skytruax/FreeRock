@@ -17,7 +17,11 @@ from collections import Counter
 import numpy as np
 from scipy import ndimage
 
-PROTOCOL_VERSION = 1
+# Version 2 gave two things a meaning that version 1 left empty: byte 29 is the player's speed,
+# and bit 23 of the flags says the target can be fought. Everything else is the same, so both are
+# read; an addon of version 1 simply does not say those two things.
+PROTOCOL_VERSION = 2
+KNOWN_VERSIONS = (1, 2)
 PAYLOAD_BYTES = 40
 ROWS = 2
 BITS_PER_ROW = PAYLOAD_BYTES * 8 // ROWS  # 160
@@ -60,9 +64,11 @@ FLAG_HAS_TARGET = 1 << 19
 FLAG_BOSS_PRESENT = 1 << 20
 FLAG_IN_GROUP = 1 << 21
 FLAG_GHOST = 1 << 22
+FLAG_TARGET_HOSTILE = 1 << 23   # version 2: the target is something the player can fight
 
 UNKNOWN_16 = 0xFFFF
 UNKNOWN_KIND = 15
+UNKNOWN_SPEED = 255             # version 2: the speed byte when the game does not give a speed
 
 TEXT_NONE = 0
 TEXT_ZONE = 1
@@ -116,6 +122,7 @@ class Frame:
     """One strip frame exactly as it is sent: whole numbers, nothing interpreted yet."""
 
     kind: int = KIND_STATE
+    version: int = PROTOCOL_VERSION
     beat: int = 0
     flags: int = 0
     instance_kind: int = 0
@@ -136,7 +143,7 @@ class Frame:
     volume: int = 0
     difficulty: int = 0
     subzone_hash: int = 0
-    reserved: int = 0
+    speed: int = UNKNOWN_SPEED     # half yards a second; in a version 1 frame the byte is empty (0)
     text_field: int = TEXT_NONE
     text_revision: int = 0
     text_chunk: int = 0
@@ -151,8 +158,10 @@ def test_pattern_body() -> bytes:
 
 def pack(frame: Frame) -> bytes:
     """The 40 bytes of a frame, checksum included."""
+    if frame.version not in KNOWN_VERSIONS:
+        raise BeaconError(f"version = {frame.version} is not a strip version this program writes")
     if frame.kind == KIND_TEST:
-        body = bytes([(PROTOCOL_VERSION << 4) | KIND_TEST]) + test_pattern_body()
+        body = bytes([(frame.version << 4) | KIND_TEST]) + test_pattern_body()
     else:
         if len(frame.text_bytes) != TEXT_CHUNK_BYTES:
             raise BeaconError(f"a text chunk is {TEXT_CHUNK_BYTES} bytes, got {len(frame.text_bytes)}")
@@ -162,14 +171,14 @@ def pack(frame: Frame) -> bytes:
             ("weather_intensity", 0xFFFF), ("map_id", 0xFFFF), ("x", 0xFFFF), ("y", 0xFFFF),
             ("instance_id", 0xFFFF), ("encounter_id", 0xFFFF), ("game_minutes", 0xFFFF),
             ("command", 255), ("command_count", 255), ("moment", 255), ("moment_count", 255),
-            ("volume", 255), ("difficulty", 255), ("subzone_hash", 0xFFFF), ("reserved", 255),
+            ("volume", 255), ("difficulty", 255), ("subzone_hash", 0xFFFF), ("speed", 255),
             ("text_field", 7), ("text_revision", 3), ("text_chunk", 7), ("text_length", 255),
         ):
             value = getattr(frame, name)
             if not 0 <= value <= limit:
                 raise BeaconError(f"{name} = {value} does not fit (0 to {limit})")
         body = _BODY.pack(
-            (PROTOCOL_VERSION << 4) | frame.kind,
+            (frame.version << 4) | frame.kind,
             frame.beat,
             frame.flags.to_bytes(3, "big"),
             (frame.instance_kind << 4) | frame.target_class,
@@ -179,7 +188,7 @@ def pack(frame: Frame) -> bytes:
             frame.command, frame.command_count, frame.moment, frame.moment_count,
             frame.volume, frame.difficulty,
             frame.subzone_hash,
-            frame.reserved,
+            frame.speed,
             (frame.text_field << 5) | (frame.text_revision << 3) | frame.text_chunk,
             frame.text_length,
             frame.text_bytes,
@@ -195,26 +204,27 @@ def unpack(payload: bytes) -> Frame:
     if crc16(body) != checksum:
         raise BeaconError("checksum does not match")
     version, kind = body[0] >> 4, body[0] & 0x0F
-    if version != PROTOCOL_VERSION:
-        raise BeaconError(f"strip version {version}; this reader knows version {PROTOCOL_VERSION}")
+    if version not in KNOWN_VERSIONS:
+        raise BeaconError(f"strip version {version}; this reader knows versions "
+                          + " and ".join(str(known) for known in KNOWN_VERSIONS))
     if kind == KIND_TEST:
         if body[1:] != test_pattern_body():
             raise BeaconError("a test frame with the wrong test pattern")
-        return Frame(kind=KIND_TEST)
+        return Frame(kind=KIND_TEST, version=version)
     (
         _, beat, flags, kinds_a, kinds_b,
         weather_intensity, map_id, x, y, instance_id, encounter_id, game_minutes,
         command, command_count, moment, moment_count, volume, difficulty,
-        subzone_hash, reserved, text_header, text_length, text_bytes,
+        subzone_hash, speed, text_header, text_length, text_bytes,
     ) = _BODY.unpack(body)
     return Frame(
-        kind=kind, beat=beat, flags=int.from_bytes(flags, "big"),
+        kind=kind, version=version, beat=beat, flags=int.from_bytes(flags, "big"),
         instance_kind=kinds_a >> 4, target_class=kinds_a & 0x0F,
         pvp_kind=kinds_b >> 4, weather_kind=kinds_b & 0x0F,
         weather_intensity=weather_intensity, map_id=map_id, x=x, y=y,
         instance_id=instance_id, encounter_id=encounter_id, game_minutes=game_minutes,
         command=command, command_count=command_count, moment=moment, moment_count=moment_count,
-        volume=volume, difficulty=difficulty, subzone_hash=subzone_hash, reserved=reserved,
+        volume=volume, difficulty=difficulty, subzone_hash=subzone_hash, speed=speed,
         text_field=text_header >> 5, text_revision=(text_header >> 3) & 0x03,
         text_chunk=text_header & 0x07, text_length=text_length, text_bytes=text_bytes,
     )
@@ -270,10 +280,18 @@ def render(payload: bytes, cell: int = 3, margin: int = 2, white: int = 255, bla
 # ---------------------------------------------------------------------------
 # Reading a picture
 # ---------------------------------------------------------------------------
-MIN_PITCH = 1.6   # smallest square, in pixels, the reader will lock on to
+MIN_PITCH = 0.9   # smallest square, in pixels, the reader will lock on to: one pixel, drawn pixel for pixel
 MAX_PITCH = 9.5   # largest
 _WINDOW = 81      # pixels over which "white" and "black" are judged; wider than any run of squares
-_MIN_CONTRAST = 28.0  # white minus black, out of 255, below which a stretch counts as featureless
+# The squares may be drawn faint (dark grey on the black backing) so the strip is hard to see on
+# screen. Judged against a bright sky next to it, a faint strip would count as all black. So when
+# a picture gives no frame as it is, it is looked at again with everything brighter than a ceiling
+# flattened to that ceiling, lower each time. Each look: (the ceiling or None, the white-minus-black
+# difference, out of 255, below which a stretch counts as featureless). A strip whose squares are
+# brighter than half a ceiling is readable in that look, so the ceilings step down by less than
+# half each time and squares from white down to about 16 of 255 are covered.
+_LOOKS = ((None, 28.0), (150.0, 24.0), (88.0, 18.0), (52.0, 14.0), (30.0, 9.0))
+_WORSE = {"no strip": 0, "half a strip": 1, "checksum": 2}   # which failure says most about a picture
 
 
 @dataclasses.dataclass(frozen=True)
@@ -298,6 +316,7 @@ class Reading:
     pitch: float | None = None
     rows_seen: tuple[int, ...] = ()
     problem: str | None = None  # why there is no frame: "no strip", "half a strip", "checksum", ...
+    look: int | None = None     # which look found the frame: 0 as the picture is, higher for a fainter strip
 
     @property
     def ok(self) -> bool:
@@ -439,27 +458,56 @@ def _scan_line(line: np.ndarray, white: np.ndarray, threshold: np.ndarray, y: in
     return reads
 
 
-def read_rows(image: np.ndarray) -> list[RowRead]:
-    """Every row of squares readable anywhere in the picture, one entry per line of pixels."""
+def read_rows(image: np.ndarray, look: int = 0) -> list[RowRead]:
+    """Every row of squares readable anywhere in the picture, one entry per line of pixels.
+
+    `look` picks one of _LOOKS: 0 judges the picture as it is, higher ones flatten its bright
+    parts first so that a faint strip stands out from what is around it.
+    """
     luma = to_luma(image)
     if luma.shape[1] < ROW_CELLS * MIN_PITCH:
         return []
+    ceiling, least = _LOOKS[look]
+    if ceiling is not None:
+        luma = np.minimum(luma, np.float32(ceiling))
     high = ndimage.maximum_filter1d(luma, size=_WINDOW, axis=1, mode="nearest")
     low = ndimage.minimum_filter1d(luma, size=_WINDOW, axis=1, mode="nearest")
     threshold = (high + low) / 2.0
-    white = (luma > threshold) & ((high - low) >= _MIN_CONTRAST)
+    white = (luma > threshold) & ((high - low) >= least)
     reads: list[RowRead] = []
     for y in range(luma.shape[0]):
         reads.extend(_scan_line(luma[y], white[y], threshold[y], y))
     return reads
 
 
-def read(image: np.ndarray) -> Reading:
+def read(image: np.ndarray, look_first: int | None = None, every_look: bool = True) -> Reading:
     """Find the strip in a picture and read its frame.
 
-    The result always says what happened: a frame, or the reason there is none.
+    The result always says what happened: a frame, or the reason there is none. `look_first` is
+    the look that found the last frame (Reading.look); starting there saves the looks that a
+    faint strip is known to fail. With `every_look` false only that one look is taken, which is
+    a fifth of the work on a large picture that may hold no strip at all.
     """
-    reads = read_rows(image)
+    luma = to_luma(image)
+    order = list(range(len(_LOOKS)))
+    if look_first is not None and look_first in order:
+        order.remove(look_first)
+        order.insert(0, look_first)
+    if not every_look:
+        order = order[:1]
+    best = Reading(problem="no strip")
+    for look in order:
+        reading = _read_look(luma, look)
+        if reading.ok:
+            return reading
+        if _WORSE[reading.problem] > _WORSE[best.problem]:
+            best = reading
+    return best
+
+
+def _read_look(luma: np.ndarray, look: int) -> Reading:
+    """One look at a picture: a frame, or the reason this look found none."""
+    reads = read_rows(luma, look)
     if not reads:
         return Reading(problem="no strip")
     by_row: dict[int, list[RowRead]] = {}
@@ -493,5 +541,5 @@ def read(image: np.ndarray) -> Reading:
                 int(np.ceil(ROW_CELLS_WITH_QUIET * pitch)),
                 last_y - first_y + 1,
             )
-            return Reading(payload=payload, frame=frame, box=box, pitch=pitch, rows_seen=rows_seen)
+            return Reading(payload=payload, frame=frame, box=box, pitch=pitch, rows_seen=rows_seen, look=look)
     return Reading(rows_seen=rows_seen, problem="checksum")

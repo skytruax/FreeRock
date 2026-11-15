@@ -17,6 +17,8 @@ from functools import lru_cache
 
 import numpy as np
 
+from scipy import signal
+
 from .audio import db, resample, rms, to_stereo
 
 DEFAULT_MODEL = "htdemucs"
@@ -31,6 +33,10 @@ class Layers:
     vocal_leak_db: float  # level of what the separator took for singing, relative to the whole mix
     seconds: float        # how long the split took
     model: str
+    # The same, counting only the part of it between 2.5 and 8 kHz, where the consonants of sung
+    # words are. A whistle or a flute, which the separator also takes for a voice, has next to
+    # nothing there.
+    vocal_words_db: float = -120.0
 
     def mix(self) -> np.ndarray:
         return self.bed + self.drums + self.bass
@@ -53,6 +59,25 @@ def _fit_length(audio: np.ndarray, frames: int) -> np.ndarray:
     if len(audio) > frames:
         return audio[:frames]
     return np.concatenate([audio, np.zeros((frames - len(audio), audio.shape[1]), dtype=audio.dtype)])
+
+
+WORDS_BAND_HZ = (2500.0, 8000.0)
+
+
+def words_level_db(vocals: np.ndarray, mix: np.ndarray, rate: int) -> float:
+    """Level of the part of `vocals` where sung words have their consonants and their edge,
+    relative to the whole of `mix`. Measured on the spectrum, not with a filter, so that a loud
+    whistle just below the band does not spill into it."""
+    mono = np.asarray(vocals, dtype=np.float64)
+    mono = mono.mean(axis=1) if mono.ndim == 2 else mono
+    if len(mono) < 8192:
+        raise ValueError("too short to measure: %d frames" % len(mono))
+    freqs, power = signal.welch(mono, fs=rate, nperseg=8192, window="hann")
+    inside = (freqs >= WORDS_BAND_HZ[0]) & (freqs <= WORDS_BAND_HZ[1])
+    in_band = float(np.sum(power[inside]) * (freqs[1] - freqs[0]))   # mean square of that part
+    whole = np.asarray(mix, dtype=np.float64)
+    whole = whole.mean(axis=1) if whole.ndim == 2 else whole
+    return float(db(np.sqrt(in_band) / (np.sqrt(np.mean(whole ** 2)) + 1e-12)))
 
 
 def split(mix: np.ndarray, rate: int, model_name: str = DEFAULT_MODEL) -> Layers:
@@ -84,5 +109,6 @@ def split(mix: np.ndarray, rate: int, model_name: str = DEFAULT_MODEL) -> Layers
     bass = _fit_length(resample(by_name["bass"], model.samplerate, rate), frames).astype(np.float32)
     bed = (stereo - drums - bass).astype(np.float32)
     leak = db(rms(by_name["vocals"]) / (rms(at_model_rate) + 1e-12))
+    words = words_level_db(by_name["vocals"], at_model_rate, model.samplerate)
     return Layers(bed=bed, drums=drums, bass=bass, rate=rate, vocal_leak_db=leak,
-                  seconds=time.perf_counter() - started, model=model_name)
+                  seconds=time.perf_counter() - started, model=model_name, vocal_words_db=words)

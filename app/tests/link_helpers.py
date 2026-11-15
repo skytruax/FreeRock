@@ -46,7 +46,7 @@ def frames() -> st.SearchStrategy[beacon.Frame]:
         volume=st.integers(0, 255),
         difficulty=st.integers(0, 255),
         subzone_hash=st.integers(0, 0xFFFF),
-        reserved=st.integers(0, 255),
+        speed=st.integers(0, 255),
         text_field=st.integers(0, 7),
         text_revision=st.integers(0, 3),
         text_chunk=st.integers(0, 7),

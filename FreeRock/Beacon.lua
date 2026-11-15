@@ -10,7 +10,7 @@ ns.Beacon = Beacon
 ---------------------------------------------------------------------------
 -- The format (protocol/beacon.md)
 ---------------------------------------------------------------------------
-local VERSION = 1
+local VERSION = 2              -- 2 added the speed byte and the "target can be attacked" flag
 local PAYLOAD = 40             -- bytes in a frame
 local ROWS = 2
 local ROW_BITS = PAYLOAD * 8 / ROWS
@@ -141,7 +141,7 @@ function Beacon.Pack(frame)
 		bytes[26] = frame.volume
 		bytes[27] = frame.difficulty
 		Put16(bytes, 28, frame.subzone_hash)
-		bytes[30] = frame.reserved
+		bytes[30] = frame.speed
 		bytes[31] = frame.text_field * 32 + frame.text_revision * 8 + frame.text_chunk
 		bytes[32] = frame.text_length
 		for i = 1, TEXT_CHUNK do
@@ -287,6 +287,7 @@ function Beacon.BuildFrame()
 	Flag(state.bossPresent, 20)
 	Flag(state.inGroup, 21)
 	Flag(state.ghost, 22)
+	Flag(state.targetHostile, 23)
 
 	local entry = texts[turn.field]
 	local chunk = {}
@@ -317,7 +318,7 @@ function Beacon.BuildFrame()
 		volume = db.volume,
 		difficulty = math.min(state.difficulty, 255),
 		subzone_hash = Beacon.Mark(texts[TEXT_SUBZONE].bytes),
-		reserved = 0,
+		speed = state.speed or 255,
 		text_field = turn.field,
 		text_revision = entry and entry.revision or 0,
 		text_chunk = turn.chunk,
@@ -339,6 +340,8 @@ local strip                    -- the frame
 local squares, showing = {}, {} -- per row: the textures of the 340 drawn squares, and what each shows
 local layout = { cell = 0, fits = true }
 local dirty = true
+local inked                    -- the brightness the squares were last coloured with
+local interfaceHidden = false  -- the player has hidden the interface (for a screenshot, say)
 local ticker = CreateFrame("Frame")
 ticker:Hide()
 
@@ -357,6 +360,29 @@ local function Draw()
 	end
 end
 
+-- Colours the lit squares. White is the easiest to read; drawn dark grey on the black backing
+-- the strip is hard to see on screen, and the app reads it all the same.
+local function Ink()
+	local level = ns.db.ink
+	if inked == level then
+		return
+	end
+	inked = level
+	local shade = level / 100
+	for row = 0, ROWS - 1 do
+		for _, texture in ipairs(squares[row]) do
+			texture:SetColorTexture(shade, shade, shade, 1)
+		end
+	end
+end
+
+-- Whether the strip should be on screen: FreeRock is on (or saying "off" for a moment), and the
+-- interface is not hidden. A hidden interface is hidden for a clean screen, and the strip goes
+-- with it; the app keeps the last state until it is back.
+local function Visible()
+	return (ns.db.enabled or offUntil ~= nil) and not interfaceHidden
+end
+
 -- Sizes and places the strip so that one square is a whole number of screen pixels, whatever the
 -- interface scale is. The interface measures in units of which the screen is 768 tall, so a frame
 -- scaled by 768 / (screen height in pixels) measures in pixels.
@@ -368,7 +394,7 @@ local function Layout()
 
 	local room = math.floor((width - 2 * db.insetX - 2 * MARGIN) / ROW_WIDTH)
 	local cell = math.max(1, math.min(db.cell, room))
-	layout.cell, layout.asked, layout.fits = cell, db.cell, room >= 2
+	layout.cell, layout.asked, layout.fits = cell, db.cell, room >= 1
 	layout.width, layout.height = ROW_WIDTH * cell + 2 * MARGIN, ROWS * cell + 2 * MARGIN
 	layout.screenWidth, layout.screenHeight = width, height
 
@@ -386,6 +412,7 @@ local function Layout()
 			texture:SetPoint("TOPLEFT", strip, "TOPLEFT", MARGIN + (QUIET + i - 1) * cell, -(MARGIN + row * cell))
 		end
 	end
+	Ink()
 end
 
 local function Create()
@@ -440,6 +467,14 @@ local function Tick(elapsed)
 		ticker:Hide()
 		return
 	end
+	-- The strip goes when the interface is hidden and comes back with it. This timer belongs to
+	-- no part of the interface, so it keeps running and sees the interface return.
+	local hidden = not UIParent:IsShown()
+	if hidden ~= interfaceHidden then
+		interfaceHidden = hidden
+		strip:SetShown(Visible())
+		dirty = true
+	end
 	if dirty then
 		dirty = false
 		SyncTexts()
@@ -464,7 +499,7 @@ function Beacon:Apply()
 	Layout()
 	if ns.db.enabled then
 		offUntil = nil
-		strip:Show()
+		strip:SetShown(Visible())
 		ticker:Show()
 		dirty = true
 	elseif strip:IsShown() and not offUntil then
@@ -510,10 +545,12 @@ function Beacon:Describe()
 	end
 	local lines = {}
 	lines[1] = ("Strip: %s, along the %s edge, %d px in from the left and %d px from the edge."):format(
-		strip:IsShown() and (offUntil and "saying off, about to go" or "showing") or "hidden",
+		strip:IsShown() and (offUntil and "saying off, about to go" or "showing")
+			or (interfaceHidden and ns.db.enabled) and "hidden with the interface" or "hidden",
 		ns.db.edge, ns.db.insetX, ns.db.insetY)
 	lines[2] = ("Squares of %d px (asked for %d), %d by %d of them, %d by %d px in all. Screen %d by %d px."):format(
 		layout.cell, layout.asked, ROW_WIDTH, ROWS, layout.width, layout.height, layout.screenWidth, layout.screenHeight)
+	lines[#lines + 1] = ("Brightness of the squares: %d%%."):format(ns.db.ink)
 	if not layout.fits then
 		lines[#lines + 1] = "The screen is too narrow for the strip at this distance from the edge; it cannot be read like this."
 	elseif layout.cell < layout.asked then

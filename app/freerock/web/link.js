@@ -70,7 +70,10 @@ function drawState(game) {
     ? `${words(game.instance_name, "name not arrived yet")} (${game.instance_kind}, number ${game.instance_id}, difficulty ${game.difficulty})`
     : "none");
   set("encounter", game.encounter ? `${words(game.encounter_name, "name not arrived yet")} (number ${game.encounter_id})` : "none");
-  set("target", game.has_target ? game.target_class : "none");
+  set("speed", game.speed === null || game.speed === undefined
+    ? "not reported (an older addon, or the game gives none)" : `${game.speed} yards a second`);
+  set("target", game.has_target
+    ? `${game.target_class}${game.target_hostile ? ", can be fought" : ""}` : "none");
   set("weather", game.weather === null ? "not reported by the game"
     : `${game.weather}${game.weather_intensity === null ? "" : `, intensity ${game.weather_intensity}`}`);
   set("daylight", game.daytime === null ? "not reported by the game" : (game.daytime ? "day" : "night"));

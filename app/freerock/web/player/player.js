@@ -13,6 +13,8 @@
   let lostAt = null;            // when the server was last lost, if it is lost now
   let gameVolume = null;        // the volume last set from inside the game
   let playing = null;           // the music the server last sent
+  let version = null;           // the version of this page, as the server named it when it loaded
+  let outdated = false;         // the server has been updated since
   const problems = [];
 
   // Anything that goes wrong is shown on the page and sent to the server, never dropped.
@@ -78,7 +80,8 @@
     $("where").textContent = [where.instance || where.zone, where.subzone].filter(Boolean).join(", ") || "Waiting for the game";
     $("place").textContent = t.silent ? "silence"
       : t.rest ? "a rest: no music for a little while, as in the game"
-      : t.place + (t.cut === "beat" ? " (on the beat)" : "");
+      : t.place + ((t.also || []).length ? ", taking turns with " + t.also.join(" and ") : "")
+        + (t.cut === "beat" ? " (on the beat)" : "");
     for (const name of ["intensity", "bed", "drums", "bass"]) $(name).style.width = Math.round(100 * t[name]) + "%";
     const tone = [];
     if (t.lowpass_hz < 19000) tone.push("muffled above " + Math.round(t.lowpass_hz) + " Hz");
@@ -91,6 +94,11 @@
   }
 
   async function receive(message) {
+    if (message.type === "hello" && message.version) {
+      if (version === null) version = message.version;
+      else if (message.version !== version) outdated = true;
+      if (outdated) banner("FreeRock has been updated. Reload this page (F5) to use the new version. The music carries on until you do.");
+    }
     if (message.type === "asset") await useAsset(message);
     else if (message.type === "target") {
       target = message.target;
@@ -112,7 +120,7 @@
   function connect() {
     const scheme = location.protocol === "https:" ? "wss://" : "ws://";
     socket = new WebSocket(scheme + location.host + "/ws/player");
-    socket.onopen = () => { retry = 500; lostAt = null; banner(""); $("link").textContent = "Connected. Waiting for the game."; };
+    socket.onopen = () => { retry = 500; lostAt = null; if (!outdated) banner(""); $("link").textContent = "Connected. Waiting for the game."; };
     socket.onmessage = (event) => { receive(JSON.parse(event.data)).catch((error) => problem(String(error && error.stack || error))); };
     socket.onclose = () => {
       if (lostAt === null) lostAt = Date.now();

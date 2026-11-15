@@ -59,3 +59,20 @@ def test_the_bass_layer_carries_the_low_end(layers_and_mix):
     assert layers.seconds > 0 and np.isfinite(layers.vocal_leak_db)
     # On a real band the bar is 6 dB; this synthetic one only has to show the split does something.
     assert with_bass - without_bass > 1.5
+
+
+def test_words_are_told_from_a_whistle():
+    """The part of the vocals layer where sung words have their consonants: a pure high tone has
+    nothing there, a voice-like sound with hiss on top has plenty."""
+    from freerock.stems import words_level_db
+
+    rate = 44100
+    t = np.arange(rate * 4) / rate
+    mix = np.stack([0.3 * np.sin(2 * np.pi * 220 * t)] * 2, axis=1).astype(np.float32)
+    whistle = np.stack([0.1 * np.sin(2 * np.pi * 1475 * t)] * 2, axis=1).astype(np.float32)
+    rng = np.random.default_rng(1)
+    voice = 0.1 * np.sin(2 * np.pi * 180 * t) + 0.03 * np.sin(2 * np.pi * 3100 * t) + 0.02 * rng.normal(size=t.size)
+    voice = np.stack([voice, voice], axis=1).astype(np.float32)
+    assert words_level_db(whistle, mix, rate) < -80
+    assert -25 < words_level_db(voice, mix, rate) < -10
+    assert words_level_db(np.zeros_like(mix), mix, rate) < -100

@@ -24,12 +24,14 @@ M.secretRestrictions = true
 M.game = {
 	zone = "Elwynn Forest", realZone = "Elwynn Forest", subzone = "Goldshire", mapID = 1429,
 	x = 0.42, y = 0.653,
+	speed = 0,             -- yards a second, as GetUnitSpeed gives it
 	indoors = false, resting = false, swimming = false, submerged = false, mounted = false,
 	flying = false, taxi = false, stealth = false, dead = false, ghost = false, combat = false,
 	lockdown = false,
 	inInstance = false, instanceKind = "none", instanceName = "Eastern Kingdoms", difficulty = 0, instanceID = 0,
 	encounter = false,
 	target = nil,          -- nil for no target, else the classification string
+	canAttack = false,     -- whether the target is something the player can fight
 	boss = false, group = false,
 	pvp = "friendly",      -- nil makes the function return nothing
 	weather = { type = 0, intensity = 0 },  -- what C_Weather.GetCurrentWeather returns
@@ -177,6 +179,17 @@ end
 function UnitClassification(unit)
 	if unit ~= "target" then error("UnitClassification asked about " .. tostring(unit), 2) end
 	return Answer("classification", M.game.target)
+end
+function UnitCanAttack(unit, other)
+	if unit ~= "player" or other ~= "target" then
+		error("UnitCanAttack asked about " .. tostring(unit) .. " and " .. tostring(other), 2)
+	end
+	return Answer("canAttack", M.game.canAttack)
+end
+-- The client gives the current speed and then the run, flight and swim speeds.
+function GetUnitSpeed(unit)
+	OnlyPlayer(unit, "GetUnitSpeed")
+	return Answer("speed", M.game.speed), 7, 7, 4.72
 end
 -- Sealed in the real client in combat. FreeRock must never call these.
 function UnitHealth() error("FreeRock asked for a unit's health", 2) end

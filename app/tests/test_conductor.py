@@ -274,6 +274,7 @@ async def test_nothing_is_made_on_a_flight_path_or_before_the_name_arrives(tmp_p
     clock = Clock()
     client, app, conductor, assets = await running(tmp_path, failures=[], clock=clock)
     try:
+        await client.ws_connect("/ws/player")               # somebody is listening
         publish(app, zone_name="Westfall", on_taxi=True, flying=True)
         await asyncio.sleep(0.4)
         clock.now += 30
@@ -299,6 +300,7 @@ async def test_a_track_that_fails_its_checks_is_tried_once_more(tmp_path):
     failures = [TrackFailedChecks("westfall", bad), TrackFailedChecks("westfall", bad)]
     client, app, conductor, assets = await running(tmp_path, failures=failures, clock=clock)
     try:
+        await client.ws_connect("/ws/player")               # somebody is listening
         publish(app, zone_name="Westfall")
         await asyncio.sleep(0.4)
         clock.now += 5
@@ -308,7 +310,7 @@ async def test_a_track_that_fails_its_checks_is_tried_once_more(tmp_path):
         await asyncio.sleep(0.8)
         assert len(conductor.ingest.calls) == 2, "a third try was made"
         notes = " ".join(conductor.notes)
-        assert "off tempo" in notes and "Trying once more." in notes and "Not trying again." in notes
+        assert "off tempo" in notes and "Trying once more." in notes and "Not trying again today." in notes
         assert conductor.library.assets("westfall") == []
     finally:
         await client.close()
@@ -319,6 +321,7 @@ async def test_at_the_allowance_it_waits_and_says_why(tmp_path):
     refusal = AllowanceExceeded("FreeRock did not make this call (core suite): 2.80 min asked for, 1.20 left of today's allowance.")
     client, app, conductor, assets = await running(tmp_path, failures=[refusal], clock=clock)
     try:
+        await client.ws_connect("/ws/player")               # somebody is listening
         publish(app, zone_name="Westfall")
         await asyncio.sleep(0.4)
         clock.now += 5
@@ -372,6 +375,7 @@ async def test_the_pretend_game_makes_new_music_only_when_asked_to(tmp_path):
     clock = Clock()
     client, app, conductor, assets = await running(tmp_path, failures=[], clock=clock)
     try:
+        await client.ws_connect("/ws/player")               # somebody is listening
         await client.post("/api/pretend", json={"zone_name": "Westfall", "daytime": True})
         await asyncio.sleep(0.4)
         clock.now += 30
@@ -382,6 +386,131 @@ async def test_the_pretend_game_makes_new_music_only_when_asked_to(tmp_path):
         clock.now += 5
         await asyncio.sleep(1.0)
         assert conductor.ingest.calls == [("Westfall", False)]
+    finally:
+        await client.close()
+
+
+async def test_nothing_is_made_while_no_player_page_is_open(tmp_path):
+    """Music nobody can hear is not paid for: with the game in sight but no player page open,
+    a zone without music waits. It is made once somebody is listening."""
+    clock = Clock()
+    client, app, conductor, assets = await running(tmp_path, failures=[], clock=clock)
+    try:
+        publish(app, zone_name="Westfall")
+        await asyncio.sleep(0.4)
+        clock.now += 60
+        await asyncio.sleep(0.8)
+        assert conductor.ingest.calls == [], "music was made with nobody listening"
+        socket = await client.ws_connect("/ws/player")
+        await asyncio.sleep(0.6)
+        assert conductor.ingest.calls == [], "the wait starts when the page opens"
+        clock.now += 5
+        await asyncio.sleep(0.8)
+        assert conductor.ingest.calls == [("Westfall", False)]
+        await socket.close()
+    finally:
+        await client.close()
+
+
+async def test_music_turned_away_twice_is_not_asked_for_again_after_a_restart(tmp_path):
+    """The count of requests is kept in a file for the day, so restarting the server does not
+    spend the allowance on a zone whose music has just failed its checks twice."""
+    clock = Clock()
+    bad = {"failed": ["there seems to be singing (-21.9 dB)"]}
+    failures = [TrackFailedChecks("westfall", bad), TrackFailedChecks("westfall", bad)]
+    client, app, conductor, assets = await running(tmp_path, failures=failures, clock=clock)
+    try:
+        await client.ws_connect("/ws/player")
+        publish(app, zone_name="Westfall")
+        await asyncio.sleep(0.4)
+        clock.now += 5
+        await asyncio.sleep(1.5)
+        assert len(conductor.ingest.calls) == 2
+    finally:
+        await client.close()
+    kept = json.loads((tmp_path / "var" / "tries.json").read_text())
+    assert kept["tries"] == {"westfall:core": 2}
+
+    client, app, again, assets = await running(tmp_path, zones=(), failures=[], clock=clock)
+    try:
+        await client.ws_connect("/ws/player")
+        publish(app, zone_name="Westfall")
+        await asyncio.sleep(0.4)
+        clock.now += 60
+        await asyncio.sleep(0.8)
+        assert again.ingest.calls == [], "it asked again after the restart"
+    finally:
+        await client.close()
+
+    # The next day the count starts again.
+    kept["day"] = "2001-01-01"
+    (tmp_path / "var" / "tries.json").write_text(json.dumps(kept))
+    client, app, next_day, assets = await running(tmp_path, zones=(), failures=[], clock=clock)
+    try:
+        await client.ws_connect("/ws/player")
+        publish(app, zone_name="Westfall")
+        await asyncio.sleep(0.4)
+        clock.now += 5
+        await asyncio.sleep(0.8)
+        assert next_day.ingest.calls == [("Westfall", False)]
+    finally:
+        await client.close()
+
+
+async def test_the_game_link_knows_whether_anything_can_be_heard(tmp_path):
+    client, app, conductor, assets = await running(tmp_path)
+    try:
+        assert (await (await client.get("/api/snapshot")).json())["player"] == {"connected": 0, "playing": 0}
+        socket = await client.ws_connect("/ws/player")
+        await next_of(socket, "hello")
+        assert (await (await client.get("/api/snapshot")).json())["player"] == {"connected": 1, "playing": 0}
+        await socket.send_str(json.dumps({"type": "status", "context": "running", "started": True}))
+        await asyncio.sleep(0.2)
+        assert (await (await client.get("/api/snapshot")).json())["player"] == {"connected": 1, "playing": 1}
+        await socket.close()
+        await asyncio.sleep(0.2)
+        shot = await (await client.get("/api/snapshot")).json()
+        assert shot["player"] == {"connected": 0, "playing": 0}
+        said = [entry["text"] for entry in shot["log"] if entry["kind"] == "player"]
+        assert said == ["A player page was opened from 127.0.0.1.", "The player page at 127.0.0.1 was closed."]
+    finally:
+        await client.close()
+
+
+async def test_a_moment_in_the_game_brings_the_whole_band_in(tmp_path):
+    client, app, conductor, assets = await running(tmp_path)
+    try:
+        socket = await client.ws_connect("/ws/player")
+        publish(app, zone_name="Elwynn Forest")
+        calm = await next_of(socket, "target")
+        assert calm["target"]["bass"] == 0.0
+        app["hub"].publish(game.MomentReceived("level_up", 1))
+        while True:
+            target = (await next_of(socket, "target"))["target"]
+            if target["bass"] == 1.0:
+                break
+        assert target["intensity"] == 1.0 and "a level gained" in target["why"]
+        assert "A moment in the game: level up." in conductor.notes
+        await socket.close()
+    finally:
+        await client.close()
+
+
+async def test_a_place_with_little_music_rests_sooner(tmp_path):
+    """Rests come after about twice round what a place has for exploring, never later than the
+    setting: 96 s of riffs and calm part in a core suite at 120 beats a minute."""
+    client, app, conductor, assets = await running(tmp_path)
+    try:
+        assert conductor.director.rules.rest_every_s == 360.0
+        socket = await client.ws_connect("/ws/player")
+        publish(app, zone_name="Elwynn Forest")
+        await next_of(socket, "asset")
+        assert conductor.director.rules.rest_every_s == pytest.approx(192.0)
+        add_set(conductor.library, "elwynn-forest", "second")
+        add_set(conductor.library, "elwynn-forest", "fresh")
+        await next_of(socket, "asset")
+        assert conductor.director.rules.rest_every_s == 360.0, "plenty of music: the setting is the limit"
+        await socket.close()
     finally:
         await client.close()
 
@@ -435,6 +564,7 @@ async def test_growth_is_paced_by_the_hours_played(tmp_path):
     clock = Clock()
     client, app, conductor, assets = await running(tmp_path, failures=[], clock=clock)
     try:
+        await client.ws_connect("/ws/player")               # somebody is listening
         assert conductor.growth_left() == pytest.approx(6.0)          # the float, before any hours
         conductor.playtime.data["growth_minutes"] = 5.0                # most of it already used
         conductor.playtime.add("elwynn-forest", 600)
@@ -460,6 +590,7 @@ async def test_fresh_sets_come_every_two_hours_and_the_oldest_makes_room(tmp_pat
     client, app, conductor, assets = await running(tmp_path, failures=[], clock=clock,
                                                    sets=("core", "second", "fresh", "fresh", "fresh"))
     try:
+        await client.ws_connect("/ws/player")               # somebody is listening
         fresh = [a for a in conductor.library.usable("elwynn-forest") if a.set == "fresh"]
         conductor.library.mark(fresh[0].id, loved=True)                # the oldest is loved, so it stays
         conductor.playtime.add(None, 50 * 3600)

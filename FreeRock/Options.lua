@@ -194,7 +194,8 @@ local function Build(panel)
 	y = Heading(panel, "The strip", left, y)
 	y = Choice(panel, left, y, "Edge of the screen", "Which edge the strip runs along. Move it if something of yours sits in the same place.", "edge",
 		{ { "top", "Top" }, { "bottom", "Bottom" } })
-	y = Stepper(panel, left, y, "Square size", "The size of one square, in screen pixels. Larger squares are easier for the app to read; smaller ones make a thinner line.", "cell", 2, 8, 1, " px")
+	y = Stepper(panel, left, y, "Square size", "The size of one square, in screen pixels. Larger squares are easier for the app to read; smaller ones make a thinner line. One pixel only reads when the game is drawn pixel for pixel.", "cell", 1, 8, 1, " px")
+	y = Stepper(panel, left, y, "Brightness", "How bright the squares are drawn. Low makes the strip hard to see: dark grey on black. If the app loses the strip, turn it up.", "ink", 10, 100, 10, "%")
 	y = Stepper(panel, left, y, "In from the left", "How far the strip starts from the left edge of the screen, in pixels.", "insetX", 0, 2000, 8, " px")
 	y = Stepper(panel, left, y, "In from the edge", "How far the strip sits from the top or bottom edge, in pixels.", "insetY", 0, 500, 2, " px")
 	y = y - 10
@@ -246,7 +247,9 @@ local HELP = {
 	"/rock volume <0-100> - how loud FreeRock plays",
 	"/rock gamemusic on | off - leave the game's own music playing as well (on), or switch it off while FreeRock is on (off)",
 	"/rock strip top | bottom - which edge of the screen the strip runs along",
-	"/rock strip size <2-8> - size of one square, in screen pixels",
+	"/rock strip size <1-8> - size of one square, in screen pixels",
+	"/rock strip faint | bright - draw the squares dark grey so the strip is hard to see, or white again",
+	"/rock strip ink <10-100> - how bright the squares are, in percent",
 	"/rock strip inset <left> [edge] - distance from the left edge and from the top or bottom edge, in pixels",
 	"/rock test - send a test pattern for ten seconds",
 	"/rock status - what FreeRock sees, for bug reports",
@@ -269,8 +272,14 @@ end
 local function Strip(first, second, third)
 	if ns.IsOneOf(first, "top", "bottom") then
 		Set("edge", first)
-	elseif first == "size" and Whole(second) and Whole(second) >= 2 and Whole(second) <= 8 then
+	elseif first == "size" and Whole(second) and Whole(second) >= 1 and Whole(second) <= 8 then
 		Set("cell", Whole(second))
+	elseif first == "faint" then
+		Set("ink", 20)
+	elseif first == "bright" then
+		Set("ink", 100)
+	elseif first == "ink" and Whole(second) and Whole(second) >= 10 and Whole(second) <= 100 then
+		Set("ink", Whole(second))
 	elseif first == "inset" and Whole(second) and Whole(second) >= 0 and Whole(second) <= 2000
 		and (third == nil or third == "" or (Whole(third) and Whole(third) >= 0 and Whole(third) <= 500)) then
 		ns.db.insetX = Whole(second)
@@ -283,6 +292,9 @@ local function Strip(first, second, third)
 	end
 	for _, line in ipairs(ns.Beacon:Describe()) do
 		ns.Print(line)
+	end
+	if ns.db.ink < 100 or ns.db.cell < 2 then
+		ns.Print("If FreeRock loses a strip this faint or this small, the sensor's window says so. /rock strip bright and /rock strip size 3 put it back.")
 	end
 	return true
 end

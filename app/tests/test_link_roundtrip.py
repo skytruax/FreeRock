@@ -72,6 +72,64 @@ def test_every_square_size_on_either_edge(cell, edge):
     assert reading.frame.flags & beacon.FLAG_ENABLED
 
 
+@pytest.mark.parametrize("cell", [1, 2, 3])
+@pytest.mark.parametrize("ink", [100, 20, 10])
+def test_a_faint_or_tiny_strip_drawn_by_the_addon_is_read(cell, ink):
+    client = GameClient(saved={"cell": cell, "ink": ink})
+    client.advance(0.3)
+    reading = read_strip(client)
+    assert reading.ok, reading.problem
+    assert reading.pitch == pytest.approx(cell, abs=0.01)
+    assert (reading.look > 0) == (ink < 100)
+    assert dataclasses.asdict(reading.frame) == {**dataclasses.asdict(beacon.Frame()), **client.addon_frame()}
+
+
+def test_made_faint_and_small_from_the_chat_line_it_still_reads():
+    client = GameClient(screen=(3840, 2160), ui_scale=0.9)
+    client.slash("strip faint")
+    client.slash("strip size 1")
+    client.advance(0.3)
+    reading = read_strip(client)
+    assert reading.ok, reading.problem
+    assert reading.pitch == pytest.approx(1.0, abs=0.01) and reading.box[2] == 344
+    client.slash("strip bright")
+    client.slash("strip size 3")
+    client.advance(0.3)
+    assert read_strip(client).look == 0
+
+
+def test_the_strip_goes_with_the_interface_and_the_state_is_held_until_it_is_back():
+    client = GameClient()
+    tracker, _ = follow(client, 1.0)
+    client.set(indoors=True)
+    tracker, _ = follow(client, 0.5, tracker)
+    assert tracker.state.indoors is True
+    client.lua.execute("UIParent:Hide()")          # the interface hidden for a screenshot
+    client.advance(0.3)
+    assert client.photograph() is None, "the strip is still on screen"
+    client.set(indoors=False)                      # the game goes on unseen
+    tracker, events = follow(client, 30.0, tracker)
+    assert tracker.link is state.Link.STALE and tracker.state.indoors is True, "half a minute is held through"
+    client.lua.execute("UIParent:Show()")
+    tracker, events = follow(client, 0.5, tracker)
+    assert tracker.link is state.Link.LIVE and tracker.state.indoors is False
+    assert client.errors() == []
+
+
+def test_speed_and_a_target_that_can_be_fought_come_through():
+    client = GameClient()
+    tracker, _ = follow(client, 0.5)
+    assert tracker.state.speed == 0.0 and tracker.state.target_hostile is False
+    client.set(speed=7, target="elite", canAttack=True)
+    client.fire("PLAYER_TARGET_CHANGED")
+    tracker, _ = follow(client, 0.5, tracker)
+    assert tracker.state.speed == 7.0 and tracker.state.target_hostile is True
+    assert tracker.state.target_class == "elite"
+    client.fire("ACHIEVEMENT_EARNED", 99)
+    tracker, events = follow(client, 0.5, tracker)
+    assert state.MomentReceived("achievement", tracker.last_frame.moment_count) in events
+
+
 def test_the_game_state_comes_through_whole():
     client = GameClient()
     client.set(indoors=True, subzone="Fargodeep Mine", combat=True, target="elite",

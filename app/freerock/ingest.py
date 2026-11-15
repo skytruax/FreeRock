@@ -29,7 +29,15 @@ FORMAT, RATE, CHANNELS = "pcm_48000", 48000, 2
 # The pass lines a track has to meet before it is stored.
 MAX_TEMPO_OFF_PERCENT = 1.0
 MAX_START_TO_BEAT_MS = 60.0
-MAX_VOCAL_LEAK_DB = -30.0
+# Singing. The separator's "vocals" layer also catches a whistle, a flute or a fiddle playing
+# alone, and half the zones ask for one of those. So a track is turned away for singing when that
+# layer is plainly a large part of the whole track, or when it is noticeable and has the top end
+# that sung words have. Measured on 2026-11-15: a tin whistle solo read -21 dB overall and -52 dB
+# where words are; the tracks without any such solo read -36 to -60 dB overall. A wordless voice
+# cannot be told from a flute this way and is let through.
+MAX_VOCAL_LEAK_DB = -30.0        # below this the vocals layer is too quiet to be anything
+LOUD_VOCAL_LEAK_DB = -12.0       # above this it is a large part of the track whatever it is made of
+MAX_VOCAL_WORDS_DB = -45.0       # the vocals layer between 2.5 and 8 kHz, relative to the whole mix
 MAX_LENGTH_OFF_S = 0.1
 
 
@@ -90,10 +98,12 @@ def check(request: composer.Request, mix: np.ndarray, layers: Layers, rate: int)
                 failed.append("%s starts %.0f ms from a beat" % (part.name, to_beat))
     if parts and agree < len(parts) - 1:
         failed.append("only %d of %d parts use the notes of %s" % (agree, len(parts), request.tonic))
-    if layers.vocal_leak_db > MAX_VOCAL_LEAK_DB:
-        failed.append("there seems to be singing (%.1f dB)" % layers.vocal_leak_db)
+    if layers.vocal_leak_db > MAX_VOCAL_LEAK_DB and (
+            layers.vocal_leak_db > LOUD_VOCAL_LEAK_DB or layers.vocal_words_db > MAX_VOCAL_WORDS_DB):
+        failed.append("there seems to be singing (%.1f dB, and %.1f dB where sung words are)"
+                      % (layers.vocal_leak_db, layers.vocal_words_db))
     return {"failed": failed, "parts": parts, "vocal_leak_db": round(layers.vocal_leak_db, 1),
-            "seconds": round(got, 3)}
+            "vocal_words_db": round(layers.vocal_words_db, 1), "seconds": round(got, 3)}
 
 
 class Ingest:

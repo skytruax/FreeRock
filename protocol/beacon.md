@@ -1,4 +1,4 @@
-# The strip (version 1)
+# The strip (version 2)
 
 The strip is how the FreeRock addon tells the outside world what is happening in the game. An
 addon cannot open a connection or write a file while the game runs, but it can draw. So it draws
@@ -11,13 +11,24 @@ This file is the one definition of the format. `FreeRock/Beacon.lua` draws it an
 
 Only values the game never seals go into the strip. See "What is never sent" at the end.
 
+Version 2 gave a meaning to one byte and one flag that version 1 left empty (the player's speed,
+and whether the target can be fought) and added one moment. Nothing else moved, so the reader
+takes both versions: from a version 1 addon it simply does not hear those things.
+
 ## Shape on screen
 
 - Two rows of squares, one directly above the other. Every square is the same size, a whole number
-  of screen pixels (the addon's setting, 3 by default, 2 to 8 allowed). A row is 344 squares wide,
-  so at 3 pixels the strip is 1032 by 6 pixels.
-- Black is the background and white squares are drawn on it. The black backing reaches 2 pixels
+  of screen pixels (the addon's setting, 3 by default, 1 to 8 allowed). A row is 344 squares wide,
+  so at 3 pixels the strip is 1032 by 6 pixels, and at 1 pixel 344 by 2.
+- Black is the background and the lit squares are drawn on it. The black backing reaches 2 pixels
   past the squares on every side.
+- The lit squares are white by default. They may be drawn as dark as a tenth of white (the
+  addon's brightness setting; `/rock strip faint` is a fifth), which makes the strip hard to see
+  on screen. The reader copes by looking at a picture more than once, with its bright parts
+  flattened lower each time, so that a dark grey square is judged against the black beside it and
+  not against a bright sky next to the strip.
+- The strip is hidden while the game's interface is hidden, and comes back with it. The reader
+  holds the last state meanwhile.
 - By default the strip sits along the top edge of the game window, 16 pixels in from the left
   edge. Windows rounds the corners of windows, and a corner would eat the first squares. It can
   be moved to the bottom edge and the distances changed.
@@ -51,7 +62,7 @@ bit first. Numbers of more than one byte are big-endian.
 
 | Offset | Bytes | Field | Meaning |
 |---|---|---|---|
-| 0 | 1 | version and kind | High four bits: format version, 1. Low four bits: 0 a state frame, 1 a test frame. |
+| 0 | 1 | version and kind | High four bits: format version, 2 (1 is still read). Low four bits: 0 a state frame, 1 a test frame. |
 | 1 | 1 | beat | Goes up by one every half second and wraps at 256. Proves the strip is live. |
 | 2 | 3 | flags | 24 yes/no values, listed below |
 | 5 | 1 | instance kind, target class | High four bits and low four bits; values below |
@@ -65,12 +76,12 @@ bit first. Numbers of more than one byte are big-endian.
 | 19 | 2 | game clock | Minutes since midnight, game time. 65535: not known. |
 | 21 | 1 | command | The last thing the player asked for: 0 nothing yet, 1 skip, 2 love, 3 ban |
 | 22 | 1 | command count | Goes up by one with every command and wraps at 256 |
-| 23 | 1 | moment | The last one-off event: 0 none yet, 1 level up, 2 boss defeated, 3 boss fight lost, 4 died, 5 quest handed in |
+| 23 | 1 | moment | The last one-off event: 0 none yet, 1 level up, 2 boss defeated, 3 boss fight lost, 4 died, 5 quest handed in, 6 achievement earned |
 | 24 | 1 | moment count | Goes up by one with every moment and wraps at 256 |
 | 25 | 1 | volume | The player's FreeRock volume, 0 to 100 |
 | 26 | 1 | difficulty | The game's difficulty number while in an instance, else 0 |
 | 27 | 2 | subzone mark | A 16-bit mark of the subzone name (see "Names"). 0: no subzone name. |
-| 29 | 1 | reserved | 0 |
+| 29 | 1 | speed | How fast the player is moving, in half yards a second, capped at 254 (running is 14, a mount 28). 255: not known. In version 1 this byte is empty and says nothing. |
 | 30 | 1 | text header | High three bits: which name. Next two bits: revision. Low three bits: chunk number. |
 | 31 | 1 | text length | Length of the whole name in bytes, 0 to 48 |
 | 32 | 6 | text chunk | Six bytes of the name, padded with zero bytes |
@@ -112,7 +123,7 @@ Bit 0 is the least significant bit of the three bytes read as one number.
 | 20 | A boss unit is present |
 | 21 | In a group |
 | 22 | A ghost |
-| 23 | Reserved, 0 |
+| 23 | The target is something the player can fight. In version 1 this bit is empty and says nothing. |
 
 ### Kinds
 
@@ -142,7 +153,7 @@ every fifth of a second and goes round all the names it has.
 
 ### Test frames
 
-`/rock test` makes the addon send test frames for ten seconds. Byte 0 is 0x11, bytes 1 to 37 are
+`/rock test` makes the addon send test frames for ten seconds. Byte 0 is 0x21, bytes 1 to 37 are
 `(17 * i + 3) mod 256` for byte number `i`, and the checksum follows as usual. A reader that
 decodes one knows every bit position works.
 
@@ -150,5 +161,6 @@ decodes one knows every bit position works.
 
 Health, threat, and the name or identity of units outside the player's group are sealed by the
 game in combat. FreeRock does not read them, does not send them, and does not work them out some
-other way. Target class is read through `UnitClassification`, which the game does not seal; if a
-value ever comes back sealed it is sent as "not readable".
+other way. Target class is read through `UnitClassification` and whether the target can be fought
+through `UnitCanAttack`; if either ever comes back sealed it is sent as "not readable" or left
+out. The player's own speed comes from `GetUnitSpeed` and is sent as "not known" if sealed.

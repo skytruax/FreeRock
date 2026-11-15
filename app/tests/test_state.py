@@ -247,3 +247,56 @@ async def test_a_listener_can_be_used_as_a_loop():
     await asyncio.wait_for(task, 1)
     assert [event.name for event in seen] == ["skip", "love"]
     assert not hub._subscriptions
+
+
+def test_the_game_closing_is_not_held_through():
+    """The strip out of sight is held for two minutes (the interface hidden for a screenshot);
+    the game window gone is the end at once."""
+    clock = Clock()
+    tracker = state.StateTracker(clock=clock)
+    assert tracker.lost_after == 120.0
+    assert tracker.gone() == [], "nothing was ever read: nothing to end"
+    tracker.feed(dataclasses.replace(BASE, flags=beacon.FLAG_ENABLED))
+    clock.now += 60
+    assert tracker.tick() == [state.LinkChanged(Link.STALE, Link.LIVE)]
+    assert tracker.tick() == [], "a minute without the strip is still held"
+    assert tracker.gone() == [state.LinkChanged(Link.LOST, Link.STALE)]
+    assert tracker.gone() == []
+
+
+def test_speed_and_a_target_that_can_be_fought_come_with_version_two():
+    tracker = state.StateTracker(clock=Clock())
+    said = dataclasses.replace(BASE, version=2, speed=14,
+                               flags=beacon.FLAG_ENABLED | beacon.FLAG_HAS_TARGET | beacon.FLAG_TARGET_HOSTILE)
+    tracker.feed(said)
+    assert tracker.state.speed == 7.0 and tracker.state.target_hostile is True
+    tracker.feed(dataclasses.replace(said, speed=beacon.UNKNOWN_SPEED, flags=beacon.FLAG_ENABLED))
+    assert tracker.state.speed is None and tracker.state.target_hostile is False
+
+
+def test_an_addon_of_version_one_is_still_read_and_says_nothing_about_them():
+    """The addon on the gaming PC may be older than the program. Its frames have an empty byte
+    where the speed now is, which must not be read as standing still."""
+    old = dataclasses.replace(BASE, version=1, speed=0, flags=beacon.FLAG_ENABLED | beacon.FLAG_HAS_TARGET)
+    payload = beacon.pack(old)
+    assert payload[0] >> 4 == 1
+    assert beacon.unpack(payload) == old
+    tracker = state.StateTracker(clock=Clock())
+    tracker.feed(beacon.unpack(payload))
+    assert tracker.state.speed is None and tracker.state.target_hostile is None
+    assert tracker.state.has_target is True
+
+
+def test_a_version_this_program_does_not_know_is_refused():
+    body = bytes([3 << 4]) + bytes(37)
+    with pytest.raises(beacon.BeaconError, match="strip version 3"):
+        beacon.unpack(body + beacon.crc16(body).to_bytes(2, "big"))
+    with pytest.raises(beacon.BeaconError):
+        beacon.pack(dataclasses.replace(BASE, version=3))
+
+
+def test_an_achievement_is_reported_once():
+    tracker = state.StateTracker(clock=Clock())
+    tracker.feed(dataclasses.replace(BASE, flags=beacon.FLAG_ENABLED, moment=6, moment_count=4))
+    events = tracker.feed(dataclasses.replace(BASE, flags=beacon.FLAG_ENABLED, moment=6, moment_count=5))
+    assert state.MomentReceived("achievement", 5) in events

@@ -22,7 +22,8 @@ TARGET_CLASSES = {0: "none", 1: "normal", 2: "elite", 3: "rare", 4: "rareelite",
 PVP_KINDS = {0: "unknown", 1: "sanctuary", 2: "friendly", 3: "contested", 4: "hostile", 5: "combat", 6: "arena"}
 WEATHER_KINDS = {0: "clear", 1: "rain", 2: "snow", 3: "sandstorm", 4: "misc"}
 COMMANDS = {1: "skip", 2: "love", 3: "ban"}
-MOMENTS = {1: "level_up", 2: "boss_defeated", 3: "boss_lost", 4: "died", 5: "quest_turned_in"}
+MOMENTS = {1: "level_up", 2: "boss_defeated", 3: "boss_lost", 4: "died", 5: "quest_turned_in",
+           6: "achievement"}
 OTHER = "other"
 
 _TEXT_FIELDS = {
@@ -53,6 +54,7 @@ class GameState:
     subzone_name: str | None = None
     has_subzone: bool = False             # the strip says there is a subzone name (it may not have arrived yet)
     position: tuple[float, float] | None = None  # across and down the zone map, 0 to 1
+    speed: float | None = None            # yards a second; None: not known, or an addon that does not say
     in_instance: bool = False
     instance_kind: str = "none"
     instance_id: int = 0
@@ -75,6 +77,7 @@ class GameState:
     boss_present: bool = False
     has_target: bool = False
     target_class: str = "none"
+    target_hostile: bool | None = None    # the target can be fought; None: an addon that does not say
     in_group: bool = False
     pvp_kind: str = "unknown"
     weather: str | None = None            # None: the game does not report weather
@@ -109,7 +112,7 @@ class CommandReceived:
 
 @dataclasses.dataclass(frozen=True)
 class MomentReceived:
-    name: str   # level_up, boss_defeated, boss_lost, died, quest_turned_in
+    name: str   # level_up, boss_defeated, boss_lost, died, quest_turned_in, achievement
     count: int
 
 
@@ -162,6 +165,7 @@ def _state_from(frame: beacon.Frame, names: dict[str, str | None]) -> GameState:
         return bool(flags & bit)
 
     weather_known = has(beacon.FLAG_WEATHER_KNOWN) and frame.weather_kind != beacon.UNKNOWN_KIND
+    says_more = frame.version >= 2      # speed and whether the target can be fought
     return GameState(
         enabled=has(beacon.FLAG_ENABLED),
         map_id=frame.map_id,
@@ -170,6 +174,7 @@ def _state_from(frame: beacon.Frame, names: dict[str, str | None]) -> GameState:
         has_subzone=frame.subzone_hash != 0,
         position=(frame.x / 65534.0, frame.y / 65534.0)
         if has(beacon.FLAG_POSITION_KNOWN) and frame.x != beacon.UNKNOWN_16 and frame.y != beacon.UNKNOWN_16 else None,
+        speed=frame.speed / 2.0 if says_more and frame.speed != beacon.UNKNOWN_SPEED else None,
         in_instance=has(beacon.FLAG_IN_INSTANCE),
         instance_kind=INSTANCE_KINDS.get(frame.instance_kind, OTHER),
         instance_id=frame.instance_id,
@@ -192,6 +197,7 @@ def _state_from(frame: beacon.Frame, names: dict[str, str | None]) -> GameState:
         boss_present=has(beacon.FLAG_BOSS_PRESENT),
         has_target=has(beacon.FLAG_HAS_TARGET),
         target_class=TARGET_CLASSES.get(frame.target_class, OTHER),
+        target_hostile=has(beacon.FLAG_TARGET_HOSTILE) if says_more else None,
         in_group=has(beacon.FLAG_IN_GROUP),
         pvp_kind=PVP_KINDS.get(frame.pvp_kind, OTHER),
         weather=WEATHER_KINDS.get(frame.weather_kind, OTHER) if weather_known else None,
@@ -218,7 +224,7 @@ class StateTracker:
         self,
         clock: Callable[[], float] = time.monotonic,
         stale_after: float = 1.5,
-        lost_after: float = 30.0,
+        lost_after: float = 120.0,
     ) -> None:
         self._clock = clock
         self.stale_after = stale_after
@@ -330,6 +336,13 @@ class StateTracker:
             return self._set_link(Link.LOST)
         if quiet >= self.stale_after:
             return self._set_link(Link.STALE) if self.link == Link.LIVE else []
+        return []
+
+    def gone(self) -> list[Event]:
+        """The game itself has gone (its window is closed), which is not the same as the strip
+        being out of sight for a moment: there is nothing left to hold the last state for."""
+        if self.link in (Link.LIVE, Link.STALE):
+            return self._set_link(Link.LOST)
         return []
 
     def _set_link(self, link: Link) -> list[Event]:

@@ -225,11 +225,12 @@ test("a game that refuses the music setting is reported, not ignored", function(
 end)
 
 test("saved settings that are out of range go back to their defaults", function()
-	Load({ enabled = "yes", volume = 400, cell = 1, edge = "left", insetX = -5, insetY = 9999,
+	Load({ enabled = "yes", volume = 400, cell = 0, ink = 5, edge = "left", insetX = -5, insetY = 9999,
 		command = 9, commandCount = 300, moment = 2.5, momentCount = -1, muteGameMusic = 0 })
 	eq(ns.db.enabled, true)
 	eq(ns.db.volume, 70)
 	eq(ns.db.cell, 3)
+	eq(ns.db.ink, 100)
 	eq(ns.db.edge, "top")
 	eq(ns.db.insetX, 16)
 	eq(ns.db.insetY, 0)
@@ -303,6 +304,104 @@ test("/rock strip moves and resizes the strip", function()
 	truthy(Printed("Squares of 5 px"), "the strip is described after a change")
 end)
 
+test("the strip goes with the interface and comes back with it", function()
+	Load()
+	truthy(FreeRockStrip:IsVisible(), "strip up")
+	UIParent:Hide()                -- what a hide-the-interface macro or Alt-Z does
+	Settle()
+	eq(FreeRockStrip:IsShown(), false, "hidden with the interface")
+	M.Slash("status")
+	truthy(Printed("Strip: hidden with the interface"), "status says why")
+	M.Slash("strip size 4")        -- a setting changed meanwhile must not bring it back
+	eq(FreeRockStrip:IsShown(), false, "still hidden after a setting changed")
+	M.game.indoors = true          -- the game goes on while the interface is hidden
+	Settle()
+	UIParent:Show()
+	Settle()
+	truthy(FreeRockStrip:IsShown(), "back with the interface")
+	eq(Flag(Frame(), 1), true, "and showing what happened meanwhile")
+end)
+
+test("a strip that is off stays away when the interface comes back", function()
+	Load({ enabled = false })
+	UIParent:Hide()
+	Settle()
+	UIParent:Show()
+	Settle()
+	eq(FreeRockStrip:IsVisible(), false, "still off")
+end)
+
+test("/rock strip faint draws the squares dark grey, and bright puts white back", function()
+	Load()
+	local function Shade()
+		return FreeRockStrip.textures[2].color[1], FreeRockStrip.textures[681].color[1]
+	end
+	local first, last = Shade()
+	eq(first, 1, "white to begin with")
+	eq(last, 1, "every square")
+	M.Slash("strip faint")
+	eq(ns.db.ink, 20)
+	first, last = Shade()
+	eq(first, 0.2, "dark grey")
+	eq(last, 0.2, "every square")
+	eq(FreeRockStrip.textures[1].color[1], 0, "the backing stays black")
+	truthy(Printed("Brightness of the squares: 20%%"), "described")
+	truthy(Printed("/rock strip bright"), "says how to get it back")
+	M.Slash("strip ink 55")
+	eq((Shade()), 0.55, "any brightness from 10 to 100")
+	M.Slash("strip ink 5")
+	eq(ns.db.ink, 55, "out of range is refused")
+	M.Slash("strip bright")
+	eq((Shade()), 1, "white again")
+	M.Slash("status")
+	truthy(Printed("Brightness of the squares: 100%%"), "in the status report")
+end)
+
+test("a faint strip is remembered", function()
+	Load({ ink = 30, cell = 1 })
+	eq(FreeRockStrip.textures[2].color[1], 0.3, "drawn faint from the start")
+	local _, _, width, height = M.FrameBox(FreeRockStrip)
+	eq(width, 344 + 4, "one pixel a square")
+	eq(height, 2 + 4, "two rows of one pixel")
+end)
+
+test("speed, a target that can be fought, and an achievement reach the strip", function()
+	Load()
+	local frame = Frame()
+	eq(frame.speed, 0, "standing")
+	eq(Flag(frame, 23), false, "no target")
+	eq(ns.Beacon.Pack(frame)[1], 2 * 16, "strip version 2, a state frame")
+	eq(ns.Beacon.Pack(frame)[30], 0, "the speed is byte 30")
+	M.game.speed = 7
+	M.game.target, M.game.canAttack = "normal", true
+	M.Fire("PLAYER_TARGET_CHANGED")
+	frame = Frame()
+	eq(frame.speed, 14, "running: seven yards a second, in half yards")
+	eq(Flag(frame, 23), true, "the target can be fought")
+	M.game.canAttack = false
+	M.Fire("PLAYER_TARGET_CHANGED")
+	eq(Flag(Frame(), 23), false, "a friendly target")
+	M.game.canAttack = true
+	M.sealed.canAttack = true
+	M.Fire("PLAYER_TARGET_CHANGED")
+	eq(Flag(Frame(), 23), false, "sealed: not sent")
+	M.game.speed = 400
+	eq(Frame().speed, 254, "faster than the strip can say")
+	M.sealed.speed = true
+	eq(Frame().speed, 255, "sealed: not known")
+	M.sealed.speed = nil
+	M.game.speed = 14
+	M.Fire("PLAYER_STARTED_MOVING")
+	eq(ns.Beacon.BuildFrame().speed, 28, "read at once when the player starts moving")
+	local before = ns.db.momentCount
+	M.Fire("ACHIEVEMENT_EARNED", 1234)
+	eq(ns.db.moment, 6, "achievement")
+	eq(ns.db.momentCount, before + 1)
+	M.Slash("status")
+	truthy(Printed("Speed: 14%.0 yards a second"), "speed in the status report")
+	truthy(Printed("can be attacked: no"), "target in the status report")
+end)
+
 test("squares shrink to fit a narrow screen, and status says so", function()
 	M.screen = { 1920, 1080 }
 	Load({ cell = 8 })
@@ -325,7 +424,7 @@ test("/rock test sends the test pattern for ten seconds", function()
 	local frame = Frame()
 	eq(frame.kind, 1, "kind while testing")
 	local bytes = ns.Beacon.Pack(frame)
-	eq(bytes[1], 0x11, "first byte")
+	eq(bytes[1], 0x21, "first byte: version 2, a test frame")
 	eq(bytes[2], (17 * 1 + 3) % 256, "second byte")
 	M.Advance(10.5)
 	eq(ns.Beacon.BuildFrame().kind, 0, "kind afterwards")
@@ -755,7 +854,7 @@ test("/rock opens the settings page, and its controls change the settings", func
 	eq(ns.db.enabled, false, "unticking turns FreeRock off")
 	M.Click(checks[1])
 	eq(ns.db.enabled, true)
-	-- Buttons in order: volume - +, edge, size - +, inset - +, inset - +, test, status.
+	-- Buttons in order: volume - +, edge, size - +, brightness - +, inset - +, inset - +, test, status.
 	M.Click(buttons[1])
 	eq(ns.db.volume, 65, "volume down")
 	M.Click(buttons[3])
