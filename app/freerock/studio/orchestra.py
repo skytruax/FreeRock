@@ -40,6 +40,7 @@ class Instrument:
     held: bool = True          # it sustains for as long as the note is written (a bow, a breath); a plucked one does not
     level: float = 1.0         # a taste: this one a little under the others whatever it measures
     early: float = 0.0         # seconds it is played ahead, for instruments that speak slowly
+    wired: bool = False        # an electric guitar: recorded clean and played through the amplifier (studio.amp)
 
 
 I = Instrument
@@ -74,18 +75,25 @@ INSTRUMENTS = {
     "timpani": I(0, 47, 36, 57, 45, held=False), "taiko": I(0, 116, 36, 60, 45, held=False),
     "great drum": I(8, 116, 36, 60, 43, held=False), "melodic tom": I(0, 117, 36, 72, 48, held=False),
     "acoustic bass": I(0, 32, 28, 60, 40, held=False),
+    # The band. The guitars are the SoundFont's clean and muted ones, driven by our own amplifier.
+    "rhythm guitar": I(0, 27, 40, 76, 50, held=False, wired=True), "muted guitar": I(0, 28, 40, 72, 47, held=False, wired=True),
+    "lead guitar": I(0, 27, 52, 86, 67, wired=True), "picked bass": I(0, 34, 28, 55, 38, held=False),
+    "rock organ": I(0, 18, 36, 84, 60, level=0.8), "harmonica": I(0, 22, 60, 84, 72),
     "fretless": I(0, 35, 28, 60, 40),
 }
 
 # Percussion: a kit (its program on the drum channel) and its strokes by name.
 _STROKES = {"shake": 82, "jingle": 83, "castanet": 85, "tick": 75, "high": 60, "low": 61, "deep": 87, "mute": 86,
-            "conga": 63, "conga low": 64, "block": 76, "block low": 77, "guiro": 73, "bell": 53}
+            "conga": 63, "conga low": 64, "block": 76, "block low": 77, "guiro": 73, "bell": 53,
+            "hat": 42, "hat open": 46, "ride": 51, "tom": 45, "tom low": 41, "tom high": 48, "cowbell": 56}
 KITS = {
     "orchestra": (48, dict(_STROKES, boom=36, snare=38, crash=59, crash2=57, tamb=54, ting=81, clack=39)),
     "march": (48, dict(_STROKES, boom=36, snare=40, crash=57, crash2=59, tamb=54, ting=81, clack=37)),
     "folk": (0, dict(_STROKES, boom=36, snare=37, crash=55, crash2=49, tamb=54, ting=81, clack=39)),
     "hands": (0, dict(_STROKES, boom=64, snare=63, crash=55, crash2=49, tamb=54, ting=80, clack=62, shake=70, jingle=69)),
     "wood": (0, dict(_STROKES, boom=87, snare=77, crash=55, crash2=49, tamb=69, ting=76, clack=75)),
+    "rock": (16, dict(_STROKES, boom=36, snare=38, crash=49, crash2=57, tamb=54, ting=81, clack=37)),
+    "room": (8, dict(_STROKES, boom=36, snare=38, crash=49, crash2=57, tamb=54, ting=81, clack=37)),
 }
 # How loud each instrument's samples are, played alone at a middling strength (LUFS, measured
 # 2026-11-15 with tools/stems notes): the quietest is eighteen decibels under the loudest. Every
@@ -102,6 +110,8 @@ LOUD = {
     "violins": -23.3, "bassoon": -22.6, "shenai": -22.2, "cello": -22.1, "tuba": -21.4, "trumpet": -21.4, "oboe": -21.3,
     "flute": -21.2, "recorder": -21.1, "whistle": -20.5, "piccolo": -20.5, "ocarina": -19.5, "trombone": -18.9,
     "bagpipe": -18.7,
+    "rhythm guitar": -22.1, "muted guitar": -29.9, "lead guitar": -22.1, "picked bass": -23.5, "rock organ": -24.7,
+    "harmonica": -26.0,
     # Not measured one by one: taken as their nearest relation.
     "violins slow": -26.5, "violas": -25.3, "celli slow": -28.0, "basses slow": -31.0, "celli pizz": -28.9,
     "basses pizz": -29.5, "twelve string": -32.4,
@@ -138,6 +148,8 @@ class Character:
     hall: tuple[float, float] = (2.3, 0.24)                # how long the room rings, and how much of it
     lift: float = 0.3                                      # how likely the moment is to be in a higher key
     titles: tuple[tuple[str, ...], tuple[str, ...]] = (("Old",), ("Road",))
+    style: str = "warcraft"                                # the style whose bucket its tracks are for
+    band: bool = False                                     # a band, not an orchestra: riffs, a kit, the bass in eighths
 
 
 C = Character
@@ -463,6 +475,94 @@ CHARACTERS = (
       pad_ways=("tremolo",), plucks=("strings", "glock"), figures=("gallop", "arp"), basses=("celli", "basses"),
       kit="orchestra", drums=("timpani", "great drum"), grooves=("thunder", "sleigh"), lift=0.35,
       titles=(("White", "Blinding", "North", "Howling", "Driving"), ("Blizzard", "Squall", "Wall", "Gale", "Whiteout"))),
+    # --- Knight Rock: a band, not an orchestra ------------------------------------------------------
+    # Riff guitars through the amplifier, a lead guitar (two of them in thirds at the moment), the
+    # bass on the root in steady eighths, a plain hard-hitting kit, and under it a drone as of a
+    # hurdy-gurdy. The light ones are the same band unplugged: strummed strings, fiddle and whistle.
+    C("open road", ("pastoral", "highland"), light=True, style="knight", band=True, modes=("mixolydian", "major"), bpm=(112, 126),
+      busy=0.65, weight=0.65, leads=("fiddle", "harmonica", "whistle"), strong=("fiddle", "whistle"), under=(),
+      pads=("accordion", "rock organ"), pad_ways=("drone", "pad"), plucks=("steel guitar", "twelve string", "mandolin"),
+      figures=("strum",), basses=("picked bass",), kit="rock", drums=(), grooves=("tavern rock", "rock"), hall=(1.2, 0.13),
+      lift=0.3, titles=(("Open", "Sunny", "Wagon", "Milestone", "Free", "Homeward"), ("Road", "Miles", "Wheels", "Ramble", "Highway"))),
+    C("banner ride", ("pastoral", "regal", "highland"), style="knight", band=True, modes=("mixolydian", "dorian"), bpm=(118, 132),
+      busy=0.6, weight=0.95, leads=("lead guitar",), strong=("lead guitar",), under=(), pads=("rock organ", "bagpipe"),
+      pad_ways=("drone",), plucks=("rhythm guitar",), figures=("riff",), basses=("picked bass",), kit="rock", drums=(),
+      grooves=("rock", "rock ride"), hall=(1.3, 0.14), lift=0.4,
+      titles=(("Banner", "Lionheart", "Steel", "Charger", "King's", "Shield"), ("Ride", "Knights", "Oath", "Thunder", "Vanguard"))),
+    C("black chapel", ("haunted",), style="knight", band=True, modes=("minor", "phrygian"), bpm=(76, 88), busy=0.45, weight=1.0,
+      leads=("lead guitar",), strong=("lead guitar",), under=(), pads=("rock organ", "organ"), pad_ways=("drone", "pad"),
+      plucks=("rhythm guitar",), figures=("riff",), basses=("picked bass",), kit="rock", drums=("church bell",),
+      grooves=("half rock",), hall=(2.2, 0.22), lift=0.3,
+      titles=(("Black", "Grave", "Midnight", "Raven", "Witching", "Cursed"), ("Chapel", "Sabbath", "Bell", "Mass", "Riders", "Hour"))),
+    C("lantern walk", ("haunted", "mystic"), light=True, style="knight", band=True, modes=("minor", "dorian"), bpm=(84, 96), busy=0.5,
+      weight=0.55, leads=("harmonica", "fiddle", "whistle"), strong=("fiddle", "harmonica"), under=(),
+      pads=("rock organ", "strings slow"), pad_ways=("pad",), plucks=("twelve string", "guitar"), figures=("arp", "rock"),
+      basses=("picked bass",), kit="room", drums=(), grooves=("brushes",), hall=(1.8, 0.2), lift=0.2,
+      titles=(("Lantern", "Foggy", "Crossroads", "Lonesome", "Pale Moon", "Owl"), ("Walk", "Blues", "Ballad", "Road", "Waltz"))),
+    C("sand rider", ("desert", "infernal"), style="knight", band=True, modes=("phrygian dominant", "phrygian"), bpm=(120, 134),
+      busy=0.6, weight=0.95, leads=("lead guitar",), strong=("lead guitar",), under=(), pads=("rock organ", "shenai"),
+      pad_ways=("drone",), plucks=("rhythm guitar",), figures=("riff", "chug"), basses=("picked bass",), kit="rock", drums=(),
+      grooves=("desert rock", "rock ride"), hall=(1.3, 0.14), lift=0.35,
+      titles=(("Sand", "Scorpion", "Mirage", "Red Sun", "Dune", "Cobra"), ("Rider", "Run", "Kings", "Fever", "Strike"))),
+    C("oasis shuffle", ("desert", "jungle"), light=True, style="knight", band=True, modes=("mixolydian", "dorian"), bpm=(138, 156),
+      metres=("6/8",), busy=0.65, weight=0.6, leads=("mandolin", "whistle", "fiddle"), strong=("mandolin", "fiddle"), under=(),
+      pads=("accordion", "rock organ"), pad_ways=("drone", "pad"), plucks=("steel guitar", "banjo"), figures=("strum", "oompah"),
+      basses=("picked bass",), kit="room", drums=(), grooves=("shuffle",), hall=(1.2, 0.13), lift=0.25,
+      titles=(("Oasis", "Palm", "Lazy River", "Monkey", "Coconut", "Shade Tree"), ("Shuffle", "Swing", "Jig", "Stroll", "Sway"))),
+    C("jungle stomp", ("jungle",), style="knight", band=True, modes=("minor", "dorian"), bpm=(100, 112), busy=0.55, weight=0.9,
+      leads=("lead guitar",), strong=("lead guitar",), under=(), pads=("rock organ", "pan flute"), pad_ways=("drone",),
+      plucks=("rhythm guitar",), figures=("riff", "chug"), basses=("picked bass",), kit="rock", drums=("taiko",),
+      grooves=("tom rock",), hall=(1.4, 0.15), lift=0.3,
+      titles=(("Jungle", "Tiger", "Vine", "Headhunter", "Gorilla", "Thunder Lizard"), ("Stomp", "Boogie", "Drums", "Crawl", "Fever"))),
+    C("forge anthem", ("infernal", "regal"), style="knight", band=True, modes=("minor", "dorian"), bpm=(96, 108), busy=0.5, weight=1.0,
+      leads=("lead guitar",), strong=("lead guitar",), under=(), pads=("rock organ", "bagpipe"), pad_ways=("drone", "pad"),
+      plucks=("rhythm guitar",), figures=("riff", "hammer"), basses=("picked bass",), kit="rock", drums=(),
+      grooves=("anvil rock",), hall=(1.6, 0.17), lift=0.4,
+      titles=(("Forge", "Anvil", "Hammer", "Molten", "Ironclad", "Blacksmith's"), ("Anthem", "Thunder", "Law", "Fire", "Hymn"))),
+    C("moon glade", ("mystic",), light=True, style="knight", band=True, modes=("lydian", "dorian"), bpm=(80, 92), busy=0.45, weight=0.5,
+      leads=("whistle", "ocarina", "harmonica"), strong=("whistle", "fiddle"), under=(), pads=("strings slow", "oohs"),
+      pad_ways=("pad",), plucks=("guitar", "twelve string", "harp"), figures=("arp",), basses=("picked bass", "fretless"),
+      kit="room", drums=(), grooves=("brushes",), hall=(2.2, 0.24), lift=0.2,
+      titles=(("Moon", "Silver", "Starlight", "Willow", "Dreaming", "Fae"), ("Glade", "Ballad", "Serenade", "Waters", "Lullaby"))),
+    C("mountain stomp", ("highland",), style="knight", band=True, modes=("dorian", "mixolydian"), bpm=(100, 110), busy=0.5, weight=0.95,
+      leads=("lead guitar",), strong=("lead guitar",), under=(), pads=("bagpipe", "rock organ"), pad_ways=("drone",),
+      plucks=("rhythm guitar",), figures=("riff",), basses=("picked bass",), kit="rock", drums=(), grooves=("half rock", "anvil rock"),
+      hall=(1.5, 0.16), lift=0.35,
+      titles=(("Mountain", "Stonefist", "Avalanche", "Iron Boot", "Highland", "Ram"), ("Stomp", "March", "Thunder", "Clan", "Pride"))),
+    C("tavern rock", KINDS_ALL, role="ember", light=True, style="knight", band=True, modes=("major", "mixolydian"), bpm=(126, 140),
+      busy=0.7, weight=0.6, leads=("fiddle", "harmonica", "accordion"), strong=("fiddle", "accordion"), under=(), pads=("accordion",),
+      pad_ways=("drone", "pad"), plucks=("steel guitar", "banjo", "mandolin"), figures=("strum",), basses=("picked bass",),
+      kit="rock", drums=(), grooves=("tavern rock",), hall=(1.0, 0.11), lift=0.25,
+      titles=(("Barrel", "Rowdy", "Last Call", "Full House", "Table-Top", "Landlord's"), ("Rock", "Stomp", "Boogie", "Singalong", "Round"))),
+    C("storm rider", KINDS_ALL, role="storm", serves=(1, 2), style="knight", band=True, modes=("minor", "dorian"), bpm=(138, 150),
+      busy=0.6, weight=1.0, leads=("lead guitar",), strong=("lead guitar",), under=(), pads=("rock organ",), pad_ways=("drone", "pad"),
+      plucks=("rhythm guitar",), figures=("chug", "riff"), basses=("picked bass",), kit="rock", drums=(), grooves=("rock ride",),
+      hall=(1.4, 0.15), lift=0.4,
+      titles=(("Storm", "Lightning", "Thunder", "Rain", "Black Cloud", "Tempest"), ("Rider", "Runner", "Road", "Chaser", "Rock"))),
+    C("battle cry", ("pastoral", "highland", "regal", "mystic"), role="battle", serves=(2,), style="knight", band=True,
+      modes=("minor", "dorian"), bpm=(150, 164), busy=0.6, weight=1.0, leads=("lead guitar",), strong=("lead guitar",), under=(),
+      pads=("rock organ",), pad_ways=("drone",), plucks=("rhythm guitar",), figures=("chug", "riff"), basses=("picked bass",),
+      kit="rock", drums=(), grooves=("rock ride", "rock"), hall=(1.2, 0.13), lift=0.4,
+      titles=(("Battle", "Sword", "Charge", "Steel", "Fury", "Lance"), ("Cry", "Storm", "Song", "Breaker", "Dance"))),
+    C("war machine", ("haunted", "desert", "jungle", "infernal"), role="battle", serves=(2,), style="knight", band=True,
+      modes=("phrygian", "minor"), bpm=(140, 156), busy=0.55, weight=1.0, leads=("lead guitar",), strong=("lead guitar",), under=(),
+      pads=("rock organ",), pad_ways=("drone",), plucks=("rhythm guitar",), figures=("chug",), basses=("picked bass",), kit="rock",
+      drums=("taiko",), grooves=("tom rock", "rock ride"), hall=(1.2, 0.13), lift=0.4,
+      titles=(("War", "Siege", "Skull", "Juggernaut", "Blood", "Wrecking"), ("Machine", "Engine", "Crusher", "Hammer", "March"))),
+    C("dragon", KINDS_ALL, role="boss", serves=(2,), style="knight", band=True, modes=("minor", "phrygian"), bpm=(92, 104), busy=0.45,
+      weight=1.0, leads=("lead guitar",), strong=("lead guitar",), under=(), pads=("choir", "rock organ"), pad_ways=("pad",),
+      plucks=("rhythm guitar",), figures=("riff", "hammer"), basses=("picked bass",), kit="rock", drums=("church bell", "taiko"),
+      grooves=("half rock",), hall=(2.0, 0.2), lift=0.5,
+      titles=(("Dragon", "Tyrant", "Doom", "Overlord", "Wyrm", "Last"), ("Fire", "Throne", "Slayer", "Awakens", "Stand"))),
+    C("night watch", KINDS_ALL, role="night", light=True, style="knight", band=True, modes=("dorian", "minor"), bpm=(66, 78), busy=0.4,
+      weight=0.45, leads=("harmonica", "whistle", "fiddle"), strong=("harmonica", "fiddle"), under=(), pads=("strings slow",),
+      pad_ways=("pad",), plucks=("guitar", "twelve string"), figures=("arp", "rock"), basses=("picked bass",), kit="room", drums=(),
+      grooves=("none", "brushes"), hall=(2.0, 0.22), lift=0.0,
+      titles=(("Night", "Campfire", "Sentry's", "Starless", "Low Moon"), ("Watch", "Ballad", "Blues", "Embers", "Song"))),
+    C("deep mine", KINDS_ALL, role="depths", style="knight", band=True, modes=("minor", "phrygian"), bpm=(80, 92), busy=0.4, weight=0.7,
+      leads=("lead guitar",), strong=("lead guitar",), under=(), pads=("rock organ",), pad_ways=("drone",), plucks=("rhythm guitar",),
+      figures=("riff",), basses=("picked bass",), kit="rock", drums=(), grooves=("anvil rock",), hall=(3.4, 0.38), lift=0.0,
+      titles=(("Deep", "Pickaxe", "Shaft", "Lamp-Lit", "Cave-In"), ("Mine", "Blues", "Echo", "Dig", "Shift"))),
 )
 
 METRES = {"4/4": (4.0, (2.0, 2.0)), "3/4": (3.0, (3.0,)), "6/8": (3.0, (1.5, 1.5)), "5/4": (5.0, (3.0, 2.0)),
@@ -828,6 +928,33 @@ GROOVES = {
                      moment=[("great drum", "groups", .95), ("taiko", "halves", .7), ("timpani", "gallop", .75),
                              ("crash", "down", .85, 2), ("snare", "back", .6), ("church bell", "down", .6)],
                      roll="timpani", hit="crash"),
+    # The band's kit.
+    "rock": dict(theme=[("boom", "kick", .85), ("snare", "back", .8), ("hat", "halves", .45)],
+                 moment=[("boom", "kick busy", .95), ("snare", "back", .95), ("hat open", "pulses", .5), ("crash", "down", .8, 4)],
+                 roll="snare", hit="crash"),
+    "half rock": dict(theme=[("boom", "down", .9), ("snare", "mid", .85), ("hat", "pulses", .45)],
+                      moment=[("boom", "kick busy", .95), ("snare", "mid", .95), ("ride", "pulses", .5), ("crash", "down", .85, 2),
+                              ("tom low", "last", .7)], roll="tom", hit="crash"),
+    "rock ride": dict(theme=[("boom", "pulses", .8), ("snare", "back", .8), ("hat", "halves", .45)],
+                      moment=[("boom", "pulses", .9), ("snare", "back", .95), ("ride", "halves", .5), ("crash", "down", .85, 2)],
+                      roll="snare", hit="crash"),
+    "tavern rock": dict(theme=[("boom", "kick", .65), ("clack", "back", .6), ("tamb", "halves", .35)],
+                        moment=[("boom", "kick busy", .75), ("snare", "back", .7), ("tamb", "halves", .45), ("hat open", "pulses", .35)],
+                        roll="tamb", hit="crash"),
+    "tom rock": dict(theme=[("boom", "kick", .8), ("tom low", "halves", .5), ("snare", "back", .7)],
+                     moment=[("boom", "kick busy", .9), ("tom", "halves", .6), ("tom low", "pulses", .6), ("snare", "back", .9),
+                             ("crash", "down", .8, 4)], roll="tom low", hit="crash"),
+    "anvil rock": dict(theme=[("boom", "kick", .85), ("snare", "back", .7), ("ting", "back", .8), ("hat", "pulses", .4)],
+                       moment=[("boom", "kick busy", .95), ("snare", "back", .9), ("ting", "back", .95), ("hat open", "pulses", .45),
+                               ("crash", "down", .8, 4)], roll="snare", hit="crash"),
+    "desert rock": dict(theme=[("boom", "kick", .8), ("snare", "back", .75), ("high", "ands", .45), ("jingle", "pulses", .3)],
+                        moment=[("boom", "kick busy", .9), ("snare", "back", .9), ("high", "halves", .45), ("hat open", "pulses", .45),
+                                ("crash", "down", .8, 4)], roll="high", hit="crash"),
+    "brushes": dict(theme=[("clack", "back", .35), ("hat", "pulses", .25)], moment=[("clack", "back", .5), ("hat", "halves", .3),
+                    ("boom", "down", .5)], roll=None, hit="ting"),
+    "shuffle": dict(theme=[("boom", "kick", .7), ("clack", "back", .6), ("hat", "pulses", .4)],
+                    moment=[("boom", "kick busy", .8), ("snare", "back", .8), ("hat open", "groups", .45), ("hat", "pulses", .4),
+                            ("crash", "down", .7, 4)], roll="snare", hit="crash"),
     "drip": dict(theme=[("block", "down", .3, 3), ("great drum", "down", .4, 4)],
                  moment=[("block", "mid", .3, 2), ("great drum", "down", .55, 2), ("tick", "back", .2)], roll=None, hit=None),
 }
@@ -865,7 +992,7 @@ class Take:
             inst = INSTRUMENTS[name]
             volume = min(10 ** ((LEVEL - LOUD[name]) / 40.0) * inst.level, 1.0)
             have[name + tag] = Voice(inst.program, bank=inst.bank, volume=volume, shift=inst.early,
-                                     pan=self.rng.uniform(-0.35, 0.35))
+                                     pan=self.rng.uniform(-0.35, 0.35), wired=inst.wired)
         return have[name + tag]
 
     def kit(self) -> Voice:
@@ -953,6 +1080,12 @@ class Take:
             return [(start + off, loud) for start in starts for off, loud in ((0.0, 1.0), (1.0, 0.7))]
         if where == "last":
             return [(beats - pulse, 0.8)]
+        if where == "kick":                      # a rock kick: the one and the three
+            return [(0.0, 1.0), (2.0, 0.9)] if simple and count == 4 else [(start, 1.0 if start == 0 else 0.9) for start in starts]
+        if where == "kick busy":                 # ...and a push before the three
+            if simple and count == 4:
+                return [(0.0, 1.0), (1.5, 0.7), (2.0, 0.95), (3.5, 0.6)]
+            return [(start, 1.0 if start == 0 else 0.9) for start in starts] + [(beats - pulse, 0.6)]
         if where == "three":
             return [(0.0, 1.0), (1.5, 0.85), (3.0, 0.9)] if simple and count == 4 else [(start, 1.0 if start == 0 else 0.85) for start in starts]
         if where == "mid":
@@ -1022,7 +1155,10 @@ class Take:
                                   octave=1 if INSTRUMENTS[strong[1]].home - INSTRUMENTS[strong[0]].home < 7 else 0)
                     for name in ch.under:
                         self.sing("lead", name, under, at, key, chords, first, loud=loud * 0.8, tag=" under")
-                    if turn % 2 == 1:
+                    if ch.band and INSTRUMENTS[strong[0]].wired:
+                        # Twin guitars: the tune again a third above it.
+                        self.sing("lead", strong[0], use.moved(steps=2), at, key, chords, first, loud=loud * 0.8, tag=" twin")
+                    if turn % 2 == 1 and not ch.band:
                         top = "piccolo" if self.heavy else "glock"
                         self.sing("lead", top, use, at, key, chords, first, loud=loud * 0.6, octave=1 if self.heavy else 0)
             else:
@@ -1081,7 +1217,7 @@ class Take:
             for since, was in held.values():
                 self.put("texture", name, since, end - since, was, self.hard(0.55, 1.0))
             swell.swells.append((end - 0.01, 0.3 + 0.62 * section.level[1]))
-            if story == "moment" and self.heavy:
+            if story == "moment" and self.heavy and not ch.band:
                 # Everyone: the violins an octave above the pad, and voices where the palette has them.
                 for bar, chord in enumerate(chords):
                     at = first + bar * beats
@@ -1104,6 +1240,16 @@ class Take:
             at += size
         half = pulse / 2 if pulse == 1.0 else pulse
         slots = int(round(beats / half))
+        # A riff of its own for this take: where in the bar the chords fall and how long each rings.
+        if beats == 4.0:
+            self.riff = list(rng.choice((
+                ((0.0, 1.5), (1.5, 1.0), (2.5, 1.5)), ((0.0, 0.75), (2.0, 0.75), (3.0, 0.5), (3.5, 0.5)),
+                ((0.0, 2.0), (2.5, 0.5), (3.0, 1.0)), ((0.0, 0.5), (0.5, 0.5), (1.5, 1.0), (2.5, 1.5)),
+                ((0.0, 1.0), (1.0, 0.5), (2.0, 1.0), (3.5, 0.5)), ((0.0, 3.0), (3.0, 0.5), (3.5, 0.5)))))
+        elif beats == 3.0 and pulse == 0.5:
+            self.riff = list(rng.choice((((0.0, 1.0), (1.5, 1.0)), ((0.0, 1.5), (1.5, 0.5), (2.0, 1.0)), ((0.0, 0.5), (1.0, 0.5), (1.5, 1.5)))))
+        else:
+            self.riff = [(start, size * 0.8) for start, size in zip(starts, self.group)]
         # A pattern of its own for this take: which note of the chord falls on which half beat.
         walk, pattern = rng.randrange(3), []
         for slot in range(slots):
@@ -1116,8 +1262,10 @@ class Take:
                 level = self.level(section, bar)
                 along = bar / bars
                 density = {"open": 0.15, "theme": 0.5, "rise": 0.5 + 0.5 * along, "moment": 1.0, "close": 0.4 * (1.0 - along)}[story]
-                if story == "open" and (figure not in ("toll", "rock", "arp") or bar % 2 == 1 or bar == 0):
+                if story == "open" and not ch.band and (figure not in ("toll", "rock", "arp") or bar % 2 == 1 or bar == 0):
                     continue
+                if ch.band and story == "open":
+                    density = 0.3                              # a band opens on its riff alone
                 if density < 0.12:
                     continue
                 notes = voiced(key, chord, before, 3, inst.home - 4)
@@ -1180,6 +1328,25 @@ class Take:
                     if not thin:
                         for on, weight in self.spots("halves"):
                             self.put("rhythm", name, bar_at + on, half * 0.4, notes[0] - 12, loud * 0.5 * weight)
+                elif figure in ("riff", "chug"):
+                    # A riff: power chords with room between them, and the muted string chugging
+                    # where the chords are not. Root, fifth and octave: the third is left to the tune.
+                    root = key.pitch(chord.root, 45)
+                    root += 12 if root < 40 else -12 if root > 52 else 0
+                    power = (root, root + 7, root + 12)
+                    hits = self.riff
+                    if density > 0.85 or figure == "chug":
+                        hits = hits + [(on, None) for on in [index * half for index in range(slots)]
+                                       if not any(abs(on - at) < 1e-6 for at, _ in hits)]
+                    for on, length in sorted(hits, key=lambda hit: hit[0]):
+                        if length is None:
+                            if thin:
+                                continue
+                            self.put("rhythm", "muted guitar", bar_at + on, 0.2, root, loud * (0.75 if on in starts else 0.6))
+                            self.put("rhythm", "muted guitar", bar_at + on, 0.2, root + 7, loud * 0.5)
+                        else:
+                            for pitch in power:
+                                self.put("rhythm", "rhythm guitar", bar_at + on, length * 0.92, pitch, loud * (1.0 if on in starts else 0.9))
                 elif figure == "pattern":
                     for slot, which in enumerate(pattern):
                         if which is None or (thin and slot % 2):
@@ -1187,7 +1354,7 @@ class Take:
                         self.put("rhythm", name, bar_at + slot * half, half * 1.2, ladder[which], loud * (1.0 if slot * half in starts else 0.75))
                 else:
                     raise ValueError("No such figure: %r" % figure)
-                if story == "moment" and self.heavy:
+                if story == "moment" and self.heavy and not ch.band:
                     # At the moment the brass marks the chord on the strong beats.
                     for on in starts:
                         for pitch in voiced(key, chord, None, 3, 58):
@@ -1199,6 +1366,8 @@ class Take:
         name = ch.basses[self.take % len(ch.basses)]
         inst = INSTRUMENTS[name]
         way = rng.choice(("two", "walk", "oct") if ch.busy >= 0.5 else ("long", "two", "walk"))
+        if ch.band and self.heavy:
+            way = "eight"
         starts, at = [], 0.0
         for size in self.group:
             starts.append(at)
@@ -1230,11 +1399,16 @@ class Take:
                     near = key.pitch(lead_in, inst.home - 5)
                     near += 12 if near < toward - 6 else -12 if near > toward + 6 else 0
                     self.put("bass", name, bar_at + beats - pulse, pulse, near, loud * 0.8)
+                elif way == "eight":
+                    step = 0.5
+                    for index in range(int(round(beats / step))):
+                        on = index * step
+                        self.put("bass", name, bar_at + on, step * 0.85, root, loud * (1.0 if on in starts else 0.8))
                 else:
                     step = pulse if pulse == 1.0 else pulse * 1.0
                     for index in range(int(round(beats / step))):
                         self.put("bass", name, bar_at + index * step, step * 0.8, root + (12 if index % 2 else 0), loud * (1.0 if index % 2 == 0 else 0.75))
-                if story == "moment" and self.heavy:
+                if story == "moment" and self.heavy and not ch.band:
                     low = "tuba" if "tuba" in ch.basses + ch.under else "basses"
                     self.put("bass", low, bar_at, beats, root, self.hard(level, 0.8), tag=" tutti")
 
@@ -1264,6 +1438,9 @@ class Take:
             for bar, chord in enumerate(chords):
                 level, bar_at, along = self.level(section, bar), first + bar * beats, bar / bars
                 if story == "open":
+                    if ch.band and not fight and bar == bars - 1 and ch.kit in ("rock", "room"):
+                        for on, weight in self.spots("pulses"):          # the sticks count the band in
+                            self.strike("hat", bar_at + on, 0.5 * weight, chord, key)
                     if fight:
                         if bar == 0:
                             for sound in ("crash", "great drum" if "great drum" in ch.drums else "boom"):

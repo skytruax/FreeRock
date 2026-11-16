@@ -1,8 +1,13 @@
-"""Writing the orchestra's library: which families there are, and playing every take of them.
+"""Writing the studio's library: which families there are, and playing every take of them.
 
-    uv run --no-sync python -m freerock.studio.build              every family, every take
-    uv run --no-sync python -m freerock.studio.build --list       what there would be
-    uv run --no-sync python -m freerock.studio.build --only reel  only families whose name has "reel" in it
+The orchestra's families are for the Warcraft style and the band's for Knight Rock; both are
+written by studio.orchestra and played through the sampled instruments, the band's guitars
+through our own amplifier as well.
+
+    uv run --no-sync python -m freerock.studio.build                 every family, every take
+    uv run --no-sync python -m freerock.studio.build --list          what there would be
+    uv run --no-sync python -m freerock.studio.build --only reel     only families whose name has "reel" in it
+    uv run --no-sync python -m freerock.studio.build --style knight  only the band's
 
 A take that is staged already is left alone, so the command can be stopped and run again.
 """
@@ -20,17 +25,19 @@ from pathlib import Path
 import numpy as np
 
 from .. import analysis, forever
-from . import RATE, fluid, room, stage_root, write_track
+from . import RATE, amp, fluid, room, stage_root, write_track
 from .orchestra import CHARACTERS, Family, Take, family
 from .score import humanise, write_midi
 
-STYLE = "warcraft"
 VAR = Path(__file__).resolve().parents[3] / "var"
+SCRATCH = VAR / "studio" / ".scratch"
 MASTER = 20261115
 # Where each channel sits when everyone is playing (LUFS at the moment, before the whole track
 # is brought to the bucket's level): the tune on top, the pad and the accompaniment under it.
 PLACE = {"lead": -17.0, "texture": -21.0, "rhythm": -21.5, "bass": -20.0, "drums": -20.0}
 LIGHT = {"drums": -24.0, "bass": -21.5}        # a light track's drums and bass sit further back
+BAND = {"lead": -17.0, "rhythm": -18.5, "drums": -18.0, "bass": -19.5, "texture": -24.0}       # a band: guitars and drums up front
+BAND_LIGHT = {"drums": -21.0, "bass": -21.0, "rhythm": -20.0}
 RIDE = 0.42                    # how far each part of the story is brought up towards the loudest part
 # The least each channel is played at in each part of the story, so that the story is whole
 # whatever the game is doing; the game then only adds weight to the drums and the bass.
@@ -47,7 +54,7 @@ def plan() -> list[tuple[Family, int]]:
     titles: set[str] = set()
     for index, character in enumerate(CHARACTERS):
         if character.role == "wander":
-            shapes = [3, 2] if character.light else [3]
+            shapes = [3, 2] if character.light or character.band else [3]
         elif character.role in ("battle", "ember", "storm", "boss"):
             shapes = [2, 2]
         else:
@@ -69,7 +76,7 @@ def plan() -> list[tuple[Family, int]]:
 
 
 def folder_of(fam: Family, take: int) -> Path:
-    return stage_root(VAR, STYLE) / fam.name / str(take)
+    return stage_root(VAR, fam.character.style) / fam.name / str(take)
 
 
 def stage(fam: Family, take: int) -> dict:
@@ -86,7 +93,7 @@ def stage(fam: Family, take: int) -> dict:
         bars += section.bars
         edges.append(int(round(bars * bar_frames)))
     moment = next(index for index, section in enumerate(fam.sections) if section.story == "moment")
-    scratch = Path(tempfile.mkdtemp(prefix="take-", dir=str(stage_root(VAR, STYLE) / ".scratch")))
+    scratch = Path(tempfile.mkdtemp(prefix="take-", dir=str(SCRATCH)))
     parts: dict[str, np.ndarray] = {}
     try:
         for channel, voices in written.voices.items():
@@ -95,16 +102,38 @@ def stage(fam: Family, take: int) -> dict:
                 continue
             for voice in playing:
                 humanise(voice, rng, timing=0.005 if channel == "drums" else 0.011, bpm=fam.bpm)
-            midi = scratch / (channel + ".mid")
-            write_midi(midi, playing, fam.bpm, written.total + (forever.POST_S + 1.0) * fam.bpm / 60.0)
-            audio = fluid.render(midi, scratch / (channel + ".wav"))
-            if len(audio) < frames:
-                audio = np.concatenate([audio, np.zeros((frames - len(audio), 2), dtype=np.float32)])
-            parts[channel] = room.add(audio[:frames], seconds=character.hall[0], wet=character.hall[1])
+            # The electric guitars are played clean, apart from everyone else in the channel,
+            # and then put through the amplifier: two rhythm guitars side by side, or one lead
+            # in the middle with its echo.
+            whole_part = np.zeros((frames, 2), dtype=np.float32)
+            for wired in (False, True):
+                voices = [voice for voice in playing if voice.wired == wired]
+                if not voices:
+                    continue
+                midi = scratch / ("%s%s.mid" % (channel, "-wired" if wired else ""))
+                write_midi(midi, voices, fam.bpm, written.total + (forever.POST_S + 1.0) * fam.bpm / 60.0)
+                audio = fluid.render(midi, midi.with_suffix(".wav"))
+                if len(audio) < frames:
+                    audio = np.concatenate([audio, np.zeros((frames - len(audio), 2), dtype=np.float32)])
+                audio = audio[:frames]
+                if wired:
+                    before = analysis.loudness_lufs(audio[:whole], RATE)
+                    if channel == "rhythm":
+                        audio = amp.drive(audio, gain=9.0, wide=0.013)
+                    else:
+                        audio = amp.echo(amp.drive(audio, gain=7.0, top=4200.0, wide=0.0, bark=4.0, bite=1.5), 45.0 / fam.bpm)
+                    after = analysis.loudness_lufs(audio[:whole], RATE)
+                    if after > -70.0 and before > -70.0:
+                        audio = audio * np.float32(10 ** ((before - after) / 20.0))        # as loud as it was played
+                whole_part += audio
+            parts[channel] = room.add(whole_part, seconds=character.hall[0], wet=character.hall[1])
     finally:
         shutil.rmtree(scratch)
     # Each channel to its place in the mix, by how loud it is where everyone is playing.
-    places = dict(PLACE, **(LIGHT if character.weight < 0.7 else {}))
+    if character.band:
+        places = dict(BAND, **(BAND_LIGHT if character.weight < 0.7 else {}))
+    else:
+        places = dict(PLACE, **(LIGHT if character.weight < 0.7 else {}))
     levels, gains = {}, {}
     for channel in list(parts):
         audio = parts[channel]
@@ -147,11 +176,12 @@ def stage(fam: Family, take: int) -> dict:
             told["tonic"] = fam.key.lifted(fam.lift).name
         sections.append(told)
     meta = {
-        "style": STYLE, "family": fam.name, "take": take, "title": fam.title, "tempo": fam.bpm, "beats": fam.beats,
+        "style": character.style, "family": fam.name, "take": take, "title": fam.title, "tempo": fam.bpm, "beats": fam.beats,
         "bar_frames": bar_frames, "tonic": fam.key.name, "moods": list(character.kinds), "role": character.role,
         "serves": list(character.serves), "light": character.light, "sections": sections, "floor": FLOOR,
         "follow": {"rhythm": ["lead"], "texture": ["lead"]}, "post_s": forever.POST_S,
-        "credit": "Written by FreeRock's studio (%s, %s); played on the MuseScore General SoundFont" % (character.name, fam.metre),
+        "credit": "Written by FreeRock's studio (%s, %s); played on the MuseScore General SoundFont%s" % (
+            character.name, fam.metre, " and our own amplifier" if character.band else ""),
         "seed": fam.seed, "measured": {"sections": loudness, "channels": levels, "gains": gains},
     }
     write_track(folder_of(fam, take), meta, parts)
@@ -168,22 +198,25 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Write and play the orchestra's library.")
     parser.add_argument("--list", action="store_true", help="say what there would be, and write nothing")
     parser.add_argument("--only", default="", help="only families whose name contains this")
+    parser.add_argument("--style", default="", help="only families of this style (warcraft, knight)")
     parser.add_argument("--workers", type=int, default=6)
     args = parser.parse_args(argv)
     families = plan()
-    jobs = [(index, take) for index, (fam, takes) in enumerate(families) for take in range(1, takes + 1)
-            if args.only in fam.name]
+    def wanted(fam: Family) -> bool:
+        return args.only in fam.name and args.style in ("", fam.character.style)
+
+    jobs = [(index, take) for index, (fam, takes) in enumerate(families) for take in range(1, takes + 1) if wanted(fam)]
     if args.list:
         seconds = 0.0
         for fam, takes in families:
-            if args.only in fam.name:
+            if wanted(fam):
                 seconds += fam.seconds * takes
-                print("%-34s %-24s %-20s %5.0f %s  %3.0f s x %d  %s%s" % (
-                    fam.name, fam.title, fam.key.name, fam.bpm, fam.metre, fam.seconds, takes, fam.character.role,
-                    " light" if fam.character.light else ""))
+                print("%-8s %-34s %-24s %-20s %5.0f %s  %3.0f s x %d  %s%s" % (
+                    fam.character.style, fam.name, fam.title, fam.key.name, fam.bpm, fam.metre, fam.seconds, takes,
+                    fam.character.role, " light" if fam.character.light else ""))
         print("%d families, %d tracks, %.0f minutes" % (len({index for index, _ in jobs}), len(jobs), seconds / 60.0))
         return 0
-    (stage_root(VAR, STYLE) / ".scratch").mkdir(parents=True, exist_ok=True)
+    SCRATCH.mkdir(parents=True, exist_ok=True)
     todo = [(index, take) for index, take in jobs if not (folder_of(families[index][0], take) / "track.json").is_file()]
     print("%d tracks to write, %d already staged" % (len(todo), len(jobs) - len(todo)), flush=True)
     began, done = time.time(), 0

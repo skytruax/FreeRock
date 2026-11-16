@@ -31,6 +31,7 @@ class Voice:
     swells: list[tuple[float, float]] = field(default_factory=list)      # (beat, 0..1): the expression pedal
     pan: float = 0.0           # -1 left to 1 right
     volume: float = 1.0        # 0 to 1: how loud the instrument is set
+    wired: bool = False        # a guitar that is recorded clean and then played through the amplifier
     shift: float = 0.0         # seconds: an instrument that speaks late is played a little early
 
     def add(self, start: float, length: float, pitch: int, loud: float = 0.7) -> None:

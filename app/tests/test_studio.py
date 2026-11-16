@@ -258,3 +258,55 @@ def test_a_long_part_is_kept_in_stretches(tmp_path):
     assert bucket.pieces[piece]["windows"] == 3 and bucket.pieces[piece]["frames"] == 40 * bar
     with pytest.raises(ValueError):
         bucket.add_piece({("rhythm", 1): audio, ("drums", 1): audio[:-5]}, title="Uneven", bar_frames=bar, bars=16)
+
+
+# --- the band ------------------------------------------------------------------------------------
+
+def test_the_amplifier_keeps_the_length_and_makes_two_guitars_of_one():
+    from freerock.studio import amp
+    chord = tone(RATE, 110.0, 0.2) + tone(RATE, 165.0, 0.2)                 # a root and its fifth
+    driven = amp.drive(chord)
+    assert driven.shape == chord.shape and np.isfinite(driven).all()
+    assert 0.05 < float(np.abs(driven).max()) < 2.0
+    # What the two notes make between them in the valves: a tone at their difference that neither has.
+    def at(audio, hz):
+        return abs(np.dot(audio[:, 0], np.sin(2 * np.pi * hz * np.arange(len(audio)) / RATE))) / len(audio)
+    assert at(driven, 275.0) > 20 * at(chord, 275.0), "the notes did not beat against each other"
+    assert not np.allclose(driven[:, 0], driven[:, 1]), "a rhythm part should be two guitars, side by side"
+    middle = amp.drive(chord, wide=0.0)
+    assert np.allclose(middle[:, 0], middle[:, 1])
+    assert not amp.drive(np.zeros((RATE, 2), dtype=np.float32)).any()       # nothing in, nothing out
+    pluck = np.zeros((RATE, 2), dtype=np.float32)
+    pluck[:2400] = tone(2400, 440.0, 0.3)                                   # a note a twentieth of a second long
+    again = amp.echo(pluck, 0.25)
+    assert again.shape == pluck.shape and np.array_equal(again[:2400], pluck[:2400])
+    assert float(np.abs(again[12000:14400]).max()) > 0.05, "the note did not come back a quarter of a second later"
+    assert float(np.abs(again[24000:26400]).max()) < float(np.abs(again[12000:14400]).max()), "the echo did not die away"
+
+
+def test_a_band_plays_riffs_on_wired_guitars_and_the_bass_in_eighths():
+    character = next(each for each in orchestra.CHARACTERS if each.name == "banner ride")
+    assert character.band and character.style == "knight"
+    fam = orchestra.family(character, 5, "f", "F")
+    take = orchestra.Take(fam, 1)
+    riffs = take.voices["rhythm"]
+    assert "rhythm guitar" in riffs and riffs["rhythm guitar"].wired and riffs["rhythm guitar"].notes
+    assert all(voice.wired for voice in take.voices["lead"].values()), "the band's tune is the lead guitar's"
+    assert not any(voice.wired for channel in ("texture", "bass", "drums") for voice in take.voices[channel].values())
+    # The moment has the tune twice: twin guitars a third apart.
+    assert "lead guitar twin" in take.voices["lead"]
+    # The bass sits on the root in eighths through the theme.
+    theme = next(span for span in take.spans if span[0].story == "theme")
+    first = theme[1]
+    bar = [note for voice in take.voices["bass"].values() for note in voice.notes if first - 0.05 <= note.start < first + fam.beats - 0.05]
+    assert len(bar) == int(fam.beats * 2) and len({note.pitch for note in bar}) == 1
+
+
+def test_the_plan_has_a_band_for_knight_rock_beside_the_orchestra():
+    families = build.plan()
+    styles = {fam.character.style for fam, _ in families}
+    assert styles == {"warcraft", "knight"}
+    knight = [fam for fam, _ in families if fam.character.style == "knight"]
+    assert {kind for fam in knight for kind in fam.character.kinds} == set(kinds.KINDS)
+    assert {fam.character.role for fam in knight} == set(studio.ROLES)
+    assert all(build.folder_of(fam, 1).parts[-3] == "knight" for fam in knight)
