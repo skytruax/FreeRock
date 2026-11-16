@@ -638,7 +638,9 @@
       const left = this.left[slot];
       if (left && !options.natural && left.key === bucket.key && left.piece !== options.except
           && index.has(left.piece) && serves(index.get(left.piece)) && now - left.at < (slot === "fight" ? FIGHT_AGAIN : RESUME_WITHIN)
-          && !(this.target.place === "boss" && index.get(left.piece).meta.role !== "boss")) {
+          && (slot === "walk" || index.get(left.piece).meta.role === this.target.place)) {
+        // (A fight's track is only gone on with in the same kind of moment: a fight's in a
+        // fight, a boss's against a boss, a storm's in a storm.)
         const piece = index.get(left.piece);
         const from = Math.floor(left.position / piece.bar + 1e-6) * piece.bar;
         if (!options.peek) this.left[slot] = null;
@@ -1508,14 +1510,18 @@
         if (group.piece) await this._gearPiece(group); else await this._gear();
         if (this.group !== group) return;
         this._breath(group);
-        await this._handover(group);
-        if (this.group !== group || !this.started) return;
-        for (const each of [group, this.next]) {
-          if (!each) continue;
+        // What is playing is laid down first; then what follows it is made ready (which may
+        // mean fetching it, and a short piece must not wait for that), and laid down in turn.
+        for (const each of [group, null]) {
+          if (each === null) {
+            await this._handover(group);
+            if (this.group !== group || !this.started) return;
+          }
+          const decks = each || this.next;
+          if (!decks) continue;
           // The deck that has waited longest past its time goes first for the free line.
-          const decks = Object.values(each.decks).sort((a, b) => a.changeAt - b.changeAt);
-          for (const deck of decks) {
-            await this._fill(each, deck);
+          for (const deck of Object.values(decks.decks).sort((a, b) => a.changeAt - b.changeAt)) {
+            await this._fill(decks, deck);
             if (this.group !== group || !this.started) return;
           }
         }

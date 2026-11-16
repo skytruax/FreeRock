@@ -664,8 +664,9 @@ tests.pieceFight = async () => {
 tests.pieceFightAgain = async () => {
   const bucket = makePieces("again", [{ id: "walk", windows: 8 }, { id: "brawl", windows: 4, serves: [2], role: "battle" },
                                       { id: "scrap", windows: 4, serves: [2], role: "battle" }]);
-  const run = await render(50, { bucket, script: [[10.3, (engine) => engine.setTarget(mix(2))], [20.3, (engine) => engine.setTarget(mix(1))],
-                                                  [30.3, (engine) => engine.setTarget(mix(2))]] });
+  const fight = Object.assign(mix(2), { place: "battle" }), calm = Object.assign(mix(1), { place: "wander" });
+  const run = await render(50, { bucket, script: [[10.3, (engine) => engine.setTarget(fight)], [20.3, (engine) => engine.setTarget(calm)],
+                                                  [30.3, (engine) => engine.setTarget(fight)]] });
   const fights = run.engine.log.filter((entry) => pieceOf(entry) !== "walk").sort((a, b) => a.at - b.at);
   const first = fights[0], second = fights.find((entry) => entry.at > 30);
   return { first: first ? pieceOf(first) : null, second: second ? pieceOf(second) : null, secondClip: second ? second.clip : null,
