@@ -73,6 +73,14 @@ def main(styles: list[str]) -> int:
         out.mkdir(parents=True, exist_ok=True)
         (out / "index.html").write_text(page(style, rows), encoding="utf-8")
         print("%s: %d tracks to listen to in %s" % (style, len(rows), out))
+    # A front page for whatever styles have been written out so far.
+    have = sorted(folder.name for folder in (VAR / "listen").iterdir() if (folder / "index.html").is_file())
+    (VAR / "listen" / "index.html").write_text(
+        "<!doctype html><html><head><meta charset='utf-8'><title>FreeRock: tracks to listen to</title>"
+        "<style>body{font:17px sans-serif;margin:32px;background:#16181c;color:#e8e8e8}a{color:#ffd76a}</style></head><body>"
+        "<h1>FreeRock: tracks to listen to</h1><p>Whole tracks as the studio wrote them, every channel playing.</p><ul>"
+        + "".join("<li><a href='%s/index.html'>%s</a></li>" % (html.escape(name, quote=True), html.escape(name)) for name in have)
+        + "</ul></body></html>\n", encoding="utf-8")
     return 0
 
 
