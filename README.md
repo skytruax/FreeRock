@@ -130,6 +130,12 @@ back with a fresh opening. Anything happening brings it straight back.
 | `freerock pieces songs [style]` | Cuts every song on disk in a style into written pieces, in the style's bucket. Does nothing the second time. Stop the server first. |
 | `freerock pieces add [style]` | Puts every track the studio has staged for a style in its bucket, skipping those already there. Stop the server first. |
 | `freerock pieces list [style]` | What written pieces a style has: how many, how long, and how they divide by kind of moment, kind of place, light and heavy |
+| `uv run --no-sync python -m freerock.studio.build` | The studio's orchestra: writes and plays every family of original orchestral tracks, staging them under `var/studio/warcraft/` (`--list` says what there would be) |
+| `uv run --no-sync --with numba python -m freerock.studio.house` | The studio's house writer and its synthesiser: stages tracks under `var/studio/house/` |
+| `uv run --no-sync python -I -m freerock.studio.scores stage` | Real public-domain scores, played by family and staged (`fetch` gets them first) |
+| `uv run --no-sync python ../tools/listen.py [style]` | Every staged track as one file to listen to, under `var/listen/`; the server shows them at `/listen/` |
+| `uv run --no-sync python ../tools/soak.py [style]` | A pretend evening played through the running server and a hidden browser: what music was chosen, and whether it played without a hitch |
+| `freerock settings pieces off` | Only the loose phrases are played (`on` brings the written pieces back); the same as the tick box on the player page |
 | `freerock stems [--to folder]` | Keeps every phrase and every part of every piece as a FLAC file, with `stems.csv` saying what each is |
 | `freerock settings [name value]` | Shows or changes `monthly_minutes` (300), `daily_minutes` (30), `hours_per_month` (100), `rock` (0.5), `rest_every_minutes` (6; 0 for no rests) and `rest_seconds` (60) |
 | `freerock adopt <folder>` | Looks again at a track that failed its checks; keeps it if it now passes |

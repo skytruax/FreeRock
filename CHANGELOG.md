@@ -53,6 +53,33 @@ What was added that night:
   for its piece. A page that connects is told where the player is before it is given the
   music, so that the first piece it plays is one for that place.
 
+- **The studio and what it wrote that night** (`app/freerock/studio/`). Nothing in it asks
+  anyone outside this machine for anything.
+  - *The orchestra* (`orchestra.py`, `build.py`): original music written as notes and played
+    through a sampled orchestra (FluidSynth and the MuseScore General SoundFont, unpacked under
+    `var/tools/`: `tools/stems/README.md`). 58 characters: light and heavy music for each kind
+    of place (a village dance in six-eight, a requiem, a caravan, troll drums in five-four, a
+    dwarven hall...), and for the night, an inn, a cave, a storm, a fight and a boss. Each
+    family has its own key, tempo, metre and changes; each take its own tune (a motif of two
+    bars, answered, repeated higher and brought home), accompaniment, bass, drums and players.
+    90 families, 223 tracks, 643 minutes.
+  - *Real scores* (`scores.py`): public-domain orchestral works with clean licences, read from
+    MusicXML and MIDI, each family of the orchestra played alone, every movement cut into
+    tracks of about three minutes with the story found from its own loudness. All nine
+    Beethoven symphonies, Brahms's four, Bruckner's Fifth, Dvořák's Ninth, William Tell,
+    Egmont, Coriolan and more: 251 tracks, 743 minutes, each credited with its source.
+  - *House* (`house.py`, `synth.py`): progressive house at 110 beats a minute on a synthesiser
+    of our own, drums from CC0 recordings of a drum machine. 53 families, 159 tracks, 438 minutes.
+  - With Knight Rock's 101 tracks that is 734 tracks, about 32 hours, before any two takes
+    swap parts.
+- **A way back.** A tick box on the player page ("Play the written pieces"; `freerock settings
+  pieces off`) plays only the loose phrases, as the forever song was before.
+- **Listening without the game.** `tools/listen.py` writes every staged track as one file with
+  a page to play them from; the server shows them at `/listen/`. `tools/soak.py` plays a
+  pretend evening (a walk, a fight, a border, an inn, a boss, a desert at night, a cave) through
+  the real server and a browser nobody sees, and prints what was chosen and when.
+- The parts of pieces are kept as FLAC, half the size of the raw samples the loose phrases use.
+
 Heard by nobody yet: the player has been measured with pieces (its parts locked together, no
 seam where two stretches or two pieces join, the fight's piece in on the beat and the track
 picked up after), and has played the real Knight Rock bucket in a browser here without a
