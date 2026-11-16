@@ -173,6 +173,44 @@ def test_an_elite_and_a_boss():
     assert world_boss(5).place == "boss"
 
 
+def test_more_enemies_in_the_fight_make_it_jump():
+    def after(seconds, *script):
+        return play(list(script), seconds, start=STANDING)(seconds)
+
+    one = after(3.0, (1.0, {**FIGHT, "fighting": 1}))
+    two = after(3.0, (1.0, {**FIGHT, "fighting": 2}))
+    three = after(3.0, (1.0, {**FIGHT, "fighting": 3}))
+    many = after(3.0, (1.0, {**FIGHT, "fighting": 9}))
+    unknown = after(3.0, (1.0, FIGHT))
+    assert 0.80 <= one.intensity < 0.84 and one.intensity == unknown.intensity
+    assert 0.85 <= two.intensity <= 0.87 and "2 enemies in the fight" in two.why     # and building from there
+    assert three.intensity == pytest.approx(0.90, abs=0.011) and "3 enemies in the fight" in three.why
+    assert many.intensity == pytest.approx(0.96, abs=0.011)
+    # It comes in during the fight too: a third enemy joining three seconds in.
+    joined = after(4.5, (1.0, {**FIGHT, "fighting": 1}), (4.0, {"fighting": 3}))
+    assert joined.intensity == pytest.approx(0.90, abs=0.011)
+
+
+def test_a_fight_against_one_enemy_builds_slowly():
+    early = play([(1.0, {**FIGHT, "fighting": 1})], 4.0, start=STANDING)(4.0)
+    late = play([(1.0, {**FIGHT, "fighting": 1})], 19.0, start=STANDING)(19.0)
+    assert early.intensity < 0.84 < late.intensity <= 0.90
+
+
+def test_enemies_in_view_keep_the_music_from_sitting_right_back():
+    def after(change):
+        return play([(1.0, change)] if change else [], 30.0, start=STANDING)(30.0)
+
+    alone, company, crowd = after(None), after({"enemies": 4}), after({"enemies": 12})
+    assert alone.intensity < 0.3
+    assert company.intensity == pytest.approx(0.56, abs=0.011) and "enemies close by" in company.why
+    assert crowd.intensity == pytest.approx(0.62, abs=0.011)
+    # Two is not company, an inn is not the place, and an addon that does not say changes nothing.
+    assert after({"enemies": 2}).intensity == alone.intensity
+    assert after({"enemies": 6, "resting": True, "indoors": True}).intensity <= 0.30
+    assert after({"enemies": None}).intensity == alone.intensity
+
+
 def test_a_short_fight_goes_straight_back_with_no_calm_part_after():
     at = play([(5, FIGHT), (8, NO_FIGHT)], 25, start=STANDING)
     assert at(4.75).place == "wander"

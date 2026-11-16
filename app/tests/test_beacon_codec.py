@@ -86,17 +86,37 @@ def test_unpack_refuses_what_is_not_a_frame():
             with pytest.raises(beacon.BeaconError):
                 beacon.unpack(bytes(spoiled))
     # A later version of the format, correctly summed, is refused by name rather than misread.
-    body = bytes([0x30]) + payload[1:-2]
-    with pytest.raises(beacon.BeaconError, match="version 3"):
+    body = bytes([0x40]) + payload[1:-2]
+    with pytest.raises(beacon.BeaconError, match="version 4"):
         beacon.unpack(body + beacon.crc16(body).to_bytes(2, "big"))
-    # The version before this one is still read: the addon in the game may be older than the program.
-    body = bytes([0x10]) + payload[1:-2]
-    assert beacon.unpack(body + beacon.crc16(body).to_bytes(2, "big")) == dataclasses.replace(SAMPLE, version=1)
+
+
+def test_older_addons_are_still_read_and_do_not_say_what_was_added_later():
+    """The addon in the game may be older than the program. Versions 1 and 2 use the whole of
+    the command and moment bytes for the command and the moment; version 3 shares them with the
+    two counts of enemies."""
+    new = dataclasses.replace(SAMPLE, command=2, moment=5, enemies=3, fighting=2)
+    payload = beacon.pack(new)
+    assert payload[21] == (3 << 4) | 2 and payload[23] == (2 << 4) | 5
+    assert beacon.unpack(payload) == new
+    for version in (1, 2):
+        old = dataclasses.replace(SAMPLE, version=version, command=2, moment=5)
+        payload = beacon.pack(old)
+        assert payload[21] == 2 and payload[23] == 5
+        read = beacon.unpack(payload)
+        assert read == old
+        assert (read.enemies, read.fighting) == (beacon.UNKNOWN_COUNT, beacon.UNKNOWN_COUNT)
+    # A count that does not fit its four bits is refused, as is a command that no longer has eight.
+    with pytest.raises(beacon.BeaconError):
+        beacon.pack(dataclasses.replace(SAMPLE, enemies=16))
+    with pytest.raises(beacon.BeaconError):
+        beacon.pack(dataclasses.replace(SAMPLE, command=16))
 
 
 def test_test_frames():
     payload = beacon.pack(beacon.Frame(kind=beacon.KIND_TEST))
-    assert payload[0] == 0x21
+    assert payload[0] == 0x31
+    assert beacon.pack(beacon.Frame(kind=beacon.KIND_TEST, version=2))[0] == 0x21
     assert beacon.pack(beacon.Frame(kind=beacon.KIND_TEST, version=1))[0] == 0x11
     assert list(payload[1:4]) == [(17 * i + 3) % 256 for i in (1, 2, 3)]
     assert beacon.unpack(payload).kind == beacon.KIND_TEST

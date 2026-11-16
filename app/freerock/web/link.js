@@ -74,6 +74,10 @@ function drawState(game) {
     ? "not reported (an older addon, or the game gives none)" : `${game.speed} yards a second`);
   set("target", game.has_target
     ? `${game.target_class}${game.target_hostile ? ", can be fought" : ""}` : "none");
+  const count = (value) => value >= 14 ? "14 or more" : String(value);
+  set("enemies", game.enemies === null || game.enemies === undefined
+    ? "not reported (an older addon, or the game does not say)"
+    : `${count(game.enemies)} with a nameplate on screen, ${count(game.fighting)} in a fight`);
   set("weather", game.weather === null ? "not reported by the game"
     : `${game.weather}${game.weather_intensity === null ? "" : `, intensity ${game.weather_intensity}`}`);
   set("daylight", game.daytime === null ? "not reported by the game" : (game.daytime ? "day" : "night"));

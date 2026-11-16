@@ -1,5 +1,47 @@
 # Changelog
 
+## The forever song (2026-11-15, the first evening in the game)
+
+The first evening with the real game changed what FreeRock is. Whole songs made a few minutes
+at a time turned out to repeat, and to answer the game too slowly. What replaced them:
+
+- **A bucket of phrases, and five decks.** The music for a place in a style is a bucket of
+  phrases, each one instrument alone (drums, bass, a rhythm part, a tune, a drone) at up to
+  three strengths (calm, steady, hard), all on the place's tempo and tonal centre. The player
+  keeps one phrase of each going on a shared bar grid. `settings.mode` is `forever` for this
+  (the default) and `songs` for the songs of before.
+- **A phrase is one turn of a form**: a verse, a build-up and a chorus, about three quarters of
+  a minute, the same lengths for every channel, so the whole band builds up together and
+  reaches the chorus together. The player shapes each turn as well (the verse held back, a rise
+  through the build-up, the chorus at full; in Trance the lows are swept away before the
+  chorus lands). Each time the form comes round, two of the decks may take a new phrase.
+- **It follows the game channel by channel.** Standing still is the drone and the tune; moving
+  brings the rhythm part and soft drums; a ride or a long walk the steady drums and the bass; a
+  fight the hard drums and riff on the next half beat, in step, at that place in the form.
+- **It counts the enemies in a fight** (strip version 3, see `protocol/beacon.md`): a second
+  enemy brings the hard lead at once, a third the hard bass line, more than that everything.
+  Enemies in view out of a fight keep the music from sitting right back.
+- **It rises and falls of its own accord.** Now and then a turn of the form eases right off (to
+  chill a minute), now and then one leans in. After about `rest_every_minutes` of music it
+  comes down to a moment of silence (the last turn eased off, a fade over its last bars, about
+  `rest_seconds` of nothing) and fades back in with a new verse. A fight overrides all of it.
+- **The bucket is filled while the game is played.** A new place gets phrases two at a time
+  until every channel has three at every strength, then one at a time up to eight, then
+  wherever the music is running out of phrases nobody has heard. Each phrase is checked part by
+  part for tempo, beat and tuning and asked for again in other words if it fails. The
+  allowances are wide open by the player's choice; when ElevenLabs has nothing left, the song
+  plays on from the bucket. `Bucket.add` takes any audio, so phrases made some other way can
+  fill the same bucket.
+- **Three styles**: Knight Rock, Warcraft (an orchestral score in the old manner) and Trance,
+  chosen on the player page; a bucket per place and style.
+- Also from that evening: the strip can be drawn faint and small and hides with the interface
+  (version 2 added the player's speed and whether the target can be fought); the reader finds a
+  faint strip beside a bright sky; a building the game names as a zone is treated as a place
+  inside its zone.
+
+Not yet brought up to date: the tests of the songs mode's library, requests, track-making and
+conductor.
+
 ## After the first listen (2026-11-15)
 
 - **Rock during a rain storm.** Rain used to darken and soften the music. Now steady rain brings

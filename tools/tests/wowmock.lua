@@ -32,6 +32,9 @@ M.game = {
 	encounter = false,
 	target = nil,          -- nil for no target, else the classification string
 	canAttack = false,     -- whether the target is something the player can fight
+	-- The units that have a nameplate on screen, by their token: nameplate3 = { enemy = true,
+	-- dead = false, fighting = true }.
+	plates = {},
 	boss = false, group = false,
 	pvp = "friendly",      -- nil makes the function return nothing
 	weather = { type = 0, intensity = 0 },  -- what C_Weather.GetCurrentWeather returns
@@ -59,6 +62,10 @@ for _, name in ipairs({ "__index", "__newindex", "__call", "__concat", "__add", 
 end
 local function Seal(value)
 	return setmetatable({ hidden = value }, SEALED)
+end
+-- A sealed value for a test to hand to the addon (as the payload of an event, say).
+function M.SealedValue(value)
+	return Seal(value)
 end
 local function Answer(key, value)
 	if M.sealed[key] then
@@ -169,11 +176,33 @@ end
 function UnitOnTaxi(unit) OnlyPlayer(unit, "UnitOnTaxi") return M.game.taxi end
 function UnitIsDeadOrGhost(unit) OnlyPlayer(unit, "UnitIsDeadOrGhost") return M.game.dead or M.game.ghost end
 function UnitIsGhost(unit) OnlyPlayer(unit, "UnitIsGhost") return M.game.ghost end
-function UnitAffectingCombat(unit) OnlyPlayer(unit, "UnitAffectingCombat") return M.game.combat end
+-- A unit that has a nameplate on screen, or nil. Of such a unit FreeRock may ask whether it is
+-- there, whether it can be attacked, whether it is dead and whether it is in a fight, and
+-- nothing else.
+local function Plate(unit)
+	return type(unit) == "string" and unit:match("^nameplate%d+$") and M.game.plates[unit] or nil
+end
+local function IsPlateToken(unit)
+	return type(unit) == "string" and unit:match("^nameplate%d+$") ~= nil
+end
+function UnitAffectingCombat(unit)
+	if IsPlateToken(unit) then
+		local plate = Plate(unit)
+		return Answer("plateFighting", plate ~= nil and plate.fighting == true)
+	end
+	OnlyPlayer(unit, "UnitAffectingCombat")
+	return M.game.combat
+end
+function UnitIsDead(unit)
+	if not IsPlateToken(unit) then error("UnitIsDead asked about " .. tostring(unit), 2) end
+	local plate = Plate(unit)
+	return Answer("plateDead", plate ~= nil and plate.dead == true)
+end
 function UnitInParty(unit) OnlyPlayer(unit, "UnitInParty") return M.game.group end
 function UnitExists(unit)
 	if unit == "target" then return M.game.target ~= nil end
 	if unit == "boss1" then return M.game.boss end
+	if IsPlateToken(unit) then return Answer("plateExists", Plate(unit) ~= nil) end
 	error("UnitExists asked about " .. tostring(unit), 2)
 end
 function UnitClassification(unit)
@@ -181,6 +210,10 @@ function UnitClassification(unit)
 	return Answer("classification", M.game.target)
 end
 function UnitCanAttack(unit, other)
+	if unit == "player" and IsPlateToken(other) then
+		local plate = Plate(other)
+		return Answer("plateEnemy", plate ~= nil and plate.enemy == true)
+	end
 	if unit ~= "player" or other ~= "target" then
 		error("UnitCanAttack asked about " .. tostring(unit) .. " and " .. tostring(other), 2)
 	end

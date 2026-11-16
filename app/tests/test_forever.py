@@ -61,13 +61,21 @@ def test_every_phrase_can_be_asked_for_in_every_style():
             for channel, tier in forever.FIRST:
                 for variant in range(len(forever.RECIPES[genre][channel][tier])):
                     asked = forever.ask(profile, genre, channel, tier, variant, seed=1)
-                    chunk = asked.plan["chunks"][0]
-                    assert chunk["duration_ms"] == composer.bars_ms(profile.bpm, asked.bars)
-                    assert "%d BPM" % profile.bpm in chunk["positive_styles"]
-                    assert profile.tonic in chunk["positive_styles"]
-                    assert "{" not in " ".join(chunk["positive_styles"]), "a word was left unfilled"
-                    # One instrument alone: the others are ruled out by name.
-                    assert set(forever.OTHERS[channel]) <= set(chunk["negative_styles"])
+                    # A verse, a build-up and a chorus, each a part of the request of its own length.
+                    chunks = asked.plan["chunks"]
+                    assert [chunk["text"] for chunk in chunks] == ["[Verse]", "[Build-up]", "[Chorus]"]
+                    assert asked.sections == forever.form(profile.bpm) and asked.bars == sum(asked.sections)
+                    for chunk, bars in zip(chunks, asked.sections):
+                        assert chunk["duration_ms"] == composer.bars_ms(profile.bpm, bars)
+                        assert "%d BPM" % profile.bpm in chunk["positive_styles"]
+                        assert profile.tonic in chunk["positive_styles"]
+                        assert "{" not in " ".join(chunk["positive_styles"]), "a word was left unfilled"
+                        # One instrument alone: the others are ruled out by name, in every part.
+                        assert set(forever.OTHERS[channel]) <= set(chunk["negative_styles"])
+                        # The way of playing is the same all through; what differs is the part's own words.
+                        assert set(asked.words) <= set(chunk["positive_styles"])
+                    assert len({tuple(chunk["positive_styles"]) for chunk in chunks}) == 3
+                    assert 0.6 <= asked.minutes <= 1.1
 
 
 def test_a_drone_is_not_asked_to_keep_a_beat_and_a_tune_carries_the_moment():
@@ -80,9 +88,41 @@ def test_a_drone_is_not_asked_to_keep_a_beat_and_a_tune_carries_the_moment():
     assert "nocturnal" not in drums.plan["chunks"][0]["positive_styles"], "the parts that keep time are asked for plainly"
 
 
-def test_phrases_are_twice_as_many_bars_at_the_fastest_tempos():
-    assert forever.bars_of("drums", 120) == 4 and forever.bars_of("lead", 120) == 8
-    assert forever.bars_of("drums", 150) == 8 and forever.bars_of("lead", 150) == 16
+def test_a_phrase_is_one_turn_of_the_form_whatever_the_channel():
+    assert forever.form(80) == (4, 4, 8) and forever.form(128) == (8, 8, 16)
+    for bpm in atlas.TEMPOS:
+        verse, build, chorus = forever.form(bpm)
+        assert chorus == verse + build, "half of a turn is chorus"
+        seconds = forever.cycle_bars(bpm) * 240.0 / bpm
+        assert 38.0 <= seconds <= 64.0, "a turn of the form at %d BPM is %.0f s" % (bpm, seconds)
+        assert {forever.bars_of(channel, bpm) for channel in forever.CHANNELS} == {forever.cycle_bars(bpm)}
+
+
+def test_a_style_has_its_own_words_for_the_parts_of_the_form():
+    assert "snare roll" in " ".join(forever.section_words("trance", "drums", "build"))
+    assert "crescendo" in " ".join(forever.section_words("warcraft", "drums", "build"))
+    assert forever.section_words("knight", "lead", "chorus") == forever.SECTION_WORDS["lead"]["chorus"]
+    # Where a style says nothing of its own, the common words stand.
+    assert forever.section_words("warcraft", "lead", "verse") == forever.SECTION_WORDS["lead"]["verse"]
+
+
+def test_each_part_of_a_phrase_is_held_to_the_beat_on_its_own():
+    # Sixteen bars at 120: a verse of eight, a build-up of eight... as the form at that tempo has it.
+    sections = (4, 4, 8)
+    good = phrase(bars=16)
+    found = forever.measure(good, RATE, 120, "rhythm", sections)
+    assert found["problems"] == [] and found["verse"]["dense"] and found["chorus"]["dense"]
+    assert "build" not in found, "a build-up is not held to the tempo: fills and rolls are what it is"
+    # The chorus comes in a sixth of a second late: every other channel's chorus would be early.
+    bar = RATE * 2
+    late = np.concatenate([good[:8 * bar], np.zeros((RATE // 6, 2), dtype=np.float32), good[8 * bar:]])[:16 * bar]
+    found = forever.measure(late, RATE, 120, "rhythm", sections)
+    assert any(problem.startswith("in the chorus it starts") for problem in found["problems"])
+    assert not any("verse" in problem for problem in found["problems"])
+    # A build-up that speeds up is no fault.
+    roll = good.copy()
+    roll[4 * bar:8 * bar] = phrase(bars=4, every=0.37, seed=3)
+    assert forever.measure(roll, RATE, 120, "drums", sections)["problems"] == []
 
 
 # --- measuring ----------------------------------------------------------------------------------
@@ -139,6 +179,18 @@ def test_a_bucket_keeps_its_phrases_on_disk(tmp_path):
         again.samples("nothing")
 
 
+def test_phrases_from_before_the_form_are_kept_but_left_out_of_the_music(tmp_path):
+    bucket = bucket_at(tmp_path)
+    short = bucket.add(phrase(bars=4), channel="drums", tier=1, measured={"lufs": -20.0})
+    whole = bucket.add(phrase(bars=bucket.cycle), channel="drums", tier=1, measured={"lufs": -20.0})
+    assert [clip.id for clip in bucket.live()] == [whole.id]
+    assert [clip["id"] for clip in bucket.describe()["clips"]] == [whole.id]
+    assert len(bucket.samples(short.id)) == short.frames * 4        # still on disk
+    described = bucket.describe()
+    assert described["cycle_bars"] == 32 and described["form"] == {"verse": 8, "build": 8, "chorus": 16}
+    assert described["changes"] == 2 and described["arc"] == forever.ARC["knight"]
+
+
 def test_a_phrase_must_be_a_whole_number_of_bars(tmp_path):
     with pytest.raises(ValueError):
         bucket_at(tmp_path).add(phrase()[:-7], channel="drums", tier=1)
@@ -155,7 +207,8 @@ def test_the_first_phrases_are_what_the_music_cannot_start_without(tmp_path):
     bucket = bucket_at(tmp_path)
     asked = []
     for _ in range(len(forever.FIRST)):
-        pool = bucket.wanted()
+        pool, hurry = bucket.wanted()
+        assert hurry, "the first phrases are wanted in a hurry"
         asked.append(pool)
         fill(bucket, [pool])
     assert asked == list(forever.FIRST)
@@ -167,34 +220,62 @@ def test_what_the_music_is_drawing_on_comes_before_the_rest(tmp_path):
     bucket = bucket_at(tmp_path)
     fill(bucket, forever.FIRST[:5])
     fight = [("texture", 0), ("lead", 2), ("rhythm", 2), ("drums", 2), ("bass", 2)]
-    assert bucket.wanted(fight) == ("lead", 2)
+    assert bucket.wanted(fight) == (("lead", 2), True)
     # Phrases already on their way count, so two requests at once go to two different pools.
-    assert bucket.wanted(fight, also={("lead", 2): 1}) == ("rhythm", 2)
-    assert bucket.wanted(fight, skip={("lead", 2)}) == ("rhythm", 2)
+    assert bucket.wanted(fight, also={("lead", 2): 1}) == (("rhythm", 2), True)
+    assert bucket.wanted(fight, skip={("lead", 2)}) == (("rhythm", 2), True)
 
 
-def test_a_full_bucket_is_fed_where_the_fewest_phrases_are_unheard(tmp_path):
+def test_every_pool_is_given_depth_in_a_hurry_the_hard_phrases_before_the_calm(tmp_path):
     bucket = bucket_at(tmp_path)
-    fill(bucket, forever.FIRST, each=2)
+    fill(bucket, forever.FIRST)
+    walking = [("texture", 0), ("lead", 0), ("rhythm", 0), ("drums", 0)]
+    asked = []
+    while True:
+        pool, hurry = bucket.wanted(walking)
+        if not hurry:
+            break
+        asked.append(pool)
+        fill(bucket, [pool])
+    assert len(asked) == len(forever.FIRST) * (forever.DEPTH - 1)
+    assert all(len(bucket.pool(*pool)) == forever.DEPTH for pool in forever.FIRST)
+    # Round by round: what is playing, then what a fight will want, then the rest.
+    first_round = asked[:len(forever.FIRST)]
+    assert first_round[:4] == walking
+    assert [tier for _, tier in first_round[4:8]] == [2, 2, 2, 2]
+
+
+def test_a_deep_bucket_is_fed_where_the_music_is_running_out_of_new_phrases(tmp_path, monkeypatch):
+    monkeypatch.setattr(forever, "DEPTH", 3)
+    monkeypatch.setattr(forever, "MOST", 4)
+    bucket = bucket_at(tmp_path)
+    fill(bucket, forever.FIRST, each=3)
     calm = [("texture", 0), ("lead", 0), ("rhythm", 0), ("drums", 0)]
-    bucket.played([clip.id for clip in bucket.pool("rhythm", 0)])
-    assert bucket.wanted(calm) == ("rhythm", 0)
-    bucket.played([clip.id for clip in bucket.pool("lead", 0)])
-    assert bucket.wanted(calm) == ("lead", 0), "tunes are replaced soonest"
-    # It follows the game: with a fight on, the hard phrases are what is asked for.
-    assert bucket.wanted([("drums", 2), ("bass", 2)])[1] == 2
+    # Two of the rhythm part's three have been heard: one unheard is not enough in hand.
+    bucket.played([clip.id for clip in bucket.pool("rhythm", 0)[:2]])
+    assert bucket.wanted(calm) == (("rhythm", 0), False)
+    bucket.played([clip.id for clip in bucket.pool("lead", 0)[:2]])
+    assert bucket.wanted(calm) == (("lead", 0), False), "tunes are replaced soonest"
+    # Nothing in use is short of new phrases: the shallowest pool is deepened, what is in use first.
+    fill(bucket, [("rhythm", 0), ("lead", 0)])
+    assert bucket.wanted(calm) == (("texture", 0), False)
+    # And when every pool holds all it can, nothing more is asked for until something is heard.
+    fill(bucket, [pool for pool in forever.FIRST if len(bucket.pool(*pool)) < 4])
+    assert bucket.wanted(calm) is None
+    bucket.played([clip.id for clip in bucket.pool("drums", 0)[:3]])
+    assert bucket.wanted(calm) == (("drums", 0), False)
 
 
 def test_the_most_worn_phrase_makes_room_and_comes_back_when_no_more_can_be_made(tmp_path):
     bucket = bucket_at(tmp_path)
     fill(bucket, [("drums", 1)], each=forever.MOST + 1)
     clips = bucket.pool("drums", 1)
-    bucket.played([clips[3].id, clips[3].id, clips[5].id])
-    bucket.mark([clips[3].id], loved=True)                 # loved: never set aside
+    bucket.played([clips[1].id, clips[1].id, clips[2].id])
+    bucket.mark([clips[1].id], loved=True)                 # loved: never set aside
     gone = bucket.make_room("drums", 1)
-    assert [worn.id for worn in gone] == [clips[5].id]
+    assert [worn.id for worn in gone] == [clips[2].id]
     assert len(bucket.pool("drums", 1)) == forever.MOST
-    assert clips[5].id not in [clip["id"] for clip in bucket.describe()["clips"]]
+    assert clips[2].id not in [clip["id"] for clip in bucket.describe()["clips"]]
     bucket.everything = True
     assert len(bucket.pool("drums", 1)) == forever.MOST + 1
     bucket.mark([clips[0].id], banned=True)                # banned: never again, whatever happens
@@ -227,11 +308,23 @@ def test_walking_brings_the_rhythm_part_and_the_drums_and_a_fight_brings_everyth
     assert forever.in_use(walking) == [("texture", 0), ("lead", 0), ("rhythm", 0), ("drums", 0)]
     riding = forever.mix(Target(intensity=0.65, drums=0.8, bass=0.8))
     assert forever.in_use(riding) == [("texture", 0), ("lead", 1), ("rhythm", 1), ("drums", 1), ("bass", 1)]
+    # A fight against one enemy: the drums and the riff go hard at once.
     fight = forever.mix(Target(place="battle", intensity=0.80, drums=1.0, bass=1.0))
-    assert forever.in_use(fight) == [("texture", 0), ("lead", 1), ("rhythm", 2), ("drums", 2), ("bass", 2)]
+    assert forever.in_use(fight) == [("texture", 0), ("lead", 1), ("rhythm", 2), ("drums", 2), ("bass", 1)]
     assert fight["texture"]["level"] < 1.0, "the drone makes room for the band"
-    long_fight = forever.mix(Target(place="battle", intensity=0.90, drums=1.0, bass=1.0))
-    assert long_fight["lead"]["tier"] == 2, "the lead joins a fight that lasts"
+    # A second enemy brings the hard lead, and a third the hard bass line.
+    two = forever.mix(Target(place="battle", intensity=0.85, drums=1.0, bass=1.0))
+    assert (two["lead"]["tier"], two["bass"]["tier"]) == (2, 1)
+    three = forever.mix(Target(place="battle", intensity=0.90, drums=1.0, bass=1.0))
+    assert (three["lead"]["tier"], three["bass"]["tier"]) == (2, 2)
+
+
+def test_a_calm_tune_is_given_more_room_than_a_drum_part():
+    slow = phrase(bars=16, stretch=1.004)             # four tenths of a percent behind the pulse
+    sections = (4, 4, 8)
+    assert forever.measure(slow, RATE, 120, "lead", sections, tier=0)["problems"] == []
+    assert forever.measure(slow, RATE, 120, "lead", sections, tier=1)["problems"]
+    assert forever.measure(slow, RATE, 120, "drums", sections, tier=0)["problems"]
 
 
 def test_an_intensity_hovering_on_a_line_does_not_change_gear_back_and_forth():
@@ -280,9 +373,8 @@ class StandInGateway:
 
     def stream_music(self, *, purpose, plan, seed, output_format, zone=None):
         self.asked.append({"purpose": purpose, "plan": plan, "seed": seed, "zone": zone})
-        chunk = plan["chunks"][0]
-        bpm = int(chunk["positive_styles"][0].split()[0])
-        bars = round(chunk["duration_ms"] * bpm / 240000)
+        bpm = int(plan["chunks"][0]["positive_styles"][0].split()[0])
+        bars = round(sum(chunk["duration_ms"] for chunk in plan["chunks"]) * bpm / 240000)
         stretch = self.stretches.pop(0) if self.stretches else 1.0
         return StandInStream(phrase(bpm, bars, stretch=stretch, seed=len(self.asked)))
 
@@ -297,7 +389,9 @@ async def test_a_phrase_that_drifts_is_asked_for_again_in_other_words(tmp_path):
     assert first != second, "the second try was asked for in the same words"
     assert gateway.asked[0]["seed"] != gateway.asked[1]["seed"]
     assert gateway.asked[0]["zone"] == "elwynn-forest"
-    assert bucket.pool("rhythm", 1) == [clip] and clip.measured["tempo_off"] == pytest.approx(0.0, abs=0.05)
+    assert bucket.pool("rhythm", 1) == [clip] and clip.bars == bucket.cycle
+    assert clip.measured["verse"]["tempo_off"] == pytest.approx(0.0, abs=0.05)
+    assert clip.measured["chorus"]["tempo_off"] == pytest.approx(0.0, abs=0.05)
 
 
 async def test_a_phrase_that_fails_every_time_says_how(tmp_path):
@@ -340,6 +434,13 @@ class StandInFiller:
                               channel=channel, tier=tier, measured={"lufs": -20.0})
         finally:
             self.at_once -= 1
+
+
+@pytest.fixture(autouse=True)
+def shallow_pools(monkeypatch):
+    """The conductor tests fill small buckets, so that they take no time."""
+    monkeypatch.setattr(forever, "DEPTH", 2)
+    monkeypatch.setattr(forever, "MOST", 3)
 
 
 async def running(tmp_path, filler=None, clock=None, with_filler=True):
@@ -404,37 +505,51 @@ async def test_a_new_place_gets_its_first_phrases_at_once_and_the_player_its_buc
         assert (await client.get("/phrase/knight/nowhere/nothing")).status == 404
         status = await (await client.get("/api/music")).json()
         assert status["mode"] == "forever" and status["forever"]["bucket"] == "knight/elwynn-forest"
-        assert status["forever"]["pools"]["drums hard"] == 1
+        assert status["forever"]["pools"]["drums hard"] >= 1
     finally:
         await client.close()
 
 
-async def test_once_started_the_bucket_is_fed_in_real_time_and_follows_the_game(tmp_path):
-    clock = Clock()
-    client, app, conductor, filler = await running(tmp_path, clock=clock)
+async def test_the_bucket_is_filled_to_the_brim_and_then_fed_as_phrases_are_heard(tmp_path):
+    client, app, conductor, filler = await running(tmp_path)
     try:
         socket = await client.ws_connect("/ws/player")
         publish(app)
         bucket = conductor.buckets.get("Elwynn Forest", "knight")
-        await until(bucket.started)
+        await until(lambda: len(bucket.live()) == len(forever.FIRST) * forever.MOST, timeout=20)
         await asyncio.sleep(0.6)
-        first = len(filler.asked)
-        assert first == len(forever.FIRST), "phrases went on being asked for without a pause"
-        # Four bars later one more is asked for, and one only.
-        clock.now += 4 * 240.0 / bucket.bpm + 0.1
-        await until(lambda: len(filler.asked) == first + 1)
-        await asyncio.sleep(0.6)
-        assert len(filler.asked) == first + 1
-        # A fight: what is asked for now is hard.
+        full = len(filler.asked)
+        assert full == len(forever.FIRST) * forever.MOST, "it went on asking with every pool full and nothing heard"
+        assert filler.most_at_once == music.FILL_AT_ONCE
+        # A fight, and the player says it has heard two of the three hard drum phrases: the
+        # drums are running out of new ones, so one is asked for, and the most worn makes room.
         publish(app, in_combat=True)
+        heard = [clip.id for clip in bucket.pool("drums", 2)[:2]]
+        await socket.send_str(json.dumps({"type": "status", "forever": True, "started": True, "context": "running",
+                                          "bucket": bucket.key, "heard": heard, "playing": {}}))
+        await until(lambda: len(filler.asked) > full)
+        assert filler.asked[full][1:3] == ("drums", 2)
+        await until(lambda: any(clip.retired for clip in bucket.clips))
+        assert len(bucket.pool("drums", 2)) == forever.MOST
+    finally:
+        await client.close()
+
+
+async def test_the_feed_goes_on_while_the_game_is_out_of_sight_for_a_moment(tmp_path):
+    client, app, conductor, filler = await running(tmp_path)
+    try:
+        await client.ws_connect("/ws/player")
+        publish(app)
+        hub = app["hub"]
+        hub.publish(game.LinkChanged(link=game.Link.STALE, previous=hub.link))
+        bucket = conductor.buckets.get("Elwynn Forest", "knight")
+        await until(lambda: len(bucket.live()) >= len(forever.FIRST) + 2, timeout=10)
+        # Gone for good: nothing more.
+        hub.publish(game.LinkChanged(link=game.Link.LOST, previous=hub.link))
         await asyncio.sleep(0.4)
-        for _ in range(4):
-            clock.now += 4 * 240.0 / bucket.bpm + 0.1
-            count = len(filler.asked)
-            await until(lambda: len(filler.asked) == count + 1)
-        assert all(tier == 2 for _, channel, tier, _, _ in filler.asked[-4:] if channel in ("drums", "bass", "rhythm"))
-        assert {channel for _, channel, _, _, _ in filler.asked[-4:]} >= {"drums", "bass"}
-        assert filler.most_at_once <= music.FILL_AT_ONCE
+        asked = len(filler.asked)
+        await asyncio.sleep(0.6)
+        assert len(filler.asked) == asked
     finally:
         await client.close()
 
@@ -495,9 +610,11 @@ async def test_a_pool_that_keeps_failing_is_left_alone_and_the_rest_go_on(tmp_pa
         await client.ws_connect("/ws/player")
         publish(app)
         bucket = conductor.buckets.get("Elwynn Forest", "knight")
-        await until(lambda: len(bucket.live()) == len(forever.FIRST) - 1)
+        # Every other pool fills up; the one that fails is asked for once and then left alone.
+        await until(lambda: len(bucket.live()) == (len(forever.FIRST) - 1) * forever.MOST, timeout=15)
         await asyncio.sleep(0.5)
         assert [pool for _, *pool, _, _ in filler.asked].count(["lead", 0]) == 1
+        assert not bucket.pool("lead", 0)
         assert any("off tempo" in note for note in conductor.notes)
     finally:
         await client.close()
@@ -517,7 +634,7 @@ async def test_when_the_credits_run_out_the_song_goes_on_from_the_bucket(tmp_pat
         await asyncio.sleep(0.6)
         assert len(filler.asked) == asked, "it went on asking with nothing to pay with"
         assert bucket.everything, "the worn phrases were not brought back"
-        assert len(bucket.live()) == len(forever.FIRST) - 1
+        assert not bucket.pool("bass", 0)
     finally:
         await client.close()
 

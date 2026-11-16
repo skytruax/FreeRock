@@ -92,8 +92,19 @@ class Rules:
     sizing: float = 0.57              # something to fight is targeted
     big_game: float = 0.68            # an elite, a rare or a boss in your sights
     combat_start: float = 0.80
-    combat_rise_per_s: float = 0.02
+    # A fight builds as it goes on, slowly: it is more enemies joining that makes it jump.
+    combat_rise_per_s: float = 0.006
     combat_ceiling: float = 0.90
+    # How many enemies are in the fight, when the addon says (it counts the nameplates on screen
+    # of enemies that are fighting): the intensity the fight is held at for two of them, three,
+    # four, and five or more. One enemy is an ordinary fight.
+    crowd: tuple[float, ...] = (0.85, 0.90, 0.93, 0.96)
+    # Out of a fight, with this many enemies in view or more, the music does not sit right
+    # back: it is held at `company` plus `company_step` for each of them, up to the ceiling.
+    company_from: int = 3
+    company: float = 0.44
+    company_step: float = 0.03
+    company_ceiling: float = 0.62
     elite_floor: float = 0.92         # (a boss is 1.0)
     base_world: float = 0.25          # with no word on movement at all, as if standing
     base_dungeon: float = 0.40        # a dungeon is tenser than the open world
@@ -326,6 +337,12 @@ class Director:
                 why.append("something big in your sights" if big else "a target in your sights")
         else:
             m.sizing_since = None
+        # Enemies in view, none of them fought yet: not the moment to sit right back.
+        company = state.enemies or 0
+        if (company >= rules.company_from and not state.in_combat and not fallen and not state.resting
+                and not state.on_taxi):
+            floor = max(floor, min(rules.company + rules.company_step * company, rules.company_ceiling))
+            why.append("enemies close by")
         if inn:
             floor = min(floor, rules.inn_ceiling)
 
@@ -338,6 +355,11 @@ class Director:
             else:
                 m.intensity = min(max(m.intensity, rules.combat_start) + rules.combat_rise_per_s * elapsed,
                                   max(rules.combat_ceiling, m.intensity))
+            # More than one enemy in the fight: it jumps, the more of them the higher.
+            crowd = state.fighting or 0
+            if crowd >= 2:
+                m.intensity = max(m.intensity, rules.crowd[min(crowd - 2, len(rules.crowd) - 1)])
+                why.append("%s enemies in the fight" % ("14 or more" if crowd >= 14 else crowd))
             if elite:
                 m.intensity = max(m.intensity, rules.elite_floor)
                 m.elite_since = m.elite_since if m.elite_since is not None else now

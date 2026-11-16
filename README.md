@@ -1,23 +1,37 @@
 # FreeRock
 
-Generated music for World of Warcraft: Forever that follows the game. Every zone gets its own
-music, made with ElevenLabs in an instrumental knight-rock style. It goes muffled and echoing when
-you walk into a cave, the bass line and drums come in under the same music when a fight starts,
-a rain storm brings the whole band in, and now and then it rests, as the game's own music does.
+Generated music for World of Warcraft: Forever that follows the game, made with ElevenLabs and
+played as one song that never ends.
+
+The music for a place is a bucket of phrases, each one instrument alone: drums, bass, a rhythm
+part, a tune and a drone, each calm, steady or hard. The player is five decks, one for each of
+those channels, on one bar grid. A phrase is one turn of a form (a verse, a build-up and a
+chorus), so the whole band builds up and reaches the chorus together, and each time round a
+couple of the decks have something new. What you do in the game decides which channels are up
+and how hard they play: standing still is a drone and a tune, moving brings the rhythm part and
+the drums, a fight brings the hard phrases on the next half beat, and more enemies in the fight
+bring more of them. Now and then the song eases right off of its own accord, or leans in, and
+every few minutes it comes down to a moment of silence. There are three styles: Knight Rock,
+Warcraft (an orchestral score in the old manner) and Trance.
 
 FreeRock is two parts. A small addon draws what the game is doing as a thin strip of squares along
 the top of the screen. A program outside the game reads that strip, decides what should be heard,
-makes the music, and plays it through a browser tab. The full design is in
-[docs/plan.md](docs/plan.md).
+makes the music, and plays it through a browser tab. The first design is in
+[docs/plan.md](docs/plan.md); what the first evening in the game changed is in
+[CHANGELOG.md](CHANGELOG.md), and the strip is defined in [protocol/beacon.md](protocol/beacon.md).
 
 ## Where it stands (2026-11-15)
 
-- **Works here, measured:** making music (tempo, key, layers, loops), the player (layers locked to
-  the sample, changes on the bar line, no clipping), the rules from game state to sound, and the
-  whole chain driven by a pretend game.
-- **Not yet run in the game or on Windows:** the addon, the strip on a real screen, the sensor.
-  WoW is not installed on the development machine.
-- **Judged by ear only by Sky:** how the music sounds.
+- **Run in the game, on the gaming PC:** the addon, the strip read off a real screen, the
+  sensor, the player page, the forever song in all three styles.
+- **Measured here:** the player (decks locked to the sample, changes in step, no clipping), every
+  phrase before it goes into a bucket (tempo, beat and tuning, part by part), the rules from
+  game state to sound, and the whole chain driven by a pretend game.
+- **Judged by ear only by Sky:** how the music sounds. WoW is not installed on the development
+  machine.
+- **Not yet run in the game:** strip version 3 (the count of enemies in view and in a fight).
+- **Out of date:** the tests of the songs mode (`settings.mode = "songs"`), which the forever
+  song replaced as the default.
 
 ## Run it
 

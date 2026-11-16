@@ -104,7 +104,10 @@ test("a frame is 40 bytes and its checksum holds", function()
 	local bytes = ns.Beacon.Pack(ns.Beacon.BuildFrame())
 	assertEquals(40, #bytes)
 	assertEquals(bytes[39] * 256 + bytes[40], ns.Beacon.Crc16(bytes, 38))
-	assertEquals(0x20, bytes[1]) -- strip version 2, a state frame
+	assertEquals(0x30, bytes[1]) -- strip version 3, a state frame
+	-- Nobody about in the simulator: no enemies in view, none fighting, and both known.
+	assertEquals(0, math.floor(bytes[22] / 16))
+	assertEquals(0, math.floor(bytes[24] / 16))
 	local check = { ("123456789"):byte(1, -1) }
 	assertEquals(0x29B1, ns.Beacon.Crc16(check, #check))
 end)

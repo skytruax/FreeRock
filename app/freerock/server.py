@@ -50,7 +50,7 @@ class ServerConfig:
 
 # Fields left out of the log of changes: two that change all the time and would drown it, and two
 # that only say whether another field has a value.
-_QUIET_FIELDS = {"position", "speed", "game_minutes", "has_subzone", "has_target"}
+_QUIET_FIELDS = {"position", "speed", "game_minutes", "has_subzone", "has_target", "enemies", "fighting"}
 
 # How each field is named in the log, for a person reading it against what they did in the game.
 _LABELS = {

@@ -287,12 +287,26 @@ def test_an_addon_of_version_one_is_still_read_and_says_nothing_about_them():
     assert tracker.state.has_target is True
 
 
+def test_the_enemies_in_view_come_with_version_three():
+    tracker = state.StateTracker(clock=Clock())
+    tracker.feed(dataclasses.replace(BASE, enemies=4, fighting=2))
+    assert (tracker.state.enemies, tracker.state.fighting) == (4, 2)
+    tracker.feed(dataclasses.replace(BASE, enemies=beacon.MANY, fighting=0))
+    assert (tracker.state.enemies, tracker.state.fighting) == (14, 0)
+    # The game would not say, or the addon is an older one: not known, which is not the same as none.
+    tracker.feed(dataclasses.replace(BASE, enemies=beacon.UNKNOWN_COUNT, fighting=beacon.UNKNOWN_COUNT))
+    assert tracker.state.enemies is None and tracker.state.fighting is None
+    old = state.StateTracker(clock=Clock())
+    old.feed(dataclasses.replace(BASE, version=2))
+    assert old.state.enemies is None and old.state.fighting is None
+
+
 def test_a_version_this_program_does_not_know_is_refused():
-    body = bytes([3 << 4]) + bytes(37)
-    with pytest.raises(beacon.BeaconError, match="strip version 3"):
+    body = bytes([4 << 4]) + bytes(37)
+    with pytest.raises(beacon.BeaconError, match="strip version 4"):
         beacon.unpack(body + beacon.crc16(body).to_bytes(2, "big"))
     with pytest.raises(beacon.BeaconError):
-        beacon.pack(dataclasses.replace(BASE, version=3))
+        beacon.pack(dataclasses.replace(BASE, version=4))
 
 
 def test_an_achievement_is_reported_once():

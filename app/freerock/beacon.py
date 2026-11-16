@@ -18,10 +18,12 @@ import numpy as np
 from scipy import ndimage
 
 # Version 2 gave two things a meaning that version 1 left empty: byte 29 is the player's speed,
-# and bit 23 of the flags says the target can be fought. Everything else is the same, so both are
-# read; an addon of version 1 simply does not say those two things.
-PROTOCOL_VERSION = 2
-KNOWN_VERSIONS = (1, 2)
+# and bit 23 of the flags says the target can be fought. Version 3 put two small numbers in the
+# upper halves of the command and moment bytes: how many enemies have a nameplate on screen, and
+# how many of those are in a fight. Everything else is the same, so all three are read; an older
+# addon simply does not say the things a later version added.
+PROTOCOL_VERSION = 3
+KNOWN_VERSIONS = (1, 2, 3)
 PAYLOAD_BYTES = 40
 ROWS = 2
 BITS_PER_ROW = PAYLOAD_BYTES * 8 // ROWS  # 160
@@ -69,6 +71,8 @@ FLAG_TARGET_HOSTILE = 1 << 23   # version 2: the target is something the player 
 UNKNOWN_16 = 0xFFFF
 UNKNOWN_KIND = 15
 UNKNOWN_SPEED = 255             # version 2: the speed byte when the game does not give a speed
+UNKNOWN_COUNT = 15              # version 3: a count of enemies the game did not give
+MANY = 14                       # version 3: a count of enemies this large means "this many or more"
 
 TEXT_NONE = 0
 TEXT_ZONE = 1
@@ -144,6 +148,10 @@ class Frame:
     difficulty: int = 0
     subzone_hash: int = 0
     speed: int = UNKNOWN_SPEED     # half yards a second; in a version 1 frame the byte is empty (0)
+    # Version 3: enemies with a nameplate on screen, and how many of them are in a fight. 0 to 13,
+    # 14 for that many or more, 15 not known. Earlier versions do not say (the Frame holds 15).
+    enemies: int = UNKNOWN_COUNT
+    fighting: int = UNKNOWN_COUNT
     text_field: int = TEXT_NONE
     text_revision: int = 0
     text_chunk: int = 0
@@ -170,13 +178,17 @@ def pack(frame: Frame) -> bytes:
             ("target_class", 15), ("pvp_kind", 15), ("weather_kind", 15),
             ("weather_intensity", 0xFFFF), ("map_id", 0xFFFF), ("x", 0xFFFF), ("y", 0xFFFF),
             ("instance_id", 0xFFFF), ("encounter_id", 0xFFFF), ("game_minutes", 0xFFFF),
-            ("command", 255), ("command_count", 255), ("moment", 255), ("moment_count", 255),
+            ("command", 255 if frame.version < 3 else 15), ("command_count", 255),
+            ("moment", 255 if frame.version < 3 else 15), ("moment_count", 255),
             ("volume", 255), ("difficulty", 255), ("subzone_hash", 0xFFFF), ("speed", 255),
+            ("enemies", 15), ("fighting", 15),
             ("text_field", 7), ("text_revision", 3), ("text_chunk", 7), ("text_length", 255),
         ):
             value = getattr(frame, name)
             if not 0 <= value <= limit:
                 raise BeaconError(f"{name} = {value} does not fit (0 to {limit})")
+        # From version 3 the command and the moment share their bytes with the two counts.
+        shared = frame.version >= 3
         body = _BODY.pack(
             (frame.version << 4) | frame.kind,
             frame.beat,
@@ -185,7 +197,8 @@ def pack(frame: Frame) -> bytes:
             (frame.pvp_kind << 4) | frame.weather_kind,
             frame.weather_intensity, frame.map_id, frame.x, frame.y,
             frame.instance_id, frame.encounter_id, frame.game_minutes,
-            frame.command, frame.command_count, frame.moment, frame.moment_count,
+            (frame.enemies << 4) | frame.command if shared else frame.command, frame.command_count,
+            (frame.fighting << 4) | frame.moment if shared else frame.moment, frame.moment_count,
             frame.volume, frame.difficulty,
             frame.subzone_hash,
             frame.speed,
@@ -217,6 +230,10 @@ def unpack(payload: bytes) -> Frame:
         command, command_count, moment, moment_count, volume, difficulty,
         subzone_hash, speed, text_header, text_length, text_bytes,
     ) = _BODY.unpack(body)
+    enemies = fighting = UNKNOWN_COUNT
+    if version >= 3:
+        enemies, command = command >> 4, command & 0x0F
+        fighting, moment = moment >> 4, moment & 0x0F
     return Frame(
         kind=kind, version=version, beat=beat, flags=int.from_bytes(flags, "big"),
         instance_kind=kinds_a >> 4, target_class=kinds_a & 0x0F,
@@ -225,6 +242,7 @@ def unpack(payload: bytes) -> Frame:
         instance_id=instance_id, encounter_id=encounter_id, game_minutes=game_minutes,
         command=command, command_count=command_count, moment=moment, moment_count=moment_count,
         volume=volume, difficulty=difficulty, subzone_hash=subzone_hash, speed=speed,
+        enemies=enemies, fighting=fighting,
         text_field=text_header >> 5, text_revision=(text_header >> 3) & 0x03,
         text_chunk=text_header & 0x07, text_length=text_length, text_bytes=text_bytes,
     )

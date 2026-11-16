@@ -76,6 +76,8 @@ class SimGame:
     group: bool = False
     target: str | None = None        # None, or normal / elite / rare / rareelite / worldboss / trivial / minus
     hostile: bool = False            # the target can be fought
+    enemies: int | None = None       # enemies with a nameplate on screen; None: the game does not say
+    fighting: int | None = None      # how many of them are in a fight
     pvp: str = "friendly"
     weather: str | None = "clear"    # None: the game does not report weather
     weather_intensity: float | None = 0.0
@@ -204,6 +206,8 @@ class SimAddon:
             volume=game.volume, difficulty=game.difficulty if game.in_instance else 0,
             subzone_hash=beacon.text_hash(self._texts[2]["bytes"]),
             speed=beacon.UNKNOWN_SPEED if game.speed is None else max(0, min(254, int(game.speed * 2 + 0.5))),
+            enemies=beacon.UNKNOWN_COUNT if game.enemies is None else max(0, min(beacon.MANY, game.enemies)),
+            fighting=beacon.UNKNOWN_COUNT if game.fighting is None else max(0, min(beacon.MANY, game.fighting)),
             text_field=field, text_revision=entry["revision"] if entry else 0, text_chunk=chunk,
             text_length=len(entry["bytes"]) if entry else 0, text_bytes=piece,
         )

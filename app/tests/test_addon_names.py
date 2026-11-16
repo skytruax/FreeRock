@@ -31,7 +31,7 @@ def test_every_event_and_console_variable_is_in_the_client(capsys):
         sys.argv = sys_argv
     out = capsys.readouterr().out
     assert status == 0, out
-    assert "38 events and 1 console variables" in out, "the check found the registrations it is meant to read"
+    assert "40 events and 1 console variables" in out, "the check found the registrations it is meant to read"
 
 
 @needs_lists

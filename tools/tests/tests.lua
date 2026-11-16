@@ -370,7 +370,7 @@ test("speed, a target that can be fought, and an achievement reach the strip", f
 	local frame = Frame()
 	eq(frame.speed, 0, "standing")
 	eq(Flag(frame, 23), false, "no target")
-	eq(ns.Beacon.Pack(frame)[1], 2 * 16, "strip version 2, a state frame")
+	eq(ns.Beacon.Pack(frame)[1], 3 * 16, "strip version 3, a state frame")
 	eq(ns.Beacon.Pack(frame)[30], 0, "the speed is byte 30")
 	M.game.speed = 7
 	M.game.target, M.game.canAttack = "normal", true
@@ -402,6 +402,75 @@ test("speed, a target that can be fought, and an achievement reach the strip", f
 	truthy(Printed("can be attacked: no"), "target in the status report")
 end)
 
+test("enemies with a nameplate on screen are counted, and how many are in a fight", function()
+	Load()
+	local frame = Frame()
+	eq(frame.enemies, 0, "nobody about")
+	eq(frame.fighting, 0)
+	-- Three nameplates come on screen: two enemies, one of them fighting, and a friendly guard.
+	M.game.plates.nameplate1 = { enemy = true, fighting = true }
+	M.game.plates.nameplate2 = { enemy = true }
+	M.game.plates.nameplate7 = { enemy = false, fighting = true }
+	M.Fire("NAME_PLATE_UNIT_ADDED", "nameplate1")
+	M.Fire("NAME_PLATE_UNIT_ADDED", "nameplate2")
+	M.Fire("NAME_PLATE_UNIT_ADDED", "nameplate7")
+	frame = ns.Beacon.BuildFrame()
+	eq(frame.enemies, 2, "counted at once, without waiting for the timer")
+	eq(frame.fighting, 1)
+	-- The counts share their bytes with the command and the moment: the upper four bits.
+	ns.db.command, ns.db.moment = 2, 5
+	local bytes = ns.Beacon.Pack(ns.Beacon.BuildFrame())
+	eq(bytes[22], 2 * 16 + 2, "enemies in view beside the command")
+	eq(bytes[24], 1 * 16 + 5, "enemies fighting beside the moment")
+	-- The second enemy joins the fight; no event says so, the timer finds it.
+	M.game.plates.nameplate2.fighting = true
+	eq(Frame().fighting, 2)
+	-- One dies: a dead enemy is not an enemy in view.
+	M.game.plates.nameplate1.dead = true
+	frame = Frame()
+	eq(frame.enemies, 1)
+	eq(frame.fighting, 1)
+	-- A nameplate that goes with an event, and one that goes without.
+	M.game.plates.nameplate1 = nil
+	M.Fire("NAME_PLATE_UNIT_REMOVED", "nameplate1")
+	M.game.plates.nameplate2 = nil
+	frame = Frame()
+	eq(frame.enemies, 0)
+	eq(frame.fighting, 0)
+	-- More than the strip can count.
+	for i = 10, 30 do
+		M.game.plates["nameplate" .. i] = { enemy = true, fighting = i % 2 == 0 }
+		M.Fire("NAME_PLATE_UNIT_ADDED", "nameplate" .. i)
+	end
+	frame = Frame()
+	eq(frame.enemies, 14, "fourteen stands for fourteen or more")
+	eq(frame.fighting, 11)
+	M.Slash("status")
+	truthy(Printed("Enemies with a nameplate on screen: 14 or more, in a fight: 11"), "the counts in the status report")
+end)
+
+test("if the game seals anything about a nameplate, the counts are not sent", function()
+	Load()
+	M.game.plates.nameplate1 = { enemy = true, fighting = true }
+	M.Fire("NAME_PLATE_UNIT_ADDED", "nameplate1")
+	eq(Frame().enemies, 1)
+	for _, answer in ipairs({ "plateExists", "plateEnemy", "plateDead", "plateFighting" }) do
+		M.sealed[answer] = true
+		local frame = Frame()
+		eq(frame.enemies, 15, answer .. " sealed: not known")
+		eq(frame.fighting, 15, answer .. " sealed: not known")
+		M.sealed[answer] = nil
+		eq(Frame().enemies, 1, "known again")
+	end
+	-- A token the game seals is not kept at all.
+	M.sealed.plateToken = true
+	M.game.plates.nameplate2 = { enemy = true }
+	M.Fire("NAME_PLATE_UNIT_ADDED", M.SealedValue("nameplate2"))
+	eq(Frame().enemies, 1, "the sealed token was left alone")
+	M.Slash("status")
+	truthy(Printed("Enemies with a nameplate on screen: 1, in a fight: 1"))
+end)
+
 test("squares shrink to fit a narrow screen, and status says so", function()
 	M.screen = { 1920, 1080 }
 	Load({ cell = 8 })
@@ -424,7 +493,7 @@ test("/rock test sends the test pattern for ten seconds", function()
 	local frame = Frame()
 	eq(frame.kind, 1, "kind while testing")
 	local bytes = ns.Beacon.Pack(frame)
-	eq(bytes[1], 0x21, "first byte: version 2, a test frame")
+	eq(bytes[1], 0x31, "first byte: version 3, a test frame")
 	eq(bytes[2], (17 * 1 + 3) % 256, "second byte")
 	M.Advance(10.5)
 	eq(ns.Beacon.BuildFrame().kind, 0, "kind afterwards")

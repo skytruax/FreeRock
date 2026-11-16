@@ -78,6 +78,10 @@ class GameState:
     has_target: bool = False
     target_class: str = "none"
     target_hostile: bool | None = None    # the target can be fought; None: an addon that does not say
+    # Enemies with a nameplate on screen, and how many of those are in a fight (14 stands for
+    # "14 or more"). None: not known, or an addon that does not say.
+    enemies: int | None = None
+    fighting: int | None = None
     in_group: bool = False
     pvp_kind: str = "unknown"
     weather: str | None = None            # None: the game does not report weather
@@ -198,6 +202,8 @@ def _state_from(frame: beacon.Frame, names: dict[str, str | None]) -> GameState:
         has_target=has(beacon.FLAG_HAS_TARGET),
         target_class=TARGET_CLASSES.get(frame.target_class, OTHER),
         target_hostile=has(beacon.FLAG_TARGET_HOSTILE) if says_more else None,
+        enemies=frame.enemies if frame.version >= 3 and frame.enemies != beacon.UNKNOWN_COUNT else None,
+        fighting=frame.fighting if frame.version >= 3 and frame.fighting != beacon.UNKNOWN_COUNT else None,
         in_group=has(beacon.FLAG_IN_GROUP),
         pvp_kind=PVP_KINDS.get(frame.pvp_kind, OTHER),
         weather=WEATHER_KINDS.get(frame.weather_kind, OTHER) if weather_known else None,

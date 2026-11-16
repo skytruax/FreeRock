@@ -10,7 +10,8 @@ ns.Beacon = Beacon
 ---------------------------------------------------------------------------
 -- The format (protocol/beacon.md)
 ---------------------------------------------------------------------------
-local VERSION = 2              -- 2 added the speed byte and the "target can be attacked" flag
+local VERSION = 3              -- 2 added the speed byte and the "target can be attacked" flag;
+                               -- 3 put the enemies in view and in a fight beside the command and the moment
 local PAYLOAD = 40             -- bytes in a frame
 local ROWS = 2
 local ROW_BITS = PAYLOAD * 8 / ROWS
@@ -134,9 +135,9 @@ function Beacon.Pack(frame)
 		Put16(bytes, 16, frame.instance_id)
 		Put16(bytes, 18, frame.encounter_id)
 		Put16(bytes, 20, frame.game_minutes)
-		bytes[22] = frame.command
+		bytes[22] = frame.enemies * 16 + frame.command
 		bytes[23] = frame.command_count
-		bytes[24] = frame.moment
+		bytes[24] = frame.fighting * 16 + frame.moment
 		bytes[25] = frame.moment_count
 		bytes[26] = frame.volume
 		bytes[27] = frame.difficulty
@@ -319,6 +320,8 @@ function Beacon.BuildFrame()
 		difficulty = math.min(state.difficulty, 255),
 		subzone_hash = Beacon.Mark(texts[TEXT_SUBZONE].bytes),
 		speed = state.speed or 255,
+		enemies = state.enemies or 15,
+		fighting = state.fighting or 15,
 		text_field = turn.field,
 		text_revision = entry and entry.revision or 0,
 		text_chunk = turn.chunk,

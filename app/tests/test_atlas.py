@@ -1,7 +1,7 @@
 """The zone profiles: every zone in the game has one, and every one makes a valid request."""
 import pytest
 
-from freerock import analysis, atlas
+from freerock import analysis, atlas, forever
 from freerock.composer import NEVER, bars_ms, core_suite, fresh_set, second_set
 
 # The zone maps of Forever 1.60.1, from the game's own map table (wago.tools, UiMap, build wowf).
@@ -71,7 +71,10 @@ def test_places_without_a_profile_get_one_from_their_name():
     assert atlas.profile_for(None).key == "elsewhere" and atlas.profile_for("???").key == "elsewhere"
     for name in ("The Deadmines", "Warsong Gulch", "Somewhere Nobody Has Heard Of", None):
         profile = atlas.profile_for(name)
-        assert core_suite(profile, part_bars=atlas.part_bars(profile.bpm)).minutes <= 4.0
+        # A song with its fight part comes in under five minutes at any tempo, and a phrase
+        # of the forever song, which is one turn of its form, at about a minute or under.
+        assert core_suite(profile, part_bars=atlas.part_bars(profile.bpm)).minutes <= 5.0
+        assert 0.6 <= forever.ask(profile, "knight", "drums", 1, 0, seed=1).minutes <= 1.1
         assert not atlas.is_known(name)
 
 

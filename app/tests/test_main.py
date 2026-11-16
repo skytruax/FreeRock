@@ -69,9 +69,18 @@ def test_the_rests_and_the_pacing_come_from_the_settings(tmp_path, monkeypatch):
     settings = Settings(var_dir=tmp_path / "var", rest_every_minutes=9.0, rest_seconds=45.0, hours_per_month=60.0)
     app = main.build_app(config(tmp_path), settings=settings)
     music = app["conductor"]
-    assert music.director.rules.rest_every_s == 540.0 and music.director.rules.rest_for_s == 45.0
+    # The forever song takes its own moments of silence, where its form comes round: the player
+    # page is told how often and how long, and the director's rests, which cut in anywhere, are off.
+    assert music.forever and music.filler is not None
+    assert music._silences == {"every_s": 540.0, "for_s": 45.0}
+    assert music.director.rules.rest_every_s == 0.0
     assert music.settings.hours_per_month == 60.0
     assert music.playtime.path == tmp_path / "var" / "playtime.json"
     never = main.build_app(config(tmp_path), settings=Settings(var_dir=tmp_path / "var", rest_every_minutes=0.0),
                            new_music=False)
-    assert never["conductor"].director.rules.rest_every_s == 0.0
+    assert never["conductor"]._silences["every_s"] == 0.0 and never["conductor"].filler is None
+    # Played as songs, the rests are the director's.
+    songs = main.build_app(config(tmp_path), settings=Settings(var_dir=tmp_path / "var", mode="songs",
+                                                               rest_every_minutes=9.0, rest_seconds=45.0))
+    rules = songs["conductor"].director.rules
+    assert not songs["conductor"].forever and rules.rest_every_s == 540.0 and rules.rest_for_s == 45.0

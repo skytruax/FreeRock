@@ -54,7 +54,6 @@ PLACE_DWELL_S = 2.0      # how long in a named place inside a zone before it get
 STOP_WAIT_S = 180.0      # how long a stopping server waits for music that is being made
 # The forever song (settings.mode "forever"): phrases for the bucket of the place the player is in.
 FILL_AT_ONCE = 2         # ElevenLabs makes two things at a time for this account
-CHANGE_BARS = 4          # the player takes a new phrase about every this many bars, and one is asked for as often
 POOL_REST_S = 90.0       # a pool whose phrase failed its checks three times running is left alone this long
 BUSY_S = 20.0            # how long to hold off when ElevenLabs is busy or stumbles
 SPENT_S = 3600.0         # how long to hold off when the account has nothing left to make music with
@@ -123,6 +122,12 @@ class Conductor:
         self._pool_rested: dict[tuple[str, tuple[str, int]], float] = {}      # pools left alone, until when
         self._last_ask = -1e9
         self.phrases_made = 0
+        # The forever song has its own moments of silence, which begin where its form comes
+        # round: the player is told about how much music there is between two and about how long
+        # one lasts, and the director's own rests, which cut in wherever they fall, are off.
+        self._silences = {"every_s": self.director.rules.rest_every_s, "for_s": self.director.rules.rest_for_s}
+        if self.forever:
+            self.director.rules.rest_every_s = 0.0
 
     # --- choosing the music ----------------------------------------------------------------------
 
@@ -318,7 +323,7 @@ class Conductor:
     # --- the forever song --------------------------------------------------------------------
 
     def _bucket_message(self) -> dict[str, Any]:
-        return {"type": "bucket", "bucket": self.bucket.describe()}
+        return {"type": "bucket", "bucket": {**self.bucket.describe(), "rest": self._silences}}
 
     async def _forever_step(self, state: game.GameState, target: Target, now: float) -> None:
         """One look at the game with the forever song playing: which place's bucket the players
@@ -366,45 +371,45 @@ class Conductor:
         return words
 
     def _consider_filling(self, state: game.GameState, name: str | None, now: float) -> None:
-        """Asks for the next phrase for the bucket of the place the player is in, if it is time.
+        """Asks for the next phrase for the bucket of the place the player is in, if one is wanted.
 
-        A place that is new gets its first phrases as fast as they can be made: one for every
-        channel at every strength. After that the bucket is fed in real time, one new phrase
-        about as often as the player takes one (every four bars), for whichever channel and
-        strength the music is drawing on that has the fewest phrases nobody has heard. So
-        while the game is played there is always something new in the bucket, and what is new
-        is what is being played."""
+        A place gets phrases as fast as they can be made, two at a time, until every channel has
+        some depth at every strength: the hard phrases a fight will want as much as the calm
+        ones playing now. After that it goes on being fed one at a time for as long as the game
+        is played: first wherever the music is about to run out of phrases nobody has heard, so
+        that every change is to something new, then wherever the bucket is shallowest. See
+        forever.Bucket.wanted.
+
+        It goes on while the game is out of sight for a moment (the player has looked away from
+        it) and through the music's own silences. It stops when the game is gone, on a flight
+        path, and when no player page is open."""
         if self.filler is None or not name:
             return
         if state is self._pretend_state and not self._pretend_may_make:
             return                       # a pretend game that has not asked for new music
-        if (self.hub.link is not game.Link.LIVE or not state.enabled or state.on_taxi
+        if (self.hub.link not in (game.Link.LIVE, game.Link.STALE) or not state.enabled or state.on_taxi
                 or state.loading or state.cinematic or not self.players or now < self._paused_until):
             return
-        if len(self._filling) >= FILL_AT_ONCE:
-            return
         bucket = self.buckets.get(name, self.genre)
-        coming: dict[tuple[str, int], int] = {}
-        for key, pool in self._filling.values():
-            if key == bucket.key:
-                coming[pool] = coming.get(pool, 0) + 1
-        resting = {pool for (key, pool), until in self._pool_rested.items() if key == bucket.key and until > now}
-        # A pool that is being left alone does not keep the bucket in its first rush.
-        if bucket.started({**coming, **{pool: 1 for pool in resting}}):
-            if self._filling or self.target is None or self.target.rest or self.target.silent:
-                return                   # one at a time from here on, and none while nothing is heard
-            if now - self._last_ask < CHANGE_BARS * 240.0 / bucket.bpm:
-                return
-        pool = bucket.wanted(forever.in_use(self.mix), coming, resting)
-        if pool in resting:
-            return
-        self._last_ask = now
         spot = self.spot_name(state)
         profile = atlas.place_profile(name, spot) if spot and slug(spot) != bucket.zone else atlas.profile_for(name)
-        task = asyncio.create_task(self._fill(bucket, profile, pool, self.phrase_words(state)),
-                                   name="freerock-phrase-%s-%s-%d" % (bucket.key, pool[0], pool[1]))
-        self._filling[task] = (bucket.key, pool)
-        task.add_done_callback(self._fill_ended)
+        while len(self._filling) < FILL_AT_ONCE:
+            coming: dict[tuple[str, int], int] = {}
+            for key, pool in self._filling.values():
+                if key == bucket.key:
+                    coming[pool] = coming.get(pool, 0) + 1
+            resting = {pool for (key, pool), until in self._pool_rested.items() if key == bucket.key and until > now}
+            choice = bucket.wanted(forever.in_use(self.mix), coming, resting)
+            if choice is None:
+                return
+            pool, hurry = choice
+            if not hurry and self._filling:
+                return                   # one at a time once every pool has some depth
+            self._last_ask = now
+            task = asyncio.create_task(self._fill(bucket, profile, pool, self.phrase_words(state)),
+                                       name="freerock-phrase-%s-%s-%d" % (bucket.key, pool[0], pool[1]))
+            self._filling[task] = (bucket.key, pool)
+            task.add_done_callback(self._fill_ended)
 
     async def _fill(self, bucket: forever.Bucket, profile: composer.ZoneProfile, pool: tuple[str, int],
                     words: list[str]) -> None:
@@ -454,6 +459,11 @@ class Conductor:
             note = "Making a phrase failed: %r. No new phrases for a minute." % (error,)
             log.error(note, exc_info=error)
             self.notes.append(note)
+            return
+        # The next one is asked for at once, not at the conductor's next look at the game.
+        state = self.hub.state
+        if state is not None and self._task is not None and not self._task.done():
+            self._consider_filling(state, self.place_name(state), self.clock())
 
     async def _play_everything(self) -> None:
         """Brings the phrases that were set aside as worn back into play, in every bucket in use."""

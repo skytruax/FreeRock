@@ -6,6 +6,9 @@ local _, ns = ...
 -- Everything read here is something Blizzard's interface code does not mark as sealable. Health,
 -- threat and the identity of other units are never read. If a value comes back sealed all the
 -- same, ns.Plain turns it into "not known" before anything is done with it.
+--
+-- Of units other than the player and the target, one thing is read: how many enemies have a
+-- nameplate on screen, and how many of those are in a fight. See ReadEnemies.
 local Signals = {}
 ns.Signals = Signals
 
@@ -27,6 +30,8 @@ local state = {
 	dead = false, ghost = false, combat = false,
 	encounter = false, encounterID = 0, encounterName = "",
 	hasTarget = false, targetClass = 0, targetHostile = false, bossPresent = false, inGroup = false,
+	enemies = nil,        -- enemies with a nameplate on screen, 14 standing for "14 or more"; nil when not known
+	fighting = nil,       -- how many of those are in a fight
 	pvpKind = 0,
 	weatherKnown = false, weatherKind = 15, weatherIntensity = nil,
 	weatherRaw = "not read yet", -- exactly what the game answered, for /rock status
@@ -183,6 +188,52 @@ local function ReadTarget()
 	end
 end
 
+-- Enemies in view. The game puts a nameplate over an enemy that is near enough to matter and
+-- says so with an event that carries a unit token for it ("nameplate7"); another event says when
+-- the nameplate goes. FreeRock keeps those tokens and counts two things: how many of the units
+-- can be attacked and are alive, and how many of those are in a fight. The music grows with the
+-- second number, which is the nearest thing the game gives to "three of them are on me".
+--
+-- That is all that is read about them. Not who they are, not their health, and not whom they
+-- are after: the game seals those, and FreeRock leaves them alone. The four functions used here
+-- (UnitExists, UnitCanAttack, UnitIsDead, UnitAffectingCombat) are documented with answers that
+-- are not sealed. If one comes back sealed all the same, both numbers are "not known".
+local plates = {}     -- unit token -> true, for every nameplate on screen
+local MANY = 14       -- the strip has four bits for each number: 14 stands for "14 or more"
+
+local function ReadEnemies()
+	local enemies, fighting = 0, 0
+	for unit in pairs(plates) do
+		local exists = UnitExists(unit)
+		if ns.IsSealed(exists) then
+			enemies = nil
+			break
+		end
+		if not exists then
+			plates[unit] = nil        -- its nameplate went without a word
+		else
+			local attackable, dead, busy = UnitCanAttack("player", unit), UnitIsDead(unit), UnitAffectingCombat(unit)
+			if ns.IsSealed(attackable) or ns.IsSealed(dead) or ns.IsSealed(busy) then
+				enemies = nil
+				break
+			end
+			if attackable and not dead then
+				enemies = enemies + 1
+				if busy then
+					fighting = fighting + 1
+				end
+			end
+		end
+	end
+	if enemies == nil then
+		Put("enemies", nil)
+		Put("fighting", nil)
+	else
+		Put("enemies", math.min(enemies, MANY))
+		Put("fighting", math.min(fighting, MANY))
+	end
+end
+
 -- Boss encounters are announced by events, which carry the encounter's number and name. This
 -- catches the two cases the events miss: a reload in the middle of a fight, and an end event
 -- that never came.
@@ -258,6 +309,7 @@ local function ReadEverything()
 	ReadSpeed()
 	ReadFlags()
 	ReadTarget()
+	ReadEnemies()
 	ReadEncounter()
 	ReadWeather()
 	ReadDaylight()
@@ -353,6 +405,24 @@ function Signals:Start()
 		end
 	end)
 
+	-- A nameplate has come on screen, or gone. The token is kept only if the game gives it plainly.
+	ns.On("NAME_PLATE_UNIT_ADDED", function(_, unit)
+		unit = Plain(unit)
+		if type(unit) == "string" then
+			plates[unit] = true
+			ReadEnemies()
+			Flush()
+		end
+	end)
+	ns.On("NAME_PLATE_UNIT_REMOVED", function(_, unit)
+		unit = Plain(unit)
+		if type(unit) == "string" then
+			plates[unit] = nil
+			ReadEnemies()
+			Flush()
+		end
+	end)
+
 	ns.On("WEATHER_CHANGED", function()
 		ReadWeather()
 		Flush()
@@ -412,6 +482,7 @@ function Signals:Poll(everything)
 		ReadSpeed()
 		ReadFlags()
 		ReadTarget()
+		ReadEnemies()
 		ReadEncounter()
 		ReadClock()
 	end
@@ -465,6 +536,13 @@ function Signals:Describe()
 	end
 	Add("Target: %s (class %d), can be attacked: %s. Zone PvP kind %d.", YesNo(state.hasTarget), state.targetClass,
 		YesNo(state.targetHostile), state.pvpKind)
+	if state.enemies then
+		Add("Enemies with a nameplate on screen: %s, in a fight: %s.",
+			state.enemies >= MANY and "14 or more" or tostring(state.enemies),
+			state.fighting >= MANY and "14 or more" or tostring(state.fighting))
+	else
+		Add("Enemies with a nameplate on screen: the game does not say.")
+	end
 	if state.weatherKnown then
 		Add("Weather: %s, intensity %s. The game said: %s.", WEATHER_NAMES[state.weatherKind] or ("kind " .. state.weatherKind),
 			state.weatherIntensity and ("%.3f"):format(state.weatherIntensity) or "not given", state.weatherRaw)

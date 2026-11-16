@@ -101,7 +101,8 @@
     if (playing.clips) {
       const count = engine && engine.bucket ? engine.bucket.clips.size : playing.clips.length;
       $("music").textContent = "A song that never ends for " + playing.zone + " (" + playing.bpm + " BPM, " + playing.tonic
-        + "), put together as it goes from " + count + " phrases. New ones are made while you play.";
+        + "), put together as it goes from " + count + " phrases, each a verse, a build-up and a chorus for one instrument."
+        + " New ones are made while you play.";
       return;
     }
     $("music").textContent = (borrowed ? "This place has no music of its own yet. Playing music made for " : "Music for ")
@@ -261,7 +262,9 @@
       // The five decks: which channels can be heard, and how hard each is playing.
       const strength = ["calm", "steady", "hard"];
       const up = Object.entries(status.playing).map(([channel, clip]) => channel + " (" + strength[clip.tier] + ")");
-      $("section").textContent = status.resting ? "a silence" : up.length ? up.length + " of 5 channels" : "nothing yet";
+      // The song also rises and falls of its own accord, a turn of its form at a time.
+      const wave = status.wave < 0 ? ", easing off for a turn" : status.wave > 0 ? ", leaning in for a turn" : "";
+      $("section").textContent = status.resting ? "a moment of silence" : up.length ? up.length + " of 5 channels" + wave : "nothing yet";
       $("decksRow").hidden = false;
       $("decks").textContent = up.join(", ") || "none";
     } else {

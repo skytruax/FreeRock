@@ -1,11 +1,15 @@
 """The forever song: a bucket of single-instrument phrases, and the filling of it.
 
-The music for a place is not a set of songs. It is a bucket of short phrases, each one instrument
-alone: drums, bass, a rhythm part, a tune, a drone. Every phrase in a bucket is on the same tempo
-and the same tonal centre, so any drums fit any bass fit any riff fit any tune. The player keeps
-one phrase of each going and changes one of them at a time with a crossfade, like a DJ with five
-decks, so the music never stops and never comes round again as a whole. What the player is doing
-in the game decides which channels are up and how hard their phrases are.
+The music for a place is not a set of songs. It is a bucket of phrases, each one instrument alone:
+drums, bass, a rhythm part, a tune, a drone. Every phrase in a bucket is on the same tempo and
+the same tonal centre, so any drums fit any bass fit any riff fit any tune. The player keeps one
+phrase of each going and changes them a few at a time, like a DJ with five decks, so the music
+never stops and never comes round again as a whole. What the player is doing in the game decides
+which channels are up and how hard their phrases are.
+
+A phrase is one turn of the song's form: a verse, a build-up and a chorus, about three quarters
+of a minute in all. The three are the same lengths for every channel, so whichever five phrases
+are playing, the whole band builds up together and reaches the chorus together.
 
 This file is the bucket and the asking. A bucket does not care where its phrases come from: today
 they are asked of ElevenLabs a few seconds at a time, and `Bucket.add` takes any audio, so a
@@ -43,21 +47,36 @@ FORMAT, RATE, CHANNELS_OUT = "pcm_48000", 48000, 2
 CHANNELS = ("texture", "lead", "rhythm", "drums", "bass")
 TIERS = (0, 1, 2)                       # calm, steady, hard
 TIER_WORDS = ("calm", "steady", "hard")
-# How long a phrase is, in bars. Tunes and drones get room; the parts that keep time are short,
-# so they can be changed often.
-BARS = {"texture": 8, "lead": 8, "rhythm": 4, "drums": 4, "bass": 4}
+SECTIONS = ("verse", "build", "chorus")
 # How loud each channel is brought to before the player mixes them (LUFS).
 LEVEL = {"texture": -26.0, "lead": -19.0, "rhythm": -20.0, "drums": -17.0, "bass": -18.0}
 # How many phrases each pool (a channel at a tier) is filled to: enough to start, then enough to
 # keep changing, then the most it holds. Past that the most worn phrase makes room for a new one.
-START, MOST = 1, 12
+# How deep the pools are filled. Every pool gets its first phrase at once (START), then every
+# pool is brought to DEPTH, both as fast as phrases can be made. After that a pool the music is
+# drawing on is kept AHEAD phrases in front of what has been heard, so that the next change is
+# always to something new, and whatever is left over goes on deepening the pools up to MOST.
+# Past MOST the most worn phrase of a pool makes room for each new one.
+START, DEPTH, AHEAD, MOST = 1, 3, 2, 8
 MAX_TEMPO_OFF = 0.2            # percent, by the fit of a beat grid
 MAX_REPEAT_OFF = 0.3           # percent, by how the phrase repeats itself two bars later
 MAX_BEAT_OFF_MS = 45.0         # further than this from the beat and the phrase is asked for again
 MAX_TUNING_CENTS = 20.0
+# A calm tune is given more room: a slow melody a quarter of a percent behind the pulse cannot
+# be heard to be late, and being held to the same line as a drum part kept the calm tunes of
+# one style out of its bucket altogether.
+LOOSE = 2.5                    # how many times wider the lines are for a calm tune
 DENSE = 0.6                    # a phrase with something struck on this share of its beats can be timed by them
 REPEATS = 0.45                 # a phrase that is this like itself two bars later can be timed by that
 TRIES = 3
+CHANGES = 2                    # how many decks may take a new phrase each time the form comes round
+# How the player shapes each turn of the form on top of what the phrases do themselves, by
+# style: how far the verse is held back (dB), and how high the lows of the drums and the bass
+# are swept away over the second half of the build-up before the chorus lands (Hz; 0 for not
+# at all). The sweep is the dance floor's way of building; a band and an orchestra build by
+# playing louder.
+ARC = {"knight": {"verse_db": -3.5, "sweep_hz": 0}, "warcraft": {"verse_db": -4.5, "sweep_hz": 0},
+       "trance": {"verse_db": -3.0, "sweep_hz": 320}}
 # The pools a bucket is filled in order of, before anything else: what the music cannot start
 # without, then one phrase for every other pool, so that whatever the game does there is an answer.
 FIRST = (("texture", 0), ("lead", 0), ("rhythm", 1), ("drums", 1), ("bass", 1), ("rhythm", 0), ("lead", 1),
@@ -67,16 +86,20 @@ FIRST = (("texture", 0), ("lead", 0), ("rhythm", 1), ("drums", 1), ("bass", 1), 
 APPETITE = {"lead": 1.5, "rhythm": 1.3, "drums": 1.0, "bass": 1.0, "texture": 0.7}
 
 # How hard each channel plays, by how much is going on (the director's intensity, 0 to 1): calm
-# below the first number, hard from the second, steady between. A fight starts at 0.8, so in a
-# fight the drums, the bass and the riff are all hard at once, and the lead joins them when the
-# fight has lasted a few seconds or the enemy is a strong one.
-GEARS = {"lead": (0.52, 0.86), "rhythm": (0.52, 0.74), "drums": (0.52, 0.74), "bass": (0.50, 0.74)}
+# below the first number, hard from the second, steady between. A fight starts at 0.8: the
+# drums and the riff go hard at once. A second enemy in the fight (0.85) brings the hard lead,
+# and a third (0.90) the hard bass line; a fight against one enemy gets there too, slowly, as
+# it goes on. An elite or a boss is everything at once.
+GEARS = {"lead": (0.52, 0.84), "rhythm": (0.52, 0.74), "drums": (0.52, 0.74), "bass": (0.50, 0.88)}
 GEAR_SLACK = 0.03              # how far past a line the intensity goes before a channel changes gear back
 RHYTHM_FROM = 0.30             # the rhythm part plays once the player is on the move
 CALM_PLACES = ("ember",)       # an inn, the moment after a fight, a death: everything plays calm
 
 _ONLY = "nothing else"
 _TIGHT = "steady timing, tight to the beat"
+# A slow tune played alone wanders from the beat if it is left to (it came back a percent and a
+# half slow, three times running, for the orchestra's calm tunes). These words hold it.
+_STRICT = "played in strict time to a steady pulse, no rubato"
 
 # What is asked for, by style, channel and tier. Each entry is one way of playing; a pool takes
 # them in turn, so that six phrases in a pool are six different ideas. {note} is the tonal centre
@@ -89,10 +112,10 @@ KNIGHT = {
         ["guitar feedback humming on the note {note}, far away", "only the hum, " + _ONLY, "no melody", "no rhythm"],
     ]},
     "lead": {
-        0: [["solo lute", "only a lute, " + _ONLY, "unaccompanied", "a slow singing melody in {key}"],
-            ["solo {colour}", "only the {colour}, " + _ONLY, "unaccompanied", "a wistful tune in {key}"],
-            ["solo clean electric guitar", "only one guitar, " + _ONLY, "unaccompanied", "a gentle melody of long notes in {key}"],
-            ["solo hurdy-gurdy", "only the hurdy-gurdy, " + _ONLY, "a slow modal tune in {key}"]],
+        0: [["solo lute", "only a lute, " + _ONLY, "unaccompanied", "a slow singing melody in {key}", _STRICT],
+            ["solo {colour}", "only the {colour}, " + _ONLY, "unaccompanied", "a wistful tune in {key}", _STRICT],
+            ["solo clean electric guitar", "only one guitar, " + _ONLY, "unaccompanied", "a gentle melody of long notes in {key}", _STRICT],
+            ["solo hurdy-gurdy", "only the hurdy-gurdy, " + _ONLY, "a slow modal tune in {key}", _STRICT]],
         1: [["solo lute", "only a lute, " + _ONLY, "unaccompanied", "a lively dance tune in {key}", _TIGHT],
             ["solo {colour}", "only the {colour}, " + _ONLY, "unaccompanied", "a bright skipping tune in {key}", _TIGHT],
             ["solo lead electric guitar, lightly overdriven", "only one guitar, " + _ONLY, "unaccompanied",
@@ -154,10 +177,11 @@ WARCRAFT = {
         ["muted horns holding a soft chord of {key}", "only horns, " + _ONLY, "no melody", "no rhythm"],
     ]},
     "lead": {
-        0: [["solo oboe", "only an oboe, " + _ONLY, "unaccompanied", "a pastoral tune in {key}"],
-            ["solo flute", "only a flute, " + _ONLY, "unaccompanied", "a gentle wandering melody in {key}"],
-            ["solo french horn", "only a horn, " + _ONLY, "unaccompanied", "a noble slow melody in {key}"],
-            ["solo cello", "only a cello, " + _ONLY, "unaccompanied", "a singing melody in {key}"]],
+        0: [["solo oboe", "only an oboe, " + _ONLY, "unaccompanied", "a pastoral tune in {key}, a note to every beat", _STRICT],
+            ["solo flute", "only a flute, " + _ONLY, "unaccompanied", "a gentle melody in {key} in even notes", _STRICT],
+            ["solo french horn", "only a horn, " + _ONLY, "unaccompanied", "a noble slow melody in {key} in long even notes", _STRICT],
+            ["solo cello", "only a cello, " + _ONLY, "unaccompanied", "a singing melody in {key} in even notes", _STRICT],
+            ["solo harp", "only a harp, " + _ONLY, "unaccompanied", "a simple tune in {key} picked out a note to every beat", _STRICT]],
         1: [["solo clarinet", "only a clarinet, " + _ONLY, "unaccompanied", "a lilting dance tune in {key}", _TIGHT],
             ["violins in unison", "only violins, " + _ONLY, "a broad warm tune in {key}"],
             ["solo trumpet", "only a trumpet, " + _ONLY, "unaccompanied", "a bright calling melody in {key}"],
@@ -209,9 +233,9 @@ TRANCE = {
         ["a glassy shimmering pad in {key}", "only the pad, " + _ONLY, "no melody", "no drums"],
     ]},
     "lead": {
-        0: [["a bell-like synth melody with long echoes in {key}", "only the one synth, " + _ONLY, "no drums", "slow and spacious"],
-            ["a soft piano-like melody in {key}", "only the one instrument, " + _ONLY, "no drums", "slow and spacious"],
-            ["a single plucked synth playing a slow tune in {key}", "only the one synth, " + _ONLY, "no drums"]],
+        0: [["a bell-like synth melody with long echoes in {key}", "only the one synth, " + _ONLY, "no drums", "slow and spacious", _STRICT],
+            ["a soft piano-like melody in {key}", "only the one instrument, " + _ONLY, "no drums", "slow and spacious", _STRICT],
+            ["a single plucked synth playing a slow tune in {key}", "only the one synth, " + _ONLY, "no drums", _STRICT]],
         1: [["a gliding synth lead melody in {key}", "only the one synth, " + _ONLY, "no drums", _TIGHT],
             ["a plucked synth hook in {key}, bouncing", "only the one synth, " + _ONLY, "no drums", _TIGHT],
             ["a square-wave lead playing a simple catchy hook in {key}", "only the one synth, " + _ONLY, "no drums", _TIGHT]],
@@ -255,6 +279,58 @@ TRANCE = {
 }
 
 RECIPES = {"knight": KNIGHT, "warcraft": WARCRAFT, "trance": TRANCE}
+
+# What each channel does in each part of the form, on top of the way of playing it was asked
+# for: held back in the verse, rising through the build-up, and all out in the chorus.
+SECTION_WORDS = {
+    "drums": {"verse": ["the verse: restrained, leaving room"],
+              "build": ["a build-up: fills on the snare drum and toms getting busier and louder bar by bar",
+                        "ending in a big fill into the chorus"],
+              "chorus": ["the chorus: the same beat bigger and wider, open cymbals", "a crash on the first beat"]},
+    "bass": {"verse": ["the verse: restrained and steady"],
+             "build": ["a build-up: the line climbs step by step and gets louder"],
+             "chorus": ["the chorus: fuller and driving, moving between the root and the fifth"]},
+    "rhythm": {"verse": ["the verse: restrained and tight, leaving space"],
+               "build": ["a build-up: rising, getting louder and busier towards the chorus"],
+               "chorus": ["the chorus: big, open and ringing, the main figure played wide and proud"]},
+    "lead": {"verse": ["the verse: short answering phrases with space between them"],
+             "build": ["a build-up: a line that climbs higher and higher"],
+             "chorus": ["the chorus: the main hook, a strong melody one could sing, played out in full"]},
+    "texture": {"verse": ["low and still"], "build": ["slowly swelling and rising"],
+                "chorus": ["fuller and brighter, wide open"]},
+}
+# Where a style has its own words for a part of the form, they stand in for the ones above.
+STYLE_SECTION_WORDS = {
+    "trance": {
+        "drums": {"verse": ["the breakdown: sparse, the kick drum held back"],
+                  "build": ["the build-up: a snare roll that speeds up bar by bar", "a rising noise sweep"],
+                  "chorus": ["the drop: the full beat at full power", "a crash on the first beat"]},
+        "bass": {"verse": ["the breakdown: held back, filtered dark"],
+                 "build": ["the build-up: the filter opens bar by bar, rising"],
+                 "chorus": ["the drop: the full bassline at full power"]},
+        "rhythm": {"verse": ["the breakdown: filtered and soft"],
+                   "build": ["the build-up: the filter opens bar by bar, rising and brightening"],
+                   "chorus": ["the drop: bright and wide at full power"]},
+        "lead": {"verse": ["the breakdown: a few notes of the hook, far away"],
+                 "build": ["the build-up: the hook rising and getting brighter"],
+                 "chorus": ["the drop: the full hook, euphoric, played out"]},
+    },
+    "warcraft": {
+        "drums": {"build": ["a crescendo: rolls on the timpani and snare drum growing louder", "ending in a cymbal crash"],
+                  "chorus": ["the full statement: broad and grand, cymbals on the strong beats"]},
+        "bass": {"build": ["a crescendo: the line climbs step by step and grows louder"],
+                 "chorus": ["the full statement: broad, strong and marching"]},
+        "rhythm": {"build": ["a crescendo: the figure rises through the registers and grows louder"],
+                   "chorus": ["the full statement: broad and grand"]},
+        "lead": {"chorus": ["the full theme: broad, noble and memorable, played out"]},
+    },
+}
+SECTION_NAMES = {"verse": "Verse", "build": "Build-up", "chorus": "Chorus"}
+
+
+def section_words(genre: str, channel: str, section: str) -> list[str]:
+    own = STYLE_SECTION_WORDS.get(genre, {}).get(channel, {})
+    return list(own.get(section) or SECTION_WORDS[channel][section])
 # What must never be in a phrase of each channel, on top of what the style never wants.
 OTHERS = {
     "texture": ["drums", "percussion", "bass guitar", "melody"],
@@ -281,9 +357,21 @@ def tiers_of(channel: str) -> tuple[int, ...]:
     return (0,) if channel == "texture" else TIERS
 
 
+def form(bpm: int) -> tuple[int, int, int]:
+    """The song's form at a tempo: the lengths of the verse, the build-up and the chorus in bars.
+    Twice as many bars at the faster tempos, so that a turn of the form is always somewhere
+    between forty seconds and a minute, half of it chorus."""
+    return (4, 4, 8) if bpm < 110 else (8, 8, 16)
+
+
+def cycle_bars(bpm: int) -> int:
+    """How long one turn of the form is, in bars: the length of every phrase at that tempo."""
+    return sum(form(bpm))
+
+
 def bars_of(channel: str, bpm: int) -> int:
-    """A phrase's length in bars; twice as many at the fastest tempos, where a bar is very short."""
-    return BARS[channel] * (2 if bpm >= 150 else 1)
+    """A phrase's length in bars: one turn of the form, whatever the channel."""
+    return cycle_bars(bpm)
 
 
 @dataclass
@@ -292,19 +380,23 @@ class Ask:
     channel: str
     tier: int
     variant: int
-    bars: int
+    bars: int                      # the whole phrase: one turn of the form
+    sections: tuple[int, ...]      # the bars of its verse, build-up and chorus
     plan: dict[str, Any]
     seed: int
     words: list[str]
 
     @property
     def minutes(self) -> float:
-        return self.plan["chunks"][0]["duration_ms"] / 60000.0
+        return sum(chunk["duration_ms"] for chunk in self.plan["chunks"]) / 60000.0
 
 
 def ask(profile: composer.ZoneProfile, genre: str, channel: str, tier: int, variant: int, seed: int,
         context: list[str] | None = None) -> Ask:
-    """The request for one phrase. `profile` is the zone's as the style uses it (composer.for_genre)."""
+    """The request for one phrase: a verse, a build-up and a chorus for one instrument, each a
+    part of the request with its own words and its own exact length, so that the build-up and
+    the chorus start at the same moment in every phrase of the bucket. `profile` is the zone's
+    as the style uses it (composer.for_genre)."""
     recipe = composer.genre_of(genre)
     ways = RECIPES[genre][channel][tier]
     note = profile.tonic.split()[0]
@@ -314,16 +406,18 @@ def ask(profile: composer.ZoneProfile, genre: str, channel: str, tier: int, vari
     # keep time are asked for plainly, which is what keeps them steady.
     if channel in ("lead", "texture"):
         words += list(profile.mood[:2]) + list(context or [])
-    bars = bars_of(channel, profile.bpm)
+    sections = form(profile.bpm)
     # The words for the time are the ones the experiment held its tempo with. A style's own words
     # for its beat name the instruments that keep it, which a phrase for one instrument must not.
     timing = [] if channel == "texture" else ["steady straight 4/4 beat"]
-    plan = {"chunks": [{
-        "text": "[%s]" % channel, "duration_ms": composer.bars_ms(profile.bpm, bars),
-        "positive_styles": list(dict.fromkeys(["%d BPM" % profile.bpm, profile.tonic] + timing + ["instrumental"] + words)),
-        "negative_styles": list(dict.fromkeys(recipe["never"] + OTHERS[channel])),
-        "context_adherence": "high"}]}
-    return Ask(channel=channel, tier=tier, variant=variant, bars=bars, plan=plan, seed=seed, words=words)
+    common = ["%d BPM" % profile.bpm, profile.tonic] + timing + ["instrumental"]
+    avoid = list(dict.fromkeys(recipe["never"] + OTHERS[channel]))
+    chunks = [{"text": "[%s]" % SECTION_NAMES[section], "duration_ms": composer.bars_ms(profile.bpm, bars),
+               "positive_styles": list(dict.fromkeys(common + words + section_words(genre, channel, section))),
+               "negative_styles": avoid, "context_adherence": "high"}
+              for section, bars in zip(SECTIONS, sections)]
+    return Ask(channel=channel, tier=tier, variant=variant, bars=sum(sections), sections=sections,
+               plan={"chunks": chunks}, seed=seed, words=words)
 
 
 def mix(target: Any, before: dict[str, dict[str, Any]] | None = None) -> dict[str, dict[str, Any]]:
@@ -390,11 +484,49 @@ def _repeat_off(audio: np.ndarray, rate: int, bar_s: float) -> tuple[float, floa
     return (centre / best[1] - 1.0) * 100.0, best[0]
 
 
-def measure(audio: np.ndarray, rate: int, bpm: int, channel: str, bars: int) -> dict[str, Any]:
-    """What a phrase is: its length, level, tempo, where its beat falls and how it is tuned,
-    and in `problems` everything that makes it unfit for the bucket (empty when it is fit)."""
+def _timing(audio: np.ndarray, rate: int, bpm: int, bars: int, room: float = 1.0) -> dict[str, Any]:
+    """How a stretch of a phrase keeps time: its tempo against the one asked for, how it comes
+    round on the bar, and where its beat falls against its own start. `room` widens the lines
+    it is held to."""
+    bar_s = 240.0 / bpm
+    grid = analysis.fit_grid(audio, rate, bpm)
+    off = (grid.bpm / bpm - 1.0) * 100.0
+    repeat, strength = _repeat_off(audio, rate, bar_s)
+    half_beat = 30000.0 / bpm
+    beat = grid.distance_to_beat_s(0.0) * 1000.0
+    beat = (beat + half_beat / 2.0) % half_beat - half_beat / 2.0      # the beat or the off-beat: see ingest
+    # A stretch of long notes has too little struck on its beats for a beat to be fitted to it,
+    # and what the fit then says means nothing. Such a stretch is judged only by whether it
+    # comes round on the bar, and if it does not repeat either, it is taken as it is: a few long
+    # notes cannot be heard to be out of time.
+    dense = grid.beats_checked >= DENSE * bars * 4
+    found = {"tempo_off": round(off, 3), "repeat_off": round(repeat, 3), "repeat": round(strength, 2),
+             "beat_ms": round(beat, 1), "struck": grid.beats_checked, "dense": bool(dense)}
+    problems = []
+    if dense and abs(off) > MAX_TEMPO_OFF * room:
+        problems.append("it is %.2f%% off tempo" % off)
+    elif strength >= REPEATS and abs(repeat) > MAX_REPEAT_OFF * room:
+        problems.append("it comes round %.2f%% off the bar" % repeat)
+    if dense and abs(beat) > MAX_BEAT_OFF_MS * room:
+        problems.append("it starts %.0f ms from the beat" % beat)
+    found["problems"] = problems
+    return found
+
+
+def measure(audio: np.ndarray, rate: int, bpm: int, channel: str,
+            sections: int | tuple[int, ...], tier: int = 1) -> dict[str, Any]:
+    """What a phrase is: its length, level, timing and tuning, and in `problems` everything that
+    makes it unfit for the bucket (empty when it is fit). `sections` is the bars of its verse,
+    build-up and chorus, or one number for a phrase that is a single stretch.
+
+    The verse and the chorus are each held to the tempo and to the beat on their own, since each
+    starts at an exact moment and is what the other channels play against. The build-up is not:
+    fills and rolls that speed up are what a build-up is."""
+    sections = (sections,) if isinstance(sections, int) else tuple(sections)
+    bars = sum(sections)
     bar_s = 240.0 / bpm
     asked = bars * bar_s
+    room = LOOSE if channel == "lead" and tier == 0 else 1.0
     found: dict[str, Any] = {"seconds": round(len(audio) / rate, 3), "lufs": round(analysis.loudness_lufs(audio, rate), 1),
                              "peak": round(analysis.peak(audio), 3)}
     problems: list[str] = []
@@ -402,26 +534,21 @@ def measure(audio: np.ndarray, rate: int, bpm: int, channel: str, bars: int) -> 
         problems.append("it is %.2f s long, not %.2f" % (found["seconds"], asked))
     if found["lufs"] < -50.0:
         problems.append("it is all but silent (%.0f LUFS)" % found["lufs"])
-    if channel != "texture":
-        grid = analysis.fit_grid(audio, rate, bpm)
-        off = (grid.bpm / bpm - 1.0) * 100.0
-        repeat, strength = _repeat_off(audio, rate, bar_s)
-        half_beat = 30000.0 / bpm
-        beat = grid.distance_to_beat_s(0.0) * 1000.0
-        beat = (beat + half_beat / 2.0) % half_beat - half_beat / 2.0      # the beat or the off-beat: see ingest
-        # A phrase of long notes has too little struck on its beats for a beat to be fitted to
-        # it, and what the fit then says means nothing. Such a phrase is judged only by whether
-        # it comes round on the bar, and if it does not repeat either, it is taken as it is: a
-        # few long notes cannot be heard to be out of time.
-        dense = grid.beats_checked >= DENSE * bars * 4
-        found.update(tempo_off=round(off, 3), repeat_off=round(repeat, 3), repeat=round(strength, 2),
-                     beat_ms=round(beat, 1), struck=grid.beats_checked, dense=dense)
-        if dense and abs(off) > MAX_TEMPO_OFF:
-            problems.append("it is %.2f%% off tempo" % off)
-        elif strength >= REPEATS and abs(repeat) > MAX_REPEAT_OFF:
-            problems.append("it comes round %.2f%% off the bar" % repeat)
-        if dense and abs(beat) > MAX_BEAT_OFF_MS:
-            problems.append("it starts %.0f ms from the beat" % beat)
+    if channel != "texture" and not problems:
+        if len(sections) == 1:
+            timing = _timing(audio, rate, bpm, bars, room)
+            problems += timing.pop("problems")
+            found.update(timing)
+        else:
+            start = 0
+            for name, length in zip(SECTIONS, sections):
+                first, last = int(round(start * bar_s * rate)), int(round((start + length) * bar_s * rate))
+                start += length
+                if name == "build":
+                    continue
+                timing = _timing(audio[first:last], rate, bpm, length, room)
+                problems += ["in the %s %s" % (name, problem) for problem in timing.pop("problems")]
+                found[name] = timing
     if channel != "drums":
         key = analysis.estimate_key(audio, rate)
         found.update(tuning_cents=round(key.tuning_cents, 1), strongest_note=analysis.PITCH_NAMES[int(np.argmax(key.chroma))])
@@ -489,8 +616,15 @@ class Bucket:
     def bar_frames(self) -> int:
         return RATE * 240 // self.bpm
 
+    @property
+    def cycle(self) -> int:
+        """The length of every phrase in play, in bars: one turn of the form at this tempo."""
+        return cycle_bars(self.bpm)
+
     def _in_play(self, clip: Clip) -> bool:
-        return not clip.banned and (self.everything or not clip.retired)
+        # Phrases of another length were made before phrases were a whole turn of the form.
+        # They are kept on disk and left out of the music.
+        return clip.bars == self.cycle and not clip.banned and (self.everything or not clip.retired)
 
     def pool(self, channel: str, tier: int) -> list[Clip]:
         return [clip for clip in self.clips if clip.channel == channel and clip.tier == tier and self._in_play(clip)]
@@ -569,8 +703,13 @@ class Bucket:
 
     def describe(self) -> dict[str, Any]:
         """What the player needs to know to play from this bucket."""
+        verse, build, chorus = form(self.bpm)
         return {"key": self.key, "zone": self.zone, "genre": self.genre, "bpm": self.bpm, "tonic": self.tonic,
                 "rate": RATE, "bar_frames": self.bar_frames, "version": self.version,
+                # Every phrase is one turn of this form. The decks take new phrases where it
+                # comes round, `changes` of them at most, so the song moves on a verse at a time.
+                "cycle_bars": self.cycle, "form": {"verse": verse, "build": build, "chorus": chorus},
+                "changes": CHANGES, "arc": ARC[self.genre],
                 "clips": [self.brief(clip) for clip in self.live()]}
 
     @staticmethod
@@ -591,33 +730,50 @@ class Bucket:
 
     def wanted(self, active: list[tuple[str, int]] | None = None,
                also: dict[tuple[str, int], int] | None = None,
-               skip: set[tuple[str, int]] | None = None) -> tuple[str, int]:
-        """The pool to add a phrase to next. `active` is the pools the music is drawing on right
-        now (which channels are up, and how hard); `also` counts phrases already on their way;
-        `skip` is pools to leave alone for now.
+               skip: set[tuple[str, int]] | None = None) -> tuple[tuple[str, int], bool] | None:
+        """The pool to add a phrase to next, and whether it is wanted in a hurry (two requests
+        at a time) or at leisure (one at a time). None when the bucket holds all it can and the
+        music has plenty that nobody has heard. `active` is the pools the music is drawing on
+        right now (which channels are up, and how hard); `also` counts phrases already on their
+        way; `skip` is pools to leave alone for now.
 
-        First whatever the music is drawing on that has nothing at all, then one phrase for every
-        pool. After that the bucket follows the game: of the pools in use, the one with the fewest
-        phrases nobody has heard yet, so that the next change the player makes is to something new."""
+        In a hurry: whatever the music is drawing on that has nothing at all, then one phrase
+        for every pool, then every pool to DEPTH (what is in use first, then the hard phrases a
+        fight will want, then the rest). At leisure: a pool in use that is running out of
+        phrases nobody has heard, then the shallowest pool, until every pool is at MOST."""
         also, skip = also or {}, skip or set()
         active = [pool for pool in (active or []) if pool not in skip]
+        pools = [pool for pool in FIRST if pool not in skip]
 
         def have(pool: tuple[str, int]) -> int:
             return len(self.pool(*pool)) + also.get(pool, 0)
 
-        for pool in active:
+        def unheard(pool: tuple[str, int]) -> int:
+            return sum(1 for clip in self.pool(*pool) if clip.plays == 0) + also.get(pool, 0)
+
+        for pool in active + pools:
             if have(pool) < START:
-                return pool
-        for pool in FIRST:
-            if pool not in skip and have(pool) < START:
-                return pool
-        choices = active or [pool for pool in FIRST if pool not in skip] or list(FIRST)
+                return pool, True
+        # What is in use comes first, then the hard phrases, then the rest; within each, the
+        # pool with the fewest, and of two as shallow the channel that changes phrase more often.
+        order = active + [pool for pool in pools if pool[1] == 2 and pool not in active] \
+            + [pool for pool in pools if pool[1] != 2 and pool not in active]
 
-        def hunger(pool: tuple[str, int]) -> tuple[float, int]:
-            unheard = sum(1 for clip in self.pool(*pool) if clip.plays == 0) + also.get(pool, 0)
-            return unheard / APPETITE[pool[0]], have(pool)
+        def shallowest(limit: int) -> tuple[str, int] | None:
+            short = [pool for pool in order if have(pool) < limit]
+            if not short:
+                return None
+            fewest = min(have(pool) for pool in short)
+            return next(pool for pool in short if have(pool) == fewest)
 
-        return min(choices, key=hunger)
+        pool = shallowest(DEPTH)
+        if pool is not None:
+            return pool, True
+        hungry = [pool for pool in active if unheard(pool) < AHEAD]
+        if hungry:
+            return min(hungry, key=lambda pool: (unheard(pool) / APPETITE[pool[0]], have(pool))), False
+        pool = shallowest(MOST)
+        return (pool, False) if pool is not None else None
 
     def make_room(self, channel: str, tier: int) -> list[Clip]:
         """Sets aside the most worn phrases of a pool that holds more than it should. They stay
@@ -708,7 +864,7 @@ class Filler:
             audio = await self._generate(request, bucket.zone)
             # Measuring takes about a second of arithmetic; it is done off to one side so that
             # the game goes on being followed meanwhile.
-            found = await asyncio.to_thread(measure, audio, RATE, bucket.bpm, channel, request.bars)
+            found = await asyncio.to_thread(measure, audio, RATE, bucket.bpm, channel, request.sections, tier)
             problems = found.pop("problems")
             if not problems:
                 return bucket.add(fit(audio, RATE, bucket.bpm, request.bars), channel=channel, tier=tier,
@@ -719,4 +875,4 @@ class Filler:
 
 
 __all__ = ["Ask", "Bucket", "Buckets", "Clip", "Filler", "PhraseFailed", "ask", "measure", "fit", "CHANNELS", "TIERS",
-           "FIRST", "MOST", "ElevenError", "mix", "in_use"]
+           "FIRST", "MOST", "ElevenError", "mix", "in_use", "form", "cycle_bars"]

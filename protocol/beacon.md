@@ -1,4 +1,4 @@
-# The strip (version 2)
+# The strip (version 3)
 
 The strip is how the FreeRock addon tells the outside world what is happening in the game. An
 addon cannot open a connection or write a file while the game runs, but it can draw. So it draws
@@ -12,8 +12,10 @@ This file is the one definition of the format. `FreeRock/Beacon.lua` draws it an
 Only values the game never seals go into the strip. See "What is never sent" at the end.
 
 Version 2 gave a meaning to one byte and one flag that version 1 left empty (the player's speed,
-and whether the target can be fought) and added one moment. Nothing else moved, so the reader
-takes both versions: from a version 1 addon it simply does not hear those things.
+and whether the target can be fought) and added one moment. Version 3 put two small numbers in
+the upper halves of the command and moment bytes: how many enemies have a nameplate on screen,
+and how many of those are in a fight. Nothing else moved, so the reader takes all three versions:
+from an older addon it simply does not hear the things a later version added.
 
 ## Shape on screen
 
@@ -62,7 +64,7 @@ bit first. Numbers of more than one byte are big-endian.
 
 | Offset | Bytes | Field | Meaning |
 |---|---|---|---|
-| 0 | 1 | version and kind | High four bits: format version, 2 (1 is still read). Low four bits: 0 a state frame, 1 a test frame. |
+| 0 | 1 | version and kind | High four bits: format version, 3 (1 and 2 are still read). Low four bits: 0 a state frame, 1 a test frame. |
 | 1 | 1 | beat | Goes up by one every half second and wraps at 256. Proves the strip is live. |
 | 2 | 3 | flags | 24 yes/no values, listed below |
 | 5 | 1 | instance kind, target class | High four bits and low four bits; values below |
@@ -74,9 +76,9 @@ bit first. Numbers of more than one byte are big-endian.
 | 15 | 2 | instance | The game's instance number while in a dungeon, raid or battleground, else 0 |
 | 17 | 2 | encounter | The boss encounter's number while one is running, else 0 |
 | 19 | 2 | game clock | Minutes since midnight, game time. 65535: not known. |
-| 21 | 1 | command | The last thing the player asked for: 0 nothing yet, 1 skip, 2 love, 3 ban |
+| 21 | 1 | enemies in view, command | Low four bits: the last thing the player asked for: 0 nothing yet, 1 skip, 2 love, 3 ban. High four bits, from version 3: how many enemies have a nameplate on screen, 0 to 13, 14 for fourteen or more, 15 not known. In versions 1 and 2 the whole byte is the command. |
 | 22 | 1 | command count | Goes up by one with every command and wraps at 256 |
-| 23 | 1 | moment | The last one-off event: 0 none yet, 1 level up, 2 boss defeated, 3 boss fight lost, 4 died, 5 quest handed in, 6 achievement earned |
+| 23 | 1 | enemies fighting, moment | Low four bits: the last one-off event: 0 none yet, 1 level up, 2 boss defeated, 3 boss fight lost, 4 died, 5 quest handed in, 6 achievement earned. High four bits, from version 3: how many of the enemies in view are in a fight, counted the same way. In versions 1 and 2 the whole byte is the moment. |
 | 24 | 1 | moment count | Goes up by one with every moment and wraps at 256 |
 | 25 | 1 | volume | The player's FreeRock volume, 0 to 100 |
 | 26 | 1 | difficulty | The game's difficulty number while in an instance, else 0 |
@@ -153,7 +155,7 @@ every fifth of a second and goes round all the names it has.
 
 ### Test frames
 
-`/rock test` makes the addon send test frames for ten seconds. Byte 0 is 0x21, bytes 1 to 37 are
+`/rock test` makes the addon send test frames for ten seconds. Byte 0 is 0x31, bytes 1 to 37 are
 `(17 * i + 3) mod 256` for byte number `i`, and the checksum follows as usual. A reader that
 decodes one knows every bit position works.
 
@@ -164,3 +166,26 @@ game in combat. FreeRock does not read them, does not send them, and does not wo
 other way. Target class is read through `UnitClassification` and whether the target can be fought
 through `UnitCanAttack`; if either ever comes back sealed it is sent as "not readable" or left
 out. The player's own speed comes from `GetUnitSpeed` and is sent as "not known" if sealed.
+
+### The enemies in view
+
+How many enemies are on the player is what a fight's music should grow with, and it is exactly
+what the game seals (threat). The two counts in version 3 are the nearest thing that is not
+sealed, and they are counts and nothing more:
+
+- The game announces each nameplate that comes on screen with `NAME_PLATE_UNIT_ADDED`, which
+  carries a unit token such as `nameplate7`, and each one that goes with
+  `NAME_PLATE_UNIT_REMOVED`. FreeRock keeps the tokens.
+- Five times a second it asks, for each token: `UnitExists`, `UnitCanAttack("player", token)`,
+  `UnitIsDead` and `UnitAffectingCombat`. An enemy in view is a unit that exists, can be
+  attacked and is not dead; it is fighting if it is in combat (with anyone: the game does not
+  say with whom).
+- Blizzard's generated documentation for this client (branch `forever` of the interface source,
+  `UnitDocumentation.lua` and `NamePlateManagerDocumentation.lua`) marks none of these four
+  answers and neither event payload as sealable. If one comes back sealed all the same, both
+  counts are sent as 15, not known.
+- Nothing else is asked about those units. Not their names, not their health, not whom they
+  are after. `UnitThreatSituation` is not called.
+
+The counts depend on the player's nameplate settings: with enemy nameplates switched off there
+are none to count, and the app then goes by the fight alone, as it did before version 3.

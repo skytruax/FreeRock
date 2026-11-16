@@ -35,6 +35,24 @@ function makeBucket(key, barFrames, each, only) {
            rate: RATE, bar_frames: barFrames, clips };
 }
 
+// A bucket whose phrases are each one turn of a form: sixteen bars (a verse of four, a build-up
+// of four and a chorus of eight), the same for every channel. Two decks may change each turn.
+function makeFormBucket(key, barFrames, each) {
+  const clips = [];
+  for (const channel of CHANNELS) {
+    for (const tier of channel === "texture" ? [0] : [0, 1, 2]) {
+      for (let i = 0; i < each; i++) {
+        const id = key + "-" + channel + tier + "-" + i;
+        if (!(id in TONE)) { TONE[id] = nextTone; nextTone += 110; }
+        FRAMES[id] = 16 * barFrames;
+        clips.push({ id, channel, tier, bars: 16, frames: FRAMES[id], gain_db: 0 });
+      }
+    }
+  }
+  return { key: "test/" + key, zone: key, genre: "test", bpm: Math.round(RATE * 240 / barFrames), tonic: "A minor",
+           rate: RATE, bar_frames: barFrames, cycle_bars: 16, form: { verse: 4, build: 4, chorus: 8 }, changes: 2, clips };
+}
+
 // kind "tones": every phrase is its own steady tone.
 // kind "marks": drums and bass are a click on every beat (0.5 and 0.25), everything else silent.
 // kind "loud":  every phrase is a full-scale tone, to push the limiter.
@@ -275,7 +293,9 @@ tests.rest = async () => {
   ] });
   const d = run.data, log = run.engine.log;
   return { before: rms(d, 5, 7), during: rms(d, 11, 17.9), after: rms(d, 24, 28),
-           scheduledDuring: log.filter((entry) => entry.at > 12.5 && entry.at < 18).length,
+           // What was laid down before the rest began reaches a few seconds into it (and is
+           // stopped when the fade is over); nothing is laid down once it has begun.
+           scheduledDuring: log.filter((entry) => entry.at > 14.5 && entry.at < 18).length,
            firstAfter: Math.min(...log.filter((entry) => entry.at >= 18).map((entry) => entry.at)),
            offsetsAfter: log.filter((entry) => entry.at >= 18 && entry.at < 18.5).map((entry) => entry.offset) };
 };
@@ -357,6 +377,133 @@ tests.skip = async () => {
     return after && after.clip !== entries[0].clip;
   });
   return { moved: moved.sort() };
+};
+
+// Phrases that are each one turn of a form: the decks turn over where the form comes round, a
+// couple of them with something new each time, and every phrase is played from its beginning.
+tests.form = async () => {
+  // Played at the pitch of a long ride, where the song does not rise and fall of its own accord.
+  const run = await render(200, { bucket: makeFormBucket("form", BAR, 3), tickEvery: 1.0, random: seeded(11),
+                                  target: Object.assign(mix(1), { intensity: 0.75 }) });
+  const turn = 32, last = {}, perTurn = new Map(), offBoundary = [], offsets = new Set();
+  let changes = 0;
+  for (const entry of run.engine.log) {
+    const into = ((entry.at - ORIGIN) % turn + turn) % turn;
+    const onTurn = into < 1e-6 || turn - into < 1e-6;
+    // The tune may come in with the build-up, eight seconds into the turn, at that place in its phrase.
+    const onBuild = entry.channel === "lead" && Math.abs(into - 8) < 1e-6 && Math.abs(entry.offset - 8) < 1e-6;
+    if (!onTurn && !onBuild) offBoundary.push([entry.channel, entry.at, entry.offset]);
+    if (onTurn) offsets.add(entry.offset);
+    if (last[entry.channel] !== undefined && last[entry.channel] !== entry.clip) {
+      const slot = Math.floor((entry.at - ORIGIN) / turn + 1e-6);
+      perTurn.set(slot, (perTurn.get(slot) || 0) + 1);
+      changes += 1;
+    }
+    last[entry.channel] = entry.clip;
+  }
+  const first = run.engine.log.filter((entry) => entry.at < ORIGIN + 1);
+  return { offBoundary, offsetsOnTheTurn: Array.from(offsets), changes, mostInOneTurn: Math.max(...perTurn.values()),
+           turnsWithAChange: perTurn.size, turns: Math.floor(200 / turn), late: run.engine.late,
+           startedTogether: first.length, startOffsets: first.map((entry) => entry.offset),
+           droneStarts: of(run.engine.log, "texture").map((entry) => entry.at).slice(0, 3) };
+};
+
+// The player shapes each turn of the form: the verse held back, a rise through the build-up, the
+// chorus at full. A fight in a verse is not left at the verse's level.
+tests.formShape = async () => {
+  const shaped = Object.assign(makeFormBucket("form", BAR, 3), { arc: { verse_db: -6, sweep_hz: 0 } });
+  const only = mix(1, { texture: 0, lead: 0, drums: 0, bass: 0 });
+  const run = await render(50, { bucket: shaped, target: only });
+  const fight = await render(50, { bucket: shaped, target: only, script: [
+    [36, (engine) => engine.setTarget(Object.assign(mix(1, { texture: 0, lead: 0, drums: 0, bass: 0 }), { intensity: 0.85 }))] ] });
+  const d = run.data, f = fight.data;
+  // The first turn: verse 0 to 8 s, build-up 8 to 16 s, chorus 16 to 32 s; then a verse again.
+  return { verse: rms(d, 3, 7), earlyBuild: rms(d, 9, 10), lateBuild: rms(d, 14.5, 15.5), chorus: rms(d, 18, 30),
+           nextVerse: rms(d, 34, 39), fightVerse: rms(f, 36.5, 39), fightChorus: rms(f, 48.5, 49.5) };
+};
+
+// The song's own rise and fall: after two turns played straight, a turn that eases right off
+// (every channel calm, the drums and the bass sitting back), and later one that leans in.
+tests.formWave = async () => {
+  const shaped = () => Object.assign(makeFormBucket("form", BAR, 3), { arc: { verse_db: 0, sweep_hz: 0 } });
+  const drumsOnly = mix(1, { texture: 0, lead: 0, rhythm: 0, bass: 0 });
+  const run = await render(170, { bucket: shaped(), random: () => 0, tickEvery: 1.0 });
+  const quiet = await render(100, { bucket: shaped(), random: () => 0, target: drumsOnly });
+  const fight = await render(100, { bucket: shaped(), random: () => 0, script: [
+    [70, (engine) => engine.setTarget(Object.assign(mix(2), { intensity: 0.85 }))] ] });
+  const tiersAt = (log, channel, moment) => {
+    const entries = of(log, channel).filter((entry) => entry.at <= moment + 1e-6);
+    return entries.length ? entries[entries.length - 1].tier : null;
+  };
+  const turns = [0, 1, 2, 3, 4].map((turn) => ORIGIN + turn * 32 + 20);          // well into each turn's chorus
+  const hard = of(fight.engine.log, "drums").find((entry) => entry.tier === 2);
+  return { drums: turns.map((moment) => tiersAt(run.engine.log, "drums", moment)),
+           rhythm: turns.map((moment) => tiersAt(run.engine.log, "rhythm", moment)),
+           drone: turns.map((moment) => tiersAt(run.engine.log, "texture", moment)),
+           easedStarts: run.engine.log.filter((entry) => Math.abs(entry.at - (ORIGIN + 64)) < 1e-6 && entry.channel !== "texture")
+             .map((entry) => [entry.channel, entry.tier, entry.offset]),
+           waves: run.engine.group.waves.slice(0, 5),
+           straight: rms(quiet.data, 50, 62), eased: rms(quiet.data, 82, 94),
+           fightAt: hard ? hard.at : null, fightOffset: hard ? hard.offset : null, late: run.engine.late };
+};
+
+// Moments of silence: after about so much music the song comes down (its last turn eased off),
+// fades away where the form comes round, stays away for a while, and fades back in with a new
+// verse. A fight brings it straight back.
+tests.formSilence = async () => {
+  const breathing = () => Object.assign(makeFormBucket("form", BAR, 3), { arc: { verse_db: 0, sweep_hz: 0 }, rest: { every_s: 64, for_s: 20 } });
+  const run = await render(110, { bucket: breathing(), random: () => 0.5 });
+  const fight = await render(110, { bucket: breathing(), random: () => 0.5, script: [
+    [72, (engine) => engine.setTarget(Object.assign(mix(2), { intensity: 0.85 }))] ] });
+  const d = run.data, log = run.engine.log;
+  const back = log.filter((entry) => entry.at > ORIGIN + 64.5);
+  const fightBack = fight.engine.log.filter((entry) => entry.at > ORIGIN + 64.5);
+  return { waves: run.engine.leaving.length, playing: rms(d, 40, 55), fading: rms(d, 62.5, 63.9), silence: rms(d, 64.6, 83.5),
+           laidDownInTheSilence: log.filter((entry) => entry.at > ORIGIN + 63.9 && entry.at < 84).length,
+           backAt: back.length ? Math.min(...back.map((entry) => entry.at)) : null,
+           backOffsets: back.slice(0, 5).map((entry) => entry.offset), justBack: rms(d, 85, 85.5), wellBack: rms(d, 92, 100),
+           easedBefore: of(log, "drums").filter((entry) => entry.at > 30 && entry.at < 40).map((entry) => entry.tier),
+           fightBackAt: fightBack.length ? Math.min(...fightBack.map((entry) => entry.at)) : null };
+};
+
+// The sweep: the lows of the drums and the bass thin out before the chorus and come back as it lands.
+tests.formSweep = async () => {
+  const swept = Object.assign(makeFormBucket("sweep", BAR, 1), { arc: { verse_db: 0, sweep_hz: 2000 } });
+  for (const clip of swept.clips) if (clip.channel === "bass") TONE[clip.id] = 100;     // a low note, as a bass has
+  const run = await render(30, { bucket: swept, target: mix(1, { texture: 0, lead: 0, rhythm: 0, drums: 0 }) });
+  const bass = of(run.engine.log, "bass")[0], d = run.data;
+  const tone = TONE[bass.clip];
+  return { tone, verse: strength(d, 3, 7, tone), beforeChorus: strength(d, 15.6, 15.95, tone), chorus: strength(d, 16.3, 20, tone) };
+};
+
+// With a form, the tune that is due to change sits out the verse and comes in with the build-up.
+tests.formTune = async () => {
+  const run = await render(80, { bucket: makeFormBucket("form", BAR, 3), random: () => 0,
+                                 target: mix(1, { texture: 0, rhythm: 0, drums: 0, bass: 0 }) });
+  const lead = of(run.engine.log, "lead"), d = run.data;
+  return { starts: lead.map((entry) => entry.at), offsets: lead.map((entry) => entry.offset), clips: lead.map((entry) => entry.clip),
+           firstTurn: rms(d, 5, 30), verse: rms(d, 32.5, 39.5), build: rms(d, 41, 47), chorus: rms(d, 49, 63) };
+};
+
+// A fight in the middle of a turn of the form: the hard phrases come in at that place in the form.
+tests.formGear = async () => {
+  const run = await render(60, { bucket: makeFormBucket("form", BAR, 3), script: [[45.3, (engine) => engine.setTarget(mix(2))]] });
+  const hard = of(run.engine.log, "drums").find((entry) => entry.tier === 2);
+  const expected = ORIGIN + Math.ceil((45.3 + 0.08 - ORIGIN) / 0.25) * 0.25;
+  return { at: hard ? hard.at : null, offset: hard ? hard.offset : null, expected, expectedOffset: (expected - ORIGIN) % 32,
+           next: of(run.engine.log, "drums").filter((entry) => hard && entry.at > hard.at).map((entry) => [entry.at, entry.offset]),
+           late: run.engine.late };
+};
+
+// Another place: the one that is playing plays on until the new place's first phrases are here.
+tests.formPlace = async () => {
+  const there = makeFormBucket("there", 120000, 2);
+  const run = await render(60, { bucket: makeFormBucket("form", BAR, 2), script: [[20, (engine) => engine.setBucket(there)]] });
+  const fresh = run.engine.log.filter((entry) => entry.clip.startsWith("there"));
+  const first = Math.min(...fresh.map((entry) => entry.at));
+  return { firstNew: first, together: fresh.filter((entry) => Math.abs(entry.at - first) < 1e-6).length,
+           offsets: fresh.filter((entry) => Math.abs(entry.at - first) < 1e-6).map((entry) => entry.offset),
+           key: run.engine.status().bucket, late: run.engine.late, after: rms(run.data, 30, 50) };
 };
 
 // Everything at full scale at once must still come out under full scale.
