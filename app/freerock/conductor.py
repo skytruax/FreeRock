@@ -1089,6 +1089,11 @@ def attach(app: web.Application, library: Library | None = None,
     app.router.add_get("/api/style", conductor.style)
     app.router.add_post("/api/style", conductor.style)
     app.router.add_post("/api/pretend", conductor.pretend)
+    # Whole tracks to listen to without the game (tools/listen.py writes them, with a page for
+    # each style): http://<this machine>:8765/listen/warcraft/index.html
+    listen = Path(settings.var_dir) / "listen"
+    listen.mkdir(parents=True, exist_ok=True)
+    app.router.add_static("/listen", listen, show_index=True)
     app.on_startup.append(_start)
     app.on_cleanup.append(_stop)
     return conductor
