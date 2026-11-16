@@ -34,7 +34,7 @@ from pathlib import Path
 
 import numpy as np
 
-from . import desk, reaper, samples, sfz
+from . import desk, muse, reaper, samples, sfz
 from .samples import SAMPLES, Patch
 from .score import Note, Voice
 
@@ -1101,9 +1101,33 @@ def _slurred(notes: list[Note], beat: float) -> list[Note] | None:
     return out
 
 
-def lines(voice: Voice, title: str, bpm: float, *, taste: float = 1.0, room: float = 1.0) -> list[desk.Line]:
+MUSE_LEVEL = 6.0               # dB: MuseScore's recordings are laid in this much up (it leaves a lot of room over its sounds)
+MUSE_SEND = -20.0              # dB to the hall: Muse Sounds come with their own room; this only sets them in the same hall as the rest
+MUSE_CUT = {"Violins 1": 170.0, "Violin": 170.0, "Violas": 115.0, "Viola": 115.0, "Flute": 230.0, "Piccolo": 480.0, "Oboe": 210.0, "Trumpet in B♭": 150.0,
+            "Clarinet in B♭": 130.0, "Women": 150.0, "Celesta": 200.0, "Glockenspiel": 400.0}
+
+
+def _muse(voice: Voice, title: str, bpm: float, taste: float, room: float, seed: int) -> list[desk.Line]:
+    """The tracks of a voice that MuseScore plays (studio.muse): for each part that has some
+    of its notes, MuseScore's recording of that part laid on a track of its own. Which Muse
+    Sound plays a part that has several is drawn from the piece's `seed`."""
+    import soundfile
+    out = []
+    for part, way, notes in muse.shared(voice.instrument, voice.notes):
+        made = muse.perform(part, notes, bpm=bpm, way=way, sound=muse.voiced(part, seed))
+        out.append(desk.Line("%s: %s" % (title, part), desk.bare(part, []), volume=_db(MUSE_LEVEL) * taste, pan=0.0,
+                             clips=[(0.0, soundfile.info(str(made)).duration, str(made))], send=_db(MUSE_SEND) * room,
+                             effects=[equalise(low_cut=MUSE_CUT.get(part, 28.0))]))
+    return out
+
+
+def lines(voice: Voice, title: str, bpm: float, *, taste: float = 1.0, room: float = 1.0, seed: int = 0) -> list[desk.Line]:
     """The REAPER tracks that play one written voice. `taste` turns it up or down as a whole;
-    `room` is how much hall the piece has (1 is the usual)."""
+    `room` is how much hall the piece has (1 is the usual). Where MuseScore's orchestra is
+    there (studio.muse), it plays the instruments it has; the drums, and whatever it has not,
+    are the studio's own."""
+    if not voice.drums and voice.instrument in muse.PARTS and muse.available():
+        return _muse(voice, title, bpm, taste, room, seed)
     if voice.drums:
         if not voice.instrument.startswith("kit "):
             raise ValueError("The drum voice %s does not say which kit it is" % title)
@@ -1132,7 +1156,7 @@ def lines(voice: Voice, title: str, bpm: float, *, taste: float = 1.0, room: flo
             boom = KITS[kit][1]["boom"]
             struck = [Note(note.start, note.length, 36, note.loud) for note in voice.notes if note.pitch == boom]
             if struck:
-                out += lines(Voice(0, notes=struck, instrument="kick"), title + " kick", bpm, taste=taste, room=room)
+                out += lines(Voice(0, notes=struck, instrument="kick"), title + " kick", bpm, taste=taste, room=room, seed=seed)
         return out
     if voice.instrument == "swell":
         return _swell(voice, title, bpm, taste, room)

@@ -1,5 +1,35 @@
 # Changelog
 
+## An orchestra that is given a score (2026-11-16, evening)
+
+The reworked sample instruments were heard and turned down too: "still sounds like a 90s
+windows demo", "the lead synth sounds cheezy", and then the decision: "the music is well
+written we just need a good renderer", "we should be using plugins and effects for most
+instruments". So the orchestra is no longer played from the studio's own recordings.
+
+- **MuseScore plays the orchestra (`studio/muse.py`).** MuseScore Studio comes with Muse
+  Sounds: recorded instruments that are given a score, not notes to trigger, and play it as
+  players would. Each written voice is written out as a score (MusicXML): a dynamic mark
+  where the strength changes, a slur over notes that follow at once on each other, a dot on a
+  short note, an accent on one struck harder than those about it, tremolo strokes, "pizz.".
+  MuseScore performs it with no window and the recording is laid on a REAPER track, in time
+  with what REAPER itself plays to within two thousandths of a second. The drums (the kit
+  plug-ins, the kick) and whatever MuseScore has no instrument for stay with REAPER, and the
+  mix, the hall and the five channels are as before.
+- **Many sounds, and not the same ones in every piece.** There are 117 Muse Sounds on the
+  drive. A part can be given any of them by name (six horns or one, four trumpets or one,
+  first or second violins, the choir as women and men or voice by voice, a grand, a soft or
+  an upright piano), and each piece draws its own from its seed.
+- **A check that it is really Muse Sounds.** Told a profile name or an instrument it does not
+  know, MuseScore says nothing and plays its plain built-in sounds. A performance with
+  nothing at all above 16 kHz is taken to be that, and stops the piece.
+- **A real kick.** A recorded studio kick's inside and outside microphones with a designed
+  sub from the Geonkick drum synthesiser under it, a fifth of a second long, in place of a
+  26-inch drum that rang for seven tenths; the other channels give way under each stroke by
+  a drawn volume curve.
+- **5.1 on the mixing-desk page**, where the browser has six loudspeakers: the tune in front
+  with some in the centre, the pad round the room, the drums and the bass to the sub.
+
 ## The instruments, one at a time (2026-11-16, afternoon)
 
 The second try in REAPER was heard and turned down: "sounds very low quality", "instruments

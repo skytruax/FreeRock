@@ -88,6 +88,23 @@ Not from the archive, kept under `var/tools`:
   render dead, and rendering it uses its costliest resampling unless told otherwise (the desk
   sets 3 of 10).
 
+## MuseScore and its Muse Sounds (the orchestra)
+
+Since the evening of 2026-11-16 the orchestra is played by MuseScore Studio 4.7.7 (GPL 3,
+the AppImage from github.com/musescore/MuseScore, unpacked at `var/tools/musescore`) with
+Muse Sounds: recorded instruments that MuseScore's makers give away with it. They are fetched
+by the Muse Sounds Manager (`https://muse-cdn.com/Muse_Sounds_Manager_x64.deb`, installed
+with `sudo apt install`) into `~/Muse Sounds`, which is a link to `musesounds` on the assets
+drive: Muse Strings, Brass, Woodwinds, Percussion, Choir, Harp, Keys, Guitars Vol. 1,
+Drumline, Handbells and Music Box, 117 instruments, 16 GB. The sampler itself is
+`~/.local/share/MuseSampler/lib/libMuseSamplerCoreLib.so`. Muse Sounds are free of charge;
+their licence terms have not been read here, which is fine for music that is only listened
+to at home and has to be settled before anything is shared. The paid packs sold on MuseHub
+(Spitfire and others) install only through MuseHub on Windows and macOS.
+
+`app/freerock/studio/muse.py` says how a voice becomes a score and how a part is given a
+named sound.
+
 ## The recordings the sampler plays
 
 Under `var/samples` (on the assets drive), each fetched from GitHub as a tarball of its main branch:

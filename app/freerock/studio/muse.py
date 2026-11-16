@@ -1,0 +1,425 @@
+"""The orchestra as MuseScore plays it.
+
+The studio's own sampled instruments were heard and turned down ("still sounds like a 90s
+windows demo", "we just need a good renderer", 2026-11-16). MuseScore Studio comes with Muse
+Sounds: an orchestra that is given a score, not notes to trigger, and plays it as players
+would: it reads the dynamics, the slurs, the dots over short notes, the tremolo strokes and
+"pizz.", and chooses how to play from them. So here a written voice is written out as a
+score (MusicXML), MuseScore performs it with no window, and the recording is laid on a REAPER
+track, where the rest of the studio's work (the drums, the mix, the hall) goes on as before.
+
+    MuseScore Studio      var/tools/musescore/squashfs-root (the AppImage, unpacked)
+    Muse Sounds           fetched by the Muse Sounds Manager into ~/Muse Sounds (a link to the
+                          assets drive); the sampler itself is under ~/.local/share/MuseSampler
+
+`PARTS` says which written instruments MuseScore plays and as what; `available` whether the
+Muse Sounds are there; `score` writes a voice as MusicXML; `perform` has MuseScore play it
+(kept by what is in it, so a voice is performed once); `line` gives the REAPER track.
+
+What MuseScore is told the part is called settles which of its instruments plays: "Violins 1"
+is the section, "Violin" one player (found by trying, MuseScore 4.7.7). Pitches are written as
+they sound; MuseScore plays them so for every instrument (measured: a horn's written A is A).
+"""
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+import sqlite3
+import subprocess
+import zipfile
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+from urllib.parse import quote
+from xml.sax.saxutils import escape
+
+from . import desk
+from .score import Note
+
+HOME = desk.VAR / "tools" / "musescore" / "squashfs-root"
+KEPT = desk.VAR / "reaper" / "muse"                # every performance, by what was in its score
+DIVISIONS = 8                                      # to a quarter note: the shortest written note is a thirty-second
+BAR = 4 * DIVISIONS                                # every score is written in four-four: bar lines are not heard
+STEPS = ("C", "C", "D", "E", "E", "F", "F", "G", "A", "A", "B", "B")
+ALTERS = (0, 1, 0, -1, 0, 0, 1, 0, -1, 0, -1, 0)
+# Note values in divisions, longest first, with the name MusicXML has for each and whether it is dotted.
+VALUES = ((32, "whole", False), (24, "half", True), (16, "half", False), (12, "quarter", True), (8, "quarter", False), (6, "eighth", True),
+          (4, "eighth", False), (3, "16th", True), (2, "16th", False), (1, "32nd", False))
+MARKS = ((0.30, "pp"), (0.42, "p"), (0.54, "mp"), (0.66, "mf"), (0.80, "f"), (9.0, "ff"))
+
+# Written instrument -> the parts that play it: (MuseScore's name for the part, the lowest and highest note it takes,
+# how it is played: "" as written, "trem" with tremolo strokes, "pizz" plucked). An instrument that is a whole
+# string orchestra under one name is shared out by register, each section taking the notes that lie well for it.
+_STRINGS = (("Contrabasses", 0, 47), ("Violoncellos", 48, 59), ("Violas", 60, 71), ("Violins 1", 72, 127))
+PARTS: dict[str, tuple[tuple[str, int, int, str], ...]] = {
+    "violins": (("Violins 1", 0, 127, ""),), "violins slow": (("Violins 1", 0, 127, ""),), "violas": (("Violas", 0, 127, ""),),
+    "celli": (("Violoncellos", 0, 127, ""),), "celli slow": (("Violoncellos", 0, 127, ""),),
+    "basses": (("Contrabasses", 0, 127, ""),), "basses slow": (("Contrabasses", 0, 127, ""),),
+    "celli pizz": (("Violoncellos", 0, 127, "pizz"),), "basses pizz": (("Contrabasses", 0, 127, "pizz"),),
+    "strings": tuple(each + ("",) for each in _STRINGS), "strings slow": tuple(each + ("",) for each in _STRINGS),
+    "tremolo": tuple(each + ("trem",) for each in _STRINGS), "pizzicato": tuple(each + ("pizz",) for each in _STRINGS),
+    "violin": (("Violin", 0, 127, ""),), "fiddle": (("Violin", 0, 127, ""),), "viola": (("Viola", 0, 127, ""),), "cello": (("Violoncello", 0, 127, ""),),
+    "flute": (("Flute", 0, 127, ""),), "piccolo": (("Piccolo", 0, 127, ""),), "oboe": (("Oboe", 0, 127, ""),),
+    "english horn": (("English Horn", 0, 127, ""),), "clarinet": (("Clarinet in B♭", 0, 127, ""),), "bassoon": (("Bassoon", 0, 127, ""),),
+    "horns": (("Horn in F", 0, 127, ""),), "trumpet": (("Trumpet in B♭", 0, 127, ""),), "trombone": (("Trombone", 0, 127, ""),),
+    "tuba": (("Tuba", 0, 127, ""),),
+    "brass": (("Trombone", 0, 54, ""), ("Horn in F", 55, 66, ""), ("Trumpet in B♭", 67, 127, "")),
+    "harp": (("Harp", 0, 127, ""),), "celesta": (("Celesta", 0, 127, ""),), "glock": (("Glockenspiel", 0, 127, ""),),
+    "vibes": (("Vibraphone", 0, 127, ""),), "marimba": (("Marimba", 0, 127, ""),), "xylophone": (("Xylophone", 0, 127, ""),),
+    "bells": (("Tubular Bells", 0, 127, ""),), "piano": (("Piano", 0, 127, ""),),
+    "choir": (("Men", 0, 59, ""), ("Women", 60, 127, "")), "oohs": (("Men", 0, 59, ""), ("Women", 60, 127, "")),
+    "timpani": (("Timpani", 0, 127, ""),),
+}
+# What MuseScore has to be told about a part beside its name, for the part to be that instrument and not a
+# nameless staff played by its plain built-in sounds: the instrument's sound in MusicXML's list, and a program.
+KINDS = {
+    "Violins 1": ("strings.violin", 49), "Violins 2": ("strings.violin", 49), "Violas": ("strings.viola", 49), "Violoncellos": ("strings.cello", 49),
+    "Contrabasses": ("strings.contrabass", 49), "Violin": ("strings.violin", 41), "Viola": ("strings.viola", 42), "Violoncello": ("strings.cello", 43),
+    "Flute": ("wind.flutes.flute", 74), "Piccolo": ("wind.flutes.flute.piccolo", 73), "Oboe": ("wind.reed.oboe", 69),
+    "English Horn": ("wind.reed.english-horn", 70), "Clarinet in B♭": ("wind.reed.clarinet.bflat", 72), "Bassoon": ("wind.reed.bassoon", 71),
+    "Horn in F": ("brass.french-horn", 61), "Trumpet in B♭": ("brass.trumpet.bflat", 57), "Trombone": ("brass.trombone", 58), "Tuba": ("brass.tuba", 59),
+    "Harp": ("pluck.harp", 47), "Celesta": ("keyboard.celesta", 9), "Piano": ("keyboard.piano", 1), "Men": ("voice.male", 53), "Women": ("voice.female", 53),
+    "Timpani": ("drum.timpani", 48), "Glockenspiel": ("pitched-percussion.glockenspiel", 10), "Vibraphone": ("pitched-percussion.vibraphone", 12),
+    "Marimba": ("pitched-percussion.marimba", 13), "Xylophone": ("pitched-percussion.xylophone", 14), "Tubular Bells": ("pitched-percussion.tubular-bells", 15),
+}
+# Which Muse Sound plays a part, where it is not the one MuseScore picks by itself (its first: one horn, one
+# trumpet, the first violins): the sounds a part may be given, as they are filed under ~/Muse Sounds. A piece
+# draws one for each part from its own seed (`voiced`), so two pieces do not have the same orchestra.
+CHOICES: dict[str, tuple[str, ...]] = {
+    "Violins 1": ("Muse Strings/Violins 1", "Muse Strings/Violins 2"),
+    "Violin": ("Muse Strings/Violin 1 Solo", "Muse Strings/Violin 2 Solo"),
+    "Horn in F": ("Muse Brass/French Horns a6", "Muse Brass/French Horns a6", "Muse Brass/French Horn"),       # six horns twice as often as one
+    "Trumpet in B♭": ("Muse Brass/Trumpet", "Muse Brass/Trumpets a4"),
+    "Trombone": ("Muse Brass/Trombones a3", "Muse Brass/Trombone", "Muse Brass/Bass Trombone"),
+    "Tuba": ("Muse Brass/Tuba", "Muse Brass/Cimbasso"),
+    "Flute": ("Muse Woodwinds/Flute 1", "Muse Woodwinds/Flute 2"),
+    "Piano": ("Muse Keys/Piano", "Muse Keys/Soft Piano", "Muse Keys/Upright Piano"),
+    "Women": ("Muse Choir/Women", "Muse Choir/Sopranos", "Muse Choir/Altos"),
+    "Men": ("Muse Choir/Men", "Muse Choir/Tenors", "Muse Choir/Basses"),
+}
+STRUCK = ("Harp", "Celesta", "Glockenspiel", "Vibraphone", "Marimba", "Xylophone", "Tubular Bells", "Piano", "Timpani")      # no dots, no slurs: each note rings
+
+
+def program() -> Path:
+    return HOME / "AppRun"
+
+
+def sounds() -> bool:
+    """Whether the Muse Sounds are installed: the sampler's library is where the manager puts it."""
+    return any((Path.home() / ".local" / "share" / "MuseSampler").rglob("libMuseSamplerCoreLib.so"))
+
+
+def available() -> bool:
+    """Whether MuseScore plays the orchestra: the program is there, and so are the Muse Sounds
+    (or FREEROCK_MUSE=basic asks for its plain built-in sounds, to try the way through)."""
+    return program().is_file() and (sounds() or os.environ.get("FREEROCK_MUSE") == "basic")
+
+
+def _mark(loud: float) -> int:
+    return next(index for index, (under, _) in enumerate(MARKS) if loud < under)
+
+
+def _events(notes: list[Note]) -> list[list[list]]:
+    """The notes as voices of a staff: in each voice, events that do not overlap, each
+    [start, length, pitches, strength, seconds long as written], in divisions. Notes begun
+    together with the same length are one chord."""
+    voices: list[list[list]] = []
+    for note in sorted(notes, key=lambda each: (each.start, -each.length, each.pitch)):
+        start = int(round(note.start * DIVISIONS))
+        length = max(int(round(note.length * DIVISIONS)), 1)
+        for voice in voices:
+            last = voice[-1]
+            if last[0] == start and last[1] == length:
+                if note.pitch not in last[2]:
+                    last[2].append(note.pitch)
+                break
+            if last[0] + last[1] <= start:
+                voice.append([start, length, [note.pitch], note.loud, note.length])
+                break
+            if last[0] < start < last[0] + last[1] and len(voices) >= 4:
+                last[1] = start - last[0]                      # a fifth voice there is no room for: the note before it is cut short
+                voice.append([start, length, [note.pitch], note.loud, note.length])
+                break
+        else:
+            if len(voices) >= 4:
+                continue                                       # begun exactly with four other lines of other lengths: left out
+            voices.append([[start, length, [note.pitch], note.loud, note.length]])
+    return voices
+
+
+def score(part: str, notes: list[Note], *, bpm: float, way: str = "") -> str:
+    """One instrument's notes as a score in MusicXML, written the way a player is given it:
+    dynamics where the strength changes, a dot on a short note, a slur over notes that follow
+    at once on each other in a single line, an accent on a note struck harder than those
+    about it; tremolo strokes or "pizz." where `way` says so."""
+    voices = _events(notes)
+    if not voices:
+        raise ValueError("There are no notes to write for %s" % part)
+    struck = part in STRUCK
+    beat_s = 60.0 / bpm
+    single = len(voices) == 1 and all(len(event[2]) == 1 for event in voices[0])
+    # How each event is played, voice by voice: its dynamic mark if it changes there, dot, accent, slur.
+    told: dict[tuple[int, int], dict] = {}
+    now, level = None, None
+    first = sorted((event[0], index, at) for index, voice in enumerate(voices) for at, event in enumerate(voice))
+    for _, index, at in first:
+        event = voices[index][at]
+        how = told.setdefault((index, at), {})
+        if index == 0:
+            mark = _mark(event[3])
+            # A new mark only when the strength has truly moved: not for a note a shade over a line.
+            edge = MARKS[mark - 1][0] if mark else 0.0
+            if now is None or (mark != now and abs(event[3] - (level or 0.0)) >= 0.05 and not (mark == now + 1 and event[3] - edge < 0.03)):
+                how["mark"], now, level = MARKS[mark][1], mark, event[3]
+            elif event[3] - (level or 0.0) >= 0.13 and not struck:
+                how["accent"] = True
+        if not struck and way == "" and event[4] * beat_s < 0.28:
+            how["dot"] = True
+    if single and not struck and way == "":
+        voice = voices[0]
+        run = False
+        for at, event in enumerate(voice[:-1]):
+            after = voice[at + 1]
+            joined = (after[0] - event[0] - event[1] <= 1 and after[2] != event[2] and not told[(0, at)].get("dot")
+                      and not told[(0, at + 1)].get("dot") and (after[0] - event[0]) / DIVISIONS * beat_s - event[4] * beat_s <= 0.09)
+            if joined and not run:
+                told[(0, at)]["slur"], run = "start", True
+            elif not joined and run:
+                told[(0, at)]["slur"], run = "stop", False
+        if run:
+            told[(0, len(voice) - 1)]["slur"] = "stop"
+    end = max(event[0] + event[1] for voice in voices for event in voice)
+    bars = -(-end // BAR)
+    kind, patch = KINDS[part]
+    rows = ['<?xml version="1.0" encoding="UTF-8"?>', '<score-partwise version="4.0">', "<part-list>",
+            '<score-part id="P1"><part-name>%s</part-name><score-instrument id="P1-I1"><instrument-name>%s</instrument-name>'
+            '<instrument-sound>%s</instrument-sound></score-instrument><midi-instrument id="P1-I1"><midi-channel>1</midi-channel>'
+            '<midi-program>%d</midi-program></midi-instrument></score-part>' % (escape(part), escape(part), kind, patch), "</part-list>", '<part id="P1">']
+
+    def lengths(span: int) -> list[tuple[int, str, bool]]:
+        out = []
+        while span > 0:
+            value = next(each for each in VALUES if each[0] <= span)
+            out.append(value)
+            span -= value[0]
+        return out
+
+    def rest(span: int, voice: int) -> list[str]:
+        return ["<note><rest/><duration>%d</duration><voice>%d</voice><type>%s</type>%s</note>" % (size, voice + 1, kind, "<dot/>" if dotted else "")
+                for size, kind, dotted in lengths(span)]
+
+    at_event = [0] * len(voices)
+    held: list[list | None] = [None] * len(voices)            # an event that runs on over the bar line: [divisions left, pitches]
+    for bar in range(bars):
+        rows.append('<measure number="%d">' % (bar + 1))
+        if bar == 0:
+            rows.append("<attributes><divisions>%d</divisions><time><beats>4</beats><beat-type>4</beat-type></time>"
+                        "<clef><sign>%s</sign><line>%d</line></clef></attributes>" % ((DIVISIONS,) + (("F", 4) if min(min(event[2]) for event in voices[0]) < 52 else ("G", 2))))
+            rows.append('<direction placement="above"><direction-type><metronome><beat-unit>quarter</beat-unit><per-minute>%.2f</per-minute></metronome>'
+                        '</direction-type><sound tempo="%.2f"/></direction>' % (bpm, bpm))
+            if way == "pizz":
+                rows.append('<direction placement="above"><direction-type><words>pizz.</words></direction-type><sound pizzicato="yes"/></direction>')
+        for index, voice in enumerate(voices):
+            if index:
+                rows.append("<backup><duration>%d</duration></backup>" % BAR)
+            place, bar_at = 0, bar * BAR                       # how far into the bar this voice has been written
+            if held[index]:
+                left, pitches = held[index]
+                span = min(left, BAR)
+                rows += _sounding(pitches, span, index, lengths, tied_in=True, tied_out=left > BAR, how={}, way=way)
+                held[index] = [left - span, pitches] if left > span else None
+                place = span
+            while at_event[index] < len(voice) and voice[at_event[index]][0] < bar_at + BAR:
+                event = voice[at_event[index]]
+                how = told.get((index, at_event[index]), {})
+                if event[0] - bar_at > place:
+                    rows += rest(event[0] - bar_at - place, index)
+                    place = event[0] - bar_at
+                if "mark" in how:
+                    rows.append('<direction placement="below"><direction-type><dynamics><%s/></dynamics></direction-type></direction>' % how["mark"])
+                span = min(event[1], BAR - place)
+                rows += _sounding(event[2], span, index, lengths, tied_in=False, tied_out=event[1] > span, how=how, way=way)
+                if event[1] > span:
+                    held[index] = [event[1] - span, event[2]]
+                place += span
+                at_event[index] += 1
+            if place < BAR:
+                rows += rest(BAR - place, index)
+        rows.append("</measure>")
+    rows += ["</part>", "</score-partwise>"]
+    return "\n".join(rows) + "\n"
+
+
+def _sounding(pitches: list[int], span: int, voice: int, lengths, *, tied_in: bool, tied_out: bool, how: dict, way: str) -> list[str]:
+    """A note or a chord of `span` divisions as MusicXML: as many tied note values as it takes."""
+    rows = []
+    values = lengths(span)
+    for order, (size, kind, dotted) in enumerate(values):
+        begins, ends = order == 0, order == len(values) - 1
+        tie_from, tie_to = tied_in or not begins, tied_out or not ends
+        for which, pitch in enumerate(sorted(pitches)):
+            words = ["<note>"]
+            if which:
+                words.append("<chord/>")
+            alter = ALTERS[pitch % 12]
+            words.append("<pitch><step>%s</step>%s<octave>%d</octave></pitch><duration>%d</duration>" % (
+                STEPS[pitch % 12], "<alter>%d</alter>" % alter if alter else "", pitch // 12 - 1, size))
+            words.append('<tie type="stop"/>' if tie_from else "")
+            words.append('<tie type="start"/>' if tie_to else "")
+            words.append("<voice>%d</voice><type>%s</type>%s" % (voice + 1, kind, "<dot/>" if dotted else ""))
+            marks = []
+            if tie_from:
+                marks.append('<tied type="stop"/>')
+            if tie_to:
+                marks.append('<tied type="start"/>')
+            if which == 0 and begins and not tied_in and how.get("slur") == "start":
+                marks.append('<slur type="start" number="1"/>')
+            if which == 0 and ends and not tied_out and how.get("slur") == "stop":
+                marks.append('<slur type="stop" number="1"/>')
+            played = []
+            if begins and not tied_in and how.get("dot"):
+                played.append("<staccato/>")
+            if begins and not tied_in and how.get("accent"):
+                played.append("<accent/>")
+            if played:
+                marks.append("<articulations>%s</articulations>" % "".join(played))
+            if way == "trem" and size >= DIVISIONS // 2:
+                marks.append('<ornaments><tremolo type="single">3</tremolo></ornaments>')
+            if marks:
+                words.append("<notations>%s</notations>" % "".join(marks))
+            words.append("</note>")
+            rows.append("".join(word for word in words if word))
+    return rows
+
+
+_ids: dict[str, int] | None = None
+
+
+def sound_id(sound: str) -> int:
+    """The number the Muse sampler knows a sound by ("Muse Brass/French Horns a6"), from the
+    list the Muse Sounds Manager keeps of what it has installed."""
+    global _ids
+    if _ids is None:
+        listed = Path.home() / "Muse Sounds" / ".instruments"
+        with sqlite3.connect("file:%s?mode=ro" % quote(str(listed)), uri=True) as db:
+            _ids = {path: number for number, path in db.execute("select id, path from instruments where state = 1")}
+    if sound not in _ids:
+        raise KeyError("There is no Muse Sound %r installed; there are: %s" % (sound, ", ".join(sorted(_ids))))
+    return _ids[sound]
+
+
+def voiced(part: str, seed: int) -> str | None:
+    """The Muse Sound a piece gives a part: one of the part's CHOICES, by the piece's seed (the
+    same piece always the same), or None for a part that has only the one MuseScore picks."""
+    have = CHOICES.get(part)
+    if not have or not sounds():
+        return None
+    return have[int(hashlib.sha1(("%d/%s" % (seed, part)).encode("utf-8")).hexdigest(), 16) % len(have)]
+
+
+def _given(score_file: Path, sound: str, out: Path) -> None:
+    """Writes a copy of a MuseScore file whose one part is played by the named Muse Sound.
+    The file is a zip; which sound plays each part is said in its audiosettings.json, by the
+    sound's pack, name and number (found by trying, 2026-11-16: so written, MuseScore 4.7
+    loads the sound; the format is not documented)."""
+    category, name = sound.split("/", 1)
+    number = sound_id(sound)
+    with zipfile.ZipFile(score_file) as packed:
+        files = {item.filename: packed.read(item.filename) for item in packed.infolist()}
+    inner = next(text for name_, text in files.items() if name_.endswith(".mscx")).decode("utf-8")
+    part_id = inner.split('<Part id="', 1)[1].split('"', 1)[0] if '<Part id="' in inner else "1"
+    instrument = inner.split('<Instrument id="', 1)[1].split('"', 1)[0]
+    settings = json.loads(files["audiosettings.json"])
+    settings["activeSoundProfile"] = "MuseSounds"
+    settings["tracks"] = [{
+        "partId": part_id, "instrumentId": instrument,
+        "in": {"resourceMeta": {"id": "%s\\%s\\%d" % (category, name, number), "type": "muse_sampler_sound_pack", "vendor": "MuseSounds",
+                                "hasNativeEditorSupport": False,
+                                "attributes": {"museCategory": category, "museName": name, "museUID": str(number), "museVendorName": "Muse",
+                                               "playbackSetupData": ""}},
+               "unitConfiguration": {}},
+        "out": {"auxSends": [], "balance": 0, "fxChain": {}, "volumeDb": 0}, "soloMuteState": {"mute": False, "solo": False}}]
+    files["audiosettings.json"] = json.dumps(settings, indent=4).encode("utf-8")
+    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as packed:
+        for name_, data in files.items():
+            packed.writestr(name_, data)
+
+
+def _run(arguments: list[str]) -> subprocess.CompletedProcess:
+    env = dict(os.environ, QT_QPA_PLATFORM="offscreen", SKIP_LIBJACK="1")
+    return subprocess.run([str(program())] + arguments, env=env, capture_output=True, text=True, timeout=900.0)
+
+
+def perform(part: str, notes: list[Note], *, bpm: float, way: str = "", sound: str | None = None) -> Path:
+    """Has MuseScore play one instrument's notes and returns the recording (44.1 kHz, as
+    MuseScore writes it; REAPER plays it at the project's rate). `sound` names the Muse Sound
+    that plays it ("Muse Brass/French Horns a6") where that is not the one MuseScore picks. A
+    score that was performed before is not performed again."""
+    text = score(part, notes, bpm=bpm, way=way)
+    profile = "MuseSounds" if sounds() else "MuseScore Basic"       # as MuseScore 4.7 spells it; a name it does not know is passed over without a word
+    name = hashlib.sha1((profile + "\n" + (sound or "") + "\n" + text).encode("utf-8")).hexdigest()[:20]
+    made = KEPT / (name + ".wav")
+    if made.is_file():
+        return made
+    KEPT.mkdir(parents=True, exist_ok=True)
+    written = KEPT / (name + ".musicxml")
+    written.write_text(text, encoding="utf-8")
+    fresh = KEPT / ("%s.%d.part.wav" % (name, os.getpid()))
+    if sound and profile == "MuseSounds":
+        # Two steps: MuseScore turns the score into its own file, the sound is written into that, and MuseScore plays it.
+        plain, named = KEPT / ("%s.%d.plain.mscz" % (name, os.getpid())), KEPT / (name + ".mscz")
+        done = _run(["--sound-profile", profile, "-o", str(plain), str(written)])
+        if done.returncode != 0 or not plain.is_file():
+            raise RuntimeError("MuseScore could not read the score of %s (%s):\n%s" % (part, written, (done.stderr or done.stdout)[-1500:]))
+        _given(plain, sound, named)
+        plain.unlink()
+        done = _run(["-o", str(fresh), str(named)])
+    else:
+        done = _run(["--sound-profile", profile, "-o", str(fresh), str(written)])
+    if done.returncode != 0 or not fresh.is_file() or fresh.stat().st_size < 1000:
+        raise RuntimeError("MuseScore did not perform %s (%s):\n%s" % (part, written, (done.stderr or done.stdout)[-1500:]))
+    if profile == "MuseSounds" and _plain(fresh):
+        fresh.unlink()
+        raise RuntimeError("MuseScore played %s with its plain built-in sounds, not with Muse Sounds (%s): the part's name or kind "
+                           "is not one it has a Muse Sound for" % (part, written))
+    fresh.replace(made)
+    return made
+
+
+def _plain(recording: Path) -> bool:
+    """Whether a recording is MuseScore's plain built-in sound set and not Muse Sounds: that
+    set has nothing at all above 16 kHz (measured: 91 dB under the rest), and a recorded
+    instrument always has something there, even a felted piano (82 dB under)."""
+    import numpy as np
+    import soundfile
+    audio, rate = soundfile.read(str(recording), dtype="float32", always_2d=True)
+    mono = audio.mean(axis=1)
+    # Where it is loudest (a part may rest for minutes): half a minute about its loudest second.
+    size = rate
+    loud = int(np.argmax([float(np.square(mono[at:at + size]).sum()) for at in range(0, max(len(mono) - size, 1), size)])) * size
+    cut = mono[max(loud - 15 * rate, 0):loud + 15 * rate]
+    power = np.abs(np.fft.rfft(cut * np.hanning(len(cut)))) ** 2
+    if power.sum() <= 0.0:
+        return False                                           # silence: nothing played it
+    hz = np.fft.rfftfreq(len(cut), 1.0 / rate)
+    return 10 * np.log10(power[hz > 16000].sum() / power.sum() + 1e-30) < -88.0
+
+
+def shared(written: str, notes: list[Note]) -> list[tuple[str, str, list[Note]]]:
+    """A written instrument's notes shared out among the parts that play it: (part, way, notes)."""
+    out = []
+    for part, low, high, way in PARTS[written]:
+        mine = [note for note in notes if low <= note.pitch <= high]
+        if mine:
+            out.append((part, way, mine))
+    return out
+
+
+def prepare(jobs: list[tuple[str, list[Note], float]], seed: int = 0, workers: int = 6) -> None:
+    """Performs many written voices at once ((written instrument, notes, bpm) each), so that a
+    whole piece's instruments are ready when its project is put together. `seed` is the
+    piece's: it settles which Muse Sound each part is given."""
+    each = [(part, notes, bpm, way) for written, voice, bpm in jobs if written in PARTS for part, way, notes in shared(written, voice)]
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        for finished in [pool.submit(perform, part, notes, bpm=bpm, way=way, sound=voiced(part, seed)) for part, notes, bpm, way in each]:
+            finished.result()                                  # anything that went wrong stops the piece and says why

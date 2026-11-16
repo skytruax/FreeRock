@@ -24,7 +24,7 @@ from pathlib import Path
 import numpy as np
 
 from .. import analysis, forever
-from . import RATE, desk, reaper, sounds, stage_root, write_track
+from . import RATE, desk, muse, reaper, sounds, stage_root, write_track
 from .orchestra import CHANNELS, CHARACTERS, INSTRUMENTS, Family, Take, family
 from .score import humanise
 
@@ -113,15 +113,22 @@ def stage(fam: Family, take: int) -> dict:
             strokes += [(note.start, note.loud) for note in voice.notes if note.pitch == boom]
         elif voice.instrument in ("war drums", "boom"):
             strokes += [(note.start, note.loud) for note in voice.notes if note.pitch == 36]
+    for channel in CHANNELS:
+        for name, voice in written.voices[channel].items():
+            if voice.notes:
+                humanise(voice, rng, timing=0.004 if channel == "drums" else 0.007, bpm=fam.bpm)
+    if muse.available():
+        # MuseScore performs every instrument it has, several at a time, before the project is put together.
+        muse.prepare([(voice.instrument, voice.notes, fam.bpm) for channel in CHANNELS for voice in written.voices[channel].values()
+                      if voice.notes and not voice.drums], seed=fam.seed * 31 + take)
     folders = []
     for channel in CHANNELS:
         under = []
         for name, voice in written.voices[channel].items():
             if not voice.notes:
                 continue
-            humanise(voice, rng, timing=0.004 if channel == "drums" else 0.007, bpm=fam.bpm)
             taste = INSTRUMENTS[voice.instrument].level if voice.instrument in INSTRUMENTS else 1.0
-            under += sounds.lines(voice, name, fam.bpm, taste=taste, room=room)
+            under += sounds.lines(voice, name, fam.bpm, taste=taste, room=room, seed=fam.seed * 31 + take)
         if under:
             moves, last = [], -1.0
             for at, loud in sorted(strokes) if channel in DUCK else ():
