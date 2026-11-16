@@ -24,10 +24,17 @@ TOOLS = REPO / "var" / "tools"
 HOME = TOOLS / "reaper" / "reaper_linux_x86_64" / "REAPER"
 XDG = TOOLS / "xdg"
 # Where REAPER is to look for plug-ins of each kind: the key in reaper.ini, and the folders.
+# The studio's own (unpacked under var/tools) first, then wherever the system's packages and the
+# user's own installs put theirs, so that a plug-in installed in the usual way is found too.
+_HOME = Path.home()
 PLUGINS = {
-    "clap_path_linux-x86_64": [TOOLS / "surge" / "lib" / "clap", TOOLS / "plugins" / "clap"],
-    "vstpath": [TOOLS / "surge" / "lib" / "vst3", TOOLS / "plugins" / "vst3", TOOLS / "plugins" / "vst"],
-    "lv2path_linux": [TOOLS / "plugins" / "lv2"],
+    "clap_path_linux-x86_64": [TOOLS / "surge" / "lib" / "clap", TOOLS / "plugins" / "clap", _HOME / ".clap", Path("/usr/lib/clap"),
+                               Path("/usr/local/lib/clap")],
+    "vstpath": [TOOLS / "surge" / "lib" / "vst3", TOOLS / "plugins" / "vst3", TOOLS / "plugins" / "vst", _HOME / ".vst3", _HOME / ".vst",
+                Path("/usr/lib/vst3"), Path("/usr/local/lib/vst3"), Path("/usr/lib/vst"), Path("/usr/local/lib/vst"),
+                Path("/usr/lib/x86_64-linux-gnu/vst3"), Path("/usr/lib/x86_64-linux-gnu/vst")],
+    "lv2path_linux": [TOOLS / "plugins" / "lv2", _HOME / ".lv2", Path("/usr/lib/lv2"), Path("/usr/local/lib/lv2"),
+                      Path("/usr/lib/x86_64-linux-gnu/lv2")],
 }
 SCREEN = "1280x800x24"
 # Other settings written into reaper.ini. One REAPER uses this many processor threads: several

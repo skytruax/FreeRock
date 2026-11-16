@@ -32,5 +32,7 @@ if [ $# -gt 0 ]; then
   fi
 fi
 mkdir -p "$xdg/data" "$xdg/config" "$xdg/cache" "$xdg/documents"
+# Tell REAPER where the plug-ins are (the studio's own and whatever has been installed since).
+(cd "$here/app" && uv run --no-sync python -c "from freerock.studio import reaper; reaper.configure()")
 exec env XDG_DATA_HOME="$xdg/data" XDG_CONFIG_HOME="$xdg/config" XDG_CACHE_HOME="$xdg/cache" XDG_DOCUMENTS_DIR="$xdg/documents" \
   "$home/reaper" "${args[@]}"
