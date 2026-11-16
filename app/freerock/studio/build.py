@@ -41,6 +41,11 @@ BAND_LIGHT = {"drums": -21.0, "bass": -21.0, "rhythm": -20.0}
 RIDE = 0.42                    # how far each part of the story is brought up towards the loudest part
 # The least each channel is played at in each part of the story, so that the story is whole
 # whatever the game is doing; the game then only adds weight to the drums and the bass.
+# Under every stroke of the kick the other channels give way for a moment and come back within
+# a quarter of a second: drawn into each channel's volume, the same at every stroke (how dance
+# music makes room for its kick: a drawn curve, not a compressor that listens). How far each
+# channel is turned down under the hardest stroke, as a part of its level.
+DUCK = {"bass": 0.56, "texture": 0.8, "rhythm": 0.8, "lead": 0.9}
 FLOOR = {"open": {"rhythm": 1.0, "bass": 0.85, "drums": 0.6}, "theme": {"rhythm": 1.0, "bass": 0.85, "drums": 0.55},
          "rise": {"rhythm": 1.0, "bass": 0.9, "drums": 0.75}, "moment": {"rhythm": 1.0, "bass": 1.0, "drums": 0.9},
          "close": {"rhythm": 1.0, "bass": 0.85, "drums": 0.55}}
@@ -99,6 +104,15 @@ def stage(fam: Family, take: int) -> dict:
     # Where everyone is playing: the last and biggest of the story's moments.
     moment = max(index for index, section in enumerate(fam.sections) if section.story == "moment")
     room = character.hall[1] / 0.24
+    # Where the kick strikes: the kit's bass drum (where the kick goes with it), the biggest war drum, the deep stroke.
+    from .orchestra import KITS
+    strokes: list[tuple[float, float]] = []
+    for name, voice in written.voices["drums"].items():
+        if voice.drums and voice.instrument[4:] in sounds.KICKED:
+            boom = KITS[voice.instrument[4:]][1]["boom"]
+            strokes += [(note.start, note.loud) for note in voice.notes if note.pitch == boom]
+        elif voice.instrument in ("war drums", "boom"):
+            strokes += [(note.start, note.loud) for note in voice.notes if note.pitch == 36]
     folders = []
     for channel in CHANNELS:
         under = []
@@ -109,7 +123,15 @@ def stage(fam: Family, take: int) -> dict:
             taste = INSTRUMENTS[voice.instrument].level if voice.instrument in INSTRUMENTS else 1.0
             under += sounds.lines(voice, name, fam.bpm, taste=taste, room=room)
         if under:
-            folders.append((desk.Line(channel, desk.bare(channel, []), effects=sounds.bus(channel)), under))
+            moves, last = [], -1.0
+            for at, loud in sorted(strokes) if channel in DUCK else ():
+                if loud < 0.45 or at <= last:
+                    continue
+                down = 1.0 - (1.0 - DUCK[channel]) * min(loud / 0.85, 1.0)
+                beat_s = 60.0 / fam.bpm
+                moves += [(at - 0.012 / beat_s, 1.0), (at, down), (at + 0.06 / beat_s, down), (at + 0.26 / beat_s, 1.0)]
+                last = at + 0.26 / beat_s
+            folders.append((desk.Line(channel, desk.bare(channel, []), effects=sounds.bus(channel), moves=moves), under))
     rpp = project_of(fam, take)
     work = rpp.parent
     work.mkdir(parents=True, exist_ok=True)

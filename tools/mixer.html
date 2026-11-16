@@ -35,7 +35,7 @@ input[type=range].fader{writing-mode:vertical-lr;direction:rtl;width:26px;height
 <small id="about"></small>
 <div id="story"><span id="hand"></span></div>
 <small id="clock">0:00</small> <small id="part"></small>
-<p><button id="play">Play</button> <span id="said"></span></p>
+<p><button id="play">Play</button> <button id="around" hidden>5.1 surround: off</button> <span id="said"></span></p>
 <div id="desk"></div>
 <div id="gamebox">
   <b>The game's hand.</b> In the game nobody touches these faders: the game does.
@@ -54,6 +54,17 @@ const WHO = {
   drums: "all percussion: war drums, timpani, the kit, cymbals",
   bass: "double basses, low brass, the sub under them",
 };
+// Where each channel goes on six loudspeakers (left, right, centre, sub, rear left, rear right): how much of its
+// left side and of its right side goes to each. The tune stays in front with some in the centre, the pad wraps
+// round the room, the drums and the bass feed the sub (through a low-pass), a little of the rest is behind.
+const SPEAKERS = {
+  lead:    { L: [0.85, 0, 0.3, 0, 0, 0],    R: [0, 0.85, 0.3, 0, 0, 0] },
+  rhythm:  { L: [1, 0, 0, 0, 0.2, 0],       R: [0, 1, 0, 0, 0, 0.2] },
+  texture: { L: [0.75, 0, 0, 0, 0.75, 0],   R: [0, 0.75, 0, 0, 0, 0.75] },
+  drums:   { L: [1, 0, 0, 0.5, 0.3, 0],     R: [0, 1, 0, 0.5, 0, 0.3] },
+  bass:    { L: [0.9, 0, 0.15, 0.5, 0, 0],  R: [0, 0.9, 0.15, 0.5, 0, 0] },
+};
+let six = null, sub = null, surround = false;
 const COLOURS = { open: "#8fb8de", theme: "#9ad1a3", rise: "#f0c36a", moment: "#f08a6a", close: "#b7a6e0" };
 const said = (text) => { document.getElementById("said").textContent = text; };
 const path = (text) => text.split("/").map(encodeURIComponent).join("/");
@@ -173,6 +184,47 @@ async function setUp() {
     strip.heard = new Float32Array(strip.listen.fftSize);
     strip.gain.connect(strip.listen);          // through the meter, which passes it on untouched
     strip.listen.connect(master);
+  }
+  if (ctx.destination.maxChannelCount >= 6) {
+    // The loudspeakers are set up as 5.1: the channels can be laid round the room instead of side to side.
+    six = ctx.createChannelMerger(6);
+    sub = ctx.createBiquadFilter();
+    sub.type = "lowpass";
+    sub.frequency.value = 90;
+    sub.connect(six, 0, 3);
+    for (const channel of meta.channels) {
+      const strip = strips[channel], sides = SPEAKERS[channel] || SPEAKERS.rhythm;
+      strip.split = ctx.createChannelSplitter(2);
+      ["L", "R"].forEach((side, from) => sides[side].forEach((amount, speaker) => {
+        if (!amount) return;
+        const feed = ctx.createGain();
+        feed.gain.value = amount;
+        strip.split.connect(feed, from);
+        if (speaker === 3) feed.connect(sub); else feed.connect(six, 0, speaker);
+      }));
+    }
+    const button = document.getElementById("around");
+    button.hidden = false;
+    button.addEventListener("click", () => {
+      surround = !surround;
+      for (const channel of meta.channels) {
+        const strip = strips[channel];
+        strip.listen.disconnect();
+        strip.listen.connect(surround ? strip.split : master);
+      }
+      const out = ctx.destination;
+      if (surround) {
+        out.channelCount = 6; out.channelCountMode = "explicit"; out.channelInterpretation = "discrete";
+        six.connect(master);
+        master.channelCount = 6; master.channelCountMode = "explicit"; master.channelInterpretation = "discrete";
+      } else {
+        six.disconnect();
+        master.channelCount = 2; master.channelCountMode = "max"; master.channelInterpretation = "speakers";
+        out.channelCount = 2; out.channelCountMode = "explicit"; out.channelInterpretation = "speakers";
+      }
+      button.textContent = "5.1 surround: " + (surround ? "on" : "off");
+      button.classList.toggle("on", surround);
+    });
   }
   timer = setInterval(() => { if (playing) { levels(); lay().catch((error) => said(String(error))); } }, 200);
   await ctx.suspend();

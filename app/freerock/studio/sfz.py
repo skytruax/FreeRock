@@ -87,7 +87,8 @@ def _loop(zone: Zone, file: str) -> str:
 
 
 def held(patch: Patch, *, players: int = 1, blend: bool | None = None, dark: float = 3200.0, opens: float = 3600.0, range_db: float = 16.0,
-         drift: float = 3.0, spread: float = 45.0, bite: Patch | None = None, slur: float = 0.0) -> str:
+         drift: float = 3.0, spread: float = 45.0, bite: Patch | None = None, slur: float = 0.0,
+         vibrato: tuple[float, float, float] | None = None) -> str:
     """A bowed or blown instrument. `players` is how many play each note (1 the recording as
     it is: a soloist, or a section that was recorded as one; 2 or 3 add the neighbouring
     recordings as further players, which only sounds like more players where the neighbours
@@ -99,6 +100,11 @@ def held(patch: Patch, *, players: int = 1, blend: bool | None = None, dark: flo
     by the middle); `range_db` how much louder the loudest is than the softest on top of what
     the recordings themselves differ by; `bite` a patch of short strokes that is heard at the
     start of a note struck hard (the bow digging in).
+
+    `vibrato` (how many times a second, how many cents either way, how many dB) is for a
+    recording played dead straight: a held note begins straight and the vibrato comes in
+    after a third of a second, as a player's does. A loud brass note held with none at all
+    is very nearly a sawtooth wave, and sounds like one.
 
     With `slur` (seconds), a note begun while another is still held is slurred to it: it
     leaves out that much of the start of its recording and comes in over the same time, so
@@ -115,6 +121,8 @@ def held(patch: Patch, *, players: int = 1, blend: bool | None = None, dark: flo
              "fil_type=lpf_1p cutoff=%.0f cutoff_cc%d=%.0f resonance=0" % (dark, DYNAMICS, opens),
              "volume=%.1f gain_cc%d=%.1f" % (-range_db, DYNAMICS, range_db), "xf_cccurve=power",
              "lfo01_freq=0.19 lfo01_pitch=%.1f lfo01_phase_oncc135=1" % drift]
+    if vibrato:
+        rows.append("lfo02_freq=%.2f lfo02_pitch=%.1f lfo02_volume=%.2f lfo02_delay=0.33 lfo02_fade=0.45" % vibrato)
     layers = _layers(patch.zones)
     roots = list(layers)
     voices = [(0, 0.0, 0.0, 0.0, 0.0)]

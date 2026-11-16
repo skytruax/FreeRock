@@ -287,6 +287,26 @@ def sfizz(instrument: Path) -> str:
         "P sustain_cancels_release 0", "<STATE", 'P http://sfztools.github.io/sfizz:sfzfile "%s" 1' % instrument, ">", ">", "WAK 0 0"])
 
 
+GEONKICK = Path("/usr/share/geonkick/presets")
+
+
+def geonkick(preset: str) -> str:
+    """The Geonkick drum synthesiser playing one of its presets ("SPKickPresetsVol1/kick-07":
+    a file under its preset folder), as it is written in a project. It answers every key
+    with that one drum; how hard the key is struck is how loud it is. A preset file is one
+    instrument as the plug-in keeps it, and the plug-in's saved state is a kit of such
+    instruments, so the state is written here from the preset."""
+    path = GEONKICK / (preset + ".gkick")
+    drum = json.loads(path.read_text(encoding="utf-8"))
+    drum["kick"].update(id=0, channel=0, midiChannel=-1, noteOffEnabled=False, mute=False, solo=False, playing_key=-1)
+    kit = json.dumps({"KitAppVersion": 198400, "name": Path(preset).name, "author": "", "url": "", "instruments": [drum]})
+    packed = base64.b64encode(kit.encode("utf-8")).decode("ascii")
+    rows = ['<LV2 "LV2i: Geonkick Single (Iurie Nistor) (4 out)" http://geonkick.org/geonkick/single ""', 'CFG 0 0 0 ""', "<OUT_PINS", ">",
+            "MIDI midi_in 0 0 ", "<STATE", "<X http://geonkick.org/geonkick/single#state http://lv2plug.in/ns/ext/atom#Chunk 3"]
+    rows += [packed[start:start + 280] for start in range(0, len(packed), 280)]
+    return "\n".join(rows + [">", ">", ">", "WAK 0 0"])
+
+
 def bare(name: str, effects: list[str]) -> str:
     """A track with these effects on it and nothing else, as a template: for instruments and
     effects that are written as text (`sfizz`, `lv2`, `js`)."""
