@@ -12,6 +12,15 @@
 // decks have something new. (A bucket of short phrases without a form is played too: there one
 // deck takes a new phrase at each four-bar line.)
 //
+// A bucket may also hold written music: pieces, each kept as its parts (a part for a channel,
+// recorded alone, in step with the piece's other parts). A piece is played whole, its parts
+// together on the decks, each as loud as the game asks for that channel, so the piece keeps its
+// own harmony and its own shape while the band comes and goes with the game. Pieces are strung
+// together: a track is a run of pieces that tell a story (it opens, states its theme, rises,
+// comes to its moment and closes), each going straight into the next; where the player is and
+// what is happening decide which track, and a fight cuts in with a piece of its own, after
+// which the track that was playing is picked up where it was left.
+//
 // What the game is doing arrives as a target: how loud each channel is and how hard it plays.
 // Levels move the moment the target arrives. A change of strength swaps the phrase in the middle
 // of the bar, in step: on the next half beat when the music is getting harder, on the next bar
@@ -89,6 +98,15 @@
   const BUFFERS = 12;        // phrases kept ready to play
   const RAW = 18;            // phrases kept as they came from the server
   const LOG_LENGTH = 500;
+  // Written pieces.
+  const HANDOVER = 12.0;       // what follows a piece is made ready this long before the piece ends
+  const RESUME_WITHIN = 900;   // a piece that a fight cut into is gone back to if the fight is over within this long
+  const FREE_SHARE = 0.25;     // how often a stretch of loose phrases follows a track, where there are enough of them
+  const FREE_ENOUGH = 3;       // ...which is this many for every channel
+  const RING = 2;              // bars a piece rings on under the next, when the two are in keys that sit together
+  const RING_APART = 0.5;      // ...and when they are not
+  const LAP_S = 40;            // a short piece on its own is played round until it has lasted about this long
+  const STORY_NEXT = { open: "theme", theme: "rise", rise: "moment", moment: "close", close: "open" };
 
   function gainOf(db) { return Math.pow(10, db / 20); }
 
@@ -107,6 +125,14 @@
       this.bucket = null;        // the bucket in play: { key, bpm, bar, rate, cycle, form, changes, clips: Map }
       this.pending = null;       // another place's bucket, whose first phrases are being fetched
       this.group = null;         // the five decks playing it
+      this.next = null;          // the decks made ready for what follows, before their time has come
+      this.left = null;          // the piece a fight cut into, and how far it had got
+      this.standby = null;       // the piece a fight would bring in, chosen ahead so that it can be fetched ahead
+      this.restDue = null;       // when the next moment of silence is due, where pieces are strung together
+      this.pieceAt = new Map();  // piece id -> when it was last played here
+      this.pieceTurn = 0;
+      this.heavy = 0;            // how many tracks in a row have been heavy ones
+      this.light = 0;            // ...and how many light ones
       this.leaving = [];         // decks of a place that is fading away
       this.target = { place: "wander", bed: 1, drums: 0, bass: 0, bed_highpass_hz: 110, lowpass_hz: OPEN_HZ,
                       highpass_hz: 20, reverb: 0, volume: 1, silent: false, rest: false, fade_s: 0.4,
@@ -214,6 +240,9 @@
         const clips = new Map(described.clips.map((clip) => [clip.id, clip]));
         if (this.bucket && this.bucket.key === described.key) {
           this.bucket.clips = clips;
+          this.bucket.pieces = described.pieces || {};
+          this.bucket.index = null;
+          this.standby = null;
           this.planned.clear();
           this.pending = null;
           return;
@@ -229,11 +258,18 @@
                         arc: described.cycle_bars ? described.arc || null : null,
                         // About how much music there is between two silences, and about how
                         // long a silence is, in seconds.
-                        rest: described.cycle_bars ? described.rest || null : null, clips };
+                        rest: described.cycle_bars ? described.rest || null : null, clips,
+                        // Written music: what each piece is (its parts are among the clips), and
+                        // how often a stretch of loose phrases is played between two tracks.
+                        pieces: described.pieces || {}, index: null,
+                        share: described.free_share === undefined ? FREE_SHARE : described.free_share };
+        this.left = null;
+        this.standby = null;
         if (!this.started || this._quiet() || !this.group) {
           this.planned.clear();
           this.bucket = fresh;
           this.pending = null;
+          this._dropNext();
           this._release(this.group, this.ctx.currentTime, 0.05);
           this.group = null;
           return;
@@ -241,15 +277,18 @@
         // A place is playing. It plays on while the first phrases of the new place are fetched,
         // and the new place takes over when they are here, so that it comes in whole.
         this.pending = fresh;
-        this._first(fresh).then((plan) => this._serial(async () => {
+        const opening = this._nextItem(fresh, { fresh: true });
+        this._first(fresh, opening).then((plan) => this._serial(async () => {
           if (this.pending !== fresh) return;            // yet another place was asked for meanwhile
           this.pending = null;
           this.bucket = fresh;
           this.planned = plan;
+          this.restDue = null;
           const now = this.ctx.currentTime;
+          this._dropNext();
           if (!this.started || this._quiet()) { this._release(this.group, now, 0.05); this.group = null; return; }
           this._release(this.group, now, LEAVE);
-          this.group = this._group(now + BETWEEN, ARRIVE);
+          this.group = this._group(now + BETWEEN, ARRIVE, opening);
         })).catch((error) => this.report("The music for " + fresh.zone + " could not be started: " +
                                          String(error && error.stack || error)));
       });
@@ -257,8 +296,19 @@
 
     // Fetches the phrase each deck of a bucket would start with, at the strength the game asks
     // for now, and gives back that choice, so that what was fetched is what is then played.
-    async _first(bucket) {
+    async _first(bucket, item) {
       const plan = new Map(), loading = [];
+      if (item && item.piece) {
+        // A piece: the stretch of each of its parts that it will begin with.
+        const piece = item.piece, span = piece.line * piece.bar;
+        const order = Math.min(Math.floor((item.from || 0) / span + 1e-6), piece.windows.length - 1);
+        for (const channel of Object.keys(item.cast)) {
+          const clip = this._part(item, order, channel, this._wanted(channel).tier);
+          if (clip) loading.push(this._buffer(clip, bucket));
+        }
+        await Promise.all(loading);
+        return plan;
+      }
       for (const channel of CHANNELS) {
         const use = this._tierFor(channel, this._wanted(channel).tier, bucket);
         if (use === null) continue;
@@ -273,9 +323,10 @@
     // One more phrase for the bucket in play. A phrase for another bucket is not this engine's
     // business: that bucket's whole list comes with it when its turn comes.
     addClip(key, clip) {
-      if (this.pending && this.pending.key === key) { this.pending.clips.set(clip.id, clip); return; }
+      if (this.pending && this.pending.key === key) { this.pending.clips.set(clip.id, clip); this.pending.index = null; return; }
       if (!this.bucket || this.bucket.key !== key) return;
       this.bucket.clips.set(clip.id, clip);
+      if (clip.piece) { this.bucket.index = null; return; }    // a part of a piece: no deck takes it on its own
       this.planned.delete(clip.channel + ":" + clip.tier);     // what is new is what is played next
       // A channel that had nothing to play looks again on the next beat, not at the end of the
       // stretch it had already been left empty for.
@@ -288,16 +339,22 @@
 
     // Phrases that have been set aside: they finish the pass they are in and are not chosen again.
     dropClips(key, ids) {
-      if (this.pending && this.pending.key === key) { for (const id of ids) this.pending.clips.delete(id); return; }
+      if (this.pending && this.pending.key === key) {
+        for (const id of ids) this.pending.clips.delete(id);
+        this.pending.index = null;
+        return;
+      }
       if (!this.bucket || this.bucket.key !== key) return;
       for (const id of ids) { this.bucket.clips.delete(id); this.buffers.delete(id); this.raw.delete(id); }
+      this.bucket.index = null;        // a piece that has lost a part is not played again
+      this.standby = null;
       this.planned.clear();
     }
 
     _pool(channel, tier, bucket) {
       const found = [];
       for (const clip of (bucket || this.bucket).clips.values()) {
-        if (clip.channel === channel && clip.tier === tier) found.push(clip);
+        if (clip.channel === channel && clip.tier === tier && !clip.piece) found.push(clip);
       }
       return found;
     }
@@ -352,8 +409,9 @@
         return found;
       }
       const fetched = this.loader((bucket || this.bucket).key, clip.id).then((bytes) => {
-        if (bytes.byteLength !== clip.frames * 4) {
-          throw new Error("The phrase " + clip.id + " should be " + clip.frames + " frames, and " + bytes.byteLength / 4 + " came");
+        if (bytes.byteLength !== (clip.frames + (clip.post || 0)) * 4) {
+          throw new Error("The phrase " + clip.id + " should be " + (clip.frames + (clip.post || 0)) + " frames, and " +
+                          bytes.byteLength / 4 + " came");
         }
         return bytes;
       });
@@ -373,9 +431,10 @@
         return found;
       }
       const samples = new Int16Array(await this._raw(clip, bucket));
-      const buffer = this.ctx.createBuffer(2, clip.frames, (bucket || this.bucket).rate);
+      const frames = clip.frames + (clip.post || 0);
+      const buffer = this.ctx.createBuffer(2, frames, (bucket || this.bucket).rate);
       const left = buffer.getChannelData(0), right = buffer.getChannelData(1);
-      for (let i = 0, n = clip.frames; i < n; i++) {
+      for (let i = 0, n = frames; i < n; i++) {
         left[i] = samples[2 * i] / 32768;
         right[i] = samples[2 * i + 1] / 32768;
       }
@@ -389,6 +448,33 @@
     // tried again by whoever needs the phrase.
     _fetchAhead() {
       if (!this.bucket) return;
+      const ahead = (clip) => {
+        if (clip && !this.buffers.has(clip.id)) {
+          this._raw(clip).catch((error) => this.report(
+            "A phrase could not be fetched ahead of time: " + String(error && error.message || error)));
+        }
+      };
+      if (this._index().size) {
+        // What a fight would bring in: chosen now, so that it is here when the fight is.
+        const ask = this._ask();
+        if (ask < 2 && !this.standby) {
+          const item = this._nextItem(this.bucket, { ask: 2, except: this.group && this.group.piece ? this.group.piece.id : null });
+          this.standby = item && item.piece && item.piece.meta.serves.includes(2) ? item : { piece: null };
+        }
+        if (this.standby && this.standby.piece) {
+          for (const channel of Object.keys(this.standby.cast)) ahead(this._part(this.standby, 0, channel, 2));
+        }
+      }
+      if (this.group && this.group.piece) {
+        // A piece: the stretch that follows the one playing, and the other strengths of this one.
+        const group = this.group, where = this._where(group, this.ctx.currentTime);
+        for (const channel of Object.keys(group.cast)) {
+          const tier = this._tierAt(group, channel, this.ctx.currentTime);
+          if (where.order + 1 < group.piece.windows.length) ahead(this._part(group, where.order + 1, channel, tier));
+          for (const other of [0, 1, 2]) ahead(this._part(group, where.order, channel, other));
+        }
+        return;
+      }
       for (const channel of CHANNELS) {
         const deck = this.group ? this.group.decks[channel] : null;
         for (const tier of [0, 1, 2]) {
@@ -400,6 +486,381 @@
           }
         }
       }
+    }
+
+    // --- written pieces ----------------------------------------------------------------------
+
+    // The pieces a bucket holds, by id, each with its parts laid out by stretch and by channel.
+    // A piece that is missing any of its parts is left out. Pieces of one family (written over
+    // the same changes, bar for bar) that stand at the same place in the story are kin: any
+    // channel of one may be played with the other channels of another.
+    _index(bucket) {
+      bucket = bucket || this.bucket;
+      if (bucket.index) return bucket.index;
+      const index = new Map(), described = bucket.pieces || {};
+      for (const clip of bucket.clips.values()) {
+        if (!clip.piece || !described[clip.piece]) continue;
+        let piece = index.get(clip.piece);
+        if (!piece) {
+          const meta = described[clip.piece];
+          piece = { id: clip.piece, meta, bar: meta.bar_frames / bucket.rate, line: meta.bars,
+                    seconds: meta.frames / bucket.rate, windows: [], channels: new Set(), plays: Infinity };
+          index.set(clip.piece, piece);
+        }
+        const window = piece.windows[clip.order] || (piece.windows[clip.order] = {});
+        (window[clip.channel] || (window[clip.channel] = [])).push(clip);
+        piece.channels.add(clip.channel);
+        piece.plays = Math.min(piece.plays, clip.plays || 0);
+      }
+      const families = new Map();
+      for (const [id, piece] of index) {
+        let whole = piece.windows.length === piece.meta.windows;
+        for (let order = 0; whole && order < piece.meta.windows; order++) {
+          for (const channel of piece.channels) if (!piece.windows[order] || !piece.windows[order][channel]) whole = false;
+        }
+        if (!whole) { index.delete(id); continue; }
+        piece.kin = [piece];
+        if (piece.meta.family) {
+          const key = [piece.meta.family, piece.meta.story, piece.meta.frames, piece.meta.bar_frames, piece.meta.bars].join("|");
+          if (!families.has(key)) families.set(key, []);
+          families.get(key).push(piece);
+          piece.kin = families.get(key);
+        }
+      }
+      bucket.index = index;
+      return index;
+    }
+
+    // Who plays what in a piece: for each channel, the piece its part is taken from. That is the
+    // piece itself, or for a piece with kin any one of them, so that the same story is told by
+    // another band each time. `before` is who played what in the piece this one follows
+    // (channel -> track): whoever was playing goes on playing.
+    _cast(piece, before) {
+      const cast = {}, channels = new Set();
+      for (const other of piece.kin) for (const channel of other.channels) channels.add(channel);
+      for (const channel of CHANNELS) {
+        if (!channels.has(channel)) continue;
+        const able = piece.kin.filter((other) => other.channels.has(channel));
+        const same = before && before[channel] ? able.find((other) => other.meta.track === before[channel]) : null;
+        cast[channel] = same || (able.length > 1 ? able[Math.floor(this.random() * able.length) % able.length] : able[0]);
+      }
+      return cast;
+    }
+
+    // The stretch of a channel's part that is played at a strength: the one written for that
+    // strength, or the nearest that was written (the calmer of two equally near). `group` is
+    // anything with a cast: the decks playing a piece, or a piece that is about to be played.
+    _part(group, order, channel, tier) {
+      const from = group.cast[channel];
+      const choices = from && from.windows[order] ? from.windows[order][channel] : null;
+      if (!choices) return null;
+      let best = choices[0];
+      for (const clip of choices) {
+        const near = Math.abs(clip.tier - tier), nearest = Math.abs(best.tier - tier);
+        if (near < nearest || (near === nearest && clip.tier < best.tier)) best = clip;
+      }
+      return best;
+    }
+
+    // Which stretch of a piece is playing at a moment, and when that stretch began.
+    _where(group, at) {
+      const piece = group.piece, span = group.line * group.bar;
+      const along = Math.max(at - group.origin, 0);
+      const lap = Math.floor(along / piece.seconds + 1e-9);
+      const order = Math.min(Math.floor((along - lap * piece.seconds) / span + 1e-6), piece.windows.length - 1);
+      return { order, start: group.origin + lap * piece.seconds + order * span };
+    }
+
+    // How hard the game is asking the music to play, as one number: calm, steady or hard.
+    _ask() { return this._wanted("rhythm").tier; }
+
+    // Whether the loose phrases of a bucket are enough to make music of on their own.
+    _freeEnough(bucket) {
+      const count = {};
+      for (const clip of bucket.clips.values()) if (!clip.piece) count[clip.channel] = (count[clip.channel] || 0) + 1;
+      return CHANNELS.every((channel) => (count[channel] || 0) >= FREE_ENOUGH);
+    }
+
+    // Whether two keys sit together: the same notes, or all but one of them.
+    _related(a, b) {
+      const place = (key) => {
+        const found = /^([A-G])([#b]?)\s*(.*)$/.exec(String(key || "").trim());
+        if (!found) return null;
+        const note = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 }[found[1]] + (found[2] === "#" ? 1 : found[2] === "b" ? -1 : 0);
+        const mode = found[3].toLowerCase();
+        const shift = mode.startsWith("lydian") ? 1 : mode.startsWith("mixolydian") ? -1 : mode.startsWith("dorian") ? -2
+          : mode.startsWith("phrygian") ? -4 : mode.startsWith("locrian") ? -5
+          : mode.startsWith("minor") || mode.startsWith("aeolian") ? -3 : 0;
+        return (((note * 7) % 12) + shift + 24) % 12;          // where its notes sit on the circle of fifths
+      };
+      const one = place(a), other = place(b);
+      if (one === null || other === null) return true;
+      const apart = Math.abs(one - other);
+      return Math.min(apart, 12 - apart) <= 1;
+    }
+
+    // What to play next: a piece (from where, and who plays what), or a stretch of loose phrases.
+    //
+    // A bucket without pieces is loose phrases without end, as it always was. Otherwise, in
+    // this order: the piece a fight cut into is gone back to, at the bar it had reached; the
+    // track that is playing goes on to its next piece, for as long as nothing in the bucket
+    // suits the moment better; and failing both, the piece that best suits the moment is
+    // chosen. What suits: first that it answers how hard the game is asking (`serves`), then
+    // that it is for this kind of moment (a fight, a cave, the night: `role`), then that it
+    // was written for this kind of place (`moods`), then that it is light or heavy as the
+    // turn is, then that it stands at the right place in the story (a beginning after an
+    // ending). Of several that suit equally, the one played least, then longest ago.
+    //
+    // Light and heavy take turns: after a heavy track the next is a light one, so that staying
+    // in one place does not grow too intense, and after two light ones a heavy one may come.
+    // A light place (the game says which) is always light.
+    //
+    // `options.after` is the decks whose music is ending of its own accord (`natural`) or is
+    // being cut into; `except` a piece not to choose; `ask` a strength to choose for in place
+    // of the one the game asks for now.
+    _nextItem(bucket, options) {
+      options = options || {};
+      const index = this._index(bucket);
+      if (!index.size) return { piece: null, turns: Infinity };
+      const ask = options.ask === undefined ? this._ask() : options.ask;
+      const now = this.ctx.currentTime;
+      const after = options.after && options.after.piece ? options.after : null;
+      const serves = (piece) => piece.meta.serves.includes(ask);
+      const laps = (piece) => piece.windows.length === 1 && !piece.meta.next && piece.seconds < LAP_S
+        ? Math.min(3, Math.max(1, Math.round(LAP_S / piece.seconds))) : 1;
+      const left = this.left;
+      if (left && !options.natural && options.ask === undefined && left.key === bucket.key && left.piece !== options.except
+          && index.has(left.piece) && serves(index.get(left.piece)) && now - left.at < RESUME_WITHIN) {
+        const piece = index.get(left.piece);
+        const from = Math.floor(left.position / piece.bar + 1e-6) * piece.bar;
+        this.left = null;
+        if (piece.seconds - from > 2 * piece.bar) return { piece, from, laps: 1, cast: this._cast(piece, left.casting), entry: "resume" };
+      }
+      const kinds = this.target.kinds || [], place = this.target.place, also = this.target.also || [];
+      const off = (piece) => {
+        const meta = piece.meta;
+        const strength = serves(piece) ? 0 : Math.min(...meta.serves.map((tier) => Math.abs(tier - ask)));
+        const role = meta.role === place || also.includes(meta.role) ? 0 : 1;
+        const mood = !kinds.length || !meta.moods.length ? 0.5 : meta.moods.some((mood) => kinds.includes(mood)) ? 0 : 1;
+        return strength * 100 + role * 10 + mood;
+      };
+      let least = Infinity;
+      for (const piece of index.values()) least = Math.min(least, off(piece));
+      const casting = after ? after.casting : null;
+      if (after && options.natural) {
+        const next = after.piece.meta.next ? index.get(after.piece.meta.next) : null;
+        if (next && serves(next) && off(next) <= least) {
+          return { piece: next, from: 0, laps: 1, cast: this._cast(next, casting), entry: "continue" };
+        }
+      }
+      // A track has ended, or the moment has moved on from it. Now and then, where the bucket
+      // has enough of them, a stretch of loose phrases comes between two tracks; and loose
+      // phrases answer a fight where no piece was written for one.
+      const free = this._freeEnough(bucket);
+      if (free && least >= 100 && this._tierFor("drums", ask, bucket) === ask) return { piece: null, turns: 2 };
+      if (free && after && options.natural && this.random() < bucket.share) {
+        return { piece: null, turns: 1 + Math.floor(this.random() * 2) };
+      }
+      const want = after && options.natural ? STORY_NEXT[after.piece.meta.story] || "open" : "open";
+      const shade = (piece) => {
+        if (piece.meta.serves.includes(2) && !piece.meta.serves.includes(0)) return 0;      // a fight is a fight
+        if (this.target.light === true) return piece.meta.light ? 0 : 5;
+        if (this.heavy >= 1) return piece.meta.light ? 0 : 0.6;
+        if (this.light >= 2) return piece.meta.light ? 0.3 : 0;
+        return 0;
+      };
+      let best = [], bestScore = [Infinity, Infinity, Infinity];
+      for (const piece of index.values()) {
+        if (piece.id === options.except && index.size > 1) continue;
+        const story = !piece.meta.story || piece.meta.story === want ? 0 : 0.25;
+        const score = [off(piece) + shade(piece) + story, piece.plays, this.pieceAt.has(piece.id) ? this.pieceAt.get(piece.id) : -1];
+        let order = 0;
+        for (let i = 0; i < 3 && !order; i++) order = score[i] - bestScore[i];
+        if (order < 0) { best = [piece]; bestScore = score; }
+        else if (order === 0) best.push(piece);
+      }
+      if (!best.length) return null;
+      const piece = best[Math.floor(this.random() * best.length) % best.length];
+      return { piece, from: 0, laps: laps(piece), cast: this._cast(piece, null), entry: "start" };
+    }
+
+    // How loud a deck is: what the game asks of its channel, or of the channels it stands in
+    // for (a band kept as one part is the tune and the drone too), and never less than the
+    // piece says that channel must be for the piece to be whole.
+    _level(group, channel) {
+      let level = this._wanted(channel).level;
+      const meta = group && group.piece ? group.piece.meta : null;
+      if (meta) {
+        for (const other of (meta.follow && meta.follow[channel]) || []) level = Math.max(level, this._wanted(other).level);
+        const floor = meta.floor ? meta.floor[channel] : 0;
+        if (floor > 0) level = Math.max(level, floor * this.target.bed);
+      }
+      return level;
+    }
+
+    // Lays a piece's part down on a deck as far ahead as it should be: stretch after stretch,
+    // each running into the next without a seam, at the strength the game asks for.
+    async _fillPiece(group, deck) {
+      if (!(deck.channel in group.cast)) { deck.until = group.until; return; }      // nobody plays this channel in the piece
+      while (deck.until < this.ctx.currentTime + AHEAD) {
+        const at = deck.until;
+        if (at >= group.until - 1e-6) break;                           // the piece is over: what follows has decks of its own
+        if (group.endAt !== undefined && at >= group.endAt - 1e-6) break;
+        const where = this._where(group, at + 1e-4);
+        const clip = this._part(group, where.order, deck.channel, this._tierAt(group, deck.channel, at + 0.001));
+        if (!clip) { deck.until = group.until; break; }
+        const buffer = await this._buffer(clip);
+        if (!this.started || (this.group !== group && this.next !== group)) return;
+        let start = at;
+        if (start < this.ctx.currentTime + 0.02) {                     // the load took too long
+          start = this.ctx.currentTime + NOTICE;
+          this.late += 1;
+        }
+        const leaving = deck.passes.find((pass) => !pass.tail && Math.abs(pass.end - at) < 1e-3);
+        let rise = 0;
+        if (start === at) {
+          const goesOn = leaving && leaving.clip.channel === clip.channel && leaving.clip.tier === clip.tier
+            && leaving.clip.piece === clip.piece && (clip.order === leaving.clip.order + 1 || clip.id === leaving.clip.id);
+          if (goesOn && leaving.clip.post) {
+            rise = SEAM_OUT;                                            // the same music going on: nothing to be heard
+          } else if (leaving) {
+            // Another strength of the part: a blend, the old one ringing on under the new.
+            rise = Math.min(BLEND_TURN * group.blend * group.bar, clip.frames / group.bucket.rate / 4);
+            const old = this.buffers.get(leaving.clip.id);
+            if (old) this._tail(deck, leaving.clip, old, at, rise);
+          } else if (group.entry === "continue" && Math.abs(at - group.start) < 1e-3) {
+            rise = SEAM_OUT;                                            // the piece before ran straight into this one
+          }
+        }
+        if (deck.clip !== clip) { deck.clip = clip; deck.counted = false; deck.stale = false; }
+        this._play(group, deck, clip, buffer, start, rise, start - where.start);
+      }
+      deck.passes = deck.passes.filter((pass) => pass.end > this.ctx.currentTime - 0.5);
+    }
+
+    // A piece changes gear: a part that was written at more than one strength takes the one the
+    // game now asks for, at the same place in the piece. Harder on the next half beat, easier
+    // on the next bar line.
+    async _gearPiece(group) {
+      for (const deck of Object.values(group.decks)) {
+        if (!(deck.channel in group.cast)) continue;
+        const soon = this.ctx.currentTime + NOTICE;
+        let sounding = null;
+        for (const pass of deck.passes) {
+          if (pass.tail) continue;
+          if (pass.start <= soon + 1e-6 && pass.end > soon && (!sounding || pass.start > sounding.start)) sounding = pass;
+        }
+        if (!sounding) continue;
+        const changing = deck.swapAt !== undefined && soon < deck.swapAt;
+        const playing = changing && deck.clip ? deck.clip : sounding.clip;
+        const next = this._part(group, playing.order, deck.channel, this._tierAt(group, deck.channel, soon));
+        if (!next || next.tier === playing.tier) continue;
+        const harder = next.tier > playing.tier;
+        const when = Math.max(this._lineAfter(group, this.ctx.currentTime + NOTICE, harder ? 0.125 : 1), group.start);
+        if (when > sounding.end - 0.05) continue;                      // the stretch is turning over: the next look settles it
+        const buffer = await this._buffer(next);
+        if (!this.started || this.group !== group) return;
+        const fade = (harder ? BLEND_FIGHT : BLEND_EASING) * group.blend * group.bar;
+        this._cut(deck, when, fade);
+        deck.clip = next;
+        deck.counted = false;
+        deck.swapAt = when;
+        this._play(group, deck, next, buffer, when, fade, when - this._where(group, when + 1e-4).start);
+      }
+    }
+
+    // The decks that were made ready for what follows are not wanted after all.
+    _dropNext() {
+      if (!this.next) return;
+      for (const deck of Object.values(this.next.decks)) {
+        for (const pass of deck.passes) { pass.source.stop(0); pass.source.disconnect(); }
+      }
+      this.next = null;
+    }
+
+    // What is ending rings on under what follows: each deck's last stretch, past its end.
+    _tails(group, at, fall) {
+      for (const deck of Object.values(group.decks)) {
+        const pass = deck.passes.find((each) => !each.tail && Math.abs(each.end - at) < 1e-3);
+        const buffer = pass ? this.buffers.get(pass.clip.id) : null;
+        if (buffer) this._tail(deck, pass.clip, buffer, at, fall);
+      }
+    }
+
+    // The music that is playing is coming to its end (a piece, or a stretch of loose phrases
+    // between two): what follows is made ready, to come in on the beat this ends on. A track
+    // goes on into its next piece without a seam. Anything else comes in whole on its first
+    // beat, while what is ending rings on underneath it for a couple of bars: less when the
+    // two are in keys that do not sit together. And when a moment of silence is due and a
+    // track has just ended, the silence comes first.
+    async _handover(group) {
+      if (this.next || group.endAt !== undefined || !(group.until < Infinity)) return;
+      if (group.until - this.ctx.currentTime > HANDOVER) return;
+      const rest = this.bucket.rest;
+      const ended = !group.piece || !group.piece.meta.next;
+      if (ended && rest && rest.every_s > 0 && rest.for_s > 0 && this.restDue !== null && group.until >= this.restDue
+          && this.target.intensity < WAVE_OFF) {
+        this._tails(group, group.until, RING * group.bar);
+        group.endAt = group.until;
+        this.silenceUntil = group.until + rest.for_s * (0.6 + 0.8 * this.random());
+        return;
+      }
+      const item = this._nextItem(this.bucket, { after: group, natural: true });
+      if (!item) return;
+      await this._first(this.bucket, item);
+      if (!this.started || this.group !== group || this.next || this._quiet()) return;
+      const at = group.until;
+      if (at < this.ctx.currentTime + 0.05) return;                    // too late to do it cleanly: tick() starts afresh
+      if (item.entry !== "continue") {
+        const together = !group.piece || !item.piece || this._related(group.piece.meta.tonic, item.piece.meta.tonic);
+        this._tails(group, at, Math.min((together ? RING : RING_APART) * group.bar, 6.0));
+      }
+      this.next = this._group(at, 0, item);
+    }
+
+    // The game asks for something the music that is playing was not written for: a fight, or
+    // the calm after one. Another piece takes over at once (on the next beat when the music is
+    // getting harder, on the next bar line when it is easing off), and what was playing is
+    // remembered, to be gone back to. `force` is for moving on whatever the game asks (a skip,
+    // or the piece having been banned). True if the music moved.
+    async _regroup(force) {
+      const group = this.group;
+      const index = this.bucket ? this._index() : null;
+      if (!group || !index || !index.size) return false;
+      const ask = this._ask();
+      const gone = Boolean(group.piece && !index.has(group.piece.id));
+      const here = group.piece ? group.piece.meta.serves : [0, 1, 2];
+      if (!force && !gone) {
+        if (group.piece ? here.includes(ask) : ask < 2) return false;
+      }
+      const standby = this.standby && this.standby.piece && ask === 2 && !force && index.has(this.standby.piece.id) ? this.standby : null;
+      const item = standby || this._nextItem(this.bucket, { after: group, except: group.piece ? group.piece.id : null });
+      this.standby = null;
+      if (!item) return false;
+      if (!force && !gone) {
+        // Only for something that answers the game better than what is playing.
+        if (!item.piece ? Boolean(group.piece) && this._tierFor("drums", ask) !== ask : !item.piece.meta.serves.includes(ask)) return false;
+        if (!item.piece && !group.piece) return false;
+      }
+      await this._first(this.bucket, item);
+      if (!this.started || this.group !== group || this._quiet()) return false;
+      const now = this.ctx.currentTime;
+      const harder = !force && ask > Math.max(...here.filter((tier) => tier <= 2), 0) && (group.piece ? true : ask === 2);
+      const when = Math.max(this._lineAfter(group, now + NOTICE, harder ? 0.25 : 1), group.start);
+      const fade = Math.min((harder ? BLEND_FIGHT : BLEND_EASING) * group.bar, 6.0);
+      if (group.piece && !gone && !force && when < group.until - 2 * group.bar) {
+        this.left = { key: this.bucket.key, piece: group.piece.id, position: (when - group.origin) % group.piece.seconds,
+                      at: now, casting: group.casting };
+      }
+      this._dropNext();
+      this._release(group, when, fade);
+      this.group = this._group(when, harder ? 0 : fade, item);
+      for (const deck of Object.values(this.group.decks)) {
+        deck.audible = this._level(this.group, deck.channel) > 0;
+        await this._fill(this.group, deck);
+        if (!this.group || !this.started) return true;
+      }
+      return true;
     }
 
     // --- the decks ---------------------------------------------------------------------------
@@ -447,22 +908,43 @@
       return { level, tier: 1 };
     }
 
-    // Five decks on a bar grid that starts at `origin`, coming in over `rise` seconds.
-    _group(origin, rise) {
+    // Five decks that begin to play at `start`, coming in over `rise` seconds. `item` is what
+    // they play: loose phrases on the bucket's bar grid (for so many turns of the form, or
+    // without end), or a piece, on the piece's own bar grid, from some way into it.
+    _group(start, rise, item) {
       const ctx = this.ctx;
       const bucket = this.bucket;
-      const group = { bucket, origin, bar: bucket.bar, decks: {}, claimed: -1, claims: 0,
+      const piece = item && item.piece ? item.piece : null;
+      const origin = start - (piece ? item.from || 0 : 0);        // where the grid begins: the first beat of a piece
+      const group = { bucket, origin, start, bar: piece ? piece.bar : bucket.bar, decks: {}, claimed: -1, claims: 0,
                       // Where decks may take a new phrase: where the form comes round, or at
                       // every four-bar line when the phrases have no form; and how many may.
-                      line: bucket.cycle || LINE_BARS, changes: bucket.changes || 1, form: bucket.form,
+                      line: piece ? piece.line : bucket.cycle || LINE_BARS, changes: bucket.changes || 1,
+                      // A piece has its own shape, written into it: the player adds none.
+                      form: piece ? { verse: piece.line, build: 0, chorus: 0 } : bucket.form,
+                      arc: piece ? null : bucket.arc,
+                      piece, cast: piece ? item.cast : null, entry: item && item.entry || "",
                       // A style may ask for longer or shorter blends than the usual.
                       blend: bucket.arc && bucket.arc.blend > 0 ? bucket.arc.blend : 1,
                       bed: ctx.createGain(), rest: ctx.createGain() };
+      // When this music ends of its own accord, and something else is to follow.
+      group.until = piece ? origin + piece.seconds * (item.laps || 1)
+        : item && item.turns < Infinity ? origin + item.turns * group.line * group.bar : Infinity;
+      if (piece) {
+        group.casting = {};
+        for (const channel of Object.keys(group.cast)) group.casting[channel] = group.cast[channel].meta.track;
+        this.pieceTurn += 1;
+        this.pieceAt.set(piece.id, this.pieceTurn);
+        // A track beginning: light and heavy are counted, so that they take turns.
+        if (group.entry === "start" && piece.meta.serves.includes(0)) {
+          if (piece.meta.light) { this.light += 1; this.heavy = 0; } else { this.heavy += 1; this.light = 0; }
+        }
+      }
       for (const node of [group.bed, group.rest]) {
         if (rise) {
-          node.gain.setValueAtTime(0, origin);
-          node.gain.linearRampToValueAtTime(1, origin + rise);
-          this.moves.set(node.gain, { from: 0, to: 1, t0: origin, t1: origin + rise });
+          node.gain.setValueAtTime(0, start);
+          node.gain.linearRampToValueAtTime(1, start + rise);
+          this.moves.set(node.gain, { from: 0, to: 1, t0: start, t1: start + rise });
         }
       }
       // The shape of a turn of the form is laid over both halves of the mix: held back in the
@@ -477,16 +959,19 @@
       group.arcTurn = 0;         // the next turn of the form whose shape has not been laid down yet
       group.waves = [];          // for each turn so far: -1 eases off, 0 as the game asks, +1 leans in
       // The turn of the form that is not played: where it would begin, a silence begins.
-      const rest = bucket.rest;
-      group.restTurn = bucket.form && rest && rest.every_s > 0 && rest.for_s > 0
+      // (Music that ends of its own accord has its silences between one track and the next.)
+      const rest = bucket.rest, rests = Boolean(rest && rest.every_s > 0 && rest.for_s > 0);
+      const endless = !(group.until < Infinity);
+      group.restTurn = endless && bucket.form && rests
         ? Math.max(2, Math.round(rest.every_s * (0.6 + 0.8 * this.random()) / (group.line * group.bar))) : null;
+      if (!endless && rests && this.restDue === null) this.restDue = start + rest.every_s * (0.6 + 0.8 * this.random());
       group.bed.connect(group.bedArc).connect(this.bedHighpass);
       group.rest.connect(group.restArc).connect(group.sweep).connect(this.bus);
       for (const channel of CHANNELS) {
         const level = ctx.createGain();
-        level.gain.value = this._wanted(channel).level;
+        level.gain.value = this._level(group, channel);
         level.connect(BED.includes(channel) ? group.bed : group.rest);
-        group.decks[channel] = { channel, level, clip: null, passes: [], until: origin, changeAt: 0,
+        group.decks[channel] = { channel, level, clip: null, passes: [], until: start, changeAt: 0,
                                  layOutUntil: 0, returning: false, counted: false, stale: false, audible: false };
       }
       return group;
@@ -503,7 +988,15 @@
         this.moves.set(node.gain, { from, to: 0, t0: at, t1: at + fall });
       }
       for (const deck of Object.values(group.decks)) {
-        for (const pass of deck.passes) pass.source.stop(at + fall + 0.02);
+        for (const pass of deck.passes) {
+          // A stretch of a written part that would end during the fade plays on into what
+          // the music went on to, so that the fade is not cut short.
+          if (!pass.tail && pass.limit > pass.end && pass.end > at && pass.end < at + fall + 0.02 && pass.end > this.ctx.currentTime + 0.01) {
+            pass.gain.gain.cancelScheduledValues(pass.end - 1e-4);
+            pass.end = Math.min(pass.limit, at + fall + 0.02);
+          }
+          pass.source.stop(Math.min(at + fall + 0.02, Math.max(pass.limit || 0, pass.end + 0.03)));
+        }
       }
       group.gone = at + fall + 0.05;
       this.leaving.push(group);
@@ -518,13 +1011,14 @@
     // Plays a phrase on a deck from `at`. The phrase is laid on the group's grid, so a phrase
     // that comes in between its own lines comes in at the place it would have reached by then,
     // and every deck's phrases turn over on the same lines.
-    _play(group, deck, clip, buffer, at, rise) {
+    _play(group, deck, clip, buffer, at, rise, into) {
       const ctx = this.ctx, length = clip.frames / group.bucket.rate;
       // A drone without a form has no beat to keep: it always plays from its beginning, each
       // pass laid over the end of the last. A drone that is a turn of the form swells with the
       // build-up and opens out in the chorus, so it keeps to the grid like everything else.
       const loose = deck.channel === "texture" && !group.form;
-      const into = loose ? 0 : ((at - group.origin) % length + length) % length;
+      // (A stretch of a piece's part says itself how far into it the moment is.)
+      if (into === undefined) into = loose ? 0 : ((at - group.origin) % length + length) % length;
       const offset = into < 1e-6 || length - into < 1e-6 ? 0 : into;
       const end = at + length - offset;
       const overlap = loose ? Math.min(TEXTURE_OVERLAP * group.bar, length / 4) : 0;
@@ -548,12 +1042,21 @@
       } else {
         gain.gain.setValueAtTime(base, at);
       }
-      gain.gain.setValueAtTime(base, end - down);
-      gain.gain.linearRampToValueAtTime(0, end);
+      // A stretch of a written part does not fade before its end: it runs on for a moment into
+      // what the music went on to and fades there, so that the stretch that follows, coming in
+      // over the same moment, joins it without a seam.
+      const run = (clip.post || 0) >= SEAM_OUT * group.bucket.rate ? SEAM_OUT : 0;
+      if (run) {
+        gain.gain.setValueAtTime(base, end);
+        gain.gain.linearRampToValueAtTime(0, end + run);
+      } else {
+        gain.gain.setValueAtTime(base, end - down);
+        gain.gain.linearRampToValueAtTime(0, end);
+      }
       source.connect(gain).connect(deck.level);
       source.start(at, offset);
-      source.stop(end + 0.01);
-      const pass = { clip, source, gain, base, start: at, end, up };
+      source.stop(end + run + 0.01);
+      const pass = { clip, source, gain, base, start: at, end, up, limit: end + (clip.post || 0) / group.bucket.rate };
       deck.passes.push(pass);
       // The drone's next pass starts while this one is still fading, so that it never dips.
       deck.until = end - overlap;
@@ -578,6 +1081,28 @@
     // comes round.
     _tail(deck, clip, buffer, at, fall) {
       const ctx = this.ctx, base = gainOf(clip.gain_db);
+      if (clip.piece) {
+        // A stretch of a written part: it rings on into what the music went on to. It comes in
+        // under the last moment of the stretch itself, which is fading over that moment, so
+        // the two together are the music going on unbroken; then it falls away.
+        fall = Math.min(fall, (clip.post || 0) / ctx.sampleRate - 0.005);
+        if (!(fall > 2 * SEAM_OUT)) return;
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        const gain = ctx.createGain();
+        const curve = (seconds) => base * Math.cos(Math.min(seconds / fall, 1) * Math.PI / 2);
+        gain.gain.setValueAtTime(0, at);
+        gain.gain.linearRampToValueAtTime(curve(SEAM_OUT), at + SEAM_OUT);
+        for (let step = 1; step <= BLEND_STEPS; step++) {
+          const seconds = fall * step / BLEND_STEPS;
+          if (seconds > SEAM_OUT) gain.gain.linearRampToValueAtTime(curve(seconds), at + seconds);
+        }
+        source.connect(gain).connect(deck.level);
+        source.start(at, clip.frames / ctx.sampleRate);
+        source.stop(at + fall + 0.01);
+        deck.passes.push({ clip, source, gain, base, start: at, end: at + fall, tail: true, fall });
+        return;
+      }
       fall = Math.min(fall, clip.frames / ctx.sampleRate - 0.05);
       const source = ctx.createBufferSource();
       source.buffer = buffer;
@@ -612,7 +1137,7 @@
           continue;
         }
         if (pass.end > when) {
-          const audible = Math.min(fall, pass.end - when);
+          const audible = Math.min(fall, Math.max(pass.limit || 0, pass.end) - when);
           const level = pass.gain.gain;
           // It falls from wherever it is at that moment: it may itself still be on its way in.
           // The fall is given its starting point outright, or it would be taken to start where
@@ -666,9 +1191,11 @@
     // Schedules a deck as far ahead as it should be: the phrase it has, again, or another when
     // its stay is over and the line is free, or when the strength the game asks for has changed.
     async _fill(group, deck) {
+      if (group.piece) return this._fillPiece(group, deck);
       while (deck.until < this.ctx.currentTime + AHEAD) {
         const at = deck.until;
         if (group.endAt !== undefined && at >= group.endAt - 1e-6) break;       // a silence begins there
+        if (at >= group.until - 1e-6) break;                                    // something else follows from there
         const bar = Math.round((at - group.origin) / group.bar);
         const tier = this._tierAt(group, deck.channel, at + 0.001);
         let clip = deck.clip && group.bucket.clips.has(deck.clip.id) ? deck.clip : null;
@@ -707,7 +1234,7 @@
         }
         if (!clip) { deck.until = at + group.bar; continue; }        // nothing for this channel yet
         const buffer = await this._buffer(clip);
-        if (!this.started || this.group !== group) return;             // the music moved on while it loaded
+        if (!this.started || (this.group !== group && this.next !== group)) return;     // the music moved on while it loaded
         let start = at;
         if (start < this.ctx.currentTime + 0.02) {                     // the load took too long
           start = this.ctx.currentTime + NOTICE;
@@ -787,7 +1314,7 @@
     // less: the band is meant to hit.
     _verseGain(group) {
       const fight = this.target.intensity >= 0.8;
-      return gainOf(group.bucket.arc.verse_db * (fight ? 0.35 : 1));
+      return gainOf(group.arc.verse_db * (fight ? 0.35 : 1));
     }
 
     // Lays down the shape of one turn of the form from `from` on: the verse held back, a rise
@@ -808,7 +1335,7 @@
         node.gain.setValueAtTime(low, build);
         node.gain.exponentialRampToValueAtTime(top, chorus);
       }
-      const sweep = group.bucket.arc.sweep_hz || 0;
+      const sweep = group.arc.sweep_hz || 0;
       const half = build + (chorus - build) / 2;
       if (sweep > 20 && from <= half) {
         group.sweep.frequency.setValueAtTime(20, half);
@@ -819,7 +1346,7 @@
 
     // Keeps the shape of the form laid down as far ahead as the decks are.
     _arc(group) {
-      if (!group.form || !group.bucket.arc) return;
+      if (!group.form || !group.arc) return;
       const length = group.line * group.bar;
       while (group.origin + group.arcTurn * length < this.ctx.currentTime + AHEAD) {
         this._shape(group, group.arcTurn, group.origin + group.arcTurn * length);
@@ -830,7 +1357,7 @@
     // A fight has begun or ended: the turn of the form that is playing is shaped again from
     // now, so that a fight in a verse is not left sitting at the verse's level.
     _reshape(group) {
-      if (!group.form || !group.bucket.arc) return;
+      if (!group.form || !group.arc) return;
       const now = this.ctx.currentTime, length = group.line * group.bar;
       if (now <= group.origin) return;
       const turn = Math.floor((now - group.origin) / length);
@@ -867,7 +1394,7 @@
       if (group.endAt === undefined) return;
       for (const node of [group.bed, group.rest]) this._ramp(node.gain, 1, 0.15);
       group.endAt = undefined;
-      group.restTurn += 1;
+      if (group.restTurn !== null) group.restTurn += 1;
       this.silenceUntil = 0;
     }
 
@@ -887,17 +1414,32 @@
           // music starts afresh when it comes back.
           const since = this.restSince === null ? now : this.restSince;
           if (this.group && now > since + this.target.fade_s + 0.25) {
+            this._dropNext();
             this._release(this.group, now, 0.05);
             this.group = null;
           }
           if (!this.group) return;
         }
+        if (this.group && this.next && now >= this.next.start - 1e-3) {
+          // What was made ready has begun: its decks are the ones playing now.
+          this.group.gone = Math.max(this.group.until, now) + 8;
+          this.leaving.push(this.group);
+          this.group = this.next;
+          this.next = null;
+        }
         if (this.group && this.group.endAt !== undefined && now >= this.group.endAt) {
           // The music has faded away: a moment of silence.
-          this.group.gone = now + 0.1;
+          this.group.gone = now + 8;
           this.leaving.push(this.group);
           this.group = null;
           this.afterSilence = true;
+          this.restDue = null;
+        }
+        if (this.group && !this.next && now >= this.group.until) {
+          // It ended with nothing made ready to follow (a part could not be fetched in time).
+          this.group.gone = now + 8;
+          this.leaving.push(this.group);
+          this.group = null;
         }
         if (!this.group) {
           if (!this.bucket.clips.size) return;                         // nothing has been made yet
@@ -906,29 +1448,39 @@
           this.silenceUntil = 0;
           // The phrase each deck starts with is fetched before the grid is laid down, so that
           // all of them come in together on its first beat.
-          const plan = await this._first(this.bucket);
+          const item = this._nextItem(this.bucket, { fresh: true });
+          if (!item) return;
+          const plan = await this._first(this.bucket, item);
           for (const [slot, clip] of plan) this.planned.set(slot, clip);
           if (!this.started || this._quiet()) return;                  // the game went quiet while they loaded
           // Out of a silence the music fades back in, unless a fight is what ended it.
           const rise = this.afterSilence ? (this.target.intensity >= WAVE_OFF ? REST_IN_FAST : BACK_IN) : 0;
           this.afterSilence = false;
-          this.group = this._group(Math.max(this.ctx.currentTime + NOTICE, this.holdUntil), rise);
+          this.group = this._group(Math.max(this.ctx.currentTime + NOTICE, this.holdUntil), rise, item);
         }
+        // A fight, or the calm after one, may call for another piece altogether.
+        await this._regroup(false);
+        if (!this.group || !this.started) return;
         const group = this.group;
         for (const deck of Object.values(group.decks)) {
-          deck.audible = this._wanted(deck.channel).level > 0;
+          deck.audible = this._level(group, deck.channel) > 0;
           this._count(deck);
         }
-        await this._gear();
+        if (group.piece) await this._gearPiece(group); else await this._gear();
         if (this.group !== group) return;
         this._breath(group);
-        // The deck that has waited longest past its time goes first for the free line.
-        const decks = Object.values(group.decks).sort((a, b) => a.changeAt - b.changeAt);
-        for (const deck of decks) {
-          await this._fill(group, deck);
-          if (this.group !== group || !this.started) return;
+        await this._handover(group);
+        if (this.group !== group || !this.started) return;
+        for (const each of [group, this.next]) {
+          if (!each) continue;
+          // The deck that has waited longest past its time goes first for the free line.
+          const decks = Object.values(each.decks).sort((a, b) => a.changeAt - b.changeAt);
+          for (const deck of decks) {
+            await this._fill(each, deck);
+            if (this.group !== group || !this.started) return;
+          }
         }
-        for (const deck of decks) this._count(deck);
+        for (const deck of Object.values(group.decks)) this._count(deck);
         this._arc(group);
         this._fetchAhead();
       });
@@ -950,12 +1502,17 @@
         if (wasQuiet) {
           // Back from a silence: a fresh start on a new grid, not the middle of what was.
           this.restSince = null;
+          this._dropNext();
           if (this.group) { this._release(this.group, this.ctx.currentTime, 0.05); this.group = null; }
           return;
         }
         if (this.group) {
+          if (before.place !== this.target.place || String(before.kinds) !== String(this.target.kinds)) this.standby = null;
+          // A fight, or the calm after one, may call for another piece altogether.
+          if (this.target.intensity >= WAVE_OFF) this._unrest(this.group);
+          if (await this._regroup(false)) return;
           for (const deck of Object.values(this.group.decks)) {
-            const audible = this._wanted(deck.channel).level > 0;
+            const audible = this._level(this.group, deck.channel) > 0;
             if (deck.audible && !audible) deck.stale = true;       // it has had its say: another next time
             deck.audible = audible;
             this._count(deck);
@@ -964,7 +1521,7 @@
           const edge = (level) => (before.intensity >= level) !== (this.target.intensity >= level);
           if (this.target.intensity >= WAVE_OFF) this._unrest(this.group);
           if (edge(0.8) || edge(WAVE_OFF)) this._reshape(this.group);
-          await this._gear();
+          if (this.group.piece) await this._gearPiece(this.group); else await this._gear();
         }
       });
     }
@@ -998,9 +1555,10 @@
 
     _levels(before, wasQuiet) {
       const t = this.target, quick = t.fade_s < 0.3;
-      if (this.group) {
-        for (const deck of Object.values(this.group.decks)) {
-          const level = this._wanted(deck.channel).level;
+      for (const group of [this.group, this.next]) {
+        if (!group) continue;
+        for (const deck of Object.values(group.decks)) {
+          const level = this._level(group, deck.channel);
           const was = this._valueAt(deck.level.gain, this.ctx.currentTime);
           if (Math.abs(level - was) < 1e-4) continue;
           const seconds = quick ? t.fade_s : level > was ? UP[deck.channel] : DOWN[deck.channel];
@@ -1047,6 +1605,7 @@
         this.started = false;
         const now = this.ctx.currentTime;
         this._ramp(this.master.gain, 0, 0.3);
+        this._dropNext();
         if (this.group) { this._release(this.group, now, 0.3); this.group = null; }
       });
     }
@@ -1057,6 +1616,8 @@
       return this._serial(async () => {
         if (name !== "died" || !this.started || !this.group) return;
         const now = this.ctx.currentTime;
+        this._dropNext();
+        this.left = null;
         for (const deck of Object.values(this.group.decks)) {
           for (const pass of deck.passes) {
             if (pass.start > now) { pass.source.stop(0); continue; }
@@ -1081,6 +1642,11 @@
       return this._serial(async () => {
         const group = this.group;
         if (!this.started || !group) return;
+        if (group.piece) {                                 // a piece: another takes its place
+          this.left = null;
+          await this._regroup(true);
+          return;
+        }
         const when = Math.max(this._lineAfter(group, this.ctx.currentTime + NOTICE, 1), group.origin);
         for (const deck of Object.values(group.decks)) {
           if (!deck.clip || !deck.audible) continue;
@@ -1107,9 +1673,17 @@
       }
       const heard = this.heard;
       this.heard = [];
+      // The piece that is playing: what it is called, where in its story it stands, and how far through it is.
+      let piece = null;
+      if (this.group && this.group.piece) {
+        const group = this.group, meta = group.piece.meta;
+        piece = { id: group.piece.id, title: meta.title, story: meta.story, track: meta.track, role: meta.role,
+                  at: Math.max(this.ctx.currentTime - group.origin, 0), of: group.piece.seconds };
+      }
       return {
         started: this.started, forever: true, bucket: this.bucket ? this.bucket.key : null,
-        phrases: this.bucket ? this.bucket.clips.size : 0, playing, heard,
+        phrases: this.bucket ? this.bucket.clips.size : 0, playing, heard, piece,
+        pieces: this.bucket ? this._index().size : 0,
         // What the song is doing of its own accord in this turn of the form: easing off (-1),
         // leaning in (+1) or neither.
         wave: this._waveAt(this.group, this.ctx.currentTime),

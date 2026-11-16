@@ -15,6 +15,7 @@ const CHANNELS = ["texture", "lead", "rhythm", "drums", "bass"];
 const BARS = { texture: 8, lead: 8, rhythm: 4, drums: 4, bass: 4 };
 const TONE = {};          // clip id -> the frequency of its tone, so the output says which is playing
 const FRAMES = {};        // clip id -> its length in frames
+const SHIFT = {};         // clip id -> how far into its piece a stretch of a written part begins, in frames
 let nextTone = 200;
 
 // A bucket with `each` phrases in every pool: every channel at every strength, the drone at one.
@@ -62,12 +63,15 @@ function makeLoader(kind, fetched) {
     if (fetched) fetched.push(id);
     const frames = FRAMES[id], out = new Int16Array(frames * 2);
     const channel = CHANNELS.find((name) => id.includes("-" + name));
+    // A stretch of a written part goes on from where the stretch before it left off, and past
+    // its own end into what the music went on to: one unbroken tone from stretch to stretch.
+    const shift = SHIFT[id] || 0;
     for (let frame = 0; frame < frames; frame++) {
       let value = 0;
       if (kind === "marks") {
-        if (frame % BEAT === 0) value = channel === "drums" ? 0.5 : channel === "bass" ? 0.25 : 0;
+        if ((frame + shift) % BEAT === 0) value = channel === "drums" ? 0.5 : channel === "bass" ? 0.25 : 0;
       } else {
-        value = (kind === "loud" ? 0.9 : 0.1) * Math.sin(2 * Math.PI * TONE[id] * frame / RATE);
+        value = (kind === "loud" ? 0.9 : 0.1) * Math.sin(2 * Math.PI * TONE[id] * (frame + shift) / RATE);
       }
       const sample = Math.max(-32768, Math.min(32767, Math.round(value * 32768)));
       out[2 * frame] = sample;
@@ -560,6 +564,216 @@ tests.fetchedAhead = async () => {
   const run = await render(6, { fetched });
   const hard = fetched.filter((id) => /[a-z]2-/.test(id));
   return { hard: hard.length, fetched: fetched.length, twice: fetched.length - new Set(fetched).size };
+};
+
+// --- written pieces --------------------------------------------------------------------------
+
+// A bucket of written pieces (and, with `free`, loose phrases as well). Each piece is given as
+// { id, windows, bars, channels, tiers, post, then, phase, ...what the bucket says of it }: so
+// many stretches of so many bars (two-second bars), a part for each of `channels` at each of
+// `tiers`, each stretch followed by `post` seconds of what the music went on to. A piece with
+// `then` runs straight into that piece, and `phase` (the piece it carries on from) gives it the
+// same tones, unbroken.
+function makePieces(key, pieces, free) {
+  const base = free ? makeFormBucket(key, BAR, free) : { key: "test/" + key, zone: key, genre: "test", bpm: 120,
+    tonic: "A minor", rate: RATE, bar_frames: BAR, cycle_bars: 16, form: { verse: 4, build: 4, chorus: 8 }, changes: 2, clips: [] };
+  base.pieces = {};
+  const starts = {};
+  // Low tones of their own, well under where the tone filters begin to bite.
+  base.clips.forEach((clip, index) => { TONE[clip.id] = 1500 + 61 * index; });
+  const own = {};
+  for (const piece of pieces) {
+    const bars = piece.bars || 4, windows = piece.windows || 1, post = Math.round((piece.post === undefined ? 4 : piece.post) * RATE);
+    const before = piece.phase ? starts[piece.phase].end : 0;
+    starts[piece.id] = { end: before + windows * bars * BAR };
+    for (const channel of piece.channels || ["rhythm", "drums", "bass"]) {
+      for (const tier of piece.tiers || [1]) {
+        const tone = key + "-" + (piece.phase || piece.id) + "-" + channel + tier;
+        if (!(tone in own)) own[tone] = 310 + 97 * Object.keys(own).length;
+        for (let order = 0; order < windows; order++) {
+          const id = key + "-" + piece.id + "-" + channel + tier + "-w" + order;
+          TONE[id] = own[tone];
+          FRAMES[id] = bars * BAR + post;
+          SHIFT[id] = before + order * bars * BAR;
+          base.clips.push({ id, channel, tier, bars, frames: bars * BAR, gain_db: 0, piece: piece.id, order, post, plays: 0 });
+        }
+      }
+    }
+    base.pieces[piece.id] = { title: piece.id, track: piece.track || piece.id, next: piece.then || "", story: piece.story || "",
+      moods: piece.moods || [], role: piece.role || "wander", serves: piece.serves || [0, 1], bar_frames: BAR, bars,
+      frames: windows * bars * BAR, windows, tonic: piece.tonic || "A minor", follow: piece.follow || {}, floor: piece.floor || {},
+      family: piece.family || "", light: piece.light === true };
+  }
+  if (free !== undefined) base.free_share = 1;
+  return base;
+}
+const pieceOf = (entry) => entry.clip.split("-")[1];
+const quietest = (data, from, to) => {
+  let least = Infinity;
+  for (let t = from; t < to; t += 0.01) least = Math.min(least, rms(data, t, t + 0.02));
+  return least;
+};
+
+// The parts of a piece play together, and one stretch of a part runs into the next without a seam.
+tests.pieceParts = async () => {
+  const bucket = makePieces("parts", [{ id: "song", windows: 3 }]);
+  const run = await render(30, { bucket });
+  const d = run.data, log = run.engine.log;
+  const tone = (channel) => TONE["parts-song-" + channel + "1-w0"];
+  const second = log.filter((entry) => entry.clip.endsWith("-w1")).slice(0, 3);
+  return { rhythm: strength(d, 3, 5, tone("rhythm")), drums: strength(d, 3, 5, tone("drums")), bass: strength(d, 3, 5, tone("bass")),
+           later: strength(d, 11, 13, tone("rhythm")), secondAt: second.map((entry) => entry.at), offsets: second.map((entry) => entry.offset),
+           acrossSeam: quietest(d, ORIGIN + 7.9, ORIGIN + 8.1), steady: quietest(d, 3, 4),
+           stepAtSeam: biggestStep(d, ORIGIN + 7.95, ORIGIN + 8.05), stepElsewhere: biggestStep(d, 3, 4),
+           decks: new Set(log.map((entry) => entry.channel)).size, late: run.engine.late,
+           piece: run.engine.status().piece };
+};
+
+// A track: one piece runs straight into the next, and nothing can be heard where they join.
+tests.pieceTrack = async () => {
+  const bucket = makePieces("track", [{ id: "one", windows: 1, then: "two", story: "open", track: "t" },
+                                      { id: "two", windows: 1, phase: "one", story: "theme", track: "t" }]);
+  const seen = [];
+  const run = await render(30, { bucket, script: [[4, (engine) => seen.push(engine.status().piece.id)],
+                                                  [12, (engine) => seen.push(engine.status().piece.id)]] });
+  const d = run.data, two = run.engine.log.filter((entry) => pieceOf(entry) === "two");
+  return { seen, twoAt: two.length ? Math.min(...two.map((entry) => entry.at)) : null,
+           acrossSeam: quietest(d, ORIGIN + 7.9, ORIGIN + 8.1), steady: quietest(d, 3, 4),
+           stepAtSeam: biggestStep(d, ORIGIN + 7.95, ORIGIN + 8.05), stepElsewhere: biggestStep(d, 3, 4),
+           late: run.engine.late };
+};
+
+// A fight cuts in with a piece of its own on the next beat; when it is over, the piece that was
+// playing is picked up at the bar it had reached.
+tests.pieceFight = async () => {
+  const bucket = makePieces("fight", [{ id: "walk", windows: 6 }, { id: "brawl", windows: 1, serves: [2], role: "battle" }]);
+  const run = await render(40, { bucket, script: [[10.3, (engine) => engine.setTarget(mix(2))],
+                                                  [20.3, (engine) => engine.setTarget(mix(1))]] });
+  const d = run.data, log = run.engine.log;
+  const brawl = log.filter((entry) => pieceOf(entry) === "brawl"), back = log.filter((entry) => pieceOf(entry) === "walk" && entry.at > 15);
+  const walkTone = TONE["fight-walk-rhythm1-w0"], brawlTone = TONE["fight-brawl-rhythm1-w0"];
+  return { brawlAt: brawl.length ? brawl[0].at : null, brawlOffset: brawl.length ? brawl[0].offset : null,
+           walkBefore: strength(d, 8, 10, walkTone), walkDuring: strength(d, 13, 19, walkTone),
+           brawlDuring: strength(d, 13, 19, brawlTone), brawlAfter: strength(d, 28, 34, brawlTone),
+           walkAfter: strength(d, 28, 34, walkTone),
+           backAt: back.length ? back[0].at : null, backClip: back.length ? back[0].clip : null,
+           backOffset: back.length ? back[0].offset : null, late: run.engine.late, piece: run.engine.status().piece };
+};
+
+// The piece is chosen for the kind of place the player is in.
+tests.piecePlace = async () => {
+  const pieces = [{ id: "meadow", moods: ["pastoral"], light: true }, { id: "crypt", moods: ["haunted"] }];
+  const there = await render(12, { bucket: makePieces("place", pieces), target: Object.assign(mix(1), { kinds: ["haunted"] }) });
+  const here = await render(12, { bucket: makePieces("place", pieces), target: Object.assign(mix(1), { kinds: ["pastoral"], light: true }) });
+  // And a walk from one kind of place into the other: the track that follows is the new place's.
+  const walk = await render(70, { bucket: makePieces("place", pieces), target: Object.assign(mix(1), { kinds: ["haunted"] }),
+                                  script: [[5, (engine) => engine.setTarget({ kinds: ["pastoral"], light: true })]] });
+  const order = [];
+  for (const entry of walk.engine.log) if (order[order.length - 1] !== pieceOf(entry)) order.push(pieceOf(entry));
+  return { haunted: [...new Set(there.engine.log.map(pieceOf))], pastoral: [...new Set(here.engine.log.map(pieceOf))], order };
+};
+
+// Light and heavy take turns: two heavy tracks never follow each other while there is a light one.
+tests.pieceShade = async () => {
+  const bucket = makePieces("shade", [{ id: "h1" }, { id: "h2" }, { id: "h3" }, { id: "l1", light: true }, { id: "l2", light: true }]);
+  const run = await render(400, { bucket, tickEvery: 2.0 });
+  const order = [];
+  for (const entry of run.engine.log) if (order[order.length - 1] !== pieceOf(entry)) order.push(pieceOf(entry));
+  let heavyPairs = 0;
+  for (let i = 1; i < order.length; i++) if (order[i][0] === "h" && order[i - 1][0] === "h") heavyPairs += 1;
+  return { order, heavyPairs, kinds: new Set(order).size };
+};
+
+// A band kept as one part stands in for the tune and the drone, and a piece says how little of
+// each channel it can do with.
+tests.pieceLevels = async () => {
+  const bucket = makePieces("levels", [{ id: "song", windows: 2, follow: { rhythm: ["texture", "lead"] }, floor: { drums: 0.5 } }]);
+  const run = await render(10, { bucket, target: mix(1, { rhythm: 0, drums: 0, bass: 0 }) });
+  const tone = (channel) => TONE["levels-song-" + channel + "1-w0"];
+  return { rhythm: strength(run.data, 3, 5, tone("rhythm")), drums: strength(run.data, 3, 5, tone("drums")),
+           bass: strength(run.data, 3, 5, tone("bass")) };
+};
+
+// Pieces written over the same changes lend each other their parts.
+tests.pieceKin = async () => {
+  const kin = (id) => ({ id, family: "changes", story: "theme", track: id });
+  const run = await render(260, { bucket: makePieces("kin", [kin("a"), kin("b"), kin("c")]), tickEvery: 2.0 });
+  const casts = new Set(), mixed = [];
+  const starts = new Map();
+  for (const entry of run.engine.log) {
+    const key = entry.at.toFixed(3);
+    if (!starts.has(key)) starts.set(key, {});
+    starts.get(key)[entry.channel] = pieceOf(entry);
+  }
+  for (const cast of starts.values()) {
+    if (Object.keys(cast).length < 3) continue;
+    casts.add(JSON.stringify(cast));
+    if (new Set(Object.values(cast)).size > 1) mixed.push(cast);
+  }
+  return { casts: casts.size, mixed: mixed.length, late: run.engine.late };
+};
+
+// One track ends and another begins on that beat, while the first rings on underneath.
+tests.pieceHandover = async () => {
+  const bucket = makePieces("hand", [{ id: "first", windows: 2 }, { id: "other", windows: 2 }]);
+  const run = await render(40, { bucket });
+  const d = run.data, log = run.engine.log;
+  const order = [];
+  for (const entry of log) if (order[order.length - 1] !== pieceOf(entry)) order.push(pieceOf(entry));
+  const second = log.find((entry) => pieceOf(entry) === order[1]);
+  const firstTone = TONE["hand-" + order[0] + "-rhythm1-w0"], secondTone = TONE["hand-" + order[1] + "-rhythm1-w0"];
+  const at = second ? second.at : 0;
+  return { order, at, offset: second ? second.offset : null,
+           ringing: strength(d, at + 0.5, at + 1.5, firstTone), before: strength(d, at - 3, at - 1, firstTone),
+           gone: strength(d, at + 5, at + 7, firstTone), arrived: strength(d, at + 0.5, at + 1.5, secondTone),
+           acrossSeam: quietest(d, at - 0.1, at + 0.1), steady: quietest(d, 3, 4), late: run.engine.late };
+};
+
+// A piece that is banned in the middle of itself is left for another.
+tests.pieceBan = async () => {
+  const bucket = makePieces("ban", [{ id: "bad", windows: 6 }, { id: "good", windows: 6 }]);
+  let banned = null;
+  const run = await render(30, { bucket, script: [[9.2, (engine) => {
+    banned = engine.status().piece.id;
+    engine.dropClips(bucket.key, bucket.clips.filter((clip) => clip.piece === banned).map((clip) => clip.id));
+  }]] });
+  const later = run.engine.log.filter((entry) => entry.at > 12.5).map(pieceOf);
+  const moved = run.engine.log.find((entry) => pieceOf(entry) !== banned);
+  return { banned, movedAt: moved ? moved.at : null, later: [...new Set(later)],
+           quietest: quietest(run.data, 14, 28), typical: rms(run.data, 3, 8) };
+};
+
+// Loose phrases come between two tracks where the bucket has them, and a moment of silence when one is due.
+tests.pieceFree = async () => {
+  const bucket = makePieces("free", [{ id: "song", windows: 2 }], 3);
+  const run = await render(120, { bucket, tickEvery: 1.0 });
+  const kinds = [];
+  for (const entry of run.engine.log) {
+    const kind = entry.clip.includes("-song-") ? "piece" : "loose";
+    if (kinds[kinds.length - 1] !== kind) kinds.push(kind);
+  }
+  const loose = run.engine.log.find((entry) => !entry.clip.includes("-song-"));
+  return { kinds, looseAt: loose ? loose.at : null, quietest: quietest(run.data, 2, 118), typical: rms(run.data, 3, 8),
+           late: run.engine.late };
+};
+tests.pieceRest = async () => {
+  const bucket = makePieces("rest", [{ id: "first", windows: 2 }, { id: "other", windows: 2 }]);
+  bucket.rest = { every_s: 20, for_s: 12 };
+  const run = await render(90, { bucket, tickEvery: 1.0 });
+  let silent = 0, longest = 0, streak = 0;
+  for (let t = 2; t < 88; t += 0.25) {
+    if (rms(run.data, t, t + 0.25) < 1e-4) { silent += 1; streak += 1; longest = Math.max(longest, streak); } else streak = 0;
+  }
+  return { silentSeconds: silent / 4, longestSeconds: longest / 4, passes: run.engine.log.length };
+};
+
+// Looked in on only every three seconds, a track of pieces still has no holes in it.
+tests.pieceUnattended = async () => {
+  const bucket = makePieces("alone", [{ id: "one", windows: 2, then: "two", track: "t" }, { id: "two", windows: 2, phase: "one", then: "three", track: "t" },
+                                      { id: "three", windows: 2, phase: "two", track: "t" }, { id: "else", windows: 2 }]);
+  const run = await render(110, { bucket, tickEvery: 3.0 });
+  return { quietest: quietest(run.data, 1, 108), typical: rms(run.data, 3, 8), late: run.engine.late,
+           pieces: [...new Set(run.engine.log.map(pieceOf))] };
 };
 
 (async () => {

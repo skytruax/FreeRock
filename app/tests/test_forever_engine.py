@@ -336,3 +336,110 @@ async def test_phrases_are_fetched_before_they_are_needed_and_only_once(results)
     ahead = of(results, "fetchedAhead")
     assert ahead["hard"] >= 4, "the hard phrases were not fetched before a fight could need them"
     assert ahead["twice"] == 0
+
+
+# --- written pieces ------------------------------------------------------------------------------
+
+async def test_the_parts_of_a_piece_play_together_and_join_without_a_seam(results):
+    parts = of(results, "pieceParts")
+    for channel in ("rhythm", "drums", "bass"):
+        assert parts[channel] == pytest.approx(0.1, rel=0.08), "the %s part is not there at its level" % channel
+    assert parts["later"] == pytest.approx(0.1, rel=0.08)
+    assert parts["decks"] == 3, "a deck with no part in the piece played something"
+    assert len(parts["secondAt"]) == 3
+    assert all(at == pytest.approx(ORIGIN + 8.0, abs=1e-6) for at in parts["secondAt"]), "a stretch did not follow on its line"
+    assert all(offset == 0 for offset in parts["offsets"])
+    assert parts["acrossSeam"] >= 0.97 * parts["steady"], "the music dips where two stretches of a part join"
+    assert parts["stepAtSeam"] <= parts["stepElsewhere"] * 1.2, "the join clicks"
+    assert parts["piece"]["title"] == "song"
+    assert parts["late"] == 0
+
+
+async def test_a_track_runs_from_one_piece_into_the_next_without_a_seam(results):
+    track = of(results, "pieceTrack")
+    assert track["seen"] == ["one", "two"]
+    assert track["twoAt"] == pytest.approx(ORIGIN + 8.0, abs=1e-6)
+    assert track["acrossSeam"] >= 0.97 * track["steady"], "the music dips where the track goes from one piece to the next"
+    assert track["stepAtSeam"] <= track["stepElsewhere"] * 1.2
+    assert track["late"] == 0
+
+
+async def test_a_fight_cuts_in_with_its_own_piece_and_the_track_is_picked_up_after(results):
+    fight = of(results, "pieceFight")
+    assert fight["brawlAt"] == pytest.approx(ORIGIN + 10.5, abs=1e-6), "the fight's piece did not come in on the next beat"
+    assert fight["brawlOffset"] == 0
+    assert fight["walkBefore"] == pytest.approx(0.1, rel=0.08)
+    assert fight["walkDuring"] < 0.005, "the piece that was playing went on under the fight"
+    assert fight["brawlDuring"] == pytest.approx(0.1, rel=0.08)
+    assert fight["backAt"] == pytest.approx(ORIGIN + 10.5 + 10.0, abs=1e-6), "the calm did not come in on the bar line"
+    assert fight["backClip"].endswith("-w1") and fight["backOffset"] == pytest.approx(2.0, abs=1e-6), \
+        "the track was not picked up at the bar it had reached"
+    assert fight["walkAfter"] == pytest.approx(0.1, rel=0.08)
+    assert fight["brawlAfter"] < 0.005
+    assert fight["piece"]["title"] == "walk"
+    assert fight["late"] == 0
+
+
+async def test_the_piece_is_chosen_for_the_kind_of_place(results):
+    place = of(results, "piecePlace")
+    assert place["haunted"] == ["crypt"]
+    assert place["pastoral"] == ["meadow"]
+    assert place["order"][:2] == ["crypt", "meadow"], "the next track was not the new place's"
+    assert "crypt" not in place["order"][1:], "a light place was not kept light"
+
+
+async def test_light_and_heavy_take_turns(results):
+    shade = of(results, "pieceShade")
+    assert len(shade["order"]) >= 12
+    assert shade["heavyPairs"] == 0, "two heavy tracks in a row: %s" % shade["order"]
+    assert shade["kinds"] == 5, "a piece was never played: %s" % shade["order"]
+
+
+async def test_a_piece_says_which_channels_stand_in_for_which_and_how_little_it_can_do_with(results):
+    levels = of(results, "pieceLevels")
+    assert levels["rhythm"] == pytest.approx(0.1, rel=0.08), "the band did not stand in for the tune"
+    assert levels["drums"] == pytest.approx(0.05, rel=0.08), "the drums were not kept at their least"
+    assert levels["bass"] < 0.002
+
+
+async def test_pieces_over_the_same_changes_lend_each_other_their_parts(results):
+    kin = of(results, "pieceKin")
+    assert kin["mixed"] >= 3, "the parts were never taken from more than one piece"
+    assert kin["casts"] >= 4
+    assert kin["late"] == 0
+
+
+async def test_one_track_hands_over_to_the_next_on_the_beat(results):
+    hand = of(results, "pieceHandover")
+    assert len(hand["order"]) >= 2 and hand["order"][0] != hand["order"][1]
+    assert hand["at"] == pytest.approx(ORIGIN + 16.0, abs=1e-6)
+    assert hand["offset"] == 0
+    assert hand["arrived"] == pytest.approx(0.1, rel=0.1), "the next track did not come in whole"
+    assert 0.02 < hand["ringing"] < hand["before"], "the track that ended did not ring on under the next"
+    assert hand["gone"] < 0.003
+    assert hand["acrossSeam"] >= 0.9 * hand["steady"]
+    assert hand["late"] == 0
+
+
+async def test_a_banned_piece_is_left_at_once(results):
+    ban = of(results, "pieceBan")
+    assert ban["movedAt"] is not None and ban["movedAt"] <= 9.2 + 2.2, "the banned piece went on playing"
+    assert ban["later"] == ["good" if ban["banned"] == "bad" else "bad"]
+    assert ban["quietest"] >= 0.5 * ban["typical"], "the music stopped when the piece was banned"
+
+
+async def test_loose_phrases_and_silences_come_between_tracks(results):
+    free = of(results, "pieceFree")
+    assert free["kinds"][:3] in (["piece", "loose", "piece"], ["loose", "piece", "loose"]), free["kinds"]
+    assert free["quietest"] >= 0.3 * free["typical"], "there is a hole where a track hands over to loose phrases"
+    assert free["late"] == 0
+    rest = of(results, "pieceRest")
+    assert rest["longestSeconds"] >= 3.0, "no moment of silence came between tracks"
+    assert rest["silentSeconds"] <= 45.0, "the music stayed away"
+
+
+async def test_a_track_has_no_holes_when_the_page_is_looked_in_on_rarely(results):
+    alone = of(results, "pieceUnattended")
+    assert alone["quietest"] >= 0.5 * alone["typical"], "a hole in the music"
+    assert alone["late"] == 0
+    assert set(alone["pieces"]) >= {"one", "two", "three"}

@@ -99,6 +99,13 @@ GEAR_SLACK = 0.015
 RHYTHM_FROM = 0.30             # the rhythm part plays once the player is on the move
 CALM_PLACES = ("ember",)       # an inn, the moment after a fight, a death: everything plays calm
 
+# Pieces: written music, kept as its parts. See Bucket.add_piece.
+PIECE_LEVEL = -13.0            # how loud a piece is with every part playing (LUFS): what five decks of phrases come to
+POST_S = 6.0                   # how much of what follows is kept after each stretch of a part, for fading out under what comes next
+WINDOW_S = 52.0                # a part is kept in stretches no longer than this, so that no one of them is slow to fetch
+FREE_SHARE = 0.25              # how often a stretch of loose phrases comes between two tracks, where there are enough of them
+STORY = ("open", "theme", "rise", "moment", "close")       # where in a story a piece belongs; "" for one that is a story in itself
+
 _ONLY = "nothing else"
 _TIGHT = "steady timing, tight to the beat"
 # A slow tune played alone wanders from the beat if it is left to (it came back a percent and a
@@ -603,6 +610,9 @@ class Clip:
     source: str = "elevenlabs"     # where it came from: today always ElevenLabs
     seed: int | None = None        # the seed it was asked for with, for anyone studying what came back
     place: str = ""                # the place whose colours and mood it was asked for in
+    piece: str = ""                # the piece it is a part of; none for a phrase that stands alone
+    order: int = 0                 # which stretch of that piece it is, counting from nought
+    post: int = 0                  # samples kept after its end: what the music went on to
 
 
 class Bucket:
@@ -612,6 +622,7 @@ class Bucket:
         self.root, self.zone, self.genre, self.bpm, self.tonic = Path(root), zone, genre, bpm, tonic
         self.folder = self.root / genre / zone
         self.clips: list[Clip] = []
+        self.pieces: dict[str, dict[str, Any]] = {}       # written music: what each piece is, by its id
         self.version = 0
         self.everything = False        # play the worn phrases too: set when no new ones can be made
         index = self.folder / "bucket.json"
@@ -619,13 +630,14 @@ class Bucket:
             kept = json.loads(index.read_text(encoding="utf-8"))
             self.bpm, self.tonic = kept["bpm"], kept["tonic"]      # what its phrases were made at
             self.clips = [Clip(**clip) for clip in kept["clips"]]
+            self.pieces = kept.get("pieces", {})
             self.version = kept.get("version", len(self.clips))
             # A pool keeps up to KEEP phrases in play. Phrases that were set aside when a pool
             # held fewer than that come back: the bucket is meant to grow.
             for channel, tier in FIRST:
                 room = KEEP - len(self.pool(channel, tier))
                 aside = [clip for clip in self.clips if clip.channel == channel and clip.tier == tier
-                         and clip.retired and not clip.banned and clip.bars == self.cycle]
+                         and clip.retired and not clip.banned and clip.bars == self.cycle and not clip.piece]
                 for clip in aside[:max(room, 0)]:
                     clip.retired = False
 
@@ -648,12 +660,20 @@ class Bucket:
         return cycle_bars(self.bpm)
 
     def _in_play(self, clip: Clip) -> bool:
+        if clip.piece:
+            # A part of a piece is in play for as long as the piece is: it is never set aside
+            # as worn, and a ban is on the whole piece.
+            piece = self.pieces.get(clip.piece)
+            return piece is not None and not piece.get("banned") and not clip.banned
         # Phrases of another length were made before phrases were a whole turn of the form.
         # They are kept on disk and left out of the music.
         return clip.bars == self.cycle and not clip.banned and (self.everything or not clip.retired)
 
     def pool(self, channel: str, tier: int) -> list[Clip]:
-        return [clip for clip in self.clips if clip.channel == channel and clip.tier == tier and self._in_play(clip)]
+        """The phrases that stand alone, for one channel at one strength. The parts of pieces are
+        not in any pool: they are played as the piece they belong to."""
+        return [clip for clip in self.clips if clip.channel == channel and clip.tier == tier and not clip.piece
+                and self._in_play(clip)]
 
     def live(self) -> list[Clip]:
         return [clip for clip in self.clips if self._in_play(clip)]
@@ -668,7 +688,7 @@ class Bucket:
         self.folder.mkdir(parents=True, exist_ok=True)
         self.version += 1
         index = {"zone": self.zone, "genre": self.genre, "bpm": self.bpm, "tonic": self.tonic,
-                 "version": self.version, "clips": [asdict(clip) for clip in self.clips]}
+                 "version": self.version, "pieces": self.pieces, "clips": [asdict(clip) for clip in self.clips]}
         scratch = self.folder / "bucket.json.new"
         scratch.write_text(json.dumps(index, indent=1) + "\n", encoding="utf-8")
         scratch.replace(self.folder / "bucket.json")
@@ -698,15 +718,131 @@ class Bucket:
         self._save()
         return clip
 
+    def add_piece(self, parts: dict[tuple[str, int], np.ndarray], *, title: str, bar_frames: float, bars: int,
+                  post: int = 0, tonic: str = "", story: str = "", moods: tuple[str, ...] | list[str] = (),
+                  role: str = "wander", serves: tuple[int, ...] | list[int] = (0, 1),
+                  follow: dict[str, list[str]] | None = None, floor: dict[str, float] | None = None,
+                  track: str = "", after: str = "", gain_db: float | None = None, source: str = "",
+                  credit: str = "", family: str = "", light: bool = False) -> str:
+        """Puts a piece of written music in the bucket and returns its id.
+
+        A piece is music that was written as a whole and is kept as its parts: `parts` holds one
+        recording for each channel that plays in it (and, where the writer made them, for more
+        than one strength of a channel), every one the same length and in step with the others.
+        The player plays the parts together, as loud as the game asks for each, so a piece keeps
+        its own harmony and its own shape however the channels come and go.
+
+        A piece keeps its own time: `bar_frames` is the length of one of its bars in samples and
+        need not be the bucket's. Each recording is the piece (a whole number of samples of it)
+        followed by `post` samples of whatever the music went on to, which is what is heard
+        fading away under the next piece. A long part is kept in stretches of `bars` bars.
+
+        `story` says where in a story the piece belongs (STORY), `moods` the kinds of place it
+        was written for (atlas.KINDS), `role` the director's kind of moment (director.PLACES)
+        and `serves` the strengths of what the game asks for that it answers (0 calm, 1 steady,
+        2 hard). `follow` makes a channel as loud as the loudest of some others (a band kept
+        as one part stands in for the tune and the drone), and `floor` is the least each
+        channel is ever played at, so that the moment a story comes to is whole whatever the
+        game is doing. `track` is the larger work it was cut from and `after` the piece of
+        that work it follows: the player goes on from one to the next without a seam.
+        `family` names the changes it was written over: pieces of one family that stand at
+        the same place in the story are the same length, bar for bar and chord for chord, so
+        the player may take any channel of one with the other channels of another. `light`
+        says the piece is of the lighter kind; light and heavy take turns.
+        """
+        if not parts:
+            raise ValueError("A piece needs at least one part")
+        lengths = {len(audio) for audio in parts.values()}
+        if len(lengths) != 1:
+            raise ValueError("The parts of a piece are all one length; these are %s" % sorted(lengths))
+        whole = lengths.pop() - post
+        if whole <= 0 or post < 0:
+            raise ValueError("A piece of %d samples cannot be followed by %d of them" % (whole + post, post))
+        if story and story not in STORY:
+            raise ValueError("A piece's place in a story is one of %s, not %r" % (", ".join(STORY), story))
+        if after and after not in self.pieces:
+            raise KeyError("No piece %r for this one to follow" % after)
+        for (channel, tier), audio in parts.items():
+            if channel not in CHANNELS or tier not in TIERS or audio.ndim != 2 or audio.shape[1] != CHANNELS_OUT:
+                raise ValueError("A part is stereo audio for one of %s at a strength of 0, 1 or 2" % (CHANNELS,))
+        # One gain for the whole piece, so that its parts keep the balance they were written
+        # with: it brings the piece, every channel playing at its middle strength, to the level
+        # five decks of phrases come to, and never lets the hardest of it pass full scale.
+        if gain_db is None:
+            middle = np.zeros((whole, CHANNELS_OUT), dtype=np.float32)
+            loudest = np.zeros((whole, CHANNELS_OUT), dtype=np.float32)
+            for channel in CHANNELS:
+                have = sorted(tier for name, tier in parts if name == channel)
+                if not have:
+                    continue
+                middle += parts[(channel, min(have, key=lambda tier: abs(tier - 1)))][:whole]
+                loudest += parts[(channel, have[-1])][:whole]
+            lufs = analysis.loudness_lufs(middle, RATE)
+            if lufs < -60.0:
+                raise ValueError("The piece %r is all but silent (%.0f LUFS)" % (title, lufs))
+            peak = max(analysis.peak(middle), analysis.peak(loudest), 1e-6)
+            gain_db = min(PIECE_LEVEL - lufs, -20.0 * float(np.log10(peak)) - 1.0)
+        window = bars * bar_frames
+        count = max(int(np.ceil(whole / window - 1e-9)), 1)
+        edges = [min(int(round(index * window)), whole) for index in range(count)] + [whole]
+        piece_id = uuid.uuid4().hex[:10]
+        (self.folder / "clips").mkdir(parents=True, exist_ok=True)
+        keep = int(POST_S * RATE)
+        for (channel, tier), audio in sorted(parts.items()):
+            for order, (first, last) in enumerate(zip(edges, edges[1:])):
+                stretch = audio[first:min(last + keep, len(audio))]
+                clip = Clip(id=uuid.uuid4().hex[:10], channel=channel, tier=tier, variant=0,
+                            bars=max(int(round((last - first) / bar_frames)), 1), frames=last - first,
+                            gain_db=round(float(gain_db), 2), created=time.time(), words=[title], source=source or "written",
+                            piece=piece_id, order=order, post=len(stretch) - (last - first))
+                np.save(self.folder / "clips" / (clip.id + ".npy"),
+                        np.round(np.clip(stretch, -1.0, 32767 / 32768) * 32768).astype("<i2"))
+                self.clips.append(clip)
+        self.pieces[piece_id] = {
+            "title": title, "track": track, "next": "", "story": story, "moods": list(moods), "role": role,
+            "serves": sorted(set(int(tier) for tier in serves)), "bar_frames": float(bar_frames), "bars": int(bars),
+            "frames": int(whole), "windows": count, "tonic": tonic, "follow": follow or {}, "floor": floor or {},
+            "source": source, "credit": credit, "family": family, "light": bool(light), "created": time.time(),
+            "banned": False, "loved": False}
+        if after:
+            self.pieces[after]["next"] = piece_id
+        self._save()
+        return piece_id
+
+    def drop_piece(self, piece_id: str) -> None:
+        """Takes a piece out of the bucket for good, with the recordings of its parts."""
+        if piece_id not in self.pieces:
+            raise KeyError("No piece %r in the bucket for %s" % (piece_id, self.key))
+        for clip in [clip for clip in self.clips if clip.piece == piece_id]:
+            (self.folder / "clips" / (clip.id + ".npy")).unlink()
+            self.clips.remove(clip)
+        del self.pieces[piece_id]
+        for piece in self.pieces.values():
+            if piece.get("next") == piece_id:
+                piece["next"] = ""
+        self._save()
+
+    def live_pieces(self) -> dict[str, dict[str, Any]]:
+        """The pieces in play, by id."""
+        return {piece_id: piece for piece_id, piece in self.pieces.items() if not piece.get("banned")}
+
     def mark(self, clip_ids: list[str], *, retired: bool | None = None, banned: bool | None = None,
              loved: bool | None = None) -> list[Clip]:
-        """Sets a phrase aside, bans it or marks it as loved. Returns the phrases it found."""
+        """Sets a phrase aside, bans it or marks it as loved. Returns the phrases it found.
+
+        A ban or a love that lands on a part of a piece is for the whole piece: every part of
+        it is marked and returned. A piece is never set aside as worn."""
         wanted, found = set(clip_ids), []
+        pieces = {clip.piece for clip in self.clips if clip.id in wanted and clip.piece}
+        for piece_id in pieces:
+            for name, value in (("banned", banned), ("loved", loved)):
+                if value is not None:
+                    self.pieces[piece_id][name] = value
         for clip in self.clips:
-            if clip.id in wanted:
+            if clip.id in wanted or clip.piece in pieces:
                 found.append(clip)
                 for name, value in (("retired", retired), ("banned", banned), ("loved", loved)):
-                    if value is not None:
+                    if value is not None and not (name == "retired" and clip.piece):
                         setattr(clip, name, value)
         if found:
             self._save()
@@ -738,13 +874,22 @@ class Bucket:
                 # comes round, `changes` of them at most, so the song moves on a verse at a time.
                 "cycle_bars": self.cycle, "form": {"verse": verse, "build": build, "chorus": chorus},
                 "changes": CHANGES, "arc": ARC[self.genre],
+                # Written music: what each piece is. Its parts are among the clips.
+                "pieces": {piece_id: {name: piece[name] for name in (
+                    "title", "track", "next", "story", "moods", "role", "serves", "bar_frames", "bars", "frames",
+                    "windows", "tonic", "follow", "floor", "family", "light")}
+                    for piece_id, piece in self.live_pieces().items()},
+                "free_share": FREE_SHARE,
                 "clips": [self.brief(clip) for clip in self.live()]}
 
     @staticmethod
     def brief(clip: Clip) -> dict[str, Any]:
         """One phrase as the player is told of it."""
-        return {"id": clip.id, "channel": clip.channel, "tier": clip.tier, "bars": clip.bars,
+        told = {"id": clip.id, "channel": clip.channel, "tier": clip.tier, "bars": clip.bars,
                 "frames": clip.frames, "gain_db": clip.gain_db, "new": clip.plays == 0}
+        if clip.piece:
+            told.update(piece=clip.piece, order=clip.order, post=clip.post, plays=clip.plays)
+        return told
 
     def counts(self) -> dict[str, int]:
         """How many phrases each pool has in play, for the control page: "drums hard": 4."""
@@ -910,7 +1055,7 @@ class Filler:
         styled = composer.for_genre(profile, bucket.genre)
         profile = composer.ZoneProfile(key=bucket.zone, bpm=bucket.bpm, tonic=bucket.tonic,
                                        colours=styled.colours, mood=styled.mood)
-        variant = len([clip for clip in bucket.clips if clip.channel == channel and clip.tier == tier])
+        variant = len([clip for clip in bucket.clips if clip.channel == channel and clip.tier == tier and not clip.piece])
         problems: list[str] = []
         for attempt in range(TRIES):
             request = ask(profile, bucket.genre, channel, tier, variant + attempt, self.rng.randrange(2 ** 31), context)
@@ -929,4 +1074,4 @@ class Filler:
 
 
 __all__ = ["Ask", "Bucket", "Buckets", "Clip", "Filler", "PhraseFailed", "ask", "measure", "fit", "CHANNELS", "TIERS",
-           "FIRST", "MOST", "ElevenError", "mix", "in_use", "form", "cycle_bars"]
+           "FIRST", "MOST", "ElevenError", "mix", "in_use", "form", "cycle_bars", "STORY", "PIECE_LEVEL"]
