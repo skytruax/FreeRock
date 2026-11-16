@@ -30,6 +30,37 @@ instruments". So the orchestra is no longer played from the studio's own recordi
 - **5.1 on the mixing-desk page**, where the browser has six loudspeakers: the tune in front
   with some in the centre, the pad round the room, the drums and the bass to the sub.
 
+Heard that evening as the first pieces came out ("sounds much better", then "still sounds a
+little generic add more depth", "more bass and kick in the intense parts", "theres not much
+difference between quet and full, we want more ... drasticness"), and changed before the
+evening's music was rendered:
+
+- **The game's hand is drastic now.** The drums and the bass used to stand at 55 to 100%
+  whatever the game did. Now a calm game has no drums and about a third of the bass; a rise
+  lets a quarter of the drums in, a moment half; a fight brings everything.
+- **Layers the desk stacks on what the writer wrote** (`studio/build.py`): a kick on every bar
+  of each moment and of the end of each rise; a deep sub and low brass doubling the bass
+  through the moments; a bell on each moment's first beat; a choir singing the pad's chords
+  there; a wide synth pad far under the string pad, all the way through.
+- **Depth.** A hall a third longer with more of everything sent to it; air on the tune
+  (an exciter), the bottom lifted and made audible on small loudspeakers (a bass enhancer),
+  tape on every channel, the pad widened, plucked parts answering themselves a dotted eighth
+  later; the drums and the bass placed higher, the kick five decibels up in all.
+- **More instruments.** Every pitched instrument is a Muse Sound: guitars, harpsichord, music
+  box, bells and the folk winds by name; in one piece out of three the harp's part is a
+  piano's. The accordion's parts are a recorded chromatic harmonica's ("i better hear
+  harmonica and banjo"); the banjo's are a strumstick's, since there is no banjo recording.
+- **A light piece's percussion** (a few taps of a triangle) is no longer turned up sixteen
+  decibels to reach the drums' place.
+- **5.1 in the game's player** (`web/player/forever.js`): with six loudspeakers the music is
+  laid round the room (the front pair as it is, a little in the centre, the low end to the sub
+  as well, a soft copy a moment late behind); if six cannot be had it plays on two and the
+  page says why.
+- `tools/render_some.py` renders a chosen list of tracks several at a time and past a failure;
+  `tools/fresh_bucket.py` takes a style's old written pieces out of its bucket and puts the
+  staged ones in. The Warcraft bucket's 474 tracks rendered with the General MIDI sound set
+  were taken out that evening.
+
 ## The instruments, one at a time (2026-11-16, afternoon)
 
 The second try in REAPER was heard and turned down: "sounds very low quality", "instruments

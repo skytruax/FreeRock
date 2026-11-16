@@ -186,7 +186,7 @@
       this.toneHigh.connect(this.master);
       this.toneHigh.connect(this.send).connect(this.echo).connect(this.master);
       if (options.limiter === false) {
-        this.master.connect(ctx.destination);
+        this._out(this.master, options);
       } else {
         this.limiter = ctx.createDynamicsCompressor();
         this.limiter.threshold.value = -2;
@@ -203,7 +203,60 @@
           curve[i] = size <= 0.9 ? x : Math.sign(x) * (0.9 + 0.1 * Math.tanh((size - 0.9) / 0.1));
         }
         this.ceiling.curve = curve;
-        this.master.connect(this.limiter).connect(this.ceiling).connect(ctx.destination);
+        this.master.connect(this.limiter).connect(this.ceiling);
+        this._out(this.ceiling, options);
+      }
+    }
+
+    // Where the music goes: the two loudspeakers, or all six where the machine is set up as 5.1.
+    // On six, what was made for two is laid round the room: the front pair as it is, a little of
+    // both in the centre, what is under 90 Hz to the sub as well, and the rear pair a soft copy
+    // of the front a moment late, so the music is about the listener and not only in front. If
+    // the six cannot be had after all, the two are used and the page is told why.
+    _out(last, options) {
+      const ctx = this.ctx, out = ctx.destination;
+      this.speakers = 2;
+      if (options.surround === false || !(out.maxChannelCount >= 6)) { last.connect(out); return; }
+      const made = [];
+      try {
+        out.channelCount = 6;
+        out.channelCountMode = "explicit";
+        out.channelInterpretation = "discrete";
+        const split = ctx.createChannelSplitter(2), six = ctx.createChannelMerger(6);
+        const sub = ctx.createBiquadFilter();
+        sub.type = "lowpass";
+        sub.frequency.value = 90;
+        sub.connect(six, 0, 3);
+        const feed = (side, amount, to, speaker) => {
+          const gain = ctx.createGain();
+          gain.gain.value = amount;
+          split.connect(gain, side);
+          if (speaker === undefined) gain.connect(to); else gain.connect(to, 0, speaker);
+          return gain;
+        };
+        for (const side of [0, 1]) {
+          feed(side, 1, six, side);                          // front left and right
+          feed(side, 0.22, six, 2);                          // the centre
+          feed(side, 0.5, sub);                              // the sub
+          const late = ctx.createDelay(0.1), soft = ctx.createBiquadFilter();
+          late.delayTime.value = 0.018 + 0.004 * side;       // the rear pair: late, soft, without the top
+          soft.type = "lowpass";
+          soft.frequency.value = 6000;
+          feed(side, 0.55, late);
+          late.connect(soft).connect(six, 0, 4 + side);
+        }
+        last.connect(split);
+        six.connect(out);
+        made.push(split, six);
+        this.speakers = 6;
+      } catch (error) {
+        // Six were promised and could not be had: back to two, and the page is told.
+        for (const node of made) node.disconnect();
+        out.channelCount = Math.min(2, out.maxChannelCount);
+        out.channelInterpretation = "speakers";
+        last.connect(out);
+        if (!options.report) throw error;
+        options.report("5.1 could not be set up, so the music plays on two loudspeakers: " + error);
       }
     }
 
@@ -1759,6 +1812,7 @@
         wave: this._waveAt(this.group, this.ctx.currentTime),
         resting: this._quiet() || this._silent(), place: this.target.place, late: this.late,
         cached: this.buffers.size, time: this.ctx.currentTime,
+        speakers: this.speakers,         // 6 when the music is laid over 5.1, 2 otherwise
       };
     }
   }

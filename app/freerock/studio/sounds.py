@@ -311,7 +311,8 @@ RED, PEARL, BUSK = "avl:Red Zeppelin Drumkit", "avl:Black Pearl Drumkit", "avl:B
 # 41 the other kit's, 43 the deep one struck at its edge, 45 and 47 the two kits' toms: so a
 # roll (38, 41, 38, 41) goes from drummer to drummer, as do the eighths that drive (43, 41).
 # ("think we need a little more kick drum", 2026-11-16: three decibels more of both.)
-_KICK = (Player("kick", takes=((36, 36, 0.0),), gain=4.0, seat=0.0), Player(KICK_SUB, takes=((36, 60, 0.0),), gain=2.0, seat=0.0))
+# ("more bass and kick in the intense parts", the same evening: two more.)
+_KICK = (Player("kick", takes=((36, 36, 0.0),), gain=6.0, seat=0.0), Player(KICK_SUB, takes=((36, 60, 0.0),), gain=4.0, seat=0.0))
 _WAR = (Player(PEARL + "#war", takes=((36, 41, 0.0), (38, 41, 0.0), (43, 43, 0.0), (45, 45, 0.0)), seat=-0.3),
         Player(RED + "#war", takes=((36, 41, -3.0), (41, 41, 0.0), (47, 45, 0.0)), seat=0.3),
         Player("war drums", gain=-3.0, seat=0.0)) + _KICK
@@ -395,7 +396,11 @@ SOUNDS: dict[str, Sound] = {
                    Player(SUB, gain=-6.0, octave=1, seat=0.0)) + _KICK),
     "kick": Sound(_KICK),
     # What is stacked under MuseScore's double basses where they play out: a plain sub at their pitch.
-    "sub": Sound((Player(SUB, "long", over=0.5, gain=-9.0, octave=1, seat=0.0),)),
+    "sub": Sound((Player(SUB, "long", over=0.4, gain=-7.0, octave=1, seat=0.0),)),
+    # Layers the desk stacks on a piece (studio.build): a deep sub under the bass at the story's moments, and a wide
+    # synth pad (ZynAddSubFX's full strings) far under the string pad, for depth: felt as width more than heard.
+    "deep": Sound((Player(SUB, gain=-4.0, octave=1, seat=0.0),)),
+    "pad": Sound((Player(SILK, gain=-13.0, seat=0.0),)),
     "gong": Sound((Player("gong", seat=0.2),)), "anvil": Sound((Player("anvil", seat=-0.2),)),
 }
 
@@ -660,6 +665,16 @@ def echo(bpm: float, amount: float, *, left: int = 3, right: int = 3, again: flo
                     dry=1.0, medium=1, mix_mode=1)
 
 
+def excite(amount: float) -> str:
+    """Air (Calf's exciter): new harmonics made above 7.5 kHz out of what is under them, mixed in a little."""
+    return desk.lv2("Calf Exciter", amount=amount, drive=8.5, blend=0.0, freq=7500.0)
+
+
+def enhance(amount: float) -> str:
+    """The bass made audible where a loudspeaker has no bottom (Calf's bass enhancer): harmonics of what lies under 100 Hz."""
+    return desk.lv2("Calf Bass Enhancer", amount=amount, drive=8.5, blend=0.0, freq=100.0)
+
+
 def ceiling(threshold: float = -1.0, push: float = 0.0) -> str:
     """A limiter (x42's): nothing goes over `threshold` dB. With `push`, the sound is turned
     up by so many dB into it, so its peaks are held and its body comes up: denser, louder."""
@@ -768,7 +783,7 @@ def synth_chain(player: str, bpm: float) -> list[str]:
     if player in (CHOIR, OOHS):
         return [equalise(low_cut=120.0, bands=((350.0, -2.0, 1.5),), high_shelf=(11000.0, 2.5)), ensemble(0.4, voices=6, rate=0.2, depth=3.0)]
     if player == SILK:
-        return [equalise(low_cut=150.0, high_cut=11000.0)]
+        return [equalise(low_cut=150.0, high_cut=9000.0), wide(1.5), echo(bpm, 0.12)]
     if player == SUB:
         return [equalise(low_cut=28.0, high_cut=260.0), squeeze(-18.0, 4.0, 25.0, 125.0, 2.0)]
     return []
@@ -782,7 +797,14 @@ def bus(channel: str) -> list[str]:
     # Under 28 Hz nothing is heard, and what is there uses up the room every loudspeaker and limiter has.
     if channel == "drums":
         return [equalise(low_cut=28.0), drum_room(), squeeze(-14.0, 3.0, 25.0, 180.0, 2.0), warm(0.3), ceiling(-1.5, push=3.0)]
-    return [equalise(low_cut=28.0), squeeze(-20.0, 2.5, 30.0, 250.0, 2.0), ceiling(-1.5, push=3.0)]
+    if channel == "bass":
+        # More of the bottom, and harmonics of it so that it is heard on small loudspeakers too; tape to thicken it.
+        return [equalise(low_cut=28.0, low_shelf=(90.0, 2.5)), enhance(0.35), squeeze(-20.0, 2.5, 30.0, 250.0, 2.0), warm(0.25), ceiling(-1.5, push=3.0)]
+    if channel == "texture":
+        return [equalise(low_cut=28.0), wide(1.25), squeeze(-20.0, 2.5, 30.0, 250.0, 2.0), warm(0.15), ceiling(-1.5, push=3.0)]
+    if channel == "lead":
+        return [equalise(low_cut=28.0), squeeze(-20.0, 2.5, 30.0, 250.0, 2.0), excite(0.25), warm(0.12), ceiling(-1.5, push=3.0)]
+    return [equalise(low_cut=28.0), squeeze(-20.0, 2.5, 30.0, 250.0, 2.0), warm(0.15), ceiling(-1.5, push=3.0)]
 
 
 def hall(seconds: float) -> str:
@@ -790,7 +812,7 @@ def hall(seconds: float) -> str:
     the room adds): a concert hall that rings `seconds`."""
     # Its "Large Bright Hall", with less ring in the bass and less wobble (its maker's advice for an orchestra).
     return desk.bare("hall", [desk.lv2("Dragonfly Hall Reverb", dry_level=0.0, early_level=0.0, late_level=100.0, size=min(24.0 + 7.5 * seconds, 58.0),
-                                       width=100.0, delay=20.0, diffuse=90.0, low_cut=80.0, low_xo=400.0, low_mult=1.2, high_cut=10000.0,
+                                       width=100.0, delay=28.0, diffuse=90.0, low_cut=80.0, low_xo=400.0, low_mult=1.2, high_cut=10000.0,
                                        high_xo=5800.0, high_mult=0.5, spin=1.0, wander=15.0, decay=seconds, early_send=20.0, modulation=10.0)])
 
 
@@ -1111,9 +1133,9 @@ def _slurred(notes: list[Note], beat: float) -> list[Note] | None:
 
 
 MUSE_LEVEL = 6.0               # dB: MuseScore's recordings are laid in this much up (it leaves a lot of room over its sounds)
-MUSE_SEND = -15.0              # dB to the hall: Muse Sounds come with a room of their own; this sets them in one hall with the rest
-MUSE_SENDS = {"Horn in F": -12.0, "Trumpet in B♭": -13.0, "Trombone": -13.0, "Tuba": -14.0, "Women": -11.0, "Men": -11.0, "Harp": -12.0, "Celesta": -11.0,
-              "Tubular Bells": -11.0, "Glockenspiel": -11.0}
+MUSE_SEND = -12.0              # dB to the hall: Muse Sounds come with a room of their own; this sets them deep in one hall with the rest
+MUSE_SENDS = {"Horn in F": -9.0, "Trumpet in B♭": -10.0, "Trombone": -10.0, "Tuba": -12.0, "Women": -8.0, "Men": -8.0, "Harp": -9.0, "Celesta": -8.0,
+              "Tubular Bells": -7.0, "Glockenspiel": -8.0, "Contrabasses": -16.0}
 ECHOED = ("Harp", "Celesta", "Glockenspiel", "Marimba", "Vibraphone", "Classical Guitar")       # parts that get a tempo echo from side to side
 MUSE_CUT = {"Violins 1": 170.0, "Violin": 170.0, "Violas": 115.0, "Viola": 115.0, "Flute": 230.0, "Piccolo": 480.0, "Oboe": 210.0, "Trumpet in B♭": 150.0,
             "Clarinet in B♭": 130.0, "Women": 150.0, "Celesta": 200.0, "Glockenspiel": 400.0}

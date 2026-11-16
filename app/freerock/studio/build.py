@@ -33,9 +33,9 @@ PROJECTS = VAR / "reaper" / "projects"       # every track's REAPER project is k
 MASTER = 20261115
 # Where each channel sits when everyone is playing (LUFS at the moment, before the whole track
 # is brought to the bucket's level): the tune on top, the pad and the accompaniment under it.
-PLACE = {"lead": -17.0, "texture": -21.0, "rhythm": -21.5, "bass": -20.0, "drums": -23.0}       # an orchestra's drums are a few great strokes: by loudness they sit low
+PLACE = {"lead": -17.0, "texture": -21.0, "rhythm": -21.5, "bass": -18.5, "drums": -21.0}       # an orchestra's drums are a few great strokes: by loudness they sit low
 LIGHT = {"drums": -24.0, "bass": -21.5}        # a light track's drums and bass sit further back
-WAR_DRUMS = -17.5                              # where the drums sit in a track that has war drums: up with the tune, the loudest strokes in the piece
+WAR_DRUMS = -16.0                              # where the drums sit in a track that has war drums: up with the tune, the loudest strokes in the piece
 BAND = {"lead": -17.0, "rhythm": -18.5, "drums": -18.0, "bass": -19.5, "texture": -24.0}       # a band: guitars and drums up front
 BAND_LIGHT = {"drums": -21.0, "bass": -21.0, "rhythm": -20.0}
 RIDE = 0.42                    # how far each part of the story is brought up towards the loudest part
@@ -46,10 +46,14 @@ RIDE = 0.42                    # how far each part of the story is brought up to
 # music makes room for its kick: a drawn curve, not a compressor that listens). How far each
 # channel is turned down under the hardest stroke, as a part of its level.
 DUCK = {"bass": 0.56, "texture": 0.8, "rhythm": 0.8, "lead": 0.9}
+DRUMS_UP = 6.0                 # dB: the most the drums are ever turned up to reach their place
 MUSE_WORKERS = 5               # how many parts of a piece MuseScore performs at once
-FLOOR = {"open": {"rhythm": 1.0, "bass": 0.85, "drums": 0.6}, "theme": {"rhythm": 1.0, "bass": 0.85, "drums": 0.55},
-         "rise": {"rhythm": 1.0, "bass": 0.9, "drums": 0.75}, "moment": {"rhythm": 1.0, "bass": 1.0, "drums": 0.9},
-         "close": {"rhythm": 1.0, "bass": 0.85, "drums": 0.55}}
+# ("theres not much difference between quet and full, we want more ... drasticness", 2026-11-16: the drums and the
+# bass used to stand at 55 to 100% whatever the game did. Now a calm game has no drums and little bass, a rise
+# lets some in, a moment has half the drums, and a fight has everything.)
+FLOOR = {"open": {"rhythm": 1.0, "bass": 0.35, "drums": 0.0}, "theme": {"rhythm": 1.0, "bass": 0.4, "drums": 0.0},
+         "rise": {"rhythm": 1.0, "bass": 0.55, "drums": 0.25}, "moment": {"rhythm": 1.0, "bass": 0.8, "drums": 0.5},
+         "close": {"rhythm": 1.0, "bass": 0.35, "drums": 0.0}}
 
 
 def plan() -> list[tuple[Family, int]]:
@@ -112,17 +116,63 @@ def stage(fam: Family, take: int) -> dict:
         if voice.drums and voice.instrument[4:] in sounds.KICKED:
             boom = KITS[voice.instrument[4:]][1]["boom"]
             strokes += [(note.start, note.loud) for note in voice.notes if note.pitch == boom]
-        elif voice.instrument in ("war drums", "boom"):
+        elif voice.instrument in ("war drums", "boom", "kick"):
             strokes += [(note.start, note.loud) for note in voice.notes if note.pitch == 36]
     for channel in CHANNELS:
         for name, voice in written.voices[channel].items():
             if voice.notes:
                 humanise(voice, rng, timing=0.004 if channel == "drums" else 0.007, bpm=fam.bpm)
+    # ----- What the desk stacks on what the writer wrote (2026-11-16: "stack on top of this for interesting layers",
+    # "better get the kickdrum in those moments", "more depth more instruments .... more bass and kick in the intense parts").
+    from .score import Note, Voice
+    beat_of = fam.bpm / 60.0 / RATE
+    told = [(section.story, edges[index] * beat_of, edges[index + 1] * beat_of, section.bars) for index, section in enumerate(fam.sections)]
+    spans = [(first, last) for story, first, last, _ in told if story == "moment"]
+    pads = [voice for voice in written.voices["texture"].values() if voice.instrument in ("tremolo", "strings", "strings slow") and voice.notes]
+    if pads:
+        # Depth: a wide synth pad far under the string pad, all the way through.
+        written.voices["texture"]["pad under"] = Voice(0, notes=[Note(note.start, note.length, note.pitch, 0.5) for voice in pads for note in voice.notes
+                                                                  if 48 <= note.pitch <= 84], instrument="pad")
+    low = sorted((note for voice in written.voices["bass"].values() if not voice.drums for note in voice.notes), key=lambda note: note.start)
+    if character.role != "night":
+        # A kick on the bar all through each moment (and on the half bar, in heavy music), and on the last bars of each
+        # rise; where the writer has a stroke there already, that one stands.
+        had = sorted(note.start for voice in written.voices["drums"].values() for note in voice.notes
+                     if (voice.drums and note.pitch == 36) or (voice.instrument in ("war drums", "boom", "kick") and note.pitch == 36))
+        kicks = []
+        for story, first, last, bars in told:
+            if story not in ("moment", "rise"):
+                continue
+            for bar in range(bars):
+                if story == "rise" and bar < bars * 0.6:
+                    continue
+                ons = [0.0] if character.light or story == "rise" or fam.beats < 4 else [0.0, fam.beats / 2.0]
+                for on in ons:
+                    at = first + bar * fam.beats + on
+                    if at < last - 0.01 and not any(abs(at - each) < 0.12 for each in had):
+                        strength = (0.6 if character.light else 0.9 if on == 0.0 else 0.75) * (0.8 if story == "rise" else 1.0)
+                        kicks.append(Note(at, 0.5, 36, strength))
+        if kicks:
+            written.voices["drums"]["kick at the moments"] = Voice(0, notes=kicks, instrument="kick")
+            strokes += [(note.start, note.loud) for note in kicks]         # the other channels give way under these as well
+    if low and spans and not character.light:
+        # More bass where it is intense: a deep sub and low brass double the bass line through each moment, and a bell
+        # is struck on the moment's first beat, on the note the bass has there.
+        deep = [note for note in low if any(first <= note.start < last for first, last in spans)]
+        written.voices["bass"]["sub at the moments"] = Voice(0, notes=[Note(note.start, note.length, note.pitch, 0.8) for note in deep], instrument="deep")
+        if not any(voice.instrument in ("tuba", "trombone") and voice.notes for voice in written.voices["bass"].values()):
+            written.voices["bass"]["low brass at the moments"] = Voice(
+                0, notes=[Note(note.start, note.length, note.pitch if note.pitch >= 29 else note.pitch + 12, 0.75) for note in deep if note.length >= 0.45],
+                instrument="tuba")
+        rung = []
+        for first, last in spans:
+            under = [note for note in low if note.start <= first + 0.05 < note.start + note.length + 0.5] or [note for note in low if note.start >= first][:1]
+            if under:
+                rung.append(Note(first, 4.0, 60 + under[0].pitch % 12, 0.8))
+        if rung and not any(voice.instrument in ("bells", "church bell") for voice in written.voices["rhythm"].values()):
+            written.voices["rhythm"]["bell at the moments"] = Voice(0, notes=rung, instrument="bells")
     if muse.available() and not character.light:
         # A layer on top, where the story comes to its moments: a choir sings the pad's chords with the strings.
-        from .score import Voice
-        spans = [(edges[index] / RATE * fam.bpm / 60.0, edges[index + 1] / RATE * fam.bpm / 60.0)
-                 for index, section in enumerate(fam.sections) if section.story == "moment"]
         sung = [note for voice in written.voices["texture"].values() if voice.instrument in ("tremolo", "strings", "strings slow")
                 for note in voice.notes if any(first <= note.start < last for first, last in spans) and 43 <= note.pitch <= 79]
         if sung and "choir" not in {voice.instrument for voice in written.voices["texture"].values()}:
@@ -154,7 +204,7 @@ def stage(fam: Family, take: int) -> dict:
     work = rpp.parent
     work.mkdir(parents=True, exist_ok=True)
     rpp.write_text(desk.project(folders, bpm=fam.bpm, seconds=whole / RATE, out=work, tail=forever.POST_S,
-                                hall=sounds.hall(character.hall[0])), encoding="utf-8")
+                                hall=sounds.hall(min(character.hall[0] * 1.3, 3.8))), encoding="utf-8")
     with reaper.Display() as display:
         desk.render(rpp, display=display, timeout=240.0 + 2.0 * whole / RATE)
     parts = desk.stems(work, [bus.name for bus, _ in folders], frames)
@@ -177,6 +227,10 @@ def stage(fam: Family, take: int) -> dict:
             del parts[channel]                       # it plays nothing to speak of in this take
             continue
         gain = min(max(places[channel] - loud, -18.0), 18.0)
+        if channel == "drums":
+            # A light piece's percussion is a few taps of a triangle or a shaker: measured by loudness they are next to
+            # nothing, and brought up to the drums' place they became the loudest thing in the track (16 dB up, 2026-11-16).
+            gain = min(gain, DRUMS_UP)
         parts[channel] = audio * np.float32(10 ** (gain / 20.0))
         levels[channel] = round(loud + gain, 1)
         gains[channel] = round(gain, 1)
