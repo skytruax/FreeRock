@@ -136,6 +136,8 @@ async def test_easing_off_waits_for_the_bar_line(results):
 async def test_a_channel_that_is_down_is_there_the_moment_it_comes_up(results):
     levels = of(results, "levels")
     assert levels["before"] < 1e-4
+    # It comes up over a second or so, the way a DJ brings a channel in, not all at once.
+    assert 0.2 * levels["rhythm"] < levels["halfway"] < 0.8 * levels["rhythm"]
     assert levels["after"] == pytest.approx(levels["rhythm"], rel=0.05)
 
 
@@ -158,9 +160,10 @@ async def test_a_rest_fades_right_out_and_the_music_comes_back_afresh(results):
 async def test_another_place_comes_in_on_its_own_tempo(results):
     place = of(results, "newPlace")
     assert place["key"] == "test/slow"
-    assert place["firstNew"] == pytest.approx(13.2, abs=0.01)
+    assert place["firstNew"] == pytest.approx(13.5, abs=0.01)
     # Four bars at 96 beats a minute are ten seconds.
     assert [round(later - earlier, 6) for earlier, later in zip(place["rhythmStarts"], place["rhythmStarts"][1:])] == [10.0, 10.0]
+    assert place["oldDuring"] > 0.01, "the old music was cut off, not faded"
     assert place["oldAfter"] < 1e-3, "the old place's music kept playing"
     assert place["newAfter"] > 0.05
 
@@ -268,6 +271,24 @@ async def test_a_sweep_thins_the_lows_before_the_chorus_and_gives_them_back(resu
     assert sweep["chorus"] == pytest.approx(sweep["verse"], rel=0.1)
 
 
+async def test_every_change_is_a_blend(results):
+    blend = of(results, "formBlend")
+    assert not blend["sameClip"] and blend["changedAt"] == pytest.approx(blend["turn"], abs=1e-6)
+    full = blend["oldBefore"]
+    assert blend["newBefore"] < 0.01 * full
+    # Two bars (four seconds here): the old phrase falls as the new one rises...
+    assert blend["oldEarly"] > 0.9 * full and blend["newEarly"] < 0.3 * full
+    assert blend["oldLate"] < 0.3 * full and blend["newLate"] > 0.9 * full
+    assert blend["oldGone"] < 0.01 * full and blend["newFull"] == pytest.approx(full, rel=0.05)
+    # ...and halfway the two together are as loud as either alone.
+    together = (blend["oldMiddle"] ** 2 + blend["newMiddle"] ** 2) ** 0.5
+    assert together == pytest.approx(full, rel=0.08)
+    # A fight in the middle of a turn: half a bar (a second here), still a blend, not a cut.
+    assert blend["fightAt"] is not None and blend["fightAt"] - 10.3 <= 0.08 + 0.25 + 1e-6
+    assert 0.2 * full < blend["fightOldSoon"] < 0.8 * full and 0.2 * full < blend["fightNewSoon"] < 0.9 * full
+    assert blend["fightOldGone"] < 0.01 * full and blend["fightNewFull"] == pytest.approx(full, rel=0.05)
+
+
 async def test_with_a_form_the_new_tune_sits_out_the_verse(results):
     tune = of(results, "formTune")
     # The first tune plays its turn; the next comes in eight seconds late, at its own build-up.
@@ -289,7 +310,7 @@ async def test_with_a_form_a_fight_comes_in_at_that_place_in_the_form(results):
 async def test_another_place_takes_over_whole(results):
     place = of(results, "formPlace")
     assert place["key"] == "test/there"
-    assert place["firstNew"] == pytest.approx(21.2, abs=0.05)
+    assert place["firstNew"] == pytest.approx(21.5, abs=0.05)
     assert place["together"] == 5 and place["offsets"] == [0, 0, 0, 0, 0], "the new place's decks did not come in together"
     assert place["late"] == 0
     assert place["after"] > 0.05

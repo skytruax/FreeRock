@@ -630,7 +630,10 @@
     _ramp(param, value, seconds, exponential) {
       const now = this.ctx.currentTime;
       if (param.cancelAndHoldAtTime) param.cancelAndHoldAtTime(now);
-      else { param.cancelScheduledValues(now); param.setValueAtTime(param.value, now); }
+      else param.cancelScheduledValues(now);
+      // The ramp has to be given where it starts from, or a level that has never been moved
+      // before jumps nearly all the way at once.
+      param.setValueAtTime(param.value, now);
       if (exponential) param.exponentialRampToValueAtTime(Math.max(value, 1), now + seconds);
       else param.linearRampToValueAtTime(value, now + seconds);
     }

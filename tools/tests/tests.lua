@@ -477,6 +477,60 @@ test("if the game seals anything about a nameplate, the counts are not sent", fu
 	truthy(Printed("Nameplates of any kind the game has up: it does not say"))
 end)
 
+test("the addon sends a note about itself: its version and what it counted", function()
+	M.game.plates.nameplate1 = { enemy = true, fighting = true }
+	M.game.plates.nameplate2 = { enemy = true, dead = true }
+	M.game.plates.nameplate3 = { enemy = false }
+	Load()
+	Frame()
+	local state = ns.Signals.state
+	eq(state.note, "", "nothing in the first seconds: the names go out first")
+	-- It goes out in the text bytes as name number five, six bytes at a time, in its turn, and
+	-- once for each writing: the rest of the time the names have the text bytes to themselves.
+	local function Listen(seconds)
+		local seen, times = {}, 0
+		for _ = 1, math.floor(seconds / 0.2 + 0.5) do
+			M.Advance(0.2)
+			local frame = ns.Beacon.BuildFrame()
+			if frame.text_field == 5 then
+				if frame.text_chunk == 0 then times = times + 1 end
+				for i = 1, 6 do
+					seen[frame.text_chunk * 6 + i] = frame.text_bytes[i]
+				end
+				eq(frame.text_length, #state.note)
+			end
+		end
+		local sent = {}
+		for i = 1, #state.note do
+			sent[i] = string.char(seen[i] or 63)
+		end
+		return table.concat(sent), times
+	end
+	local sent, times = Listen(9)
+	eq(state.note, "v" .. ns.version .. " up=3 un=3 en=1 fi=1 dead=1", "the dead enemy is left out, and said to be")
+	eq(sent, state.note, "the whole note was sent")
+	eq(times, 1, "once")
+	-- It is not written afresh at every count: it has to have time to go out whole.
+	M.game.plates.nameplate4 = { enemy = true }
+	M.Advance(0.4)
+	eq(state.enemies, 2, "the count itself is up to date")
+	eq(state.note, "v" .. ns.version .. " up=3 un=3 en=1 fi=1 dead=1", "the note waits")
+	sent, times = Listen(6)
+	eq(state.note, "v" .. ns.version .. " up=4 un=4 en=2 fi=1 dead=1")
+	eq(sent, state.note)
+	eq(times, 1)
+	sent, times = Listen(6)
+	eq(times, 1, "sent again unchanged, for an app that has only just started listening")
+	-- A change of name still goes out first, and comes through whole with a note waiting.
+	M.Advance(4.6)
+	M.game.subzone = "Fargodeep Mine"
+	M.Fire("ZONE_CHANGED")
+	M.Advance(0.05)
+	local frame = ns.Beacon.BuildFrame()
+	eq(frame.text_field, 2, "a name that changes goes out first")
+	eq(frame.text_chunk, 0)
+end)
+
 test("with no nameplates up, status says there is nothing to count", function()
 	Load()
 	M.Slash("status")

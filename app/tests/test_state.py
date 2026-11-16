@@ -301,6 +301,18 @@ def test_the_enemies_in_view_come_with_version_three():
     assert old.state.enemies is None and old.state.fighting is None
 
 
+def test_the_addons_note_about_itself_is_put_together_like_a_name():
+    tracker = state.StateTracker(clock=Clock())
+    note = b"v0.3.2 up=7 un=7 en=3 fi=2 dead=1"
+    assert tracker.feed(BASE) is not None and tracker.state.addon_note is None
+    for chunk in range(0, len(note), 6):
+        tracker.feed(dataclasses.replace(BASE, text_field=beacon.TEXT_NOTE, text_revision=1, text_chunk=chunk // 6,
+                                         text_length=len(note), text_bytes=note[chunk:chunk + 6].ljust(6, b"\0")))
+    assert tracker.state.addon_note == "v0.3.2 up=7 un=7 en=3 fi=2 dead=1"
+    # A note is not a place: the zone's name is untouched by it.
+    assert tracker.state.zone_name is None
+
+
 def test_a_version_this_program_does_not_know_is_refused():
     body = bytes([4 << 4]) + bytes(37)
     with pytest.raises(beacon.BeaconError, match="strip version 4"):

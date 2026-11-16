@@ -77,7 +77,7 @@ CHANGES = 2                    # how many decks may take a new phrase each time 
 # at all). The sweep is the dance floor's way of building; a band and an orchestra build by
 # playing louder.
 ARC = {"knight": {"verse_db": -3.5, "sweep_hz": 0}, "warcraft": {"verse_db": -4.5, "sweep_hz": 0},
-       "trance": {"verse_db": -3.0, "sweep_hz": 320}}
+       "house": {"verse_db": -3.0, "sweep_hz": 250}}
 # The pools a bucket is filled in order of, before anything else: what the music cannot start
 # without, then one phrase for every other pool, so that whatever the game does there is an answer.
 FIRST = (("texture", 0), ("lead", 0), ("rhythm", 1), ("drums", 1), ("bass", 1), ("rhythm", 0), ("lead", 1),
@@ -229,60 +229,63 @@ WARCRAFT = {
     },
 }
 
-TRANCE = {
+# Uplifting progressive house: happy, warm and laid back. Everything is in a major key, and
+# nothing is harsh: no distortion, no acid lines, no sirens.
+_NO_KIT = "no drums"
+HOUSE = {
     "texture": {0: [
-        ["a warm lush synth pad holding a chord of {key}, slowly evolving", "only the pad, " + _ONLY, "no melody", "no drums"],
-        ["an airy pad with slow white-noise sweeps on {note}", "only the pad, " + _ONLY, "no melody", "no drums"],
-        ["a deep sub drone on the note {note} with a slow filter", "only the drone, " + _ONLY, "no melody", "no drums"],
-        ["a glassy shimmering pad in {key}", "only the pad, " + _ONLY, "no melody", "no drums"],
+        ["a warm lush synth pad holding a chord of {key}, slowly evolving", "only the pad, " + _ONLY, "no melody", _NO_KIT],
+        ["an airy pad with soft white-noise sweeps on {note}", "only the pad, " + _ONLY, "no melody", _NO_KIT],
+        ["soft electric-piano chords of {key} held long, with a gentle shimmer", "only the electric piano, " + _ONLY, "no melody", _NO_KIT],
+        ["a glassy shimmering pad in {key}, bright and calm", "only the pad, " + _ONLY, "no melody", _NO_KIT],
     ]},
     "lead": {
-        0: [["a bell-like synth melody with long echoes in {key}", "only the one synth, " + _ONLY, "no drums", "slow and spacious", _STRICT],
-            ["a soft piano-like melody in {key}", "only the one instrument, " + _ONLY, "no drums", "slow and spacious", _STRICT],
-            ["a single plucked synth playing a slow tune in {key}", "only the one synth, " + _ONLY, "no drums", _STRICT]],
-        1: [["a gliding synth lead melody in {key}", "only the one synth, " + _ONLY, "no drums", _TIGHT],
-            ["a plucked synth hook in {key}, bouncing", "only the one synth, " + _ONLY, "no drums", _TIGHT],
-            ["a square-wave lead playing a simple catchy hook in {key}", "only the one synth, " + _ONLY, "no drums", _TIGHT]],
-        2: [["a supersaw anthem lead in {key}, euphoric and loud", "only the one synth, " + _ONLY, "no drums", _TIGHT],
-            ["a screaming distorted synth lead in {key}", "only the one synth, " + _ONLY, "no drums", _TIGHT],
-            ["a supersaw lead in octaves playing a rising hook in {key}", "only the one synth, " + _ONLY, "no drums", _TIGHT]],
+        0: [["a bell-like synth melody with long echoes in {key}", "only the one synth, " + _ONLY, _NO_KIT, "gentle and spacious", _STRICT],
+            ["a soft piano melody in {key}, simple and warm", "only a piano, " + _ONLY, _NO_KIT, "gentle and spacious", _STRICT],
+            ["a marimba-like plucked synth playing a sunny tune in {key}", "only the one synth, " + _ONLY, _NO_KIT, _STRICT]],
+        1: [["a warm gliding synth lead melody in {key}, happy and singing", "only the one synth, " + _ONLY, _NO_KIT, _TIGHT],
+            ["a plucked synth hook in {key}, bouncing and bright", "only the one synth, " + _ONLY, _NO_KIT, _TIGHT],
+            ["a house piano riff melody in {key}, joyful", "only a piano, " + _ONLY, _NO_KIT, _TIGHT]],
+        2: [["an uplifting anthem lead in {key}, bright and euphoric but smooth", "only the one synth, " + _ONLY, _NO_KIT, _TIGHT],
+            ["a soaring string-like synth melody in {key}, hands-in-the-air happy", "only the one synth, " + _ONLY, _NO_KIT, _TIGHT],
+            ["a bright piano hook in octaves in {key}, big and joyful", "only a piano, " + _ONLY, _NO_KIT, _TIGHT]],
     },
     "rhythm": {
-        0: [["a soft plucked synth arpeggio in {key}, slowly filtered, steady sixteenth notes", "only the arpeggio, " + _ONLY, "no drums", _TIGHT],
-            ["a muted synth arpeggio around {note} with a long echo, steady eighth notes", "only the arpeggio, " + _ONLY, "no drums", _TIGHT],
-            ["a gentle marimba-like synth pattern in {key}", "only the one synth, " + _ONLY, "no drums", _TIGHT]],
-        1: [["gated trance chords pulsing in eighth notes in {key}", "only the chords, " + _ONLY, "no drums", _TIGHT],
-            ["a bright plucked arpeggio climbing and falling in {key}, sixteenth notes", "only the arpeggio, " + _ONLY, "no drums", _TIGHT],
-            ["an acid synth line weaving around {note}, squelchy, sixteenth notes", "only the one synth, " + _ONLY, "no drums", _TIGHT]],
-        2: [["supersaw chord stabs in {key}, bright and loud, on the off-beats", "only the chords, " + _ONLY, "no drums", _TIGHT],
-            ["a racing arpeggio at full brightness in {key}, sixteenth notes", "only the arpeggio, " + _ONLY, "no drums", _TIGHT],
-            ["a hard distorted synth riff on {note}, stabbing", "only the one synth, " + _ONLY, "no drums", _TIGHT]],
+        0: [["soft electric-piano chords in {key}, one to a bar, mellow", "only the electric piano, " + _ONLY, _NO_KIT, _TIGHT],
+            ["a muted plucked synth arpeggio around {note} with a long echo, steady eighth notes", "only the arpeggio, " + _ONLY, _NO_KIT, _TIGHT],
+            ["gentle clean guitar-like plucks in {key}, a light repeating figure", "only the one instrument, " + _ONLY, _NO_KIT, _TIGHT]],
+        1: [["classic house piano chords in {key}, bouncing on the off-beats", "only a piano, " + _ONLY, _NO_KIT, _TIGHT],
+            ["warm synth chord stabs in {key} pulsing in eighth notes", "only the chords, " + _ONLY, _NO_KIT, _TIGHT],
+            ["a bright plucked arpeggio rising and falling in {key}, sixteenth notes", "only the arpeggio, " + _ONLY, _NO_KIT, _TIGHT]],
+        2: [["big uplifting piano chords in {key}, a chord on every off-beat, joyful", "only a piano, " + _ONLY, _NO_KIT, _TIGHT],
+            ["bright wide synth chord stabs in {key} on the off-beats", "only the chords, " + _ONLY, _NO_KIT, _TIGHT],
+            ["a sparkling arpeggio at full brightness in {key}, sixteenth notes", "only the arpeggio, " + _ONLY, _NO_KIT, _TIGHT]],
     },
     "drums": {
-        0: [["electronic drums", "only drums, " + _ONLY, "a soft shaker and a rim click, no kick drum"],
-            ["electronic drums", "only drums, " + _ONLY, "a soft four-on-the-floor kick and a closed hi-hat, quiet"],
-            ["electronic drums", "only drums, " + _ONLY, "closed hi-hats in sixteenth notes and a soft clap on two and four, no kick drum"]],
-        1: [["electronic trance drums", "only drums, " + _ONLY, "four-on-the-floor kick drum", "off-beat open hi-hats", "clap on two and four"],
-            ["electronic trance drums", "only drums, " + _ONLY, "four-on-the-floor kick drum", "rolling closed hi-hats", "snare on two and four"],
-            ["electronic trance drums", "only drums, " + _ONLY, "four-on-the-floor kick drum", "shuffling percussion loops in straight time", "clap on two and four"]],
-        2: [["electronic trance drums", "only drums, " + _ONLY, "pounding four-on-the-floor kick drum", "open hi-hats on every off-beat",
-             "a snare roll into the last bar", "crash on the first beat"],
-            ["electronic trance drums", "only drums, " + _ONLY, "hard kick drum on every beat", "fast rolling hi-hats", "claps and crashes"],
-            ["electronic trance drums", "only drums, " + _ONLY, "driving kick drum and a relentless ride cymbal", "snare on two and four"]],
+        0: [["electronic house drums", "only drums, " + _ONLY, "a soft shaker and a rim click, no kick drum"],
+            ["electronic house drums", "only drums, " + _ONLY, "a soft four-on-the-floor kick and a closed hi-hat, quiet"],
+            ["hand percussion", "only percussion, " + _ONLY, "congas and a shaker in a laid-back pattern, no kick drum"]],
+        1: [["electronic house drums", "only drums, " + _ONLY, "four-on-the-floor kick drum", "off-beat open hi-hats", "clap on two and four"],
+            ["electronic house drums", "only drums, " + _ONLY, "four-on-the-floor kick drum", "a shuffling shaker in straight time", "clap on two and four"],
+            ["electronic house drums", "only drums, " + _ONLY, "four-on-the-floor kick drum", "off-beat hi-hats and congas", "snap on two and four"]],
+        2: [["electronic house drums", "only drums, " + _ONLY, "punchy four-on-the-floor kick drum", "open hi-hats on every off-beat",
+             "claps on two and four", "a crash on the first beat"],
+            ["electronic house drums", "only drums, " + _ONLY, "four-on-the-floor kick drum", "a bright ride cymbal on every beat", "claps on two and four"],
+            ["electronic house drums", "only drums, " + _ONLY, "four-on-the-floor kick drum", "rolling percussion and tambourine", "claps on two and four"]],
     },
     "bass": {
-        0: [["a deep sub bass", "only the bass, " + _ONLY, "no drums", "one long note on {note} to every bar"],
-            ["a soft round synth bass", "only the bass, " + _ONLY, "no drums", "slow notes on {note}, two to a bar"]],
-        1: [["a rolling trance bassline", "only the bass, " + _ONLY, "no drums", "sixteenth notes on the note {note}, between the beats", _TIGHT],
-            ["an off-beat trance bass", "only the bass, " + _ONLY, "no drums", "one note on {note} on every off-beat", _TIGHT],
-            ["a plucked synth bass", "only the bass, " + _ONLY, "no drums", "a bouncing eighth-note line around {note}", _TIGHT]],
-        2: [["a driving acid bassline", "only the bass, " + _ONLY, "no drums", "squelchy and busy sixteenth notes on {note}", _TIGHT],
-            ["a hard distorted bass", "only the bass, " + _ONLY, "no drums", "pounding eighth notes on {note}", _TIGHT],
-            ["a galloping trance bass", "only the bass, " + _ONLY, "no drums", "a galloping pattern on {note}, loud", _TIGHT]],
+        0: [["a deep warm sub bass", "only the bass, " + _ONLY, _NO_KIT, "one long note on {note} to every bar"],
+            ["a soft round synth bass", "only the bass, " + _ONLY, _NO_KIT, "gentle notes on {note}, two to a bar"]],
+        1: [["an off-beat house bass", "only the bass, " + _ONLY, _NO_KIT, "one warm note on {note} on every off-beat", _TIGHT],
+            ["a groovy house bassline", "only the bass, " + _ONLY, _NO_KIT, "a bouncing line around {note} in eighth notes", _TIGHT],
+            ["a warm plucked synth bass", "only the bass, " + _ONLY, _NO_KIT, "steady eighth notes on {note} with a little walk every fourth bar", _TIGHT]],
+        2: [["a rolling house bassline", "only the bass, " + _ONLY, _NO_KIT, "sixteenth notes on {note} between the beats, driving but warm", _TIGHT],
+            ["a funky synth bass", "only the bass, " + _ONLY, _NO_KIT, "a syncopated riff around {note}, playful", _TIGHT],
+            ["a pumping house bass", "only the bass, " + _ONLY, _NO_KIT, "a strong note on every off-beat on {note} with octave jumps", _TIGHT]],
     },
 }
 
-RECIPES = {"knight": KNIGHT, "warcraft": WARCRAFT, "trance": TRANCE}
+RECIPES = {"knight": KNIGHT, "warcraft": WARCRAFT, "house": HOUSE}
 
 # What each channel does in each part of the form, on top of the way of playing it was asked
 # for: held back in the verse, rising through the build-up, and all out in the chorus.
@@ -305,19 +308,19 @@ SECTION_WORDS = {
 }
 # Where a style has its own words for a part of the form, they stand in for the ones above.
 STYLE_SECTION_WORDS = {
-    "trance": {
-        "drums": {"verse": ["the breakdown: sparse, the kick drum held back"],
-                  "build": ["the build-up: a snare roll that speeds up bar by bar", "a rising noise sweep"],
-                  "chorus": ["the drop: the full beat at full power", "a crash on the first beat"]},
-        "bass": {"verse": ["the breakdown: held back, filtered dark"],
+    "house": {
+        "drums": {"verse": ["the breakdown: stripped back and light"],
+                  "build": ["the build-up: a snare roll that gets busier bar by bar", "a rising noise sweep"],
+                  "chorus": ["the drop: the full groove, happy and bouncing", "a crash on the first beat"]},
+        "bass": {"verse": ["the breakdown: held back and soft"],
                  "build": ["the build-up: the filter opens bar by bar, rising"],
-                 "chorus": ["the drop: the full bassline at full power"]},
+                 "chorus": ["the drop: the full bassline, warm and bouncing"]},
         "rhythm": {"verse": ["the breakdown: filtered and soft"],
                    "build": ["the build-up: the filter opens bar by bar, rising and brightening"],
-                   "chorus": ["the drop: bright and wide at full power"]},
+                   "chorus": ["the drop: bright, wide and joyful"]},
         "lead": {"verse": ["the breakdown: a few notes of the hook, far away"],
                  "build": ["the build-up: the hook rising and getting brighter"],
-                 "chorus": ["the drop: the full hook, euphoric, played out"]},
+                 "chorus": ["the drop: the full hook, uplifting, played out"]},
     },
     "warcraft": {
         "drums": {"build": ["a crescendo: rolls on the timpani and snare drum growing louder", "ending in a cymbal crash"],
@@ -354,7 +357,7 @@ def tune_instrument(profile: composer.ZoneProfile, genre: str) -> str:
         for name in _TUNE_INSTRUMENTS:
             if name in colour:
                 return name
-    return {"knight": "lute", "warcraft": "oboe", "trance": "synth"}[genre]
+    return {"knight": "lute", "warcraft": "oboe", "house": "synth"}[genre]
 
 
 def tiers_of(channel: str) -> tuple[int, ...]:
@@ -365,7 +368,7 @@ def form(bpm: int) -> tuple[int, int, int]:
     """The song's form at a tempo: the lengths of the verse, the build-up and the chorus in bars.
     Twice as many bars at the faster tempos, so that a turn of the form is always somewhere
     between forty seconds and a minute, half of it chorus."""
-    return (4, 4, 8) if bpm < 110 else (8, 8, 16)
+    return (4, 4, 8) if bpm <= 110 else (8, 8, 16)
 
 
 def cycle_bars(bpm: int) -> int:
@@ -416,10 +419,14 @@ def ask(profile: composer.ZoneProfile, genre: str, channel: str, tier: int, vari
     timing = [] if channel == "texture" else ["steady straight 4/4 beat"]
     common = ["%d BPM" % profile.bpm, profile.tonic] + timing + ["instrumental"]
     avoid = list(dict.fromkeys(recipe["never"] + OTHERS[channel]))
-    chunks = [{"text": "[%s]" % SECTION_NAMES[section], "duration_ms": composer.bars_ms(profile.bpm, bars),
+    # ElevenLabs takes whole milliseconds, and at some tempos (110 is one) a bar is not a whole
+    # number of them. Each part ends at the nearest millisecond to where it should, so the parts
+    # are never more than half a millisecond from their places and the whole is not out at all.
+    edges = [round(240000.0 * bars / profile.bpm) for bars in (0, sections[0], sections[0] + sections[1], sum(sections))]
+    chunks = [{"text": "[%s]" % SECTION_NAMES[section], "duration_ms": last - first,
                "positive_styles": list(dict.fromkeys(common + words + section_words(genre, channel, section))),
                "negative_styles": avoid, "context_adherence": "high"}
-              for section, bars in zip(SECTIONS, sections)]
+              for section, first, last in zip(SECTIONS, edges, edges[1:])]
     return Ask(channel=channel, tier=tier, variant=variant, bars=sum(sections), sections=sections,
                plan={"chunks": chunks}, seed=seed, words=words)
 
@@ -566,7 +573,7 @@ def fit(audio: np.ndarray, rate: int, bpm: int, bars: int) -> np.ndarray:
     """A phrase made exactly `bars` long, to the sample. ElevenLabs gives the length asked for to
     within a few samples; the audio itself is left as it came (a phrase that does not start on
     the beat is asked for again, not moved)."""
-    frames = bars * rate * 240 // bpm
+    frames = int(round(bars * rate * 240.0 / bpm))
     if len(audio) > frames:
         return audio[:frames]
     if len(audio) < frames:
@@ -594,6 +601,8 @@ class Clip:
     banned: bool = False           # never played again (/rock ban)
     loved: bool = False            # never set aside (/rock love)
     source: str = "elevenlabs"     # where it came from: today always ElevenLabs
+    seed: int | None = None        # the seed it was asked for with, for anyone studying what came back
+    place: str = ""                # the place whose colours and mood it was asked for in
 
 
 class Bucket:
@@ -625,8 +634,13 @@ class Bucket:
         return "%s/%s" % (self.genre, self.zone)
 
     @property
-    def bar_frames(self) -> int:
-        return RATE * 240 // self.bpm
+    def bar_frames(self) -> float:
+        """How long a bar is, in samples. At most tempos a whole number; at some (110) not."""
+        return RATE * 240.0 / self.bpm
+
+    def frames_of(self, bars: int) -> int:
+        """How many samples a phrase of so many bars is, to the nearest one."""
+        return int(round(bars * self.bar_frames))
 
     @property
     def cycle(self) -> int:
@@ -660,13 +674,14 @@ class Bucket:
         scratch.replace(self.folder / "bucket.json")
 
     def add(self, audio: np.ndarray, *, channel: str, tier: int, variant: int = 0, words: list[str] | None = None,
-            measured: dict[str, Any] | None = None, source: str = "elevenlabs") -> Clip:
+            measured: dict[str, Any] | None = None, source: str = "elevenlabs", seed: int | None = None,
+            place: str = "") -> Clip:
         """Puts a phrase in the bucket. `audio` is stereo at 48 kHz and exactly a whole number of
         bars long, beat on the start (see `fit`). This is the way in for any phrase, wherever it
         was made."""
-        bars, extra = divmod(len(audio), self.bar_frames)
-        if extra or not bars:
-            raise ValueError("A phrase is a whole number of bars: %d frames is not, at %d a bar" % (len(audio), self.bar_frames))
+        bars = int(round(len(audio) / self.bar_frames))
+        if not bars or len(audio) != self.frames_of(bars):
+            raise ValueError("A phrase is a whole number of bars: %d frames is not, at %.2f a bar" % (len(audio), self.bar_frames))
         measured = dict(measured or {})
         lufs = measured.get("lufs")
         if lufs is None:
@@ -674,7 +689,8 @@ class Bucket:
         # Never more than full scale after the gain, whatever the level says.
         gain = min(LEVEL[channel] - lufs, -20.0 * float(np.log10(max(analysis.peak(audio), 1e-6))) - 1.0)
         clip = Clip(id=uuid.uuid4().hex[:10], channel=channel, tier=tier, variant=variant, bars=bars, frames=len(audio),
-                    gain_db=round(gain, 2), created=time.time(), words=list(words or []), measured=measured, source=source)
+                    gain_db=round(gain, 2), created=time.time(), words=list(words or []), measured=measured, source=source,
+                    seed=seed, place=place)
         (self.folder / "clips").mkdir(parents=True, exist_ok=True)
         np.save(self.folder / "clips" / (clip.id + ".npy"),
                 np.round(np.clip(audio, -1.0, 32767 / 32768) * 32768).astype("<i2"))
@@ -890,6 +906,7 @@ class Filler:
         the phrase, while the tempo and the key are the bucket's. A phrase that drifts from the
         tempo, starts off the beat or is out of tune is asked for again, in other words, up to
         TRIES times."""
+        place = profile.key
         styled = composer.for_genre(profile, bucket.genre)
         profile = composer.ZoneProfile(key=bucket.zone, bpm=bucket.bpm, tonic=bucket.tonic,
                                        colours=styled.colours, mood=styled.mood)
@@ -904,7 +921,8 @@ class Filler:
             problems = found.pop("problems")
             if not problems:
                 return bucket.add(fit(audio, RATE, bucket.bpm, request.bars), channel=channel, tier=tier,
-                                  variant=request.variant, words=request.words, measured=found)
+                                  variant=request.variant, words=request.words, measured=found,
+                                  seed=request.seed, place=place)
             self.turned_away += 1
             log.info("a phrase for %s (%s %s) was turned away: %s", bucket.key, channel, TIER_WORDS[tier], "; ".join(problems))
         raise PhraseFailed(channel, tier, problems)

@@ -193,8 +193,10 @@ local testUntil           -- while set, test frames are sent
 local offUntil            -- while set, FreeRock is off and the strip is saying so before it goes
 
 -- The names that take turns in the text bytes: field number -> where Signals keeps the name.
-local TEXT_SOURCES = { "zone", "subzone", "instanceName", "encounterName" }
+local TEXT_SOURCES = { "zone", "subzone", "instanceName", "encounterName", "note" }
 local TEXT_SUBZONE = 2
+local TEXT_NOTE = 5       -- the addon's own line about itself. It waits its turn behind the names,
+                          -- and each writing of it is sent once, so the names keep most of the turns.
 local texts = {}
 for field = 1, #TEXT_SOURCES do
 	texts[field] = { text = "", bytes = {}, revision = 0 }
@@ -210,10 +212,13 @@ local function NextText()
 		turn.chunk = chunk + 1
 		moved = true
 	else
+		if field == TEXT_NOTE then
+			texts[TEXT_NOTE].pending = false       -- the note has gone out whole
+		end
 		turn.field, turn.chunk = 0, 0
 		for step = 1, #TEXT_SOURCES do
 			local candidate = (field + step - 1) % #TEXT_SOURCES + 1
-			if #texts[candidate].bytes > 0 then
+			if #texts[candidate].bytes > 0 and (candidate ~= TEXT_NOTE or texts[candidate].pending) then
 				turn.field = candidate
 				break
 			end
@@ -232,10 +237,16 @@ local function SyncTexts()
 			entry.text = text
 			entry.bytes = Beacon.TextBytes(text)
 			entry.revision = (entry.revision + 1) % 4
-			if #entry.bytes > 0 then
+			if #entry.bytes > 0 and field ~= TEXT_NOTE then
 				turn.field, turn.chunk = field, 0
 			end
 		end
+	end
+	-- The note is sent once for each writing of it.
+	local note = texts[TEXT_NOTE]
+	if note.serial ~= state.noteSerial then
+		note.serial = state.noteSerial
+		note.pending = #note.bytes > 0
 	end
 	if turn.field == 0 or #texts[turn.field].bytes == 0 then
 		NextText()

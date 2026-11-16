@@ -145,13 +145,20 @@ Zone, subzone, instance and boss names are too long to send whole in every frame
 turns in the eight text bytes, six bytes of name at a time. The addon moves to the next chunk
 every fifth of a second and goes round all the names it has.
 
-- Which name: 1 zone, 2 subzone, 3 instance, 4 boss encounter. 0 means the text bytes are empty.
+- Which name: 1 zone, 2 subzone, 3 instance, 4 boss encounter, 5 the addon's own note (below).
+  0 means the text bytes are empty. A reader passes over a number it does not know.
 - A name is sent as UTF-8, cut to 48 bytes without splitting a character.
 - The revision goes up by one (wrapping at 4) each time that name changes, so the reader knows to
   throw away chunks of the old one.
 - The subzone mark in every frame is the CRC-16 of the subzone name as sent, with 0 kept for "no
   name" (a name whose CRC is 0 is marked 0xFFFF). It changes in the same frame as the subzone does,
   before the name itself has arrived, and the reader checks the assembled name against it.
+
+The addon's note is a line about itself for whoever looks after FreeRock, such as
+`v0.3.2 up=7 un=7 en=3 fi=2 dead=1`: its version, how many nameplates the game says are up, how
+many nameplate units answered, how many of those are living enemies, how many of them are
+fighting, and how many are dead enemies left out. Numbers only. It is written afresh every six
+seconds at most and waits its turn behind the names. The music does not use it.
 
 ### Test frames
 

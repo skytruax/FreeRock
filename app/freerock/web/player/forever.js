@@ -34,10 +34,22 @@
   const LINE_BARS = 4;       // at most one deck takes a new phrase at each line of this many bars
   // How fast a channel comes up and goes down, in seconds. Channels arrive almost at once, so
   // the music answers what the player does; they leave more slowly so that it does not flicker.
-  const UP = { texture: 1.5, lead: 0.4, rhythm: 0.25, drums: 0.12, bass: 0.06 };
-  const DOWN = { texture: 2.0, lead: 1.2, rhythm: 1.0, drums: 0.9, bass: 1.6 };
-  // The crossfade when a deck changes strength in the middle of a phrase.
+  const UP = { texture: 3.0, lead: 2.0, rhythm: 1.6, drums: 1.2, bass: 1.2 };
+  const DOWN = { texture: 4.0, lead: 3.5, rhythm: 3.5, drums: 3.0, bass: 3.0 };
+  // The crossfade when a deck changes strength in the middle of a phrase, for a bucket of short
+  // phrases without a form.
   const SWAP = { texture: 1.0, lead: 0.25, rhythm: 0.08, drums: 0.03, bass: 0.03 };
+  // With a form, every change is a blend, the way a DJ brings one record in under another:
+  // the phrase that is leaving plays on, fading, while the one that is arriving fades in.
+  // In bars: a deck taking a new phrase where the form comes round; the whole band changing
+  // for a turn that eases off or leans in; the music easing off after a fight; and, shortest,
+  // a fight coming in, which is still a blend but not one that keeps the fight waiting.
+  const BLEND = { texture: 4, lead: 2, rhythm: 2, drums: 2, bass: 2 };
+  const BLEND_TURN = 2;
+  const BLEND_EASING = 2;
+  const BLEND_FIGHT = 0.5;
+  const BLEND_ENTRY = 1;     // a tune coming in after sitting out a verse
+  const CURVE_POINTS = 64;
   // How long a phrase stays before the deck wants another, in passes through it (least, most).
   // Tunes and riffs are what the ear follows, so they move on soonest.
   const STAY = { texture: [2, 3], lead: [1, 2], rhythm: [2, 3], drums: [3, 5], bass: [3, 5] };
@@ -60,15 +72,15 @@
   // last bars, and there is nothing for a while. Then it fades back in with a new verse. A
   // fight brings it straight back.
   const REST_FADE_BARS = 2;  // the music fades away over this many bars before a silence
-  const BACK_IN = 3.0;       // and fades back in over this long after one
+  const BACK_IN = 5.0;       // and fades back in over this long after one
   const LAY_OUT = 0.4;       // how often the tune sits out a phrase before the next tune comes in
   const TEXTURE_OVERLAP = 1; // bars over which one pass of the drone fades into the next
   const REST_IN = 3.5;       // how long the music takes to fade back in after a rest
   const REST_IN_FAST = 0.2;  // ...unless something has just happened, a fight say
   const WIND_DOWN = 1.2;     // how long the music takes to run down, like a record stopping, at a death
-  const LEAVE = 2.0;         // a place's music fades away over this long when another place's takes over
-  const ARRIVE = 2.0;        // and the new place's fades in over this long
-  const BETWEEN = 1.2;       // the new place's music starts this long after the old begins to leave
+  const LEAVE = 6.0;         // one style's music fades away over this long when another's takes over
+  const ARRIVE = 5.0;        // and the new one fades in over this long
+  const BETWEEN = 1.5;       // the new music starts this long after the old begins to leave
   const BUFFERS = 12;        // phrases kept ready to play
   const RAW = 18;            // phrases kept as they came from the server
   const LOG_LENGTH = 500;
@@ -437,6 +449,8 @@
                       // Where decks may take a new phrase: where the form comes round, or at
                       // every four-bar line when the phrases have no form; and how many may.
                       line: bucket.cycle || LINE_BARS, changes: bucket.changes || 1, form: bucket.form,
+                      // A style may ask for longer or shorter blends than the usual.
+                      blend: bucket.arc && bucket.arc.blend > 0 ? bucket.arc.blend : 1,
                       bed: ctx.createGain(), rest: ctx.createGain() };
       for (const node of [group.bed, group.rest]) {
         if (rise) {
@@ -515,7 +529,12 @@
       const source = ctx.createBufferSource();
       source.buffer = buffer;
       const gain = ctx.createGain();
-      if (up > 0) {
+      if (up > 0.1) {
+        // A blend: the level follows a quarter of a sine, so that with the other phrase falling
+        // along the matching curve the two together stay as loud as either alone.
+        gain.gain.setValueAtTime(0, at);
+        gain.gain.setValueCurveAtTime(this._curve(base, true), at, up);
+      } else if (up > 0) {
         gain.gain.setValueAtTime(0, at);
         gain.gain.linearRampToValueAtTime(base, at + up);
       } else {
@@ -526,13 +545,53 @@
       source.connect(gain).connect(deck.level);
       source.start(at, offset);
       source.stop(end + 0.01);
-      const pass = { clip, source, gain, base, start: at, end };
+      const pass = { clip, source, gain, base, start: at, end, up };
       deck.passes.push(pass);
       // The drone's next pass starts while this one is still fading, so that it never dips.
       deck.until = end - overlap;
       this.log.push({ at, channel: deck.channel, clip: clip.id, tier: clip.tier, offset });
       if (this.log.length > LOG_LENGTH) this.log.splice(0, this.log.length - LOG_LENGTH);
       return pass;
+    }
+
+    // A quarter of a sine from nothing up to `top`, or from `top` down to nothing: the two
+    // halves of a blend.
+    _curve(top, rising) {
+      const curve = new Float32Array(CURVE_POINTS);
+      for (let i = 0; i < CURVE_POINTS; i++) {
+        const along = (i / (CURVE_POINTS - 1)) * Math.PI / 2;
+        curve[i] = top * (rising ? Math.sin(along) : Math.cos(along));
+      }
+      return curve;
+    }
+
+    // The phrase a deck is leaving plays on from its own beginning for `fall` seconds, fading
+    // away under the phrase that takes its place: the other half of the blend where the form
+    // comes round.
+    _tail(deck, clip, buffer, at, fall) {
+      const ctx = this.ctx, base = gainOf(clip.gain_db);
+      fall = Math.min(fall, clip.frames / ctx.sampleRate - 0.05);
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(base, at);
+      gain.gain.setValueCurveAtTime(this._curve(base, false), at, fall);
+      source.connect(gain).connect(deck.level);
+      source.start(at, 0);
+      source.stop(at + fall + 0.01);
+      deck.passes.push({ clip, source, gain, base, start: at, end: at + fall, tail: true, fall });
+    }
+
+    // How loud a phrase is at a moment of its own envelope: on its way in, at full, or (the
+    // tail of a blend) on its way out.
+    _levelAt(pass, when) {
+      const quarter = Math.PI / 2;
+      if (pass.tail) return pass.base * Math.cos(Math.min(Math.max((when - pass.start) / pass.fall, 0), 1) * quarter);
+      if (pass.up > 0 && when < pass.start + pass.up) {
+        const along = Math.max(when - pass.start, 0) / pass.up;
+        return pass.base * (pass.up > 0.1 ? Math.sin(along * quarter) : along);
+      }
+      return pass.base;
     }
 
     // Takes a phrase off a deck at `when`, fading it out over `fall`; anything that was to
@@ -547,9 +606,15 @@
         }
         if (pass.end > when) {
           const audible = Math.min(fall, pass.end - when);
-          pass.gain.gain.cancelScheduledValues(when);
-          pass.gain.gain.setValueAtTime(pass.base, when);
-          pass.gain.gain.linearRampToValueAtTime(0, when + audible);
+          const level = pass.gain.gain;
+          // It falls from wherever it is at that moment: it may itself still be on its way in.
+          // The fall is given its starting point outright, or it would be taken to start where
+          // the phrase did and the phrase would drop away at once.
+          const from = this._levelAt(pass, when);
+          if (level.cancelAndHoldAtTime) level.cancelAndHoldAtTime(when);
+          else level.cancelScheduledValues(when);
+          level.setValueAtTime(from, when);
+          level.linearRampToValueAtTime(0, when + audible);
           pass.source.stop(when + audible + 0.01);
           pass.end = when + audible;
         }
@@ -599,6 +664,9 @@
         const bar = Math.round((at - group.origin) / group.bar);
         const tier = this._tierAt(group, deck.channel, at + 0.001);
         let clip = deck.clip && group.bucket.clips.has(deck.clip.id) ? deck.clip : null;
+        // The phrase that has been sounding up to here, if one has: what a change is a blend out of.
+        const leaving = group.form ? deck.passes.find((pass) => !pass.tail && Math.abs(pass.end - at) < 1e-3) : null;
+        const sitting = deck.layOutUntil > 0 && deck.layOutUntil === bar;       // a tune coming in after sitting out
         if (deck.layOutUntil > bar) { deck.until = at + Math.min(LINE_BARS, deck.layOutUntil - bar) * group.bar; continue; }
         // The tune coming back in is a change like any other: it waits for a line nobody else has.
         if (deck.returning && !this._claim(group, bar)) { deck.until = at + LINE_BARS * group.bar; continue; }
@@ -637,7 +705,20 @@
           start = this.ctx.currentTime + NOTICE;
           this.late += 1;
         }
-        this._play(group, deck, clip, buffer, start, 0);
+        let rise = 0;
+        if (group.form && start === at) {
+          if (leaving && leaving.clip.id !== clip.id) {
+            // Another phrase takes over: the two are blended, longer when it is the whole band
+            // changing for a turn of its own than when it is one deck moving on.
+            const bars = leaving.clip.tier !== clip.tier ? BLEND_TURN : BLEND[deck.channel];
+            rise = Math.min(bars * group.blend * group.bar, clip.frames / group.bucket.rate / 4);
+            const old = this.buffers.get(leaving.clip.id);             // it was playing a moment ago
+            if (old) this._tail(deck, leaving.clip, old, at, rise);
+          } else if (sitting) {
+            rise = BLEND_ENTRY * group.blend * group.bar;
+          }
+        }
+        this._play(group, deck, clip, buffer, start, rise);
       }
       deck.passes = deck.passes.filter((pass) => pass.end > this.ctx.currentTime - 0.5);
     }
@@ -666,6 +747,7 @@
         // (Of two that overlap, one fading out under the other, it is the one that came in last.)
         let sounding = null;
         for (const pass of deck.passes) {
+          if (pass.tail) continue;                                     // a phrase on its way out does not count
           if (pass.start <= soon + 1e-6 && pass.end > soon && (!sounding || pass.start > sounding.start)) sounding = pass;
         }
         const sittingOut = !sounding && deck.layOutUntil > bar;          // a new tune waiting for the build-up
@@ -680,9 +762,11 @@
         if (!next) continue;
         const buffer = await this._buffer(next);
         if (!this.started || this.group !== group) return;
-        const when = Math.max(this._lineAfter(group, this.ctx.currentTime + NOTICE, tier > now.tier || sittingOut ? 0.125 : 1),
-                              group.origin);
-        const fade = SWAP[deck.channel];
+        const harder = tier > now.tier || sittingOut;
+        const when = Math.max(this._lineAfter(group, this.ctx.currentTime + NOTICE, harder ? 0.125 : 1), group.origin);
+        // With a form a change of strength is a blend: half a bar when a fight comes in, two
+        // bars when the music eases off again.
+        const fade = group.form ? (harder ? BLEND_FIGHT : BLEND_EASING) * group.blend * group.bar : SWAP[deck.channel];
         this._cut(deck, when, fade);
         this._take(group, deck, next, Math.round((when - group.origin) / group.bar));
         deck.layOutUntil = 0;
@@ -716,7 +800,7 @@
           node.gain.setValueAtTime(Math.max(node.gain.value, 0.001), from);
         } else {
           if (from <= start && turn === 0) node.gain.setValueAtTime(low, start);
-          else node.gain.setTargetAtTime(low, Math.max(from, start), from > start ? 0.04 : 0.12);
+          else node.gain.setTargetAtTime(low, Math.max(from, start), from > start ? 0.15 : 0.6);
           node.gain.setValueAtTime(low, build);
         }
         node.gain.exponentialRampToValueAtTime(top, chorus);
@@ -884,7 +968,11 @@
     _ramp(param, value, seconds, exponential) {
       const now = this.ctx.currentTime;
       if (param.cancelAndHoldAtTime) param.cancelAndHoldAtTime(now);
-      else { param.cancelScheduledValues(now); param.setValueAtTime(param.value, now); }
+      else param.cancelScheduledValues(now);
+      // The ramp has to be given where it starts from. Without this a level that has never been
+      // moved before is taken to have been moving since the page was opened, and jumps nearly
+      // all the way at once: a channel that should fade in over a second cuts in.
+      param.setValueAtTime(param.value, now);
       if (exponential) param.exponentialRampToValueAtTime(Math.max(value, 1), now + seconds);
       else param.linearRampToValueAtTime(value, now + seconds);
     }
@@ -981,9 +1069,10 @@
           if (!next || next.id === deck.clip.id) continue;
           const buffer = await this._buffer(next);
           if (this.group !== group) return;
-          this._cut(deck, when, SWAP[deck.channel]);
+          const fade = group.form ? group.blend * group.bar : SWAP[deck.channel];
+          this._cut(deck, when, fade);
           this._take(group, deck, next, Math.round((when - group.origin) / group.bar));
-          this._play(group, deck, next, buffer, when, SWAP[deck.channel]);
+          this._play(group, deck, next, buffer, when, fade);
         }
       });
     }

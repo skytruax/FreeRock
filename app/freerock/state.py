@@ -31,6 +31,7 @@ _TEXT_FIELDS = {
     beacon.TEXT_SUBZONE: "subzone_name",
     beacon.TEXT_INSTANCE: "instance_name",
     beacon.TEXT_ENCOUNTER: "encounter_name",
+    beacon.TEXT_NOTE: "addon_note",
 }
 
 
@@ -82,6 +83,9 @@ class GameState:
     # "14 or more"). None: not known, or an addon that does not say.
     enemies: int | None = None
     fighting: int | None = None
+    # The addon's own line about itself: its version and what its last count of nameplates came
+    # across. For whoever looks after FreeRock; the music does not use it.
+    addon_note: str | None = None
     in_group: bool = False
     pvp_kind: str = "unknown"
     weather: str | None = None            # None: the game does not report weather
@@ -204,6 +208,7 @@ def _state_from(frame: beacon.Frame, names: dict[str, str | None]) -> GameState:
         target_hostile=has(beacon.FLAG_TARGET_HOSTILE) if says_more else None,
         enemies=frame.enemies if frame.version >= 3 and frame.enemies != beacon.UNKNOWN_COUNT else None,
         fighting=frame.fighting if frame.version >= 3 and frame.fighting != beacon.UNKNOWN_COUNT else None,
+        addon_note=names["addon_note"],
         in_group=has(beacon.FLAG_IN_GROUP),
         pvp_kind=PVP_KINDS.get(frame.pvp_kind, OTHER),
         weather=WEATHER_KINDS.get(frame.weather_kind, OTHER) if weather_known else None,

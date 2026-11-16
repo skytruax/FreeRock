@@ -200,11 +200,17 @@ WARCRAFT = {
     },
 }
 
-TRANCE = {
-    "label": "Trance",
-    "about": "uplifting trance, built for bringing parts in and out",
+HOUSE = {
+    "label": "Progressive House",
+    "about": "uplifting progressive house, happy and chill",
+    # This style has a tempo, a mode and a mood of its own: a zone gives it its key note and
+    # nothing else, so that it is happy and laid back wherever the player is.
+    "tempo": 110,
+    "mode": "major",
+    "mood": ["happy and carefree", "warm and laid-back"],
     "base": [
-        "uplifting trance",
+        "uplifting progressive house",
+        "happy, warm and laid-back",
         "four-on-the-floor kick drum with off-beat open hi-hats and claps",
         "rolling sixteenth-note bassline locked to the kick",
         "bright supersaw chords, plucked arpeggios and wide lush pads",
@@ -224,7 +230,7 @@ TRANCE = {
         ["call and answer between a pluck and a soft lead"],
         ["a hypnotic acid line weaving round the bass", "shuffling hi-hats in straight time"],
         ["a piano-like chord figure with the kick underneath", "a rising pad"],
-        ["bright trance-gate chords", "a simple hook on a square lead"],
+        ["bright gated chords", "a simple hook on a soft lead"],
         ["deep and rolling: mostly bass and drums, a pad breathing behind"],
         ["an arpeggio that climbs a step every two bars", "open hi-hats lifting it"],
         ["a slow build: one part joins every two bars"],
@@ -234,7 +240,7 @@ TRANCE = {
         ["full-on peak: a supersaw anthem lead", "snare rolls into every eighth bar"],
         ["a hard stabbing lead riff", "the bassline at its busiest"],
         ["a racing arpeggio at full brightness", "crash cymbals on the downbeats"],
-        ["a pounding tech-trance groove: distorted bass stabs and a siren-like lead"],
+        ["a driving house groove: punchy bass stabs and a bright lead"],
         ["an anthem in octaves over galloping bass"],
         ["a dark driving riff that opens into bright chords"],
     ),
@@ -266,7 +272,7 @@ TRANCE = {
     "theme": (["this place's own hook, stated plainly on a plucked lead", "full groove from the first beat"],
               ["the same hook answered by a brighter lead", "a lift in the last four bars"]),
     "soft avoid": ["distorted lead"],
-    "colours": "none",         # a zone gives trance its key and its mood, not its instruments
+    "colours": "none",         # a zone gives this style its key note, not its instruments
     "song": {
         "Intro": ["intro: kick drum and a filtered arpeggio", "the filter slowly opens"],
         "Verse": ["the groove settles in"],
@@ -281,7 +287,7 @@ TRANCE = {
     },
 }
 
-GENRES = {"knight": KNIGHT, "warcraft": WARCRAFT, "trance": TRANCE}
+GENRES = {"knight": KNIGHT, "warcraft": WARCRAFT, "house": HOUSE}
 # What kind of song the next one is. Each song a place gets takes the next of these, so that
 # one song after another is not the same song again.
 CHARACTERS = (
@@ -410,8 +416,8 @@ def genre_of(key: str | None) -> dict[str, Any]:
 
 def for_genre(profile: ZoneProfile, genre: str = DEFAULT_GENRE) -> ZoneProfile:
     """A zone's profile as one style uses it. Knight Rock takes it whole. The orchestra keeps the
-    zone's tempo, key and mood and those of its instruments that are not a rock band's. Trance
-    keeps the key note and the mood, in a minor key at a dance tempo."""
+    zone's tempo, key and mood and those of its instruments that are not a rock band's. The house
+    style keeps only the zone's key note: its tempo, its mode and its mood are its own."""
     recipe = genre_of(genre)
     if recipe["colours"] == "all":
         return profile
@@ -419,8 +425,9 @@ def for_genre(profile: ZoneProfile, genre: str = DEFAULT_GENRE) -> ZoneProfile:
         colours = [colour for colour in profile.colours if not any(word in colour for word in _BAND_WORDS)]
         return ZoneProfile(key=profile.key, bpm=profile.bpm, tonic=profile.tonic, colours=colours,
                            mood=list(profile.mood))
-    return ZoneProfile(key=profile.key, bpm=150 if profile.bpm >= 150 else 128,
-                       tonic=profile.tonic.split()[0] + " minor", colours=[], mood=list(profile.mood))
+    return ZoneProfile(key=profile.key, bpm=recipe["tempo"],
+                       tonic="%s %s" % (profile.tonic.split()[0], recipe["mode"]), colours=[],
+                       mood=list(recipe["mood"]))
 
 
 def vocabulary(profile: ZoneProfile, rock: float = 0.5, turn: int = 0,
@@ -532,7 +539,7 @@ def build(profile: ZoneProfile, names: tuple[str, ...] | list[str], seed: int | 
     if part_bars % 4:
         raise ValueError("Parts are cut into four-bar cells, so part_bars must be a multiple of 4")
     recipe = genre_of(genre)
-    profile = for_genre(profile, genre)       # trance moves a zone to a dance tempo and a minor key
+    profile = for_genre(profile, genre)       # the house style moves a zone to its own tempo and mode
     words = vocabulary(profile, rock, turn, genre)
     tempo = ["%d BPM" % profile.bpm, profile.tonic, recipe["beat"]]
     chunks, parts, clock = [], [], 0

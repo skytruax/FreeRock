@@ -20,6 +20,7 @@ from .ingest import Ingest, TrackFailedChecks
 from .ledger import day_start, month_start
 from .library import Library
 from .settings import MissingKey, Settings
+from .stemstore import StemStore
 
 
 def _settings() -> Settings:
@@ -202,4 +203,19 @@ add_command("adopt", "look again at a track that failed its checks and keep it i
 add_command("settings", "show the allowances and the amount of rock, or change one",
             _settings_arguments, _show_settings)
 add_command("library", "list the music FreeRock has", lambda parser: None, _library)
+# -- stems -----------------------------------------------------------------------------------------
+def _stems_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--to", help="the folder to write them to (default: var/stems)")
+
+
+def _stems(arguments: argparse.Namespace) -> int:
+    """Every phrase in every bucket as a FLAC file, with a table of what each is."""
+    settings = _settings()
+    store = StemStore(arguments.to or settings.var_dir / "stems")
+    written, total = store.sync(settings.var_dir / "buckets")
+    print("%d phrases in %s (%d written now), with stems.csv saying what each is." % (total, store.root, written))
+    return 0
+
+
+add_command("stems", "keep every phrase as an audio file, with a table of what each is", _stems_arguments, _stems)
 add_command("ledger", "what has been spent this month and what is left", lambda parser: None, _ledger)

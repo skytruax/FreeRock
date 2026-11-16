@@ -79,7 +79,8 @@ class Settings:
     rock: float = 0.5
 
     # The kind of music: "knight" (riff rock with lute and hurdy-gurdy), "warcraft" (an orchestral
-    # fantasy score in the old style) or "trance". New music is made in it, and what the library
+    # fantasy score in the old style) or "house" (uplifting progressive house, happy and chill).
+    # New music is made in it, and what the library
     # already has in it is what is played. See composer.GENRES.
     genre: str = "knight"
 
@@ -111,7 +112,7 @@ class Settings:
     # The settings that may be changed in var/settings.json or with `freerock settings`.
     CHANGEABLE = ("monthly_minutes", "daily_minutes", "hours_per_month", "rock",
                   "rest_every_minutes", "rest_seconds", "genre", "mode")
-    GENRES = ("knight", "warcraft", "trance")
+    GENRES = ("knight", "warcraft", "house")
     MODES = ("forever", "songs")
     WORDS = ("genre", "mode")       # the settings that are a word, not a number
 

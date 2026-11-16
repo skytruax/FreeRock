@@ -79,6 +79,7 @@ TEXT_ZONE = 1
 TEXT_SUBZONE = 2
 TEXT_INSTANCE = 3
 TEXT_ENCOUNTER = 4
+TEXT_NOTE = 5                   # the addon's own line about itself: its version and what it counted
 TEXT_CHUNK_BYTES = 6
 TEXT_MAX_BYTES = 48  # eight chunks
 

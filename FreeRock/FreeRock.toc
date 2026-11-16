@@ -1,7 +1,7 @@
 ## Interface: 16001
 ## Title: FreeRock
 ## Notes: Tells the FreeRock music app what is happening in the game, and turns the game's own music off while FreeRock plays.
-## Version: 0.1.0
+## Version: 0.3.2
 ## Author: Sky Truax
 ## SavedVariables: FreeRockDB
 

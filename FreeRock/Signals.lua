@@ -32,6 +32,8 @@ local state = {
 	hasTarget = false, targetClass = 0, targetHostile = false, bossPresent = false, inGroup = false,
 	enemies = nil,        -- enemies with a nameplate on screen, 14 standing for "14 or more"; nil when not known
 	fighting = nil,       -- how many of those are in a fight
+	note = "",            -- a line for whoever looks after FreeRock: which addon this is, and what it counted
+	noteSerial = 0,       -- goes up each time the note is written
 	pvpKind = 0,
 	weatherKnown = false, weatherKind = 15, weatherIntensity = nil,
 	weatherRaw = "not read yet", -- exactly what the game answered, for /rock status
@@ -209,8 +211,11 @@ for index = 1, PLATES do
 	plateUnits[index] = "nameplate" .. index
 end
 
+local counted = { units = 0, dead = 0 }   -- what the last count came across, for the note
+
 local function ReadEnemies()
 	local enemies, fighting = 0, 0
+	local units, deadOnes = 0, 0
 	for index = 1, PLATES do
 		local unit = plateUnits[index]
 		local exists = UnitExists(unit)
@@ -219,12 +224,16 @@ local function ReadEnemies()
 			break
 		end
 		if exists then
+			units = units + 1
 			local attackable, dead, busy = UnitCanAttack("player", unit), UnitIsDead(unit), UnitAffectingCombat(unit)
 			if ns.IsSealed(attackable) or ns.IsSealed(dead) or ns.IsSealed(busy) then
 				enemies = nil
 				break
 			end
-			if attackable and not dead then
+			-- Only the living count. A corpse may keep its nameplate for a moment.
+			if attackable and dead then
+				deadOnes = deadOnes + 1
+			elseif attackable then
 				enemies = enemies + 1
 				if busy then
 					fighting = fighting + 1
@@ -232,6 +241,7 @@ local function ReadEnemies()
 			end
 		end
 	end
+	counted.units, counted.dead = units, deadOnes
 	if enemies == nil then
 		Put("enemies", nil)
 		Put("fighting", nil)
@@ -252,6 +262,24 @@ local function PlatesUp()
 		return nil
 	end
 	return #list
+end
+
+-- A line for whoever looks after FreeRock, sent to the app with the names: which addon this is
+-- and what the last count of nameplates came across. Numbers only: how many nameplates the
+-- game says are up, how many nameplate units answered, how many of them are living enemies,
+-- how many of those are fighting, and how many are dead enemies left out. It is how a count
+-- that reads nothing can be told from one that has nothing to read, without anyone having to
+-- type /rock status and read it back.
+local function ReadNote()
+	local up = PlatesUp()
+	local function Say(value)
+		return value == nil and "?" or tostring(value)
+	end
+	state.note = ("v%s up=%s un=%d en=%s fi=%s dead=%d"):format(tostring(ns.version), Say(up), counted.units,
+		Say(state.enemies), Say(state.fighting), counted.dead)
+	-- Each writing is sent once, changed or not, so that an app that has just started hears it.
+	state.noteSerial = state.noteSerial + 1
+	changed = true
 end
 
 -- Boss encounters are announced by events, which carry the encounter's number and name. This
@@ -481,6 +509,8 @@ function Signals:Start()
 	Flush()
 end
 
+local polls = 0
+
 -- Called five times a second by the strip's timer while FreeRock is on. Several of these have no
 -- event at all (position, indoors, swimming, under water, flying); the rest are read again so
 -- that a missed event cannot leave the strip wrong for long. Every tenth call also reads the
@@ -496,6 +526,12 @@ function Signals:Poll(everything)
 		ReadEnemies()
 		ReadEncounter()
 		ReadClock()
+	end
+	-- The note is written every six seconds, the first time six seconds in: the names go out
+	-- first, and each writing has time to be sent whole before the next.
+	polls = polls + 1
+	if polls % 30 == 0 then
+		ReadNote()
 	end
 	Flush()
 end

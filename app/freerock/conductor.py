@@ -21,7 +21,7 @@ from typing import Any
 
 from aiohttp import WSMsgType, web
 
-from . import atlas, composer, forever
+from . import atlas, composer, forever, stemstore
 from . import state as game
 from .director import Director, Target
 from .eleven import AllowanceExceeded, ElevenError
@@ -123,6 +123,8 @@ class Conductor:
         self._pool_rested: dict[tuple[str, tuple[str, int]], float] = {}      # pools left alone, until when
         self._last_ask = -1e9
         self.phrases_made = 0
+        # Every phrase is also kept as an audio file anyone can open, with a table of what it is.
+        self.stems = stemstore.StemStore(self.settings.var_dir / "stems")
         self._arrivals: list[tuple[str, int]] = []   # pools to add to at once: the player is somewhere new
         self._greeted: dict[str, float] = {}         # when each place was last greeted with new phrases
         # The forever song has its own moments of silence, which begin where its form comes
@@ -460,6 +462,14 @@ class Conductor:
                 self.notes.append("ElevenLabs would not make a phrase of %s: %s" % (what, error))
             return
         self.phrases_made += 1
+        try:
+            await asyncio.to_thread(self.stems.add, bucket, clip)
+        except OSError as error:
+            # The phrase is in the bucket and plays; only its copy for study could not be
+            # written (a full disk, say). Said once on the control page each time, and logged.
+            note = "The copy of a phrase for the stems folder could not be written: %s" % error
+            log.error(note)
+            self.notes.append(note)
         gone = bucket.make_room(channel, tier)
         await self._broadcast({"type": "phrase", "key": bucket.key, "clip": bucket.brief(clip)})
         if gone:

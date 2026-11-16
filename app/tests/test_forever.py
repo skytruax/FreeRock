@@ -65,8 +65,10 @@ def test_every_phrase_can_be_asked_for_in_every_style():
                     chunks = asked.plan["chunks"]
                     assert [chunk["text"] for chunk in chunks] == ["[Verse]", "[Build-up]", "[Chorus]"]
                     assert asked.sections == forever.form(profile.bpm) and asked.bars == sum(asked.sections)
+                    # Each part is its bars long to the nearest millisecond, and the whole exactly.
+                    assert sum(chunk["duration_ms"] for chunk in chunks) == round(240000 * asked.bars / profile.bpm)
                     for chunk, bars in zip(chunks, asked.sections):
-                        assert chunk["duration_ms"] == composer.bars_ms(profile.bpm, bars)
+                        assert abs(chunk["duration_ms"] - 240000 * bars / profile.bpm) < 1
                         assert "%d BPM" % profile.bpm in chunk["positive_styles"]
                         assert profile.tonic in chunk["positive_styles"]
                         assert "{" not in " ".join(chunk["positive_styles"]), "a word was left unfilled"
@@ -75,7 +77,7 @@ def test_every_phrase_can_be_asked_for_in_every_style():
                         # The way of playing is the same all through; what differs is the part's own words.
                         assert set(asked.words) <= set(chunk["positive_styles"])
                     assert len({tuple(chunk["positive_styles"]) for chunk in chunks}) == 3
-                    assert 0.6 <= asked.minutes <= 1.1
+                    assert 0.55 <= asked.minutes <= 1.1
 
 
 def test_a_drone_is_not_asked_to_keep_a_beat_and_a_tune_carries_the_moment():
@@ -98,8 +100,43 @@ def test_a_phrase_is_one_turn_of_the_form_whatever_the_channel():
         assert {forever.bars_of(channel, bpm) for channel in forever.CHANNELS} == {forever.cycle_bars(bpm)}
 
 
+def test_the_house_style_is_happy_and_laid_back_wherever_the_player_is():
+    for place in ("Duskwood", "Tanaris", "Stormwind City"):
+        profile = composer.for_genre(atlas.profile_for(place), "house")
+        zone = atlas.profile_for(place)
+        assert profile.bpm == 110 and profile.tonic == zone.tonic.split()[0] + " major"
+        assert profile.mood == ["happy and carefree", "warm and laid-back"], "a gloomy zone does not make it gloomy"
+        asked = forever.ask(profile, "house", "lead", 1, 0, seed=1)
+        said = " ".join(" ".join(chunk["positive_styles"]) for chunk in asked.plan["chunks"])
+        assert "110 BPM" in said and "major" in said and "happy" in said
+        for harsh in ("distort", "acid", "siren", "minor"):
+            assert harsh not in said
+
+
+def test_a_tempo_whose_bars_are_not_whole_samples_or_milliseconds_is_kept_to_the_nearest(tmp_path):
+    """At 110 beats a minute a bar is 104,727.27 samples and 2,181.82 milliseconds."""
+    profile = composer.for_genre(atlas.profile_for("Duskwood"), "house")
+    asked = forever.ask(profile, "house", "drums", 1, 0, seed=1)
+    lengths = [chunk["duration_ms"] for chunk in asked.plan["chunks"]]
+    assert lengths == [8727, 8728, 17454] and sum(lengths) == round(240000 * 16 / 110)
+    bucket = forever.Bucket(tmp_path / "buckets", "duskwood", "house", 110, "D major")
+    assert bucket.cycle == 16 and bucket.frames_of(16) == 1675636
+    # What ElevenLabs sends is a whole number of milliseconds long: four samples short of the
+    # sixteen bars. It is brought to the nearest sample and taken into the bucket.
+    came = phrase(110, 16)[:sum(lengths) * 48]
+    fitted = forever.fit(came, RATE, 110, 16)
+    assert len(fitted) == 1675636
+    clip = bucket.add(fitted, channel="drums", tier=1, measured={"lufs": -20.0})
+    assert clip.bars == 16 and bucket.live() == [clip]
+    described = bucket.describe()
+    assert described["bar_frames"] == pytest.approx(104727.2727, abs=1e-3) and described["clips"][0]["frames"] == 1675636
+    assert forever.measure(fitted, RATE, 110, "drums", (4, 4, 8))["problems"] == []
+    with pytest.raises(ValueError):
+        bucket.add(fitted[:-9], channel="drums", tier=1)
+
+
 def test_a_style_has_its_own_words_for_the_parts_of_the_form():
-    assert "snare roll" in " ".join(forever.section_words("trance", "drums", "build"))
+    assert "snare roll" in " ".join(forever.section_words("house", "drums", "build"))
     assert "crescendo" in " ".join(forever.section_words("warcraft", "drums", "build"))
     assert forever.section_words("knight", "lead", "chorus") == forever.SECTION_WORDS["lead"]["chorus"]
     # Where a style says nothing of its own, the common words stand.
@@ -301,7 +338,7 @@ def test_a_style_has_one_bucket_wherever_the_player_goes(tmp_path):
     home = buckets.home("knight", "Duskwood")
     assert (home.key, home.bpm, home.tonic) == ("knight/duskwood", 80, "D minor")
     assert buckets.home("knight", "Westfall") is home and buckets.home("knight", None) is home
-    assert buckets.home("trance", "Westfall").key == "trance/westfall"
+    assert buckets.home("house", "Westfall").key == "house/westfall"
     # Of the buckets a style already has on disk, the one with the most to play is its bucket.
     fill(buckets.get("Elwynn Forest", "warcraft"), forever.FIRST[:2])
     fill(buckets.get("Duskwood", "warcraft"), forever.FIRST[:5])
@@ -312,10 +349,10 @@ def test_a_style_has_one_bucket_wherever_the_player_goes(tmp_path):
 def test_buckets_are_kept_by_place_and_style(tmp_path):
     buckets = forever.Buckets(tmp_path / "buckets")
     knight = buckets.get("Duskwood", "knight")
-    trance = buckets.get("Duskwood", "trance")
+    house = buckets.get("Duskwood", "house")
     assert knight is buckets.get("Duskwood", "knight")
     assert (knight.key, knight.bpm, knight.tonic) == ("knight/duskwood", 80, "D minor")
-    assert (trance.key, trance.bpm, trance.tonic) == ("trance/duskwood", 128, "D minor")
+    assert (house.key, house.bpm, house.tonic) == ("house/duskwood", 110, "D major")
     fill(knight, [("texture", 0)])
     assert forever.Buckets(tmp_path / "buckets").by_key("knight/duskwood").clips[0].channel == "texture"
     with pytest.raises(KeyError):
@@ -727,14 +764,15 @@ async def test_a_new_style_takes_over_as_soon_as_it_has_anything(tmp_path):
     client, app, conductor, filler = await running(tmp_path, with_filler=False)
     try:
         fill(conductor.buckets.get("Elwynn Forest", "knight"), forever.FIRST[:5])
-        fill(conductor.buckets.get("Elwynn Forest", "trance"), [("texture", 0)])
+        fill(conductor.buckets.get("Elwynn Forest", "house"), [("texture", 0)])
         socket = await client.ws_connect("/ws/player")
         publish(app)
         assert (await next_of(socket, "bucket"))["bucket"]["genre"] == "knight"
-        response = await client.post("/api/style", json={"genre": "trance"})
+        response = await client.post("/api/style", json={"genre": "house"})
         assert response.status == 200
         described = (await next_of(socket, "bucket"))["bucket"]
-        assert (described["genre"], described["bpm"]) == ("trance", 128)
+        assert (described["genre"], described["bpm"], described["style"]) == ("house", 110, "Progressive House")
+        assert described["bar_frames"] == pytest.approx(48000 * 240 / 110)
     finally:
         await client.close()
 
