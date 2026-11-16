@@ -55,6 +55,9 @@ end
 local function plugin(tr, spec)
   local fx = reaper.TrackFX_AddByName(tr, spec.name, false, -1)
   if fx < 0 then error("no plug-in called " .. spec.name) end
+  if spec.preset then
+    if not reaper.TrackFX_SetPreset(tr, fx, spec.preset) then error(spec.name .. " has no preset called " .. spec.preset) end
+  end
   if spec.chunk then
     local key = spec.kind == "clap" and "clap_chunk" or "vst_chunk"
     if not reaper.TrackFX_SetNamedConfigParm(tr, fx, key, spec.chunk) then error("could not set the state of " .. spec.name) end

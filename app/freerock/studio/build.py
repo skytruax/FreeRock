@@ -24,7 +24,7 @@ from pathlib import Path
 import numpy as np
 
 from .. import analysis, forever
-from . import RATE, desk, hall, reaper, sounds, stage_root, write_track
+from . import RATE, desk, reaper, sounds, stage_root, write_track
 from .orchestra import CHANNELS, CHARACTERS, INSTRUMENTS, Family, Take, family
 from .score import humanise
 
@@ -82,11 +82,6 @@ def project_of(fam: Family, take: int) -> Path:
     return PROJECTS / fam.character.style / fam.name / str(take) / "track.rpp"
 
 
-def hall_of(seconds: float) -> str:
-    """The template of the hall that rings about `seconds`."""
-    return "hall %.1f" % min(hall.SIZES, key=lambda size: abs(size - seconds))
-
-
 def stage(fam: Family, take: int) -> dict:
     """Writes one take of a family, has REAPER play it, balances the channels and stages the
     track. Returns what it measured. The REAPER project is kept (see `project_of`)."""
@@ -113,12 +108,12 @@ def stage(fam: Family, take: int) -> dict:
             taste = INSTRUMENTS[voice.instrument].level if voice.instrument in INSTRUMENTS else 1.0
             under += sounds.lines(voice, name, fam.bpm, taste=taste, room=room)
         if under:
-            folders.append((desk.Line(channel, desk.template("bus")), under))
+            folders.append((desk.Line(channel, desk.bare(channel, []), effects=sounds.bus(channel)), under))
     rpp = project_of(fam, take)
     work = rpp.parent
     work.mkdir(parents=True, exist_ok=True)
     rpp.write_text(desk.project(folders, bpm=fam.bpm, seconds=whole / RATE, out=work, tail=forever.POST_S,
-                                hall=desk.template(hall_of(character.hall[0]))), encoding="utf-8")
+                                hall=sounds.hall(character.hall[0])), encoding="utf-8")
     with reaper.Display() as display:
         desk.render(rpp, display=display, timeout=240.0 + 2.0 * whole / RATE)
     parts = desk.stems(work, [bus.name for bus, _ in folders], frames)
@@ -175,8 +170,8 @@ def stage(fam: Family, take: int) -> dict:
         "bar_frames": bar_frames, "tonic": fam.key.name, "moods": list(character.kinds), "role": character.role,
         "serves": list(character.serves), "light": character.light, "sections": sections, "floor": FLOOR,
         "follow": {"rhythm": ["lead"], "texture": ["lead"]}, "post_s": forever.POST_S,
-        "credit": "Written by FreeRock's studio (%s, %s); played in REAPER on the VSCO 2 Community Edition and VCSL "
-                  "sample sets (Versilian Studios, CC0) and the Surge XT synth" % (character.name, fam.metre),
+        "credit": "Written by FreeRock's studio (%s, %s); played in REAPER by the sfizz sampler on the VSCO 2 Community "
+                  "Edition and VCSL recordings (Versilian Studios, CC0) and by the Surge XT synth" % (character.name, fam.metre),
         "seed": fam.seed, "measured": {"sections": loudness, "channels": levels, "gains": gains},
     }
     write_track(folder_of(fam, take), meta, parts)

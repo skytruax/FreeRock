@@ -15,6 +15,7 @@ listened to, changed and rendered again by hand.
 from __future__ import annotations
 
 import base64
+import json
 import re
 import uuid
 from dataclasses import dataclass, field
@@ -142,6 +143,153 @@ def template(name: str, folder: Path = TEMPLATES) -> str:
     return path.read_text(encoding="utf-8")
 
 
+# ---------------------------------------------------------------------------------------------
+# The plug-ins there are, and writing one into a project
+# ---------------------------------------------------------------------------------------------
+CATALOGUE = VAR / "reaper" / "catalogue.json"
+_catalogue: dict[str, dict] | None = None
+
+
+def plugins(*, display: str) -> list[tuple[str, str]]:
+    """Every plug-in REAPER has found: (its name as REAPER shows it, how REAPER identifies it)."""
+    out = VAR / "reaper" / "plugins.tsv"
+    done = Path(str(out) + ".done")
+    reaper.run([str(LUA / "list_plugins.lua")], display=display, work=out.parent, timeout=400.0, env={"FREEROCK_OUT": str(out)}, done=done)
+    return [tuple(line.split("\t", 1)) for line in out.read_text(encoding="utf-8", errors="replace").splitlines() if "\t" in line]
+
+
+def _read_chunk(text: str) -> dict | None:
+    """What a track's state says about the one LV2 plug-in on it: name, URI, its settings in
+    order with their starting values, and the lines of its saved state."""
+    rows = text.split("\n")
+    for at, row in enumerate(rows):
+        if row.startswith("<LV2 "):
+            found = re.match(r'<LV2 "(.*)" (\S+) ""', row)
+            if not found:
+                return None
+            ports: list[list] = []
+            state: list[str] = []
+            other: list[str] = []           # whatever else REAPER wrote: where its notes come in, its outputs
+            depth, inside = 1, False
+            for each in rows[at + 1:]:
+                if each.startswith("<STATE") and depth == 1:
+                    inside, depth = True, depth + 1
+                    continue
+                if each.startswith("<"):
+                    depth += 1
+                elif each == ">":
+                    depth -= 1
+                    if depth == 0:
+                        break
+                    if inside and depth == 1:
+                        inside = False
+                        continue
+                if inside:
+                    state.append(each)
+                elif each.startswith("P ") and depth == 1:
+                    words = each.split()[1:]
+                    ports += [[words[index], float(words[index + 1])] for index in range(0, len(words) - 1, 2)]
+                else:
+                    other.append(each)
+            return {"name": found.group(1), "uri": found.group(2), "ports": ports, "state": state, "other": other}
+    return None
+
+
+def catalogue(names: list[str], *, display: str, batch: int = 40) -> dict[str, dict]:
+    """Loads each named plug-in once in REAPER and keeps what was learned (catalogue.json):
+    for every LV2 plug-in its settings by name with their starting values. A plug-in that
+    brings REAPER down or makes it wait is noted as unusable and the rest go on."""
+    work = VAR / "reaper" / "catalogue"
+    work.mkdir(parents=True, exist_ok=True)
+    known = json.loads(CATALOGUE.read_text(encoding="utf-8")) if CATALOGUE.is_file() else {}
+    todo = [name for name in names if name not in known]
+    at = 0
+    while at < len(todo):
+        some = todo[at:at + batch]
+        for old in list(work.glob("*.chunk")) + [work / "describe.log", work / "describe.done"]:
+            old.unlink(missing_ok=True)
+        job = work / "describe.job.lua"
+        job.write_text("return " + lua({"out": str(work), "first": 1, "names": some}) + "\n", encoding="utf-8")
+        problem = None
+        try:
+            reaper.run([str(LUA / "describe_plugins.lua")], display=display, work=work, timeout=30.0 + 2.0 * len(some),
+                       env={"FREEROCK_JOB": str(job)}, done=work / "describe.done")
+        except RuntimeError as error:
+            problem = error
+        log = (work / "describe.log").read_text(encoding="utf-8", errors="replace").splitlines() if (work / "describe.log").is_file() else []
+        finished = {int(line.split("\t")[1]) for line in log if line.startswith(("done\t", "missing\t"))}
+        for number, name in enumerate(some, start=1):
+            chunk = work / ("%d.chunk" % number)
+            if chunk.is_file():
+                read = _read_chunk(chunk.read_text(encoding="utf-8", errors="replace"))
+                known[name] = read if read else {"name": name, "unusable": "REAPER does not write it as an LV2 plug-in"}
+            elif number in finished:
+                known[name] = {"name": name, "unusable": "REAPER could not load it"}
+        if problem is not None or not (work / "describe.done").is_file():
+            # The one that was being loaded when REAPER stopped is the culprit; go on after it.
+            started = [int(line.split("\t")[1]) for line in log if line.startswith("loading\t")]
+            culprit = max(started) if started else 1
+            if culprit not in finished:
+                known[some[culprit - 1]] = {"name": some[culprit - 1], "unusable": "REAPER stopped or waited while loading it"}
+            at += culprit
+        else:
+            at += len(some)
+        CATALOGUE.write_text(json.dumps(known, indent=1), encoding="utf-8")
+    global _catalogue
+    _catalogue = known
+    return known
+
+
+def lv2(name: str, **settings: float) -> str:
+    """An LV2 plug-in as it is written in a project: found in the catalogue by a part of its
+    name (which must fit exactly one plug-in), with its settings as they start out except the
+    ones given here by their names (the port symbols the catalogue lists)."""
+    global _catalogue
+    if _catalogue is None:
+        if not CATALOGUE.is_file():
+            raise FileNotFoundError("The plug-ins have not been looked over yet (%s)" % CATALOGUE)
+        _catalogue = json.loads(CATALOGUE.read_text(encoding="utf-8"))
+    fits = [each for key, each in _catalogue.items() if name.lower() in key.lower() and "uri" in each]
+    exact = [each for each in fits if each["name"].split(" (")[0].split(": ", 1)[-1].lower() == name.lower()]
+    if len(exact) == 1:
+        fits = exact
+    if len(fits) != 1:
+        raise KeyError("%d usable plug-ins are called something like %r: %s" % (len(fits), name, [each["name"] for each in fits][:8]))
+    found = fits[0]
+    have = dict((symbol, value) for symbol, value in found["ports"])
+    for symbol in settings:
+        if symbol not in have:
+            raise KeyError("%s has no setting %r; it has %s" % (found["name"], symbol, ", ".join(have)))
+    have.update(settings)
+    rows = ['<LV2 "%s" %s ""' % (found["name"], found["uri"])] + list(found.get("other") or ['CFG 0 0 0 ""'])
+    pairs = ["%s %.9g" % (symbol, have[symbol]) for symbol, _ in found["ports"]]
+    for start in range(0, len(pairs), 8):
+        rows.append("P " + " ".join(pairs[start:start + 8]))
+    if found["state"]:
+        rows += ["<STATE"] + found["state"] + [">"]
+    rows += [">", "WAK 0 0"]
+    return "\n".join(rows)
+
+
+def sfizz(instrument: Path) -> str:
+    """The sfizz sampler playing an SFZ instrument file, as it is written in a project. Its
+    settings are left exactly as it starts with them: asked for more than its usual 64 voices,
+    it stops REAPER's render dead (found 2026-11-16, sfizz 1.2.3 in REAPER 7.86)."""
+    return "\n".join([
+        '<LV2 "LV2i: sfizz (SFZTools) (2 out)" http://sfztools.github.io/sfizz ""', 'CFG 0 0 0 ""', "MIDI control 0 0 ",
+        "P volume 0 num_voices 64 oversampling 1 preload_size 8192 scala_root_key 60 tuning_frequency 440 stretched_tuning 0",
+        # Rendering, it would use its costliest way of bending a recording to pitch (10); 3 is clean and twice as fast.
+        "P sample_quality 2 oscillator_quality 1 freewheeling_sample_quality 3 freewheeling_oscillator_quality 3",
+        "P sustain_cancels_release 0", "<STATE", 'P http://sfztools.github.io/sfizz:sfzfile "%s" 1' % instrument, ">", ">", "WAK 0 0"])
+
+
+def bare(name: str, effects: list[str]) -> str:
+    """A track with these effects on it and nothing else, as a template: for instruments and
+    effects that are written as text (`sfizz`, `lv2`, `js`)."""
+    return "\n".join(["<TRACK", "NAME " + _quote(name), "VOLPAN 1 0 -1 -1 1", "ISBUS 0 0", "NCHAN 2", "FX 1", "MAINSEND 1 0",
+                      "<FXCHAIN", "BYPASS 0 0 0"] + effects + [">", ">"]) + "\n"
+
+
 def pruned(text: str, keep: set[int]) -> str:
     """A sampled instrument's template with only the samplers numbered in `keep` (counted from
     0 in the order they stand). An instrument has a sampler for every recording; a line that
@@ -190,6 +338,7 @@ class Line:
     volume: float = 1.0                                          # 1 is as the template has it
     pan: float = 0.0
     moves: list[tuple[float, float]] = field(default_factory=list)      # (beat, gain): the volume riding up and down
+    controls: list[tuple[float, int, int]] = field(default_factory=list)   # (beat, controller, value 0 to 127): written among the notes
     early: float = 0.0                                           # seconds it is played ahead
     send: float = 0.0                                            # how much of it goes to its folder's hall (1 is all of it)
     effects: list[str] = field(default_factory=list)             # effects put after its own, as `js` writes them
@@ -201,8 +350,9 @@ def _quote(text: str) -> str:
     return '"%s"' % clean
 
 
-def _events(notes: list[Note], bpm: float, seconds: float, early: float) -> list[str]:
-    """The notes as REAPER writes them in a project: `E <ticks since the last> <status> <note> <strength>`."""
+def _events(notes: list[Note], bpm: float, seconds: float, early: float, controls: list[tuple[float, int, int]] | None = None) -> list[str]:
+    """The notes as REAPER writes them in a project: `E <ticks since the last> <status> <note> <strength>`,
+    with the controller moves among them."""
     ahead = early * bpm / 60.0
     end = int(round(seconds * bpm / 60.0 * TICKS))
     spans: dict[int, list[list[int]]] = {}
@@ -219,8 +369,16 @@ def _events(notes: list[Note], bpm: float, seconds: float, early: float) -> list
     events: list[tuple[int, int, str]] = []
     for pitch, played in spans.items():
         for on, off, loud in played:
-            events.append((on, 1, "90 %02x %02x" % (pitch, loud)))
+            events.append((on, 2, "90 %02x %02x" % (pitch, loud)))
             events.append((off, 0, "80 %02x 00" % pitch))
+    last: dict[int, int] = {}
+    for beat, controller, value in sorted(controls or []):
+        tick = min(max(int(round((beat - ahead) * TICKS)), 0), end - 2)
+        value = min(max(int(round(value)), 0), 127)
+        if last.get(controller) == value:
+            continue
+        last[controller] = value
+        events.append((tick, 1, "b0 %02x %02x" % (controller, value)))      # a controller move at a note's start comes before the note
     events.sort()
     out, now = [], 0
     for tick, _, message in events:
@@ -295,7 +453,7 @@ def track(line: Line, *, bpm: float, seconds: float, folder: int = 0, selected: 
     if line.notes:
         out += ["    <ITEM", "      POSITION 0", "      LENGTH %.6f" % seconds, "      LOOP 0", "      NAME " + _quote(line.name),
                 "      <SOURCE MIDI", "        HASDATA 1 %d QN" % TICKS]
-        out += ["        " + event for event in _events(line.notes, bpm, seconds, line.early)]
+        out += ["        " + event for event in _events(line.notes, bpm, seconds, line.early, line.controls)]
         out += ["      >", "    >"]
     for at, long, file in line.clips:
         out += ["    <ITEM", "      POSITION %.6f" % at, "      LENGTH %.6f" % long, "      LOOP 0", "      <SOURCE WAVE",
