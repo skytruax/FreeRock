@@ -1,5 +1,63 @@
 # Changelog
 
+## Written pieces (2026-11-15, the night after the first evening)
+
+The phrases of the forever song share a key and nothing else: each is one instrument alone, and
+nothing in them goes anywhere together. And the ElevenLabs credits ran out the same evening.
+What was added that night:
+
+- **Pieces.** A bucket now holds written music beside its loose phrases. A piece is music
+  written as a whole and kept as its parts: one recording for each channel that plays in it,
+  in step with the others. The five decks play the parts together, each as loud as the game
+  asks for its channel, so a piece keeps its own harmony and its own shape while the band comes
+  and goes with the game. A piece keeps its own time: its tempo and key need not be the
+  bucket's. A piece can say that one channel stands in for others (a whole band kept as one
+  part is the tune and the drone as well) and how little of each channel it can do with, so
+  that the moment a story comes to is whole whatever the game is doing.
+- **A track tells a story.** A track is a run of pieces: it opens, states its theme, rises,
+  comes to its moment and closes, each piece going into the next without a seam. When a track
+  ends, another begins on that beat while the first rings on under it for a couple of bars
+  (less when the two are in keys that do not sit together), and now and then a moment of
+  silence comes between two tracks.
+- **A fight cuts in with a piece of its own** on the next beat, and when it is over the track
+  that was playing is picked up at the bar it had reached.
+- **Kinds of place.** Music is written for a kind of place, not for a zone: pastoral, highland,
+  haunted, desert, jungle, infernal, regal or mystic. Every zone is of one or two kinds, read
+  from the words of its music profile, so a place nobody has listed gets music of the right
+  kind from the words in its name; a named place inside a zone (an inn, a hall, a crypt) adds
+  what its own name says. The player is told the kind of place with everything else it is
+  told, and chooses pieces by it: first what answers how hard the game is asking, then the
+  kind of moment (a fight, a cave, the night), then the kind of place.
+- **Light and heavy take turns.** After a heavy track the next is a light one, so that staying
+  in one place does not grow too intense. A light place (sunny farmland, an inn) is always light.
+- **Pieces written over the same changes lend each other their parts**: the tune of one take
+  with the drums of another and the bass of a third, so one story is told by another band each
+  time it comes round.
+- **Knight Rock from the songs on disk.** Every Knight Rock song made before the forever song
+  (32 of them, in five keys and three tempos) is now in the Knight Rock bucket as pieces: 101
+  tracks, 208 pieces, 88 minutes. A song proper, from its Intro to its Outro, is one track with
+  a piece for each section; its Fight, Boss, Storm, Night, Ember and Depths parts are short
+  tracks for those moments. The band, the drums and the bass of each section are the three
+  parts, exactly as they are on disk. `freerock pieces songs` does it, and does nothing the
+  second time.
+- **Tracks from the studio.** Music written and played on this machine is staged under
+  `var/studio/` (a folder for each track: a recording for each channel and a file saying what
+  the track is; see `app/freerock/studio/__init__.py`). `freerock pieces add <style>` cuts the
+  staged tracks into the pieces of their stories and puts them in the style's bucket;
+  `freerock pieces list <style>` says what a style has. Both are for while the server is
+  stopped, and say so if it is running.
+- **Love and ban are for the whole piece**: `/rock ban` while a piece is playing takes every
+  part of it out of play.
+- The player page shows the piece that is playing and how far through it is, and how many
+  written pieces the bucket has. The stems folder has every part of every piece in a folder
+  for its piece. A page that connects is told where the player is before it is given the
+  music, so that the first piece it plays is one for that place.
+
+Heard by nobody yet: the player has been measured with pieces (its parts locked together, no
+seam where two stretches or two pieces join, the fight's piece in on the beat and the track
+picked up after), and has played the real Knight Rock bucket in a browser here without a
+problem, but what it sounds like is for the next evening in the game.
+
 ## The forever song (2026-11-15, the first evening in the game)
 
 The first evening with the real game changed what FreeRock is. Whole songs made a few minutes

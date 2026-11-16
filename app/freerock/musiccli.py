@@ -5,6 +5,10 @@
     freerock settings [name value] show the allowances and the amount of rock, or change one
     freerock library               what music FreeRock has
     freerock ledger                what has been spent this month and what is left
+    freerock stems                 keep every phrase as an audio file, with a table of what each is
+    freerock pieces songs [style]  cut the songs on disk into written pieces, in the style's bucket
+    freerock pieces add [style]    put every track staged by the studio in the style's bucket
+    freerock pieces list [style]   what written pieces a style has
 """
 from __future__ import annotations
 
@@ -13,7 +17,7 @@ import asyncio
 import sys
 import time
 
-from . import atlas
+from . import atlas, composer, forever, pieces, songstems
 from .cli import add_command
 from .eleven import AllowanceExceeded, ElevenError, Gateway
 from .ingest import Ingest, TrackFailedChecks
@@ -218,4 +222,86 @@ def _stems(arguments: argparse.Namespace) -> int:
 
 
 add_command("stems", "keep every phrase as an audio file, with a table of what each is", _stems_arguments, _stems)
+
+
+# -- pieces ----------------------------------------------------------------------------------------
+def _pieces_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("what", choices=("songs", "add", "list"),
+                        help="songs: cut the songs on disk into pieces; add: put the studio's staged tracks in "
+                             "the bucket; list: say what written pieces the style has")
+    parser.add_argument("style", nargs="?", help="one of: %s (default: the style in force)" % ", ".join(Settings.GENRES))
+    parser.add_argument("--zone", help="for a style with no bucket yet: the zone to begin one in")
+    parser.add_argument("--port", type=int, default=8765,
+                        help="where the FreeRock server listens, to check that it is stopped (default: %(default)s)")
+
+
+def _minutes(minutes: float) -> str:
+    return "%d:%02d" % (int(minutes), int(round(minutes * 60)) % 60) if minutes < 600 else "%.0f min" % minutes
+
+
+def _print_summary(bucket: forever.Bucket) -> None:
+    found = pieces.summary(bucket)
+    label = composer.GENRES[bucket.genre]["label"]
+    if not found["pieces"]:
+        print("%s (%s) has no written pieces. It has %d loose phrases." % (label, bucket.key, found["loose"]))
+        return
+    print("%s (%s): %d written pieces in %d tracks, %.1f minutes, kept as %d parts; %d loose phrases beside them."
+          % (label, bucket.key, found["pieces"], found["tracks"], found["minutes"], found["parts"], found["loose"]))
+    print("  for the kind of moment:  " + ",  ".join(
+        "%s %d (%.1f min)" % (role, count, minutes) for role, (count, minutes) in sorted(found["by_role"].items())))
+    print("  for the kind of place:   " + ",  ".join(
+        "%s %d (%.1f min)" % (kind, count, minutes) for kind, (count, minutes) in sorted(found["by_kind"].items())))
+    print("  light %d, heavy %d%s%s" % (
+        found["light"], found["heavy"],
+        "; %d families of pieces that lend each other their parts" % found["families"] if found["families"] else "",
+        "; %d banned" % found["banned"] if found["banned"] else ""))
+
+
+def _pieces(arguments: argparse.Namespace) -> int:
+    settings = _settings()
+    style = arguments.style or settings.genre
+    try:
+        bucket = pieces.home_bucket(settings.var_dir, style, arguments.zone)
+    except ValueError as problem:
+        print(str(problem), file=sys.stderr)
+        return 1
+    if arguments.what == "list":
+        _print_summary(bucket)
+        return 0
+    if pieces.server_is_up(arguments.port):
+        print("The FreeRock server is running (something answers on port %d). Stop it first: it keeps the bucket's "
+              "list in memory and would write over what is put in here." % arguments.port, file=sys.stderr)
+        return 1
+    if arguments.what == "songs":
+        made = songstems.from_songs(Library(settings.library_dir), bucket)
+        for track in made:
+            print("%-9s %-44s %2d piece%s  %5s  %-22s %s%s" % (
+                "added" if track.added else "there", track.title, track.pieces, " " if track.pieces == 1 else "s",
+                _minutes(track.seconds / 60.0), track.role + (" (light)" if track.light else ""),
+                ", ".join(track.moods) or "any place", "" if track.added in (0, track.pieces) else
+                "  (%d of them new)" % track.added))
+        print("%d tracks cut from the %s songs on disk: %d pieces put in %s now, %d were there already."
+              % (len(made), composer.GENRES[style]["label"], sum(track.added for track in made), bucket.key,
+                 sum(track.pieces - track.added for track in made)))
+        _print_summary(bucket)
+        return 0
+    done = pieces.add_staged(bucket, settings.var_dir, style)
+    failed = 0
+    for folder, ids, problem in done:
+        name = "%s/%s" % (folder.parent.name, folder.name)
+        if problem:
+            failed += 1
+            print("NOT PUT IN %-40s %s" % (name, problem), file=sys.stderr)
+        else:
+            print("%-9s %-40s %s" % ("added" if ids else "there", name, "%d pieces" % len(ids) if ids else ""))
+    print("%d staged tracks for %s: %d put in %s now, %d were there already%s."
+          % (len(done), composer.GENRES[style]["label"], sum(1 for _, ids, problem in done if ids),
+             bucket.key, sum(1 for _, ids, problem in done if not ids and not problem),
+             ", %d could not be put in (see above)" % failed if failed else ""))
+    _print_summary(bucket)
+    return 1 if failed else 0
+
+
+add_command("pieces", "written pieces: cut them from the songs on disk, add the studio's tracks, or list them",
+            _pieces_arguments, _pieces)
 add_command("ledger", "what has been spent this month and what is left", lambda parser: None, _ledger)

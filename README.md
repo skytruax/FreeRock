@@ -12,7 +12,16 @@ and how hard they play: standing still is a drone and a tune, moving brings the 
 the drums, a fight brings the hard phrases on the next half beat, and more enemies in the fight
 bring more of them. Now and then the song eases right off of its own accord, or leans in, and
 every few minutes it comes down to a moment of silence. There are three styles: Knight Rock,
-Warcraft (an orchestral score in the old manner) and Trance.
+Warcraft (an orchestral score in the old manner) and Progressive House.
+
+A bucket also holds **written pieces**: music written as a whole and kept as its parts, one
+recording for each channel. The decks play a piece's parts together, each as loud as the game
+asks, so the piece keeps its own harmony and shape while the band comes and goes. Pieces are
+strung into tracks that tell a story (it opens, states its theme, rises, comes to its moment and
+closes). Which track plays depends on the kind of place you are in (haunted woods, farmland, a
+desert: not the zone by name) and on what is happening; a fight cuts in with a piece of its own
+and the track is picked up afterwards where it was left; and light and heavy tracks take turns,
+so that staying in one place does not grow too intense.
 
 FreeRock is two parts. A small addon draws what the game is doing as a thin strip of squares along
 the top of the screen. A program outside the game reads that strip, decides what should be heard,
@@ -29,7 +38,8 @@ makes the music, and plays it through a browser tab. The first design is in
   game state to sound, and the whole chain driven by a pretend game.
 - **Judged by ear only by Sky:** how the music sounds. WoW is not installed on the development
   machine.
-- **Not yet run in the game:** strip version 3 (the count of enemies in view and in a fight).
+- **Not yet run in the game:** strip version 3 (the count of enemies in view and in a fight),
+  and written pieces, which have only been played in a browser on the development machine.
 - **Out of date:** the tests of the songs mode (`settings.mode = "songs"`), which the forever
   song replaced as the default.
 
@@ -96,6 +106,18 @@ makes room for a newer one unless you have marked it with `/rock love`.
 **Planned for 100 hours a month.** The minutes that go on growing music are released as the hours
 are played, so the month's allowance lasts the month. `freerock settings` shows the numbers.
 
+**Written pieces.** Each style's bucket holds pieces beside its loose phrases (see
+`forever.Bucket.add_piece`). They come from two places. The songs on disk, made before the
+forever song, are cut at their own section boundaries: a song proper is one track with a piece
+for each section, and its Fight, Boss, Storm, Night, Ember and Depths parts are short tracks
+for those moments. And tracks written and played on this machine in the studio
+(`app/freerock/studio/`) are staged under `var/studio/` and cut into the pieces of their
+stories. A piece says what it is for: the kinds of place (pastoral, highland, haunted, desert,
+jungle, infernal, regal, mystic: `app/freerock/kinds.py`), the kind of moment, how hard it
+plays, and whether it is of the lighter sort. Every zone is of one or two kinds, read from the
+words of its profile, and a named place inside it adds its own; the player page says which kind
+of place you are in.
+
 **Rain and rests.** Steady rain brings the drums in, and a rain storm the whole band; rain is
 never muffled. After about six minutes of calm music the music rests for about a minute and comes
 back with a fresh opening. Anything happening brings it straight back.
@@ -105,6 +127,10 @@ back with a fresh opening. Anything happening brings it straight back.
 | `freerock make "<zone>"` | Makes a zone's first music now, instead of on the first visit. `--set second` or `--set fresh` adds a later set. |
 | `freerock library` | Lists the music FreeRock has |
 | `freerock ledger` | What has been spent this month and today, and the account's credit balance |
+| `freerock pieces songs [style]` | Cuts every song on disk in a style into written pieces, in the style's bucket. Does nothing the second time. Stop the server first. |
+| `freerock pieces add [style]` | Puts every track the studio has staged for a style in its bucket, skipping those already there. Stop the server first. |
+| `freerock pieces list [style]` | What written pieces a style has: how many, how long, and how they divide by kind of moment, kind of place, light and heavy |
+| `freerock stems [--to folder]` | Keeps every phrase and every part of every piece as a FLAC file, with `stems.csv` saying what each is |
 | `freerock settings [name value]` | Shows or changes `monthly_minutes` (300), `daily_minutes` (30), `hours_per_month` (100), `rock` (0.5), `rest_every_minutes` (6; 0 for no rests) and `rest_seconds` (60) |
 | `freerock adopt <folder>` | Looks again at a track that failed its checks; keeps it if it now passes |
 | `freerock sim <scenario>` | Plays a scripted session against a running server, drawing and reading the real strip |
@@ -150,7 +176,9 @@ FreeRock/        the addon folder that goes into _forever_\Interface\AddOns\
 protocol/        the strip format and its test vectors
 app/freerock/    the program: game link (beacon, state, server, sim, web/sensor.py),
                  music (composer, eleven, ledger, stems, analysis, library, ingest, atlas),
-                 what plays (director, conductor, web/player), and the commands (cli, musiccli)
+                 the forever song (forever, stemstore), written pieces (kinds, songstems,
+                 pieces, studio/), what plays (director, conductor, web/player), and the
+                 commands (cli, musiccli)
 app/tests/       Python tests
 tools/           Lua tests, the simulator runner, the experiments, the session renderer
 docs/plan.md     the plan

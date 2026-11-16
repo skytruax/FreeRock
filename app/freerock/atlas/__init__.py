@@ -11,6 +11,7 @@ import re
 from functools import lru_cache
 from pathlib import Path
 
+from .. import kinds
 from ..composer import ZoneProfile
 
 ZONES_FILE = Path(__file__).resolve().parent / "zones.json"
@@ -103,6 +104,32 @@ def place_profile(zone_name: str | None, place_name: str | None) -> ZoneProfile:
     colours, mood = flavour
     return ZoneProfile(key=zone.key, bpm=zone.bpm, tonic=zone.tonic,
                        colours=colours + zone.colours[:1], mood=mood)
+
+
+# A named place of one of these kinds is not a light one, whatever the country round it is.
+_HEAVY_KINDS = ("haunted", "infernal")
+
+
+def kinds_for(zone_name: str | None, place_name: str | None = None) -> tuple[list[str], bool]:
+    """The kinds of place the player is in (kinds.KINDS: the best fit first, two at most), and
+    whether it is a light one, where the music is always of the lighter sort.
+
+    Both are read from the words of the zone's profile, so a zone nobody has listed gets them
+    from the words in its name. A named place inside the zone (an inn, a hall, a crypt) adds
+    what its own name says: its kinds come first, and it is light if its own words say so, or
+    if the zone is and the place is not a dark one of its own."""
+    if not zone_name or not slug(zone_name):
+        return [], False
+    zone = profile_for(zone_name)
+    found = kinds.kinds_of(list(zone.mood) + list(zone.colours))
+    light = kinds.is_light(zone.mood)
+    flavour = place_flavour(place_name) if place_name and slug(place_name) != slug(zone_name) else None
+    if flavour is not None:
+        colours, mood = flavour
+        own = kinds.kinds_of(mood + colours)
+        found = (own + [kind for kind in found if kind not in own])[:2]
+        light = kinds.is_light(mood) or (light and not any(kind in _HEAVY_KINDS for kind in own))
+    return found, light
 
 
 def slug(name: str) -> str:

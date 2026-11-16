@@ -106,9 +106,19 @@
   function musicLine(borrowed) {
     if (!playing) return;
     if (playing.clips) {
-      const count = engine && engine.bucket ? engine.bucket.clips.size : playing.clips.length;
-      $("music").textContent = "A song that never ends (" + (playing.style || playing.genre) + ", " + playing.bpm + " BPM, "
-        + playing.tonic + "), put together as it goes from " + count + " phrases, each a verse, a build-up and a chorus"
+      // What the bucket holds: written pieces (each kept as its parts) and loose phrases.
+      const clips = engine && engine.bucket ? Array.from(engine.bucket.clips.values()) : playing.clips;
+      const loose = clips.filter((clip) => !clip.piece).length;
+      const pieces = new Set(clips.filter((clip) => clip.piece).map((clip) => clip.piece)).size;
+      const style = playing.style || playing.genre;
+      if (pieces) {
+        $("music").textContent = "A song that never ends (" + style + "): " + pieces + " written pieces, strung together"
+          + " for the kind of place you are in and what is happening there"
+          + (loose ? ", with " + loose + " loose phrases (" + playing.bpm + " BPM, " + playing.tonic + ") to play between them." : ".");
+        return;
+      }
+      $("music").textContent = "A song that never ends (" + style + ", " + playing.bpm + " BPM, "
+        + playing.tonic + "), put together as it goes from " + loose + " phrases, each a verse, a build-up and a chorus"
         + " for one instrument. The bucket keeps growing while you play, in the colours of wherever you are.";
       return;
     }
@@ -123,7 +133,9 @@
     $("place").textContent = t.silent ? "silence"
       : t.rest ? "a rest: no music for a little while, as in the game"
       : t.place + ((t.also || []).length ? ", taking turns with " + t.also.join(" and ") : "")
-        + (t.cut === "beat" ? " (on the beat)" : "");
+        + (t.cut === "beat" ? " (on the beat)" : "")
+        // The kind of place this is, which is what written pieces are chosen by.
+        + ((t.kinds || []).length ? ", in a " + t.kinds.join(" and ") + " place" + (t.light ? " (a light one)" : "") : "");
     for (const name of ["intensity", "bed", "drums", "bass"]) $(name).style.width = Math.round(100 * t[name]) + "%";
     const tone = [];
     if (t.lowpass_hz < 19000) tone.push("muffled above " + Math.round(t.lowpass_hz) + " Hz");
@@ -274,8 +286,18 @@
       $("section").textContent = status.resting ? "a moment of silence" : up.length ? up.length + " of 5 channels" + wave : "nothing yet";
       $("decksRow").hidden = false;
       $("decks").textContent = up.join(", ") || "none";
+      // A written piece: what it is called and how far through it the music is.
+      const piece = status.resting ? null : status.piece;
+      $("pieceRow").hidden = !piece;
+      if (piece) {
+        const clock = (seconds) => Math.floor(seconds / 60) + ":" + String(Math.floor(seconds % 60)).padStart(2, "0");
+        const kind = piece.role && piece.role !== "wander" ? ", for " + piece.role : "";
+        $("piece").textContent = piece.title + kind + " (" + clock(piece.of > 0 ? piece.at % piece.of : piece.at)
+          + " of " + clock(piece.of) + ")";
+      }
     } else {
       $("decksRow").hidden = true;
+      $("pieceRow").hidden = true;
       $("section").textContent = status.section ? status.section + ", cell " + (status.cell + 1) : "nothing";
     }
     if (lostAt !== null && Date.now() - lostAt > 60000 && !engine.target.silent) {

@@ -165,6 +165,13 @@ class Conductor:
     def place_key(self, state: game.GameState) -> str | None:
         return slug(self.place_name(state))
 
+    def kinds_here(self, state: game.GameState | None) -> tuple[list[str], bool]:
+        """The kinds of place the player is in (haunted woods, farmland, a desert: kinds.KINDS)
+        and whether it is a light one. Nothing while the game has not said where the player is."""
+        if state is None:
+            return [], False
+        return atlas.kinds_for(self.place_name(state), self.spot_name(state))
+
     @property
     def asset(self) -> Asset | None:
         """The first piece of the music that is playing (a place's core suite, as a rule)."""
@@ -252,6 +259,9 @@ class Conductor:
         if self.forever:
             # The mixing desk for the five decks: which channels are up, and how hard each plays.
             target["channels"] = self.mix or forever.mix(self.target)
+            # The kind of place the player is in, and whether it is a light one: what written
+            # pieces are chosen by.
+            target["kinds"], target["light"] = self.kinds_here(state) if state is not None else ([], False)
             zone = self.bucket.zone if self.bucket else None
         else:
             zone = self.asset.zone if self.asset else None
@@ -341,13 +351,16 @@ class Conductor:
         here = self.buckets.home(self.genre, name)
         if here is not None and here is not self.bucket and here.live():
             self.bucket = here
-            self.notes.append("Playing the %s song: %d phrases in its bucket so far (%d BPM, %s)." % (
-                composer.GENRES[here.genre]["label"], len(here.live()), here.bpm, here.tonic))
+            loose = sum(1 for clip in here.live() if not clip.piece)
+            self.notes.append("Playing the %s song: %d written pieces and %d loose phrases in its bucket so far "
+                              "(%d BPM, %s)." % (composer.GENRES[here.genre]["label"], len(here.live_pieces()),
+                                                 loose, here.bpm, here.tonic))
         if self.bucket is not None and self._sent_bucket != self.bucket.key:
             self._sent_bucket = self.bucket.key
             await self._broadcast(self._bucket_message())
         mixed = forever.mix(target, self.mix)
-        told = (target, state.volume, self._sent_bucket, json.dumps(mixed, sort_keys=True))
+        found, light = self.kinds_here(state)
+        told = (target, state.volume, self._sent_bucket, json.dumps(mixed, sort_keys=True), tuple(found), light)
         if told != self._told:
             self.target, self.mix, self._volume, self._told = target, mixed, state.volume, told
             await self._broadcast(self._target_message())
@@ -764,16 +777,20 @@ class Conductor:
                 # In the forever song, love and ban are about the phrases playing at this moment.
                 # Loved ones are never set aside as worn; banned ones are not played again, and
                 # the decks playing them move on.
+                # A piece of written music is loved or banned whole, every part of it.
                 found = self._playing_phrases()
                 if found:
                     bucket, ids = found
+                    marked = bucket.mark(ids, loved=True) if event.name == "love" else bucket.mark(ids, banned=True)
+                    titles = sorted({bucket.pieces[clip.piece]["title"] for clip in marked if clip.piece})
+                    what = ("The piece %s is" % " and ".join(titles)) if titles \
+                        else "The %d phrases playing are" % len(marked)
                     if event.name == "love":
-                        bucket.mark(ids, loved=True)
-                        self.notes.append("The %d phrases playing are marked as loved." % len(ids))
+                        self.notes.append("%s marked as loved." % what)
                     else:
-                        bucket.mark(ids, banned=True)
-                        self.notes.append("The %d phrases playing are banned." % len(ids))
-                        await self._broadcast({"type": "retired", "key": bucket.key, "ids": ids})
+                        self.notes.append("%s banned." % what)
+                        await self._broadcast({"type": "retired", "key": bucket.key,
+                                               "ids": [clip.id for clip in marked]})
             elif event.name in ("love", "ban") and self.assets:
                 # Love and ban are about what is playing at this moment: the set the section came
                 # from, not the whole of a place's music.
@@ -831,13 +848,15 @@ class Conductor:
             # The page keeps the version it was loaded with; a different one after a reconnect
             # means the server was updated under it, and it says so.
             await self._send(socket, {"type": "hello", "version": page_version()})
+            # What the game asks for goes first, so that the page knows where the player is and
+            # what is happening there before it chooses the first music to play.
+            if self.target is not None:
+                await self._send(socket, self._target_message())
             if self.forever:
                 if self.bucket is not None:
                     await self._send(socket, self._bucket_message())
             elif self.assets:
                 await self._send(socket, self._asset_message())
-            if self.target is not None:
-                await self._send(socket, self._target_message())
             async for message in socket:
                 if message.type != WSMsgType.TEXT:
                     continue
@@ -959,9 +978,19 @@ class Conductor:
         """The forever song for the control page: the bucket in play, what each pool holds, what
         is on its way, and how many phrases have been made since the server started."""
         bucket = self.bucket
+        live = bucket.live() if bucket else []
+        # The written piece a player is in the middle of, as that player's page last said.
+        piece = next((status["piece"] for status in self.statuses.values() if status.get("piece")), None)
+        found, light = self.kinds_here(self.hub.state)
         return {"bucket": bucket.key if bucket else None,
                 "bpm": bucket.bpm if bucket else None, "tonic": bucket.tonic if bucket else None,
-                "phrases": len(bucket.live()) if bucket else 0,
+                # Loose phrases (each one instrument alone, any with any) and written pieces
+                # (each kept as its parts, which are counted apart from the phrases).
+                "phrases": sum(1 for clip in live if not clip.piece),
+                "pieces": len(bucket.live_pieces()) if bucket else 0,
+                "parts": sum(1 for clip in live if clip.piece),
+                "playing_piece": piece,
+                "kinds": found, "light": light,
                 "kept": len(bucket.clips) if bucket else 0,
                 "pools": bucket.counts() if bucket else {},
                 "mix": self.mix,

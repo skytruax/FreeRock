@@ -640,7 +640,10 @@
       const off = (piece) => {
         const meta = piece.meta;
         const strength = serves(piece) ? 0 : Math.min(...meta.serves.map((tier) => Math.abs(tier - ask)));
-        const role = meta.role === place || also.includes(meta.role) ? 0 : 1;
+        // The kind of moment the game names comes first; the kinds that take turns with it are
+        // as good, except in a fight, where a piece written for a fight is wanted before a storm.
+        const fight = place === "battle" || place === "boss";
+        const role = meta.role === place ? 0 : also.includes(meta.role) ? (fight ? 0.3 : 0) : 1;
         const mood = !kinds.length || !meta.moods.length ? 0.5 : meta.moods.some((mood) => kinds.includes(mood)) ? 0 : 1;
         return strength * 100 + role * 10 + mood;
       };
