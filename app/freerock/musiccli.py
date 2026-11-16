@@ -9,6 +9,8 @@
     freerock pieces songs [style]  cut the songs on disk into written pieces, in the style's bucket
     freerock pieces add [style]    put every track staged by the studio in the style's bucket
     freerock pieces list [style]   what written pieces a style has
+    freerock pieces drop style from   take out for good every piece that came from somewhere ("knight/" for the
+                                   studio's Knight Rock, "warcraft/real-" for the real scores, "song/" for the songs)
 """
 from __future__ import annotations
 
@@ -226,10 +228,11 @@ add_command("stems", "keep every phrase as an audio file, with a table of what e
 
 # -- pieces ----------------------------------------------------------------------------------------
 def _pieces_arguments(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("what", choices=("songs", "add", "list"),
+    parser.add_argument("what", choices=("songs", "add", "list", "drop"),
                         help="songs: cut the songs on disk into pieces; add: put the studio's staged tracks in "
-                             "the bucket; list: say what written pieces the style has")
+                             "the bucket; list: say what written pieces the style has; drop: take pieces out for good")
     parser.add_argument("style", nargs="?", help="one of: %s (default: the style in force)" % ", ".join(Settings.GENRES))
+    parser.add_argument("source", nargs="?", help="for drop: what the pieces' source begins with, such as knight/ or song/")
     parser.add_argument("--zone", help="for a style with no bucket yet: the zone to begin one in")
     parser.add_argument("--port", type=int, default=8765,
                         help="where the FreeRock server listens, to check that it is stopped (default: %(default)s)")
@@ -272,6 +275,14 @@ def _pieces(arguments: argparse.Namespace) -> int:
         print("The FreeRock server is running (something answers on port %d). Stop it first: it keeps the bucket's "
               "list in memory and would write over what is put in here." % arguments.port, file=sys.stderr)
         return 1
+    if arguments.what == "drop":
+        if not arguments.source:
+            print("Say which pieces: what their source begins with, such as knight/ or warcraft/real- or song/.", file=sys.stderr)
+            return 1
+        gone = pieces.drop_from(bucket, arguments.source)
+        print("%d pieces whose source begins with %r taken out of %s for good." % (gone, arguments.source, bucket.key))
+        _print_summary(bucket)
+        return 0
     if arguments.what == "songs":
         made = songstems.from_songs(Library(settings.library_dir), bucket)
         for track in made:

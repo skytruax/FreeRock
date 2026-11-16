@@ -310,3 +310,19 @@ def test_the_plan_has_a_band_for_knight_rock_beside_the_orchestra():
     assert {kind for fam in knight for kind in fam.character.kinds} == set(kinds.KINDS)
     assert {fam.character.role for fam in knight} == set(studio.ROLES)
     assert all(build.folder_of(fam, 1).parts[-3] == "knight" for fam in knight)
+
+
+def test_the_pieces_from_one_source_can_be_taken_out_again(tmp_path):
+    from freerock import pieces
+    made_track(tmp_path / "studio" / "warcraft" / "test-family" / "1")
+    made_track(tmp_path / "studio" / "warcraft" / "test-family" / "2", take=2)
+    bucket = forever.Bucket(tmp_path / "buckets", "duskwood", "warcraft", 80, "D minor")
+    for folder in studio.staged(tmp_path, "warcraft"):
+        studio.import_track(bucket, folder)
+    assert len(bucket.pieces) == 10
+    assert pieces.drop_from(bucket, "warcraft/test-family/2") == 5
+    assert len(bucket.pieces) == 5 and all(piece["source"].endswith("/1") for piece in bucket.pieces.values())
+    assert not [clip for clip in bucket.clips if clip.piece not in bucket.pieces]
+    assert len(list((bucket.folder / "clips").iterdir())) == len(bucket.clips), "a recording was left behind"
+    with pytest.raises(ValueError):
+        pieces.drop_from(bucket, "")

@@ -58,6 +58,19 @@ def add_staged(bucket: forever.Bucket, var_dir: Path, style: str) -> list[tuple[
     return done
 
 
+def drop_from(bucket: forever.Bucket, source: str) -> int:
+    """Takes out of a bucket, for good, every piece whose source begins with `source` (the
+    studio's tracks are "<style>/<family>/<take>", the songs "song/<asset>/<bar>"). The staged
+    tracks and the songs themselves are left where they are, so the pieces can be put back.
+    Returns how many pieces went."""
+    if not source:
+        raise ValueError("Say which pieces: an empty source would take every one")
+    mine = [piece_id for piece_id, piece in bucket.pieces.items() if str(piece.get("source", "")).startswith(source)]
+    for piece_id in mine:
+        bucket.drop_piece(piece_id)
+    return len(mine)
+
+
 def summary(bucket: forever.Bucket) -> dict[str, Any]:
     """What written pieces a bucket has in play: how many, in how many tracks, how long, and
     how they divide by the kind of moment, the kind of place, and light and heavy."""
