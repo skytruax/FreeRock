@@ -319,6 +319,22 @@ def test_walking_brings_the_rhythm_part_and_the_drums_and_a_fight_brings_everyth
     assert (three["lead"]["tier"], three["bass"]["tier"]) == (2, 2)
 
 
+def test_another_enemy_joining_a_fight_that_is_on_changes_gear():
+    """The step another enemy makes is small, and has to get past the margin that keeps a
+    channel from flickering on a line. Checked with the fight already on, as it is in play."""
+    from freerock.director import Rules
+    rules = Rules()
+    one = forever.mix(Target(place="battle", intensity=rules.combat_start, drums=1.0, bass=1.0))
+    assert (one["lead"]["tier"], one["bass"]["tier"]) == (1, 1)
+    two = forever.mix(Target(place="battle", intensity=rules.crowd[0], drums=1.0, bass=1.0), one)
+    assert (two["lead"]["tier"], two["bass"]["tier"]) == (2, 1), "a second enemy did not bring the hard lead"
+    three = forever.mix(Target(place="battle", intensity=rules.crowd[1], drums=1.0, bass=1.0), two)
+    assert (three["lead"]["tier"], three["bass"]["tier"]) == (2, 2), "a third enemy did not bring the hard bass"
+    # And back down as they fall: gone below the line by more than the margin.
+    after = forever.mix(Target(place="battle", intensity=rules.combat_start, drums=1.0, bass=1.0), three)
+    assert (after["lead"]["tier"], after["bass"]["tier"]) == (1, 1)
+
+
 def test_a_calm_tune_is_given_more_room_than_a_drum_part():
     slow = phrase(bars=16, stretch=1.004)             # four tenths of a percent behind the pulse
     sections = (4, 4, 8)

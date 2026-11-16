@@ -90,8 +90,11 @@ APPETITE = {"lead": 1.5, "rhythm": 1.3, "drums": 1.0, "bass": 1.0, "texture": 0.
 # drums and the riff go hard at once. A second enemy in the fight (0.85) brings the hard lead,
 # and a third (0.90) the hard bass line; a fight against one enemy gets there too, slowly, as
 # it goes on. An elite or a boss is everything at once.
-GEARS = {"lead": (0.52, 0.84), "rhythm": (0.52, 0.74), "drums": (0.52, 0.74), "bass": (0.50, 0.88)}
-GEAR_SLACK = 0.03              # how far past a line the intensity goes before a channel changes gear back
+GEARS = {"lead": (0.52, 0.83), "rhythm": (0.52, 0.74), "drums": (0.52, 0.74), "bass": (0.50, 0.88)}
+# How far past a line the intensity has to be before a channel changes gear, so that one hovering
+# on a line does not flicker. It has to be less than the step another enemy makes (two enemies
+# are 0.85 and three 0.90, each 0.02 past its line), or that enemy would change nothing.
+GEAR_SLACK = 0.015
 RHYTHM_FROM = 0.30             # the rhythm part plays once the player is on the move
 CALM_PLACES = ("ember",)       # an inn, the moment after a fight, a death: everything plays calm
 
