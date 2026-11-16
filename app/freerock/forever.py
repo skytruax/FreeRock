@@ -56,8 +56,9 @@ LEVEL = {"texture": -26.0, "lead": -19.0, "rhythm": -20.0, "drums": -17.0, "bass
 # pool is brought to DEPTH, both as fast as phrases can be made. After that a pool the music is
 # drawing on is kept AHEAD phrases in front of what has been heard, so that the next change is
 # always to something new, and whatever is left over goes on deepening the pools up to MOST.
-# Past MOST the most worn phrase of a pool makes room for each new one.
-START, DEPTH, AHEAD, MOST = 1, 3, 2, 8
+# A pool goes on growing past MOST as its phrases are heard, up to KEEP; past that the most worn
+# phrase makes room for each new one.
+START, DEPTH, AHEAD, MOST, KEEP = 1, 3, 2, 8, 60
 MAX_TEMPO_OFF = 0.2            # percent, by the fit of a beat grid
 MAX_REPEAT_OFF = 0.3           # percent, by how the phrase repeats itself two bars later
 MAX_BEAT_OFF_MS = 45.0         # further than this from the beat and the phrase is asked for again
@@ -610,6 +611,14 @@ class Bucket:
             self.bpm, self.tonic = kept["bpm"], kept["tonic"]      # what its phrases were made at
             self.clips = [Clip(**clip) for clip in kept["clips"]]
             self.version = kept.get("version", len(self.clips))
+            # A pool keeps up to KEEP phrases in play. Phrases that were set aside when a pool
+            # held fewer than that come back: the bucket is meant to grow.
+            for channel, tier in FIRST:
+                room = KEEP - len(self.pool(channel, tier))
+                aside = [clip for clip in self.clips if clip.channel == channel and clip.tier == tier
+                         and clip.retired and not clip.banned and clip.bars == self.cycle]
+                for clip in aside[:max(room, 0)]:
+                    clip.retired = False
 
     @property
     def key(self) -> str:
@@ -779,13 +788,13 @@ class Bucket:
         return (pool, False) if pool is not None else None
 
     def make_room(self, channel: str, tier: int) -> list[Clip]:
-        """Sets aside the most worn phrases of a pool that holds more than it should. They stay
-        on disk, and come back into play if a day comes when no new ones can be made."""
+        """Sets aside the most worn phrases of a pool that holds more than it should (KEEP).
+        They stay on disk, and come back into play if a day comes when no new ones can be made."""
         gone = []
         while True:
             pool = self.pool(channel, tier)
             spare = [clip for clip in pool if not clip.loved]
-            if len(pool) <= MOST or not spare or self.everything:
+            if len(pool) <= KEEP or not spare or self.everything:
                 break
             worn = max(spare, key=lambda clip: (clip.plays, -clip.created))
             worn.retired = True
@@ -801,6 +810,7 @@ class Buckets:
     def __init__(self, root: Path):
         self.root = Path(root)
         self._have: dict[str, Bucket] = {}
+        self._home: dict[str, Bucket] = {}       # the one bucket each style plays from
 
     def get(self, place_name: str | None, genre: str) -> Bucket:
         profile = composer.for_genre(atlas.profile_for(place_name), genre)
@@ -808,6 +818,29 @@ class Buckets:
         if key not in self._have:
             self._have[key] = Bucket(self.root, profile.key, genre, profile.bpm, profile.tonic)
         return self._have[key]
+
+    def home(self, genre: str, place_name: str | None) -> Bucket | None:
+        """The bucket a style's song is played from, wherever the player goes.
+
+        A style has one bucket, and it goes on growing: the song does not start again at a
+        zone's border. Its tempo and key are those of the place it was begun in; phrases asked
+        for later are made in the colours of wherever the player then is, so the song takes on
+        each place as it is fed. It is the bucket on disk with the most phrases in play for
+        that style, or a new one for `place_name` if the style has none yet; None if it has
+        none and the place is not known yet."""
+        if genre in self._home:
+            return self._home[genre]
+        best = None
+        for index in sorted((self.root / genre).glob("*/bucket.json")):
+            bucket = self.by_key("%s/%s" % (genre, index.parent.name))
+            if bucket.live() and (best is None or len(bucket.live()) > len(best.live())):
+                best = bucket
+        if best is None:
+            if not place_name:
+                return None
+            best = self.get(place_name, genre)
+        self._home[genre] = best
+        return best
 
     def by_key(self, key: str) -> Bucket:
         if key not in self._have:

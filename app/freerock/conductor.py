@@ -57,7 +57,8 @@ FILL_AT_ONCE = 2         # ElevenLabs makes two things at a time for this accoun
 POOL_REST_S = 90.0       # a pool whose phrase failed its checks three times running is left alone this long
 BUSY_S = 20.0            # how long to hold off when ElevenLabs is busy or stumbles
 SPENT_S = 3600.0         # how long to hold off when the account has nothing left to make music with
-SETTLE_S = 20.0          # a new place's bucket takes over after this long even if it is still thin
+SETTLE_S = 20.0          # how long the player has been in a new place before phrases are asked for in its colours
+ARRIVAL_EVERY_S = 600.0  # and how long before the same place is greeted that way again
 
 
 def page_version() -> str:
@@ -117,11 +118,13 @@ class Conductor:
         self.bucket: forever.Bucket | None = None    # the bucket the players are playing from
         self.mix: dict[str, dict[str, Any]] | None = None    # which channels are up and how hard
         self._sent_bucket: str | None = None
-        self._here: tuple[str, float] | None = None  # (the bucket for where the player is, since when)
+        self._here: tuple[str, float] | None = None  # (the place the player is in, since when)
         self._filling: dict[asyncio.Task, tuple[str, tuple[str, int]]] = {}   # phrases on their way
         self._pool_rested: dict[tuple[str, tuple[str, int]], float] = {}      # pools left alone, until when
         self._last_ask = -1e9
         self.phrases_made = 0
+        self._arrivals: list[tuple[str, int]] = []   # pools to add to at once: the player is somewhere new
+        self._greeted: dict[str, float] = {}         # when each place was last greeted with new phrases
         # The forever song has its own moments of silence, which begin where its form comes
         # round: the player is told about how much music there is between two and about how long
         # one lasts, and the director's own rests, which cut in wherever they fall, are off.
@@ -323,27 +326,21 @@ class Conductor:
     # --- the forever song --------------------------------------------------------------------
 
     def _bucket_message(self) -> dict[str, Any]:
-        return {"type": "bucket", "bucket": {**self.bucket.describe(), "rest": self._silences}}
+        return {"type": "bucket", "bucket": {**self.bucket.describe(), "rest": self._silences,
+                                             "style": composer.GENRES[self.bucket.genre]["label"]}}
 
     async def _forever_step(self, state: game.GameState, target: Target, now: float) -> None:
         """One look at the game with the forever song playing: which place's bucket the players
         play from, how the five channels are mixed, and whether another phrase should be asked for."""
         name = self.place_name(state)
-        if name:
-            here = self.buckets.get(name, self.genre)
-            if self._here is None or self._here[0] != here.key:
-                self._here = (here.key, now)
-            playing = self.bucket
-            if here is not playing and here.live():
-                # The music of the place the player has left plays on until the new place has
-                # enough to take over with: a drone, a tune, a rhythm part, drums and bass. A
-                # new style takes over as soon as it has anything, since it was asked for.
-                settled = now - self._here[1] >= SETTLE_S and len(here.live()) >= 3
-                if (playing is None or not playing.live() or playing.genre != here.genre
-                        or here.ready() or settled):
-                    self.bucket = here
-                    self.notes.append("Playing from the bucket for %s (%s): %d phrases so far." % (
-                        name, composer.GENRES[here.genre]["label"], len(here.live())))
+        # A style has one bucket, which goes on growing wherever the player goes: the song does
+        # not start again at a zone's border. Another style's bucket takes over as soon as it
+        # has anything to play, since the style was asked for.
+        here = self.buckets.home(self.genre, name)
+        if here is not None and here is not self.bucket and here.live():
+            self.bucket = here
+            self.notes.append("Playing the %s song: %d phrases in its bucket so far (%d BPM, %s)." % (
+                composer.GENRES[here.genre]["label"], len(here.live()), here.bpm, here.tonic))
         if self.bucket is not None and self._sent_bucket != self.bucket.key:
             self._sent_bucket = self.bucket.key
             await self._broadcast(self._bucket_message())
@@ -352,6 +349,21 @@ class Conductor:
         if told != self._told:
             self.target, self.mix, self._volume, self._told = target, mixed, state.volume, told
             await self._broadcast(self._target_message())
+        # Somewhere new: once the player has stayed a moment, a phrase is asked for at once for
+        # every channel that is up, in the new place's colours, so that the song takes the
+        # place on within a turn or two of its form.
+        place = slug(name)
+        if place:
+            if self._here is None or self._here[0] != place:
+                first = self._here is None
+                self._here = (place, now)
+                if first:
+                    self._greeted[place] = now       # where the music began needs no greeting
+            elif (now - self._here[1] >= SETTLE_S and now - self._greeted.get(place, -1e9) >= ARRIVAL_EVERY_S
+                  and here is not None and here.started()):
+                self._greeted[place] = now
+                self._arrivals = list(forever.in_use(self.mix))
+                self.notes.append("Now in %s: asking for phrases in its colours." % name)
         self._consider_filling(state, name, now)
 
     def phrase_words(self, state: game.GameState) -> list[str]:
@@ -390,19 +402,25 @@ class Conductor:
         if (self.hub.link not in (game.Link.LIVE, game.Link.STALE) or not state.enabled or state.on_taxi
                 or state.loading or state.cinematic or not self.players or now < self._paused_until):
             return
-        bucket = self.buckets.get(name, self.genre)
+        bucket = self.buckets.home(self.genre, name)
+        if bucket is None:
+            return
         spot = self.spot_name(state)
-        profile = atlas.place_profile(name, spot) if spot and slug(spot) != bucket.zone else atlas.profile_for(name)
+        profile = atlas.place_profile(name, spot) if spot and slug(spot) != slug(name) else atlas.profile_for(name)
         while len(self._filling) < FILL_AT_ONCE:
             coming: dict[tuple[str, int], int] = {}
             for key, pool in self._filling.values():
                 if key == bucket.key:
                     coming[pool] = coming.get(pool, 0) + 1
             resting = {pool for (key, pool), until in self._pool_rested.items() if key == bucket.key and until > now}
-            choice = bucket.wanted(forever.in_use(self.mix), coming, resting)
-            if choice is None:
-                return
-            pool, hurry = choice
+            self._arrivals = [pool for pool in self._arrivals if pool not in resting]
+            if self._arrivals:
+                pool, hurry = self._arrivals.pop(0), True          # the player is somewhere new
+            else:
+                choice = bucket.wanted(forever.in_use(self.mix), coming, resting)
+                if choice is None:
+                    return
+                pool, hurry = choice
             if not hurry and self._filling:
                 return                   # one at a time once every pool has some depth
             self._last_ask = now
@@ -907,7 +925,7 @@ class Conductor:
                 raise web.HTTPBadRequest(text=str(error))
             self.settings.save()
             self._seen_in = self._seen_at = None      # the wait before making music starts again
-            self._here = None
+            self._arrivals = []
             self.notes.append("The style is now %s." % composer.GENRES[self.genre]["label"])
         return web.json_response(self._styles())
 

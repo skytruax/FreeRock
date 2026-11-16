@@ -268,18 +268,45 @@ def test_a_deep_bucket_is_fed_where_the_music_is_running_out_of_new_phrases(tmp_
 
 def test_the_most_worn_phrase_makes_room_and_comes_back_when_no_more_can_be_made(tmp_path):
     bucket = bucket_at(tmp_path)
-    fill(bucket, [("drums", 1)], each=forever.MOST + 1)
+    fill(bucket, [("drums", 1)], each=forever.KEEP + 1)
     clips = bucket.pool("drums", 1)
     bucket.played([clips[1].id, clips[1].id, clips[2].id])
     bucket.mark([clips[1].id], loved=True)                 # loved: never set aside
     gone = bucket.make_room("drums", 1)
     assert [worn.id for worn in gone] == [clips[2].id]
-    assert len(bucket.pool("drums", 1)) == forever.MOST
+    assert len(bucket.pool("drums", 1)) == forever.KEEP
     assert clips[2].id not in [clip["id"] for clip in bucket.describe()["clips"]]
     bucket.everything = True
-    assert len(bucket.pool("drums", 1)) == forever.MOST + 1
+    assert len(bucket.pool("drums", 1)) == forever.KEEP + 1
     bucket.mark([clips[0].id], banned=True)                # banned: never again, whatever happens
     assert clips[0].id not in [clip.id for clip in bucket.pool("drums", 1)]
+
+
+def test_a_pool_goes_on_growing_and_phrases_set_aside_when_it_was_small_come_back(tmp_path, monkeypatch):
+    monkeypatch.setattr(forever, "KEEP", 3)
+    bucket = bucket_at(tmp_path)
+    fill(bucket, [("drums", 1)], each=5)
+    assert len(bucket.make_room("drums", 1)) == 2 and len(bucket.pool("drums", 1)) == 3
+    # The pool may now hold six: the two that were set aside are back when the bucket is next opened.
+    monkeypatch.setattr(forever, "KEEP", 6)
+    again = bucket_at(tmp_path)
+    assert len(again.pool("drums", 1)) == 5 and not any(clip.retired for clip in again.clips)
+    assert again.make_room("drums", 1) == []
+
+
+def test_a_style_has_one_bucket_wherever_the_player_goes(tmp_path):
+    buckets = forever.Buckets(tmp_path / "buckets")
+    assert buckets.home("knight", None) is None, "no bucket yet and no place to begin one in"
+    # It is begun where the player first is, at that place's tempo and key.
+    home = buckets.home("knight", "Duskwood")
+    assert (home.key, home.bpm, home.tonic) == ("knight/duskwood", 80, "D minor")
+    assert buckets.home("knight", "Westfall") is home and buckets.home("knight", None) is home
+    assert buckets.home("trance", "Westfall").key == "trance/westfall"
+    # Of the buckets a style already has on disk, the one with the most to play is its bucket.
+    fill(buckets.get("Elwynn Forest", "warcraft"), forever.FIRST[:2])
+    fill(buckets.get("Duskwood", "warcraft"), forever.FIRST[:5])
+    later = forever.Buckets(tmp_path / "buckets")
+    assert later.home("warcraft", "Westfall").key == "warcraft/duskwood"
 
 
 def test_buckets_are_kept_by_place_and_style(tmp_path):
@@ -457,6 +484,7 @@ def shallow_pools(monkeypatch):
     """The conductor tests fill small buckets, so that they take no time."""
     monkeypatch.setattr(forever, "DEPTH", 2)
     monkeypatch.setattr(forever, "MOST", 3)
+    monkeypatch.setattr(forever, "KEEP", 3)
 
 
 async def running(tmp_path, filler=None, clock=None, with_filler=True):
@@ -655,20 +683,42 @@ async def test_when_the_credits_run_out_the_song_goes_on_from_the_bucket(tmp_pat
         await client.close()
 
 
-async def test_the_old_place_plays_on_until_the_new_has_enough(tmp_path):
-    client, app, conductor, filler = await running(tmp_path, with_filler=False)
+async def test_the_bucket_goes_with_the_player_and_takes_on_each_place(tmp_path, monkeypatch):
+    monkeypatch.setattr(forever, "KEEP", 10)       # room for the bucket to grow
+    clock = Clock()
+    client, app, conductor, filler = await running(tmp_path, clock=clock)
     try:
-        fill(conductor.buckets.get("Elwynn Forest", "knight"), forever.FIRST[:5])
-        westfall = conductor.buckets.get("Westfall", "knight")
-        fill(westfall, [("texture", 0)])
         socket = await client.ws_connect("/ws/player")
-        publish(app)
-        assert (await next_of(socket, "bucket"))["bucket"]["zone"] == "elwynn-forest"
-        publish(app, zone_name="Westfall")
+        publish(app, speed=7.0)
+        described = (await next_of(socket, "bucket"))["bucket"]
+        assert described["key"] == "knight/elwynn-forest" and described["style"] == "Knight Rock"
+        bucket = conductor.buckets.home("knight", None)
+        await until(lambda: len(bucket.live()) == len(forever.FIRST) * forever.MOST, timeout=20)
+        await asyncio.sleep(0.4)
+        full = len(filler.asked)
+        # Across the border. Nothing changes at once: the player may only be passing through.
+        publish(app, zone_name="Westfall", speed=7.0)
         await asyncio.sleep(0.6)
-        assert conductor.bucket.zone == "elwynn-forest", "a thin bucket took over"
-        fill(westfall, forever.FIRST[1:5])
-        assert (await next_of(socket, "bucket"))["bucket"]["zone"] == "westfall"
+        assert len(filler.asked) == full and conductor.bucket is bucket
+        # Still there a little later: a phrase for every channel that is up, in Westfall's colours,
+        # into the same bucket, at the bucket's own tempo and key.
+        clock.now += music.SETTLE_S + 1
+        await until(lambda: len(filler.asked) >= full + 4)
+        await asyncio.sleep(0.5)
+        greeting = filler.asked[full:]
+        assert {key for key, *_ in greeting} == {"knight/elwynn-forest"}
+        assert {channel for _, channel, *_ in greeting} >= {"texture", "lead", "rhythm", "drums"}
+        assert len(greeting) == len({(channel, tier) for _, channel, tier, *_ in greeting}), "one for each channel that is up"
+        assert all(mood == tuple(atlas.profile_for("Westfall").mood) for *_, mood in greeting)
+        assert conductor.bucket is bucket and not (tmp_path / "var" / "buckets" / "knight" / "westfall").exists()
+        assert any("Now in Westfall" in note for note in conductor.notes)
+        # The player is told of each as it arrives, and nothing is set aside for them: the bucket grows.
+        assert len(bucket.live()) == full + len(greeting)
+        # Standing in Westfall does not go on greeting it.
+        asked = len(filler.asked)
+        clock.now += 60.0
+        await asyncio.sleep(0.6)
+        assert len(filler.asked) == asked
     finally:
         await client.close()
 

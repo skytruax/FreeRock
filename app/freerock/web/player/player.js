@@ -100,9 +100,9 @@
     if (!playing) return;
     if (playing.clips) {
       const count = engine && engine.bucket ? engine.bucket.clips.size : playing.clips.length;
-      $("music").textContent = "A song that never ends for " + playing.zone + " (" + playing.bpm + " BPM, " + playing.tonic
-        + "), put together as it goes from " + count + " phrases, each a verse, a build-up and a chorus for one instrument."
-        + " New ones are made while you play.";
+      $("music").textContent = "A song that never ends (" + (playing.style || playing.genre) + ", " + playing.bpm + " BPM, "
+        + playing.tonic + "), put together as it goes from " + count + " phrases, each a verse, a build-up and a chorus"
+        + " for one instrument. The bucket keeps growing while you play, in the colours of wherever you are.";
       return;
     }
     $("music").textContent = (borrowed ? "This place has no music of its own yet. Playing music made for " : "Music for ")
