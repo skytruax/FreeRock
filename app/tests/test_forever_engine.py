@@ -408,6 +408,7 @@ async def test_the_piece_is_chosen_for_the_kind_of_place(results):
 async def test_a_track_carries_on_through_a_calm_moment(results):
     order = of(results, "pieceCarriesOn")["order"]
     assert order[:3] == ["one", "two", "calm"], "the track was dropped for the calm piece: %s" % order
+    assert order[3] == "one", "the calm track went on after the calm moment was over: %s" % order
 
 
 async def test_a_border_crossed_in_the_last_seconds_of_a_piece_still_changes_the_music(results):

@@ -756,12 +756,15 @@ tests.pieceKin = async () => {
 // A track goes on through a calm moment (the game says "ember" after a fight), even though the
 // bucket has a piece written for calm moments; that piece comes when the track has ended.
 tests.pieceCarriesOn = async () => {
+  // ...and a track written for the calm moment ends when the moment is over, not three minutes later.
   const bucket = makePieces("carry", [{ id: "one", then: "two", story: "open", track: "t" }, { id: "two", phase: "one", story: "moment", track: "t" },
-                                      { id: "calm", role: "ember", serves: [0] }]);
+                                      { id: "calm", role: "ember", serves: [0, 1], story: "open", then: "calmer", track: "c" },
+                                      { id: "calmer", role: "ember", serves: [0, 1], phase: "calm", story: "theme", track: "c" }]);
   const run = await render(50, { bucket, target: Object.assign(mix(1), { place: "wander", also: [] }),
-                                 script: [[2, (engine) => engine.setTarget(Object.assign(mix(0), { place: "ember", also: [] }))]] });
+                                 script: [[2, (engine) => engine.setTarget(Object.assign(mix(0), { place: "ember", also: [] }))],
+                                          [18, (engine) => engine.setTarget(Object.assign(mix(1), { place: "wander", also: [] }))]] });
   const order = [];
-  for (const entry of run.engine.log) if (order[order.length - 1] !== pieceOf(entry)) order.push(pieceOf(entry));
+  for (const entry of [...run.engine.log].sort((a, b) => a.at - b.at)) if (order[order.length - 1] !== pieceOf(entry)) order.push(pieceOf(entry));
   return { order };
 };
 

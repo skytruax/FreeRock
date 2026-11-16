@@ -665,10 +665,11 @@
       const casting = after ? after.casting : null;
       if (after && options.natural) {
         // The track goes on into its next piece for as long as that piece answers what the
-        // game asks. Two things end a track early: the player has walked into another kind of
-        // place that the bucket has music of this sort for, or into a light place and the track
-        // is a heavy one. (A calm moment, a cave or nightfall does not: what is written for
-        // those comes when the track has ended.)
+        // game asks. Three things end a track early: the player has walked into another kind
+        // of place that the bucket has music of this sort for; or into a light place, and the
+        // track is a heavy one; or the track was written for a kind of moment (an inn, a cave,
+        // the night, a storm) and that moment is over. A track for walking about is not ended
+        // by a calm moment, a cave or nightfall: what is written for those comes when it has ended.
         const next = after.piece.meta.next ? index.get(after.piece.meta.next) : null;
         if (next && serves(next)) {
           const kind = (piece) => !kinds.length || !piece.meta.moods.length ? 0.5
@@ -680,7 +681,9 @@
             if (piece.meta.light) lighter = true;
           }
           const tooHeavy = this.target.light === true && !next.meta.light && lighter;
-          if (!nearer && !tooHeavy) return { piece: next, from: 0, laps: 1, cast: this._cast(next, casting), entry: "continue" };
+          const mine = next.meta.role;
+          const over = mine !== "wander" && mine !== place && !also.includes(mine);
+          if (!nearer && !tooHeavy && !over) return { piece: next, from: 0, laps: 1, cast: this._cast(next, casting), entry: "continue" };
         }
       }
       // A track has ended, or the moment has moved on from it. Now and then, where the bucket
@@ -691,7 +694,9 @@
       if (free && after && options.natural && this.random() < bucket.share) {
         return { piece: null, turns: 1 + Math.floor(this.random() * 2) };
       }
-      const want = after && options.natural ? STORY_NEXT[after.piece.meta.story] || "open" : "open";
+      // A track that was left part of the way through is followed by a piece that stands where
+      // its next one would have; one that has ended, by a beginning.
+      const want = after && options.natural && after.piece.meta.next ? STORY_NEXT[after.piece.meta.story] || "open" : "open";
       const shade = (piece) => {
         if (piece.meta.serves.includes(2) && !piece.meta.serves.includes(0)) return 0;      // a fight is a fight
         if (this.target.light === true) return piece.meta.light ? 0 : 5;
@@ -1553,10 +1558,12 @@
         }
         if (this.group) {
           if (before.place !== this.target.place || String(before.kinds) !== String(this.target.kinds)) this.standby = null;
-          // The player has walked into another kind of place in the last seconds of a piece,
-          // after the track's next piece was made ready: what follows is thought about again.
+          // The player has walked into another kind of place, or the kind of moment has changed,
+          // in the last seconds of a piece, after the track's next piece was made ready: what
+          // follows is thought about again.
           if (this.next && this.next.entry === "continue"
-              && (String(before.kinds) !== String(this.target.kinds) || before.light !== this.target.light)) this._dropNext();
+              && (String(before.kinds) !== String(this.target.kinds) || before.light !== this.target.light
+                  || before.place !== this.target.place || String(before.also) !== String(this.target.also))) this._dropNext();
           // A fight, or the calm after one, may call for another piece altogether.
           if (this.target.intensity >= WAVE_OFF) this._unrest(this.group);
           if (await this._regroup(false)) return;
