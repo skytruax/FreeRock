@@ -32,8 +32,20 @@ at a time turned out to repeat, and to answer the game too slowly. What replaced
   allowances are wide open by the player's choice; when ElevenLabs has nothing left, the song
   plays on from the bucket. `Bucket.add` takes any audio, so phrases made some other way can
   fill the same bucket.
-- **Three styles**: Knight Rock, Warcraft (an orchestral score in the old manner) and Trance,
-  chosen on the player page; a bucket per place and style.
+- **Three styles**: Knight Rock, Warcraft (an orchestral score in the old manner) and
+  Progressive House (uplifting, 110 beats a minute, a major key, happy and laid back; it took
+  the place of Trance the same evening), chosen on the player page. A style has one bucket,
+  which goes on growing wherever the player goes; phrases are asked for in the colours of the
+  place the player is in.
+- **Every change is a blend**, the way a DJ brings one record in under another: two bars for a
+  deck taking a new phrase, half a bar for a fight coming in, seconds for a channel coming up
+  or going down.
+- **Stems kept for study**: every phrase is also written as a FLAC file under `var/stems/`,
+  with `stems.csv` saying what each is and what it was asked for with. `freerock stems` brings
+  the folder up to date.
+- **The addon says what it found**: with the names it sends a line about itself (its version,
+  the nameplates the game has up, the units that answered, living enemies, those fighting,
+  dead ones left out), shown on the link page.
 - Also from that evening: the strip can be drawn faint and small and hides with the interface
   (version 2 added the player's speed and whether the target can be fought); the reader finds a
   faint strip beside a bright sky; a building the game names as a zone is treated as a place
