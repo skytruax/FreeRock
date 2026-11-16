@@ -88,6 +88,9 @@ RECORDED: dict[str, tuple[str, dict]] = {
     "recorder low long": (_EDGE + "Baroque Tenor Recorder/SusVib", WIND), "recorder low short": (_EDGE + "Baroque Tenor Recorder/Staccato", SHORT),
     "recorder bass long": (_EDGE + "Baroque Bass Recorder/SusVib", WIND),
     "ocarina long": (_EDGE + "Ocarina, Small/Sustain", WIND), "ocarina short": (_EDGE + "Ocarina, Small/Staccato", SHORT),
+    # A chromatic harmonica (a Hohner Super 64), with its own vibrato on the held notes and its accented notes for the short ones.
+    "harmonica long": (VC + "Aerophones/Free Aerophones/Harmonica-Hohner-Super64/Sustains/Vib", dict(WIND, attack=20.0, release=160.0)),
+    "harmonica short": (VC + "Aerophones/Free Aerophones/Harmonica-Hohner-Super64/Sustains/Accented", dict(WIND, attack=6.0, release=110.0)),
     # --- brass: TinySOL (IRCAM, CC BY 4.0), every semitone played soft, medium and loud, with no vibrato ---
     # Brass is the family that changes most with strength: a horn played loud is twenty decibels louder than one
     # played soft and has twenty-five more above 2.5 kHz. The brass there was before (VSCO 2) had one strength, a
@@ -307,7 +310,8 @@ RED, PEARL, BUSK = "avl:Red Zeppelin Drumkit", "avl:Black Pearl Drumkit", "avl:B
 # everything low at once (the 26-inch bass drum and both floor toms), 38 the deep floor tom,
 # 41 the other kit's, 43 the deep one struck at its edge, 45 and 47 the two kits' toms: so a
 # roll (38, 41, 38, 41) goes from drummer to drummer, as do the eighths that drive (43, 41).
-_KICK = (Player("kick", takes=((36, 36, 0.0),), gain=1.0, seat=0.0), Player(KICK_SUB, takes=((36, 60, 0.0),), gain=-1.0, seat=0.0))
+# ("think we need a little more kick drum", 2026-11-16: three decibels more of both.)
+_KICK = (Player("kick", takes=((36, 36, 0.0),), gain=4.0, seat=0.0), Player(KICK_SUB, takes=((36, 60, 0.0),), gain=2.0, seat=0.0))
 _WAR = (Player(PEARL + "#war", takes=((36, 41, 0.0), (38, 41, 0.0), (43, 43, 0.0), (45, 45, 0.0)), seat=-0.3),
         Player(RED + "#war", takes=((36, 41, -3.0), (41, 41, 0.0), (47, 45, 0.0)), seat=0.3),
         Player("war drums", gain=-3.0, seat=0.0)) + _KICK
@@ -361,7 +365,10 @@ SOUNDS: dict[str, Sound] = {
     "dulcimer": Sound((Player("psaltery", seat=-0.2),)),
     "organ": Sound((Player("organ quiet", under=0.62, seat=0.0), Player("organ loud", over=0.62, seat=0.0))),
     "harpsichord": Sound((Player("harpsichord", seat=-0.15),)),
-    "accordion": Sound((Player("small organ", seat=0.15), Player("small organ high", gain=-9.0, seat=0.15))),
+    # There is no accordion that sounds like one. A harmonica is the same kind of instrument (free reeds), was asked
+    # for by name ("i better hear harmonica and banjo", 2026-11-16) and is there as a real recording: it has the
+    # accordion's parts. The banjo's are a strumstick's: three strings and the same twang; there is no banjo here.
+    "accordion": _blown("harmonica", 0.15), "harmonica": _blown("harmonica", 0.1),
     "guitar": Sound((Player("folk harp", seat=-0.25),)), "steel guitar": Sound((Player("strumstick", seat=-0.25),)),
     "mandolin": Sound((Player("strumstick", octave=1, seat=0.2),)),
     "twelve string": Sound((Player("strumstick", seat=-0.25), Player("psaltery", octave=1, gain=-7.0, seat=-0.25))),
@@ -387,6 +394,8 @@ SOUNDS: dict[str, Sound] = {
     "boom": Sound((Player(PEARL + "#war", takes=((36, 41, 0.0),), seat=0.0), Player("boom", gain=-2.0, seat=0.0),
                    Player(SUB, gain=-6.0, octave=1, seat=0.0)) + _KICK),
     "kick": Sound(_KICK),
+    # What is stacked under MuseScore's double basses where they play out: a plain sub at their pitch.
+    "sub": Sound((Player(SUB, "long", over=0.5, gain=-9.0, octave=1, seat=0.0),)),
     "gong": Sound((Player("gong", seat=0.2),)), "anvil": Sound((Player("anvil", seat=-0.2),)),
 }
 
@@ -465,7 +474,7 @@ def family(name: str) -> str:
         return "strings short" if name.endswith(("short", "pizz")) else "strings"
     if first == "violin":
         return "solo strings short" if name.endswith(("short", "pizz")) else "solo strings"
-    if first in ("flute", "piccolo", "oboe", "clarinet", "bassoon", "recorder", "ocarina"):
+    if first in ("flute", "piccolo", "oboe", "clarinet", "bassoon", "recorder", "ocarina", "harmonica"):
         return "woodwind short" if name.endswith("short") else "woodwind"
     if first in ("horn", "trumpet", "trombone", "tuba"):
         return "brass short" if name.endswith("short") else "brass"
@@ -674,7 +683,7 @@ def drum_room() -> str:
                     low_boost=30.0, boost_freq=300.0, in_low_cut=4.0)
 
 
-LOW_CUT = {"violins": 170.0, "violas": 115.0, "celli": 58.0, "basses": 30.0, "violin": 175.0, "flute": 230.0, "piccolo": 480.0, "oboe": 210.0,
+LOW_CUT = {"harmonica": 200.0, "violins": 170.0, "violas": 115.0, "celli": 58.0, "basses": 30.0, "violin": 175.0, "flute": 230.0, "piccolo": 480.0, "oboe": 210.0,
            "clarinet": 130.0, "bassoon": 52.0, "recorder": 220.0, "ocarina": 400.0, "horn": 60.0, "trumpet": 150.0, "trombone": 55.0, "tuba": 30.0}
 VOICING = desk.TEMPLATES / "voicing.json"          # what the ear worked out for each instrument's top (see `levels`)
 _voicing: dict[str, dict] | None = None
@@ -969,7 +978,7 @@ def level(name: str) -> dict[str, float]:
 # The further back, the more of the hall is heard with it and the less of its top.
 DEPTHS = (("violin", 0.0), ("viola", 0.0), ("celli", 0.0), ("basses", 0.05), ("strumstick", 0.25), ("harp", 0.3), ("folk harp", 0.3),
           ("psaltery", 0.3), ("zither", 0.3), ("harpsichord", 0.35), ("piano", 0.35), ("kalimba", 0.4), ("mbira", 0.4),
-          ("recorder", 0.4), ("ocarina", 0.4), ("flute", 0.45), ("piccolo", 0.45), ("oboe", 0.45), ("clarinet", 0.45), ("bassoon", 0.45),
+          ("recorder", 0.4), ("ocarina", 0.4), ("harmonica", 0.3), ("flute", 0.45), ("piccolo", 0.45), ("oboe", 0.45), ("clarinet", 0.45), ("bassoon", 0.45),
           ("small organ", 0.5), ("horn", 0.6), ("balafon", 0.6), ("frame drum", 0.6), ("trumpet", 0.65), ("trombone", 0.65), ("tuba", 0.65),
           ("surge", 0.7), ("marimba", 0.7), ("vibes", 0.7), ("glock", 0.75), ("tube glock", 0.75), ("xylophone", 0.75), ("anvil", 0.75),
           ("hand chimes", 0.8), ("organ", 0.85), ("tubular bells", 0.85), ("war drum", 0.85), ("tom mallet", 0.85), ("kit", 0.85), ("avl", 0.85),
@@ -1102,7 +1111,10 @@ def _slurred(notes: list[Note], beat: float) -> list[Note] | None:
 
 
 MUSE_LEVEL = 6.0               # dB: MuseScore's recordings are laid in this much up (it leaves a lot of room over its sounds)
-MUSE_SEND = -20.0              # dB to the hall: Muse Sounds come with their own room; this only sets them in the same hall as the rest
+MUSE_SEND = -15.0              # dB to the hall: Muse Sounds come with a room of their own; this sets them in one hall with the rest
+MUSE_SENDS = {"Horn in F": -12.0, "Trumpet in B♭": -13.0, "Trombone": -13.0, "Tuba": -14.0, "Women": -11.0, "Men": -11.0, "Harp": -12.0, "Celesta": -11.0,
+              "Tubular Bells": -11.0, "Glockenspiel": -11.0}
+ECHOED = ("Harp", "Celesta", "Glockenspiel", "Marimba", "Vibraphone", "Classical Guitar")       # parts that get a tempo echo from side to side
 MUSE_CUT = {"Violins 1": 170.0, "Violin": 170.0, "Violas": 115.0, "Viola": 115.0, "Flute": 230.0, "Piccolo": 480.0, "Oboe": 210.0, "Trumpet in B♭": 150.0,
             "Clarinet in B♭": 130.0, "Women": 150.0, "Celesta": 200.0, "Glockenspiel": 400.0}
 
@@ -1113,11 +1125,19 @@ def _muse(voice: Voice, title: str, bpm: float, taste: float, room: float, seed:
     Sound plays a part that has several is drawn from the piece's `seed`."""
     import soundfile
     out = []
-    for part, way, notes in muse.shared(voice.instrument, voice.notes):
-        made = muse.perform(part, notes, bpm=bpm, way=way, sound=muse.voiced(part, seed))
+    for part, way, notes, sound in muse.shared(voice.instrument, voice.notes, seed):
+        made = muse.perform(part, notes, bpm=bpm, way=way, sound=sound)
+        effects = [equalise(low_cut=MUSE_CUT.get(part, 28.0))]
+        if part in ECHOED or way == "pizz":
+            effects.append(echo(bpm, 0.16))                    # plucked and struck things answer themselves, a dotted eighth later
+        if part in ("Horn in F", "Trumpet in B♭", "Trombone", "Tuba"):
+            effects.append(warm(0.25))                         # brass through tape: rounder at the top of a swell
         out.append(desk.Line("%s: %s" % (title, part), desk.bare(part, []), volume=_db(MUSE_LEVEL) * taste, pan=0.0,
-                             clips=[(0.0, soundfile.info(str(made)).duration, str(made))], send=_db(MUSE_SEND) * room,
-                             effects=[equalise(low_cut=MUSE_CUT.get(part, 28.0))]))
+                             clips=[(0.0, soundfile.info(str(made)).duration, str(made))], send=_db(MUSE_SENDS.get(part, MUSE_SEND)) * room,
+                             effects=effects))
+    if voice.instrument in ("basses", "basses slow"):
+        # Stacked under the basses where they play out: a synth's plain sub at their pitch, felt more than heard.
+        out += lines(Voice(0, notes=list(voice.notes), instrument="sub"), title + " sub", bpm, taste=taste, room=room, seed=seed)
     return out
 
 

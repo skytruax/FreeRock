@@ -50,7 +50,7 @@ def test_tremolo_and_plucked_strings_are_marked_and_struck_instruments_get_no_do
 
 def test_a_whole_string_orchestra_is_shared_out_by_register_and_a_piece_keeps_its_choice_of_sounds(monkeypatch):
     shared = muse.shared("strings", [Note(0.0, 1.0, pitch, 0.5) for pitch in (36, 50, 62, 80)])
-    assert [(part, [note.pitch for note in notes]) for part, _, notes in shared] == [
+    assert [(part, [note.pitch for note in notes]) for part, _, notes, _ in shared] == [
         ("Contrabasses", [36]), ("Violoncellos", [50]), ("Violas", [62]), ("Violins 1", [80])]
     assert muse.shared("tremolo", [Note(0.0, 1.0, 62, 0.5)])[0][1] == "trem"
     monkeypatch.setattr(muse, "sounds", lambda: True)
@@ -58,6 +58,6 @@ def test_a_whole_string_orchestra_is_shared_out_by_register_and_a_piece_keeps_it
     assert first == {part: muse.voiced(part, 7) for part in muse.CHOICES}                    # the same piece, the same orchestra
     assert all(first[part] in muse.CHOICES[part] for part in first)
     assert any({muse.voiced(part, seed) for seed in range(12)} == set(muse.CHOICES[part]) for part in muse.CHOICES)      # other pieces, other choices
-    assert muse.voiced("Harp", 7) is None                                                    # there is one harp
+    assert muse.voiced("Timpani", 7) is None                                                 # there is one set of kettledrums
     with pytest.raises(ValueError):
         muse.score("Harp", [], bpm=80.0)

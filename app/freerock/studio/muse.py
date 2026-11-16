@@ -27,6 +27,8 @@ import json
 import os
 import sqlite3
 import subprocess
+import threading
+import uuid
 import zipfile
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -51,7 +53,7 @@ MARKS = ((0.30, "pp"), (0.42, "p"), (0.54, "mp"), (0.66, "mf"), (0.80, "f"), (9.
 # how it is played: "" as written, "trem" with tremolo strokes, "pizz" plucked). An instrument that is a whole
 # string orchestra under one name is shared out by register, each section taking the notes that lie well for it.
 _STRINGS = (("Contrabasses", 0, 47), ("Violoncellos", 48, 59), ("Violas", 60, 71), ("Violins 1", 72, 127))
-PARTS: dict[str, tuple[tuple[str, int, int, str], ...]] = {
+PARTS: dict[str, tuple[tuple, ...]] = {
     "violins": (("Violins 1", 0, 127, ""),), "violins slow": (("Violins 1", 0, 127, ""),), "violas": (("Violas", 0, 127, ""),),
     "celli": (("Violoncellos", 0, 127, ""),), "celli slow": (("Violoncellos", 0, 127, ""),),
     "basses": (("Contrabasses", 0, 127, ""),), "basses slow": (("Contrabasses", 0, 127, ""),),
@@ -69,6 +71,24 @@ PARTS: dict[str, tuple[tuple[str, int, int, str], ...]] = {
     "bells": (("Tubular Bells", 0, 127, ""),), "piano": (("Piano", 0, 127, ""),),
     "choir": (("Men", 0, 59, ""), ("Women", 60, 127, "")), "oohs": (("Men", 0, 59, ""), ("Women", 60, 127, "")),
     "timpani": (("Timpani", 0, 127, ""),),
+    # Instruments Muse Sounds has no recording of are given the nearest it has, by name (a fifth word: the sound).
+    # Better a well-played relation than a poor recording of the thing itself: every one of these was a sample
+    # set of the studio's own before, and those were turned down by ear.
+    "guitar": (("Classical Guitar", 0, 127, "", "Muse Guitars Vol 1/Acoustic Nylon"),),
+    "steel guitar": (("Classical Guitar", 0, 127, "", "Muse Guitars Vol 1/Acoustic Steel Plucked"),),
+    "twelve string": (("Classical Guitar", 0, 127, "", "Muse Guitars Vol 1/Acoustic Steel Picked"),),
+    "mandolin": (("Classical Guitar", 0, 127, "", "Muse Guitars Vol 1/Acoustic Steel Picked"),),
+    "sitar": (("Classical Guitar", 0, 127, "", "Muse Guitars Vol 1/Acoustic Steel Plucked"),),
+    "koto": (("Harp", 0, 127, ""),), "dulcimer": (("Harp", 0, 127, ""),),
+    "fretless": (("Bass Guitar", 0, 127, "", "Muse Guitars Vol 1/Electric Bass"),),
+    "acoustic bass": (("Contrabasses", 0, 127, "pizz"),),
+    "harpsichord": (("Harpsichord", 0, 127, "", "Muse Keys/Harpsichord"),),
+    "music box": (("Celesta", 0, 127, "", "Muse Music Box/Jewellery Music Box"),),
+    "kalimba": (("Marimba", 0, 127, ""),), "church bell": (("Tubular Bells", 0, 127, ""),),
+    "recorder": (("Flute", 0, 127, "", "Muse Woodwinds/Flute 2"),), "whistle": (("Piccolo", 0, 127, ""),),
+    "pan flute": (("Flute", 0, 127, "", "Muse Woodwinds/Alto Flute"),), "shakuhachi": (("Flute", 0, 127, "", "Muse Woodwinds/Alto Flute"),),
+    "ocarina": (("Flute", 0, 127, "", "Muse Woodwinds/Flute 1"),),
+    "shenai": (("Oboe", 0, 127, ""),), "bagpipe": (("English Horn", 0, 127, ""),),
 }
 # What MuseScore has to be told about a part beside its name, for the part to be that instrument and not a
 # nameless staff played by its plain built-in sounds: the instrument's sound in MusicXML's list, and a program.
@@ -81,6 +101,7 @@ KINDS = {
     "Harp": ("pluck.harp", 47), "Celesta": ("keyboard.celesta", 9), "Piano": ("keyboard.piano", 1), "Men": ("voice.male", 53), "Women": ("voice.female", 53),
     "Timpani": ("drum.timpani", 48), "Glockenspiel": ("pitched-percussion.glockenspiel", 10), "Vibraphone": ("pitched-percussion.vibraphone", 12),
     "Marimba": ("pitched-percussion.marimba", 13), "Xylophone": ("pitched-percussion.xylophone", 14), "Tubular Bells": ("pitched-percussion.tubular-bells", 15),
+    "Classical Guitar": ("pluck.guitar.nylon-string", 25), "Bass Guitar": ("pluck.bass.electric", 34), "Harpsichord": ("keyboard.harpsichord", 7),
 }
 # Which Muse Sound plays a part, where it is not the one MuseScore picks by itself (its first: one horn, one
 # trumpet, the first violins): the sounds a part may be given, as they are filed under ~/Muse Sounds. A piece
@@ -94,10 +115,14 @@ CHOICES: dict[str, tuple[str, ...]] = {
     "Tuba": ("Muse Brass/Tuba", "Muse Brass/Cimbasso"),
     "Flute": ("Muse Woodwinds/Flute 1", "Muse Woodwinds/Flute 2"),
     "Piano": ("Muse Keys/Piano", "Muse Keys/Soft Piano", "Muse Keys/Upright Piano"),
+    "Harp": ("Muse Harp/Harp", "Muse Harp/Harp", "Muse Keys/Piano"),                       # in one piece out of three the harp's part is a piano's
+    "Celesta": ("Muse Keys/Celesta", "Muse Music Box/Joana's Music Box"),
+    "Oboe": ("Muse Woodwinds/Oboe", "Muse Woodwinds/Oboe", "Muse Woodwinds/English Horn"),
     "Women": ("Muse Choir/Women", "Muse Choir/Sopranos", "Muse Choir/Altos"),
     "Men": ("Muse Choir/Men", "Muse Choir/Tenors", "Muse Choir/Basses"),
 }
-STRUCK = ("Harp", "Celesta", "Glockenspiel", "Vibraphone", "Marimba", "Xylophone", "Tubular Bells", "Piano", "Timpani")      # no dots, no slurs: each note rings
+STRUCK = ("Harp", "Celesta", "Glockenspiel", "Vibraphone", "Marimba", "Xylophone", "Tubular Bells", "Piano", "Timpani", "Classical Guitar", "Bass Guitar",
+          "Harpsichord")      # no dots, no slurs: each note rings
 
 
 def program() -> Path:
@@ -293,6 +318,8 @@ def _sounding(pitches: list[int], span: int, voice: int, lengths, *, tied_in: bo
 
 
 _ids: dict[str, int] | None = None
+_busy: dict[str, threading.Lock] = {}
+_busy_lock = threading.Lock()
 
 
 def sound_id(sound: str) -> int:
@@ -362,18 +389,29 @@ def perform(part: str, notes: list[Note], *, bpm: float, way: str = "", sound: s
     if made.is_file():
         return made
     KEPT.mkdir(parents=True, exist_ok=True)
+    with _busy_lock:
+        mine = _busy.setdefault(name, threading.Lock())
+    with mine:                                                 # two parts with the same notes: the second waits and takes the first one's recording
+        if made.is_file():
+            return made
+        return _performed(part, text, name, made, profile, sound)
+
+
+def _performed(part: str, text: str, name: str, made: Path, profile: str, sound: str | None) -> Path:
+    once = uuid.uuid4().hex[:10]
     written = KEPT / (name + ".musicxml")
     written.write_text(text, encoding="utf-8")
-    fresh = KEPT / ("%s.%d.part.wav" % (name, os.getpid()))
+    fresh = KEPT / ("%s.%s.part.wav" % (name, once))
     if sound and profile == "MuseSounds":
         # Two steps: MuseScore turns the score into its own file, the sound is written into that, and MuseScore plays it.
-        plain, named = KEPT / ("%s.%d.plain.mscz" % (name, os.getpid())), KEPT / (name + ".mscz")
+        plain, named = KEPT / ("%s.%s.plain.mscz" % (name, once)), KEPT / ("%s.%s.mscz" % (name, once))
         done = _run(["--sound-profile", profile, "-o", str(plain), str(written)])
         if done.returncode != 0 or not plain.is_file():
             raise RuntimeError("MuseScore could not read the score of %s (%s):\n%s" % (part, written, (done.stderr or done.stdout)[-1500:]))
         _given(plain, sound, named)
         plain.unlink()
         done = _run(["-o", str(fresh), str(named)])
+        named.unlink()
     else:
         done = _run(["--sound-profile", profile, "-o", str(fresh), str(written)])
     if done.returncode != 0 or not fresh.is_file() or fresh.stat().st_size < 1000:
@@ -398,6 +436,8 @@ def _plain(recording: Path) -> bool:
     size = rate
     loud = int(np.argmax([float(np.square(mono[at:at + size]).sum()) for at in range(0, max(len(mono) - size, 1), size)])) * size
     cut = mono[max(loud - 15 * rate, 0):loud + 15 * rate]
+    if len(cut) < 2048:
+        return False
     power = np.abs(np.fft.rfft(cut * np.hanning(len(cut)))) ** 2
     if power.sum() <= 0.0:
         return False                                           # silence: nothing played it
@@ -405,13 +445,16 @@ def _plain(recording: Path) -> bool:
     return 10 * np.log10(power[hz > 16000].sum() / power.sum() + 1e-30) < -88.0
 
 
-def shared(written: str, notes: list[Note]) -> list[tuple[str, str, list[Note]]]:
-    """A written instrument's notes shared out among the parts that play it: (part, way, notes)."""
+def shared(written: str, notes: list[Note], seed: int = 0) -> list[tuple[str, str, list[Note], str | None]]:
+    """A written instrument's notes shared out among the parts that play it: (part, way,
+    notes, the Muse Sound that plays it: the one set down for the part, or the piece's own
+    choice by its `seed`, or None for the one MuseScore picks)."""
     out = []
-    for part, low, high, way in PARTS[written]:
+    for each in PARTS[written]:
+        part, low, high, way = each[:4]
         mine = [note for note in notes if low <= note.pitch <= high]
         if mine:
-            out.append((part, way, mine))
+            out.append((part, way, mine, (each[4] if sounds() else None) if len(each) > 4 else voiced(part, seed)))
     return out
 
 
@@ -419,7 +462,7 @@ def prepare(jobs: list[tuple[str, list[Note], float]], seed: int = 0, workers: i
     """Performs many written voices at once ((written instrument, notes, bpm) each), so that a
     whole piece's instruments are ready when its project is put together. `seed` is the
     piece's: it settles which Muse Sound each part is given."""
-    each = [(part, notes, bpm, way) for written, voice, bpm in jobs if written in PARTS for part, way, notes in shared(written, voice)]
+    each = [(part, notes, bpm, way, sound) for written, voice, bpm in jobs if written in PARTS for part, way, notes, sound in shared(written, voice, seed)]
     with ThreadPoolExecutor(max_workers=workers) as pool:
-        for finished in [pool.submit(perform, part, notes, bpm=bpm, way=way, sound=voiced(part, seed)) for part, notes, bpm, way in each]:
+        for finished in [pool.submit(perform, part, notes, bpm=bpm, way=way, sound=sound) for part, notes, bpm, way, sound in each]:
             finished.result()                                  # anything that went wrong stops the piece and says why

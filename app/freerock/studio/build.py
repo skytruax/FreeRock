@@ -46,6 +46,7 @@ RIDE = 0.42                    # how far each part of the story is brought up to
 # music makes room for its kick: a drawn curve, not a compressor that listens). How far each
 # channel is turned down under the hardest stroke, as a part of its level.
 DUCK = {"bass": 0.56, "texture": 0.8, "rhythm": 0.8, "lead": 0.9}
+MUSE_WORKERS = 5               # how many parts of a piece MuseScore performs at once
 FLOOR = {"open": {"rhythm": 1.0, "bass": 0.85, "drums": 0.6}, "theme": {"rhythm": 1.0, "bass": 0.85, "drums": 0.55},
          "rise": {"rhythm": 1.0, "bass": 0.9, "drums": 0.75}, "moment": {"rhythm": 1.0, "bass": 1.0, "drums": 0.9},
          "close": {"rhythm": 1.0, "bass": 0.85, "drums": 0.55}}
@@ -117,10 +118,20 @@ def stage(fam: Family, take: int) -> dict:
         for name, voice in written.voices[channel].items():
             if voice.notes:
                 humanise(voice, rng, timing=0.004 if channel == "drums" else 0.007, bpm=fam.bpm)
+    if muse.available() and not character.light:
+        # A layer on top, where the story comes to its moments: a choir sings the pad's chords with the strings.
+        from .score import Voice
+        spans = [(edges[index] / RATE * fam.bpm / 60.0, edges[index + 1] / RATE * fam.bpm / 60.0)
+                 for index, section in enumerate(fam.sections) if section.story == "moment"]
+        sung = [note for voice in written.voices["texture"].values() if voice.instrument in ("tremolo", "strings", "strings slow")
+                for note in voice.notes if any(first <= note.start < last for first, last in spans) and 43 <= note.pitch <= 79]
+        if sung and "choir" not in {voice.instrument for voice in written.voices["texture"].values()}:
+            written.voices["texture"]["choir at the moments"] = Voice(0, notes=[type(note)(note.start, note.length, note.pitch, 0.72) for note in sung],
+                                                                      instrument="choir")
     if muse.available():
         # MuseScore performs every instrument it has, several at a time, before the project is put together.
         muse.prepare([(voice.instrument, voice.notes, fam.bpm) for channel in CHANNELS for voice in written.voices[channel].values()
-                      if voice.notes and not voice.drums], seed=fam.seed * 31 + take)
+                      if voice.notes and not voice.drums], seed=fam.seed * 31 + take, workers=MUSE_WORKERS)
     folders = []
     for channel in CHANNELS:
         under = []
