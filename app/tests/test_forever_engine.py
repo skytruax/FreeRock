@@ -380,6 +380,16 @@ async def test_a_fight_cuts_in_with_its_own_piece_and_the_track_is_picked_up_aft
     assert fight["late"] == 0
 
 
+async def test_the_next_fight_goes_on_with_the_last_fights_track(results):
+    again = of(results, "pieceFightAgain")
+    assert again["second"] == again["first"], "the second fight began another track: %s" % again
+    # The first fight's piece came in at 10.5 s and was left on its bar line ten seconds in:
+    # the second fight picks it up there, two seconds into its second stretch.
+    assert again["secondClip"].endswith("-w1") and again["secondOffset"] == pytest.approx(2.0, abs=1e-6)
+    assert again["secondAt"] == pytest.approx(ORIGIN + 30.5, abs=1e-6), "it did not come in on the next beat"
+    assert again["late"] == 0
+
+
 async def test_a_fight_in_the_last_bars_of_a_piece_and_the_track_goes_on_from_the_next(results):
     late = of(results, "pieceFightAtTheEnd")
     assert late["brawlAt"] == pytest.approx(ORIGIN + 13.5, abs=1e-6)

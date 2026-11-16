@@ -101,6 +101,7 @@
   // Written pieces.
   const HANDOVER = 12.0;       // what follows a piece is made ready this long before the piece ends
   const RESUME_WITHIN = 900;   // a piece that a fight cut into is gone back to if the fight is over within this long
+  const FIGHT_AGAIN = 600;     // a fight's own track is gone on with if the next fight comes within this long
   const FREE_SHARE = 0.25;     // how often a stretch of loose phrases follows a track, where there are enough of them
   const FREE_ENOUGH = 3;       // ...which is this many for every channel
   const RING = 2;              // bars a piece rings on under the next, when the two are in keys that sit together
@@ -126,7 +127,10 @@
       this.pending = null;       // another place's bucket, whose first phrases are being fetched
       this.group = null;         // the five decks playing it
       this.next = null;          // the decks made ready for what follows, before their time has come
-      this.left = null;          // the piece a fight cut into, and how far it had got
+      // The pieces that were cut into, and how far each had got: the track a fight interrupted
+      // (gone back to when the fight is over), and the fight's own track (gone on with at the
+      // next fight, so that a fight's music gets past its opening over an evening).
+      this.left = { walk: null, fight: null };
       this.standby = null;       // the piece a fight would bring in, chosen ahead so that it can be fetched ahead
       this.restDue = null;       // when the next moment of silence is due, where pieces are strung together
       this.pieceAt = new Map();  // piece id -> when it was last played here
@@ -263,7 +267,7 @@
                         // how often a stretch of loose phrases is played between two tracks.
                         pieces: described.pieces || {}, index: null,
                         share: described.free_share === undefined ? FREE_SHARE : described.free_share };
-        this.left = null;
+        this.left = { walk: null, fight: null };
         this.standby = null;
         if (!this.started || this._quiet() || !this.group) {
           this.planned.clear();
@@ -458,11 +462,13 @@
         // What a fight would bring in: chosen now, so that it is here when the fight is.
         const ask = this._ask();
         if (ask < 2 && !this.standby) {
-          const item = this._nextItem(this.bucket, { ask: 2, except: this.group && this.group.piece ? this.group.piece.id : null });
+          const item = this._nextItem(this.bucket, { ask: 2, peek: true, except: this.group && this.group.piece ? this.group.piece.id : null });
           this.standby = item && item.piece && item.piece.meta.serves.includes(2) ? item : { piece: null };
         }
         if (this.standby && this.standby.piece) {
-          for (const channel of Object.keys(this.standby.cast)) ahead(this._part(this.standby, 0, channel, 2));
+          const piece = this.standby.piece;
+          const order = Math.min(Math.floor((this.standby.from || 0) / (piece.line * piece.bar) + 1e-6), piece.windows.length - 1);
+          for (const channel of Object.keys(this.standby.cast)) ahead(this._part(this.standby, order, channel, 2));
         }
       }
       if (this.group && this.group.piece) {
@@ -628,12 +634,14 @@
       const serves = (piece) => piece.meta.serves.includes(ask);
       const laps = (piece) => piece.windows.length === 1 && !piece.meta.next && piece.seconds < LAP_S
         ? Math.min(3, Math.max(1, Math.round(LAP_S / piece.seconds))) : 1;
-      const left = this.left;
-      if (left && !options.natural && options.ask === undefined && left.key === bucket.key && left.piece !== options.except
-          && index.has(left.piece) && serves(index.get(left.piece)) && now - left.at < RESUME_WITHIN) {
+      const slot = ask === 2 ? "fight" : "walk";
+      const left = this.left[slot];
+      if (left && !options.natural && left.key === bucket.key && left.piece !== options.except
+          && index.has(left.piece) && serves(index.get(left.piece)) && now - left.at < (slot === "fight" ? FIGHT_AGAIN : RESUME_WITHIN)
+          && !(this.target.place === "boss" && index.get(left.piece).meta.role !== "boss")) {
         const piece = index.get(left.piece);
         const from = Math.floor(left.position / piece.bar + 1e-6) * piece.bar;
-        this.left = null;
+        if (!options.peek) this.left[slot] = null;
         if (piece.seconds - from > 2 * piece.bar) return { piece, from, laps: 1, cast: this._cast(piece, left.casting), entry: "resume" };
         // It was all but over when the fight came: the track goes on from its next piece.
         const onward = piece.meta.next ? index.get(piece.meta.next) : null;
@@ -863,6 +871,7 @@
       const ready = this.standby && this.standby.piece && ask === 2 && !force && index.has(this.standby.piece.id);
       const standby = ready && (this.target.place !== "boss" || this.standby.piece.meta.role === "boss") ? this.standby : null;
       const item = standby || this._nextItem(this.bucket, { after: group, except: group.piece ? group.piece.id : null });
+      if (standby && standby.entry === "resume") this.left.fight = null;       // the fight's track is being gone on with
       this.standby = null;
       if (!item) return false;
       if (!force && !gone) {
@@ -877,8 +886,10 @@
       const when = Math.max(this._lineAfter(group, now + NOTICE, harder ? 0.25 : 1), group.start);
       const fade = Math.min((harder ? BLEND_FIGHT : BLEND_EASING) * group.bar, 6.0);
       if (group.piece && !gone && !force) {
-        this.left = { key: this.bucket.key, piece: group.piece.id, position: (when - group.origin) % group.piece.seconds,
-                      at: now, casting: group.casting };
+        const mine = group.piece.meta.serves;
+        this.left[mine.includes(0) || mine.includes(1) ? "walk" : "fight"] = {
+          key: this.bucket.key, piece: group.piece.id, position: (when - group.origin) % group.piece.seconds,
+          at: now, casting: group.casting };
       }
       this._dropNext();
       this._release(group, when, fade);
@@ -1645,7 +1656,7 @@
         if (name !== "died" || !this.started || !this.group) return;
         const now = this.ctx.currentTime;
         this._dropNext();
-        this.left = null;
+        this.left = { walk: null, fight: null };
         for (const deck of Object.values(this.group.decks)) {
           for (const pass of deck.passes) {
             if (pass.start > now) { pass.source.stop(0); continue; }
@@ -1671,7 +1682,7 @@
         const group = this.group;
         if (!this.started || !group) return;
         if (group.piece) {                                 // a piece: another takes its place
-          this.left = null;
+          this.left.walk = null;
           await this._regroup(true);
           return;
         }

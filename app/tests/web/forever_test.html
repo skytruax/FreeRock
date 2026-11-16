@@ -660,6 +660,18 @@ tests.pieceFight = async () => {
            backOffset: back.length ? back[0].offset : null, late: run.engine.late, piece: run.engine.status().piece };
 };
 
+// A second fight goes on with the first fight's track from the bar it had reached.
+tests.pieceFightAgain = async () => {
+  const bucket = makePieces("again", [{ id: "walk", windows: 8 }, { id: "brawl", windows: 4, serves: [2], role: "battle" },
+                                      { id: "scrap", windows: 4, serves: [2], role: "battle" }]);
+  const run = await render(50, { bucket, script: [[10.3, (engine) => engine.setTarget(mix(2))], [20.3, (engine) => engine.setTarget(mix(1))],
+                                                  [30.3, (engine) => engine.setTarget(mix(2))]] });
+  const fights = run.engine.log.filter((entry) => pieceOf(entry) !== "walk").sort((a, b) => a.at - b.at);
+  const first = fights[0], second = fights.find((entry) => entry.at > 30);
+  return { first: first ? pieceOf(first) : null, second: second ? pieceOf(second) : null, secondClip: second ? second.clip : null,
+           secondAt: second ? second.at : null, secondOffset: second ? second.offset : null, late: run.engine.late };
+};
+
 // A fight that comes in the last bars of a piece: afterwards the track goes on from its next piece.
 tests.pieceFightAtTheEnd = async () => {
   const bucket = makePieces("late", [{ id: "one", windows: 2, then: "two", story: "open", track: "t" },

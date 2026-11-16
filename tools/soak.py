@@ -70,6 +70,8 @@ async def evening(http: aiohttp.ClientSession, style: str) -> dict:
             status = await music()
             player = next((each for each in status["players"] if each.get("forever")), None)
             if player is not None:
+                if player.get("late", 0) > late:
+                    print("  %5.0f s  (a part came in late: %d so far)" % (now, player["late"]), flush=True)
                 late = max(late, player.get("late", 0))
                 piece = player.get("piece")
                 playing = "+".join(sorted(player.get("playing", {})))
