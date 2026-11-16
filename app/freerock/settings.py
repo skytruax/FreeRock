@@ -137,6 +137,10 @@ class Settings:
         if name not in self.CHANGEABLE:
             raise ValueError("%r is not a setting; the settings are %s" % (name, ", ".join(self.CHANGEABLE)))
         if name == "genre":
+            # The style that was trance is now progressive house. A settings file written
+            # before that still names it the old way, and means the style it has become.
+            if value == "trance":
+                value = "house"
             if value not in self.GENRES:
                 raise ValueError("genre must be one of %s, not %r" % (", ".join(self.GENRES), value))
             self.genre = str(value)

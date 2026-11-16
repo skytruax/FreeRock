@@ -20,6 +20,11 @@
 // Nothing here waits on a timer to keep the music going: every start, cut and fade is scheduled
 // ahead on the audio clock. tick() only decides what comes next, and is safe to call late.
 //
+// It keeps to the plainest ways of moving a level (set it, ramp it, let it settle), cancels what
+// was laid down only from a moment on, and keeps its own account of where each level it moves
+// is. Browsers differ in everything beyond that: one will not take a new instruction in the
+// middle of a curve, another cannot be asked where a level is while it is moving.
+//
 // The same file runs in the live page and in the offline tests.
 (function (root) {
   "use strict";
@@ -49,7 +54,7 @@
   const BLEND_EASING = 2;
   const BLEND_FIGHT = 0.5;
   const BLEND_ENTRY = 1;     // a tune coming in after sitting out a verse
-  const CURVE_POINTS = 64;
+  const BLEND_STEPS = 8;     // a blend's curve is laid down as this many straight pieces
   // How long a phrase stays before the deck wants another, in passes through it (least, most).
   // Tunes and riffs are what the ear follows, so they move on soonest.
   const STAY = { texture: [2, 3], lead: [1, 2], rhythm: [2, 3], drums: [3, 5], bass: [3, 5] };
@@ -119,6 +124,7 @@
       this.holdUntil = 0;        // nothing new starts before this (the music is running down)
       this.silenceUntil = 0;     // a moment of silence lasts until this
       this.afterSilence = false; // the next music to start follows a silence, and fades in
+      this.moves = new WeakMap(); // for each level this engine has moved: from what, to what, and when
       this.log = [];             // what was scheduled and when
       this._busy = Promise.resolve();
 
@@ -456,6 +462,7 @@
         if (rise) {
           node.gain.setValueAtTime(0, origin);
           node.gain.linearRampToValueAtTime(1, origin + rise);
+          this.moves.set(node.gain, { from: 0, to: 1, t0: origin, t1: origin + rise });
         }
       }
       // The shape of a turn of the form is laid over both halves of the mix: held back in the
@@ -489,9 +496,11 @@
     _release(group, at, fall) {
       if (!group) return;
       for (const node of [group.bed, group.rest]) {
+        const from = this._valueAt(node.gain, at);
         node.gain.cancelScheduledValues(at);
-        node.gain.setValueAtTime(node.gain.value, at);
+        node.gain.setValueAtTime(from, at);
         node.gain.linearRampToValueAtTime(0, at + fall);
+        this.moves.set(node.gain, { from, to: 0, t0: at, t1: at + fall });
       }
       for (const deck of Object.values(group.decks)) {
         for (const pass of deck.passes) pass.source.stop(at + fall + 0.02);
@@ -532,8 +541,7 @@
       if (up > 0.1) {
         // A blend: the level follows a quarter of a sine, so that with the other phrase falling
         // along the matching curve the two together stay as loud as either alone.
-        gain.gain.setValueAtTime(0, at);
-        gain.gain.setValueCurveAtTime(this._curve(base, true), at, up);
+        this._blend(gain.gain, base, at, up, true);
       } else if (up > 0) {
         gain.gain.setValueAtTime(0, at);
         gain.gain.linearRampToValueAtTime(base, at + up);
@@ -554,15 +562,15 @@
       return pass;
     }
 
-    // A quarter of a sine from nothing up to `top`, or from `top` down to nothing: the two
-    // halves of a blend.
-    _curve(top, rising) {
-      const curve = new Float32Array(CURVE_POINTS);
-      for (let i = 0; i < CURVE_POINTS; i++) {
-        const along = (i / (CURVE_POINTS - 1)) * Math.PI / 2;
-        curve[i] = top * (rising ? Math.sin(along) : Math.cos(along));
+    // One half of a blend: a level that follows a quarter of a sine from nothing up to `top`
+    // over `seconds`, or from `top` down to nothing. Laid down as a run of short straight
+    // ramps, which every browser lets be cut short later; a single curve it may not.
+    _blend(param, top, at, seconds, rising) {
+      param.setValueAtTime(rising ? 0 : top, at);
+      for (let step = 1; step <= BLEND_STEPS; step++) {
+        const along = (step / BLEND_STEPS) * Math.PI / 2;
+        param.linearRampToValueAtTime(top * (rising ? Math.sin(along) : Math.cos(along)), at + seconds * step / BLEND_STEPS);
       }
-      return curve;
     }
 
     // The phrase a deck is leaving plays on from its own beginning for `fall` seconds, fading
@@ -574,8 +582,7 @@
       const source = ctx.createBufferSource();
       source.buffer = buffer;
       const gain = ctx.createGain();
-      gain.gain.setValueAtTime(base, at);
-      gain.gain.setValueCurveAtTime(this._curve(base, false), at, fall);
+      this._blend(gain.gain, base, at, fall, false);
       source.connect(gain).connect(deck.level);
       source.start(at, 0);
       source.stop(at + fall + 0.01);
@@ -610,10 +617,11 @@
           // It falls from wherever it is at that moment: it may itself still be on its way in.
           // The fall is given its starting point outright, or it would be taken to start where
           // the phrase did and the phrase would drop away at once.
+          // What was laid down from `when` on goes, and with it the rest of any rise the
+          // phrase was in the middle of; the first ramp puts that rise back as far as `when`.
           const from = this._levelAt(pass, when);
-          if (level.cancelAndHoldAtTime) level.cancelAndHoldAtTime(when);
-          else level.cancelScheduledValues(when);
-          level.setValueAtTime(from, when);
+          level.cancelScheduledValues(when);
+          level.linearRampToValueAtTime(from, when);
           level.linearRampToValueAtTime(0, when + audible);
           pass.source.stop(when + audible + 0.01);
           pass.end = when + audible;
@@ -789,20 +797,15 @@
       const length = group.line * group.bar;
       const start = group.origin + turn * length;
       const build = start + group.form.verse * group.bar, chorus = build + group.form.build * group.bar;
-      if (from >= chorus) return;
+      if (from >= build) return;         // the rise is already under way, or over: it stands as laid down
       // In a turn that eases off, the drums and the bass sit back all the way through.
       const eased = this._waveAt(group, start + 0.001) < 0;
       for (const node of [group.bedArc, group.restArc]) {
         const top = eased && node === group.restArc ? EASE_LEVEL : 1.0;
         const low = this._verseGain(group) * top;
-        if (from >= build) {
-          // Caught in the build-up: carry on up from wherever it is.
-          node.gain.setValueAtTime(Math.max(node.gain.value, 0.001), from);
-        } else {
-          if (from <= start && turn === 0) node.gain.setValueAtTime(low, start);
-          else node.gain.setTargetAtTime(low, Math.max(from, start), from > start ? 0.15 : 0.6);
-          node.gain.setValueAtTime(low, build);
-        }
+        if (from <= start && turn === 0) node.gain.setValueAtTime(low, start);
+        else node.gain.setTargetAtTime(low, Math.max(from, start), from > start ? 0.15 : 0.6);
+        node.gain.setValueAtTime(low, build);
         node.gain.exponentialRampToValueAtTime(top, chorus);
       }
       const sweep = group.bucket.arc.sweep_hz || 0;
@@ -831,11 +834,10 @@
       const now = this.ctx.currentTime, length = group.line * group.bar;
       if (now <= group.origin) return;
       const turn = Math.floor((now - group.origin) / length);
-      for (const param of [group.bedArc.gain, group.restArc.gain, group.sweep.frequency]) {
-        if (param.cancelAndHoldAtTime) param.cancelAndHoldAtTime(now);
-        else { param.cancelScheduledValues(now); param.setValueAtTime(param.value, now); }
-      }
-      group.sweep.frequency.setTargetAtTime(20, now, 0.01);
+      // Only a verse is shaped again. Once the build-up has begun the rise stands as it was
+      // laid down, and the chorus is at full either way.
+      if (now >= group.origin + turn * length + group.form.verse * group.bar) return;
+      for (const param of [group.bedArc.gain, group.restArc.gain, group.sweep.frequency]) param.cancelScheduledValues(now);
       this._shape(group, turn, now);
       group.arcTurn = turn + 1;          // what was laid down beyond this turn went with the rest
     }
@@ -851,8 +853,10 @@
       if (this.target.intensity >= WAVE_OFF) { group.restTurn += 1; return; }
       const fade = Math.min(REST_FADE_BARS * group.bar, 6.0);
       for (const node of [group.bed, group.rest]) {
-        node.gain.setValueAtTime(1, Math.max(at - fade, now));
+        const from = Math.max(at - fade, now), level = this._valueAt(node.gain, from);
+        node.gain.setValueAtTime(level, from);
         node.gain.linearRampToValueAtTime(0, at);
+        this.moves.set(node.gain, { from: level, to: 0, t0: from, t1: at });
       }
       group.endAt = at;
       this.silenceUntil = at + group.bucket.rest.for_s * (0.6 + 0.8 * this.random());
@@ -965,16 +969,31 @@
       });
     }
 
+    // Where a level this engine moves is at a moment, by the engine's own account of its last
+    // move. A level that has never been moved is where it was put.
+    _valueAt(param, time) {
+      const move = this.moves.get(param);
+      if (!move) return param.value;
+      if (time >= move.t1) return move.to;
+      if (time <= move.t0) return move.from;
+      const along = (time - move.t0) / (move.t1 - move.t0);
+      return move.exponential ? move.from * Math.pow(move.to / move.from, along)
+                              : move.from + (move.to - move.from) * along;
+    }
+
+    // Moves a level to `value` over `seconds` from wherever it is now. The ramp is given its
+    // starting point outright: without one, a level that has never been moved is taken to have
+    // been moving since the page was opened, and jumps nearly all the way at once.
     _ramp(param, value, seconds, exponential) {
       const now = this.ctx.currentTime;
-      if (param.cancelAndHoldAtTime) param.cancelAndHoldAtTime(now);
-      else param.cancelScheduledValues(now);
-      // The ramp has to be given where it starts from. Without this a level that has never been
-      // moved before is taken to have been moving since the page was opened, and jumps nearly
-      // all the way at once: a channel that should fade in over a second cuts in.
-      param.setValueAtTime(param.value, now);
-      if (exponential) param.exponentialRampToValueAtTime(Math.max(value, 1), now + seconds);
-      else param.linearRampToValueAtTime(value, now + seconds);
+      const floor = exponential ? 1 : -Infinity;
+      const from = Math.max(this._valueAt(param, now), floor), to = Math.max(value, floor);
+      param.cancelScheduledValues(now);
+      param.setValueAtTime(from, now);
+      if (!(seconds > 0)) param.setValueAtTime(to, now);
+      else if (exponential) param.exponentialRampToValueAtTime(to, now + seconds);
+      else param.linearRampToValueAtTime(to, now + seconds);
+      this.moves.set(param, { from, to, t0: now, t1: now + Math.max(seconds, 0), exponential: Boolean(exponential) });
     }
 
     _levels(before, wasQuiet) {
@@ -982,7 +1001,7 @@
       if (this.group) {
         for (const deck of Object.values(this.group.decks)) {
           const level = this._wanted(deck.channel).level;
-          const was = deck.level.gain.value;
+          const was = this._valueAt(deck.level.gain, this.ctx.currentTime);
           if (Math.abs(level - was) < 1e-4) continue;
           const seconds = quick ? t.fade_s : level > was ? UP[deck.channel] : DOWN[deck.channel];
           this._ramp(deck.level.gain, level, seconds);
@@ -1045,7 +1064,7 @@
             pass.source.playbackRate.linearRampToValueAtTime(0.3, now + WIND_DOWN);
             pass.source.stop(now + WIND_DOWN + 0.05);
             pass.gain.gain.cancelScheduledValues(now);
-            pass.gain.gain.setValueAtTime(pass.base, now);
+            pass.gain.gain.setValueAtTime(this._levelAt(pass, now), now);
             pass.gain.gain.linearRampToValueAtTime(0, now + WIND_DOWN);
           }
         }

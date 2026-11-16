@@ -27,7 +27,14 @@
     }
   }
   window.addEventListener("error", (event) => problem(event.message + " (" + event.filename + ":" + event.lineno + ")"));
-  window.addEventListener("unhandledrejection", (event) => problem(String(event.reason && event.reason.stack || event.reason)));
+  window.addEventListener("unhandledrejection", (event) => problem(describe(event.reason)));
+
+  // What went wrong and where. Some browsers leave the message out of the trace, so both are given.
+  function describe(error) {
+    if (!error) return String(error);
+    const said = String(error.message || error), trace = error.stack ? String(error.stack) : "";
+    return trace.includes(said) ? trace : (error.name ? error.name + ": " : "") + said + (trace ? "\n" + trace : "");
+  }
 
   function banner(text) {
     $("banner").hidden = !text;
@@ -160,7 +167,7 @@
     const scheme = location.protocol === "https:" ? "wss://" : "ws://";
     socket = new WebSocket(scheme + location.host + "/ws/player");
     socket.onopen = () => { retry = 500; lostAt = null; if (!outdated) banner(""); $("link").textContent = "Connected. Waiting for the game."; };
-    socket.onmessage = (event) => { receive(JSON.parse(event.data)).catch((error) => problem(String(error && error.stack || error))); };
+    socket.onmessage = (event) => { receive(JSON.parse(event.data)).catch((error) => problem(describe(error))); };
     socket.onclose = () => {
       if (lostAt === null) lostAt = Date.now();
       banner("The FreeRock server cannot be reached. The music carries on for a minute; trying again…");
@@ -256,7 +263,7 @@
   setInterval(() => {
     if ($("pretend").open && Date.now() % 15000 < 1000) fillZones().catch((error) => problem(String(error)));
     if (!engine) return;
-    engine.tick().catch((error) => problem(String(error && error.stack || error)));
+    engine.tick().catch((error) => problem(describe(error)));
     const status = engine.status();
     if (status.forever) {
       // The five decks: which channels can be heard, and how hard each is playing.
