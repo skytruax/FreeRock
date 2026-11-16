@@ -12,6 +12,14 @@ track is for: a village dance comes to a merry tutti of fiddles and tambourine, 
 the mountains to horns and timpani. A fight does not wait to begin and its valley is only a
 breath; a night piece keeps the whole arc under its breath.
 
+The drums. A fight has war drums nearly all the way (an ensemble of big drums, with an
+ostinato of the take's own), and heavy music for walking has them from each rise to the moment
+it comes to; frame drums have the quieter drive, and in lighter music of the desert, the
+jungle and the highlands they are all there is. An arrival is marked: for the last beat or two
+before it the tune rests and the accompaniment stops striking, while the drums roll and a
+cymbal swells; then a deep stroke lands on its first beat, and at the summit of the heaviest
+pieces a gong. Music for the night, the inn and the depths has none of this.
+
 The player knows five words for where a piece stands in a story (open, theme, rise, moment,
 close). A long story uses three of them more than once: both themes and the valley are
 "theme", the build and the climb "rise", the arrival and the summit "moment".
@@ -89,6 +97,12 @@ INSTRUMENTS = {
     "lead guitar": I(0, 27, 52, 86, 67, wired=True), "picked bass": I(0, 34, 28, 55, 38, held=False),
     "rock organ": I(0, 18, 36, 84, 60, level=0.8), "harmonica": I(0, 22, 60, 84, 72),
     "fretless": I(0, 35, 28, 60, 40),
+    # The big drums and what marks an arrival. These are found by name alone (their bank and
+    # program stand for nothing). A war drum's or a frame drum's pitch is its size: 36 is the
+    # biggest war drum, 45 the lowest frame drum. The others have one note each.
+    "war drums": I(0, 116, 36, 47, 41, held=False), "frame drums": I(0, 117, 45, 57, 50, held=False),
+    "boom": I(0, 116, 36, 36, 36, held=False), "gong": I(0, 14, 48, 48, 48, held=False),
+    "swell": I(0, 119, 49, 49, 49, held=False), "anvil": I(0, 113, 60, 60, 60, held=False),
 }
 
 # Percussion: a kit (its program on the drum channel) and its strokes by name.
@@ -124,6 +138,7 @@ LOUD = {
     # Not measured one by one: taken as their nearest relation.
     "violins slow": -26.5, "violas": -25.3, "celli slow": -28.0, "basses slow": -31.0, "celli pizz": -28.9,
     "basses pizz": -29.5, "twelve string": -32.4,
+    "war drums": -30.0, "frame drums": -30.0, "boom": -30.0, "gong": -30.0, "swell": -30.0, "anvil": -30.0,
 }
 LEVEL = -34.0                  # every instrument is brought to this, at the same setting of the player
 
@@ -1242,6 +1257,8 @@ DESKS = {
 }
 # Who doubles a tune an octave above it rather than where the tune is: high woodwinds and bells.
 HIGH = ("flute", "piccolo", "whistle", "recorder", "ocarina", "pan flute", "glock", "celesta", "xylophone")
+# The orchestra's own low drums: what the war drums stand in for while they play.
+LOW = ("boom", "great drum", "taiko", "deep")
 
 
 # ---------------------------------------------------------------------------------------------
@@ -1276,9 +1293,22 @@ class Take:
         self.total = at
         self.heavy = self.ch.weight >= 0.8
         self.fight = self.ch.role in FIGHTS
+        # The breath before an arrival: for the last beat or two of each rise the tune rests and
+        # the accompaniment stops striking, so that the downbeat lands the harder. It is the
+        # last beat, or where that would be over too soon to hear, the last two (in six-eight
+        # and the odd metres, the last group of the bar).
+        beat_s = 60.0 / fam.bpm
+        sizes = (1.0, 2.0) if self.pulse == 1.0 else (self.group[-1], self.group[-1] + self.group[-2 if len(self.group) > 1 else -1])
+        self.breath = min(next((size for size in sizes if size * beat_s >= 0.45), sizes[-1]), self.beats / 2)
+        self.gaps = [(first + section.bars * self.beats - self.breath, first + section.bars * self.beats)
+                     for section, first, _, _ in self.spans if section.part in ("build", "climb")]
         self.cast()
-        for write in (self.lead, self.texture, self.rhythm, self.bass, self.drums):
+        for write in (self.lead, self.texture, self.rhythm, self.bass, self.drums, self.war_drums, self.marks):
             write()
+
+    def breathing(self, at: float) -> bool:
+        """Whether a moment is in the breath before an arrival."""
+        return any(first - 1e-6 <= at < last - 1e-6 for first, last in self.gaps)
 
     # --- the players -----------------------------------------------------------------------
     def cast(self) -> None:
@@ -1320,6 +1350,19 @@ class Take:
         # and the music of a great city come home.
         homeward = self.fight or "regal" in ch.kinds or rng.random() < 0.5
         self.rest = 0 if homeward else 4
+        # The big drums and what marks an arrival (`war_drums` and `marks`). A fight has war
+        # drums nearly all the way, and so has the heavy music for walking from each rise to the
+        # moment it comes to. A lighter piece of the desert, the jungle or the highlands has
+        # hand drums instead. Music for the night, the inn and the depths has none of this.
+        walk = ch.role == "wander"
+        hand = len(ch.kinds) < len(KINDS_ALL) and bool(set(ch.kinds) & {"desert", "jungle", "highland"})
+        self.has_war = self.fight or (walk and self.heavy)
+        self.has_frames = not ch.band and (self.has_war or (walk and ch.weight >= 0.6 and hand))
+        self.hand = hand                                         # hand drums go under its second theme
+        self.forge = (walk or self.fight) and any("anvil" in name for name in ch.grooves)   # the "ting" of its groove is an anvil
+        self.embers = self.has_war and not ch.band and not self.forge and len(ch.kinds) < len(KINDS_ALL) and "infernal" in ch.kinds
+        self.has_swell = self.fight or (walk and ch.weight >= 0.6)
+        self.has_gong = self.has_war and not ch.band and ch.weight >= 0.9
 
     def voice(self, channel: str, name: str, tag: str = "") -> Voice:
         have = self.voices[channel]
@@ -1336,7 +1379,8 @@ class Take:
             have["kit"] = Voice(KITS[self.ch.kit][0], drums=True, instrument="kit " + self.ch.kit)
         return have["kit"]
 
-    def put(self, channel: str, name: str, start: float, length: float, pitch: int, loud: float, tag: str = "") -> None:
+    def put(self, channel: str, name: str, start: float, length: float, pitch: int, loud: float, tag: str = "",
+            tied: bool = False) -> None:
         inst = INSTRUMENTS[name]
         while pitch < inst.low:
             pitch += 12
@@ -1344,7 +1388,9 @@ class Take:
             pitch -= 12
         if inst.held:
             # A bow or a breath needs a moment to speak: no note of theirs is shorter than this.
-            length = max(length * 0.97, 0.11 * self.fam.bpm / 60.0)
+            # A note ends a little before the next is due; one that is `tied` on (a held chord
+            # that goes straight into the next) only a twentieth of a second before.
+            length = max(length - 0.05 * self.fam.bpm / 60.0 if tied else length * 0.97, 0.11 * self.fam.bpm / 60.0)
         self.voice(channel, name, tag).add(start, length, pitch, loud)
 
     def desk(self, name: str, rank: int, count: int) -> tuple[str, str]:
@@ -1485,9 +1531,11 @@ class Take:
                 self.sing("lead", name, line, first + bar * beats, key, chords, first, loud=loud, octave=octave, tag=tag)
 
             def run_up(players: list[str]) -> None:
-                """The last bar of a rise runs up the scale to where the tune will begin."""
-                step = self.pulse / 2 if fam.bpm < 110 else self.pulse
-                count = max(int(round(beats / step)), 2)
+                """The last bar of a rise runs up the scale to where the tune will begin, and
+                stops short of the bar line: a breath before the arrival."""
+                room = beats - self.breath
+                step = min(self.pulse / 2 if fam.bpm < 110 else self.pulse, room / 2)
+                count = max(int(round(room / step)), 2)
                 top = tune.notes[0][2] + 7
                 run = Line([(index * step, step, top - (count - index), 0.7 + 0.3 * index / count) for index in range(count)])
                 for name in players:
@@ -1693,11 +1741,11 @@ class Take:
                         continue                                    # the same note again: it is held over the bar line
                     if player in held:
                         since, was = held[player]
-                        self.put("texture", who[player][0], since, at - since, was, self.hard(0.55, 1.0), tag=who[player][1])
+                        self.put("texture", who[player][0], since, at - since, was, self.hard(0.55, 1.0), tag=who[player][1], tied=True)
                     held[player] = (at, pitch)
             end = first + bars * beats
             for player, (since, was) in held.items():
-                self.put("texture", who[player][0], since, end - since, was, self.hard(0.55, 1.0), tag=who[player][1])
+                self.put("texture", who[player][0], since, end - since, was, self.hard(0.55, 1.0), tag=who[player][1], tied=True)
             for swell in swells:
                 swell.swells.append((end - 0.01, 0.3 + 0.62 * section.level[1]))
             if part in ("arrival", "summit") and self.heavy and not ch.band:
@@ -1754,6 +1802,8 @@ class Take:
             Where the strings play the figure each section has its own note of the chord; and a
             `short` note from a bow is kept short enough to be a short stroke of it, not a long
             one cut off."""
+            if self.breathing(at):
+                return                                          # the breath before an arrival
             who, tag = self.desk(name, rank, 3)
             if short and INSTRUMENTS[who].held:
                 length = min(length, 0.2 * self.fam.bpm / 60.0)
@@ -1858,6 +1908,8 @@ class Take:
                         hits = hits + [(on, None) for on in [index * half for index in range(slots)]
                                        if not any(abs(on - at) < 1e-6 for at, _ in hits)]
                     for on, length in sorted(hits, key=lambda hit: hit[0]):
+                        if self.breathing(bar_at + on):
+                            continue
                         if length is None:
                             if thin:
                                 continue
@@ -1888,6 +1940,10 @@ class Take:
         inst = INSTRUMENTS[name]
         one, two = self.bass_way, self.bass_way_b
         drive = "eight" if ch.band and self.heavy else "pulse"
+
+        def low(at: float, length: float, pitch: int, loud: float) -> None:
+            if not self.breathing(at):                          # no new note in the breath before an arrival
+                self.put("bass", name, at, length, pitch, loud)
         for section, first, key, chords in self.spans:
             part, bars = section.part, section.bars
             for bar, chord in enumerate(chords):
@@ -1905,34 +1961,34 @@ class Take:
                 way = {"first": one, "second": two, "build": one, "arrival": one, "valley": two if self.fight else "long",
                        "climb": two if along < 0.5 else drive, "summit": one, "close": "long"}[part]
                 if way == "long":
-                    self.put("bass", name, bar_at, beats, root, loud)
+                    low(bar_at, beats, root, loud)
                 elif way == "two":
                     for index, on in enumerate(starts):
                         length = (starts[index + 1] if index + 1 < len(starts) else beats) - on
-                        self.put("bass", name, bar_at + on, length, root + (7 if index % 2 and bar % 2 else 0), loud * (1.0 if index == 0 else 0.85))
+                        low(bar_at + on, length, root + (7 if index % 2 and bar % 2 else 0), loud * (1.0 if index == 0 else 0.85))
                 elif way == "walk":
                     for index, on in enumerate(starts):
                         length = (starts[index + 1] if index + 1 < len(starts) else beats) - on
-                        self.put("bass", name, bar_at + on, length - (pulse if index == len(starts) - 1 else 0.0), root, loud)
+                        low(bar_at + on, length - (pulse if index == len(starts) - 1 else 0.0), root, loud)
                     # The last note of the bar leads to the next bar's root by a step of the scale.
                     toward = key.pitch(after.root, inst.home - 5)
                     lead_in = after.root + 4 if toward == root else after.root + (1 if toward < root else -1)
                     near = key.pitch(lead_in, inst.home - 5)
                     near += 12 if near < toward - 6 else -12 if near > toward + 6 else 0
-                    self.put("bass", name, bar_at + beats - pulse, pulse, near, loud * 0.8)
+                    low(bar_at + beats - pulse, pulse, near, loud * 0.8)
                 elif way == "eight":
                     step = 0.5
                     for index in range(int(round(beats / step))):
                         on = index * step
-                        self.put("bass", name, bar_at + on, step * 0.85, root, loud * (1.0 if on in starts else 0.8))
+                        low(bar_at + on, step * 0.85, root, loud * (1.0 if on in starts else 0.8))
                 elif way == "pulse":
                     for index in range(int(round(beats / pulse))):
                         on = index * pulse
-                        self.put("bass", name, bar_at + on, pulse * 0.85, root, loud * (1.0 if on in starts else 0.8))
+                        low(bar_at + on, pulse * 0.85, root, loud * (1.0 if on in starts else 0.8))
                 else:
                     step = pulse if pulse == 1.0 else pulse * 1.0
                     for index in range(int(round(beats / step))):
-                        self.put("bass", name, bar_at + index * step, step * 0.8, root + (12 if index % 2 else 0), loud * (1.0 if index % 2 == 0 else 0.75))
+                        low(bar_at + index * step, step * 0.8, root + (12 if index % 2 else 0), loud * (1.0 if index % 2 == 0 else 0.75))
                 if part in ("arrival", "summit") and self.heavy and not ch.band:
                     # The low end at the big moments: the celli and the basses an octave apart,
                     # whichever of them has the bass line; and at the summit the low brass with
@@ -1953,17 +2009,21 @@ class Take:
 
     # --- the drums ---------------------------------------------------------------------------
     def strike(self, sound: str, at: float, loud: float, chord: Chord, key: Key) -> None:
-        if sound == "timpani":
+        if sound == "ting" and self.forge:
+            self.put("drums", "anvil", at, 0.5, 60, loud)        # in a forge the bright stroke is an anvil
+        elif sound in KITS[self.ch.kit][1]:
+            # A stroke of the kit. (The kit's "boom" is its bass drum; the deep stroke that marks
+            # an arrival is an instrument of the same name, and is written by `marks`.)
+            self.kit().add(at, 0.25, KITS[self.ch.kit][1][sound], loud)
+        elif sound == "timpani":
             # A pair of kettledrums is tuned to the key note and the fourth below it. They play
             # whichever of the two is in the chord, and the chord's own root only where neither is.
             notes = {step % 7 for step in chord.steps}
             step = 0 if 0 in notes else -3 if 4 in notes else chord.root
             self.put("drums", sound, at, 0.5, key.pitch(step, INSTRUMENTS[sound].home), loud)
-        elif sound in INSTRUMENTS:
+        else:
             inst = INSTRUMENTS[sound]
             self.put("drums", sound, at, 0.5, key.pitch(chord.root, inst.home), loud)
-        else:
-            self.kit().add(at, 0.25, KITS[self.ch.kit][1][sound], loud)
 
     def drums(self) -> None:
         ch, beats, fight = self.ch, self.beats, self.fight
@@ -1977,13 +2037,22 @@ class Take:
                 sound, where, loud = layer[0], layer[1], layer[2]
                 if len(layer) > 3 and bar % layer[3]:
                     continue
+                if crowded and sound in LOW:
+                    continue                                    # the big drums have the low end
+                if crowded and sound == "timpani":
+                    where, loud = "down", loud * 0.8            # ...and the kettledrums only mark the bar
                 for on, weight in self.spots(where):
+                    if self.breathing(bar_at + on):
+                        continue                                # the breath before an arrival
                     self.strike(sound, bar_at + on, min(loud * weight * scale * (0.55 + 0.6 * level), 1.0), chord, key)
 
         for section, first, key, chords in self.spans:
             part, bars = section.part, section.bars
             for bar, chord in enumerate(chords):
                 level, bar_at, along = self.level(section, bar), first + bar * beats, bar / bars
+                # Where the big drums play, the orchestra's own low drums leave the low end to
+                # them and the kettledrums are played down. (A band keeps its kit as it is.)
+                crowded = not ch.band and self.big(part, along)[0] is not None
                 if part == "open":
                     if ch.band and not fight and bar == bars - 1 and ch.kit in ("rock", "room"):
                         for on, weight in self.spots("pulses"):          # the sticks count the band in
@@ -1991,7 +2060,8 @@ class Take:
                     if fight:
                         if bar == 0:
                             for sound in ("crash", "great drum" if "great drum" in ch.drums else "boom"):
-                                self.strike(sound, bar_at, 0.85, chord, key)
+                                if not (crowded and sound in LOW):
+                                    self.strike(sound, bar_at, 0.85, chord, key)
                         elif bar >= 1:
                             lay(main["theme"], bar, bar_at, level, 0.8, chord, key)
                 elif part == "first":
@@ -2006,6 +2076,8 @@ class Take:
                     lay(early if along < turn else main["moment"], bar, bar_at, level, 1.0 if along < turn else 0.7, chord, key)
                     roll = main["roll"]
                     length = min((2 if self.heavy else 1) * (2 if part == "climb" else 1), bars)
+                    if self.has_war and not ch.band and roll in LOW + ("timpani",):
+                        roll = None                              # the big drums roll into the arrival themselves
                     if roll and bar >= bars - length:
                         step = 0.25
                         count = int(round(beats / step))
@@ -2019,15 +2091,226 @@ class Take:
                         self.strike(main["hit"], bar_at, (0.6 + 0.35 * ch.weight) * (1.0 if big else 0.85), chord, key)
                         if self.heavy:
                             for sound in ch.drums[:2 if big else 1]:
-                                self.strike(sound, bar_at, 0.9 if big else 0.75, chord, key)
-                    if bar % 8 == 7 and main["roll"] and bars - bar > 1:
+                                if not (crowded and sound in LOW):
+                                    self.strike(sound, bar_at, 0.9 if big else 0.75, chord, key)
+                    if bar % 8 == 7 and main["roll"] and bars - bar > 1 and not (crowded and main["roll"] in LOW):
                         for index in range(4):                       # a fill into the next time round
                             self.strike(main["roll"], bar_at + beats - (4 - index) * 0.25, 0.45 + 0.12 * index, chord, key)
                 elif part == "valley":
-                    if fight:
-                        lay(main["theme"], bar, bar_at, level, 0.65, chord, key)       # a fight's valley keeps its pulse
+                    if fight and ch.band:
+                        lay(main["theme"], bar, bar_at, level, 0.65, chord, key)       # a band's fight keeps its pulse through the valley
                 else:
                     if along < 0.5 and bar % 2 == 0:
                         lay(main["theme"], bar, bar_at, level, 0.7, chord, key)
                     if bar == bars - 2 and main["hit"] and self.heavy:
                         self.strike("timpani" if "timpani" in ch.drums else "ting", bar_at, 0.45, chord, key)
+
+    # --- the big drums -----------------------------------------------------------------------
+    def big(self, part: str, along: float) -> tuple[str | None, float]:
+        """What the war drums play in a bar, and how strongly, by the part of the story and how
+        far through it the bar is. "low" is the low drum on the strong beats and its pickup
+        into the bar line; "full" the whole ostinato; "top" the ostinato with every drum
+        together on the bar; "single" one low stroke to the bar; None, nothing.
+
+        A fight has them nearly all the way: low as it opens and under the second theme, the
+        whole ostinato under the first, one stroke to the bar in the valley. Heavy music for
+        walking has them from part of the way up each rise to the moment it comes to. In a
+        rise they come in low, go over to the whole ostinato, and are struck harder as it
+        goes. In the close they fall away. A band, which has a kit, has them only in its rises
+        (and, in a fight, as it opens and in the valley)."""
+        ch, fight = self.ch, self.fight
+        if not self.has_war:
+            return None, 0.0
+        if part in ("build", "climb"):
+            if ch.band:
+                enter, whole = (0.2, 0.6) if fight else (0.4, 0.7)
+            elif fight:
+                enter, whole = (0.0, 0.35) if part == "build" else (0.15, 0.5)
+            else:
+                enter, whole = (0.3, 0.65) if part == "build" else (0.3, 0.6)
+            if along < enter:
+                return None, 0.0
+            return ("low" if along < whole else "full"), 0.55 + 0.45 * along
+        if ch.band:
+            return {"open": ("low", 0.6), "valley": ("single", 0.5)}.get(part, (None, 0.0)) if fight else (None, 0.0)
+        if part == "arrival":
+            return "top", 0.9 if fight else 0.85
+        if part == "summit":
+            return "top", 1.0
+        if part == "close":
+            end = 0.75 if fight else 0.5
+            return ("low", 0.7 * (1.0 - along / end)) if along < end else (None, 0.0)
+        if not fight:
+            return None, 0.0
+        return {"open": ("low", 0.7), "first": ("full", 0.75), "second": ("low", 0.6), "valley": ("single", 0.5)}[part]
+
+    def hands(self, part: str, along: float, bar: int) -> tuple[str | None, float]:
+        """What the frame drums play in a bar, and how strongly: "all" (their whole pattern),
+        "answer" (only its high strokes, in every second bar, between the war drums'), or
+        nothing. Where the war drums play, the frame drums have the quieter drive: under the
+        second theme (in a fight, or in a piece of the desert, the jungle or the highlands),
+        as each rise begins, in a fight's valley, and answering at the first arrival. A lighter
+        piece of those places has them instead of war drums, from its second theme on."""
+        if not self.has_frames:
+            return None, 0.0
+        if not self.has_war:
+            return {"second": ("all", 0.5), "build": ("all", 0.5 + 0.3 * along), "arrival": ("all", 0.8),
+                    "climb": ("all", 0.5 + 0.35 * along), "summit": ("all", 0.9)}.get(part, (None, 0.0))
+        if part in ("build", "climb"):
+            return ("all", 0.5 + 0.3 * along) if along < 0.45 else (None, 0.0)
+        if part == "arrival":
+            return ("answer", 0.6) if bar % 2 else (None, 0.0)
+        if part == "second":
+            return ("all", 0.55) if self.fight or self.hand else (None, 0.0)
+        if part == "valley":
+            return ("all", 0.45) if self.fight else (None, 0.0)
+        return None, 0.0
+
+    def war_cycle(self) -> tuple[list[list[tuple[float, int, float]]], list[tuple[float, int, float]]]:
+        """An ostinato for the war drums, of this take's own: two bars or four, and for each
+        bar its strokes (where in the bar, which drum, how strong). The biggest drum is on
+        the bar and the next biggest on the bar's other strong beats; a smaller drum has the
+        pickup into each strong beat (always into the bar line). Between them runs what
+        drives it, softly, on the smaller drums: every eighth, or two quick strokes before
+        each beat, or (in slower, sparer music) only a stroke off the beat here and there. The
+        metre's own groups are the strong beats.
+
+        With the cycle comes its last bar once more, ending in a run down the drums from the
+        smallest into the first beat of the bar after: that is played in every fourth bar."""
+        rng, beats, pulse, starts = self.rng, self.beats, self.pulse, self.starts
+        busy = self.ch.busy
+        pickup = rng.choice((((-0.5, 0.6),), ((-0.5, 0.5), (-0.25, 0.7)), ((-0.25, 0.65),)))
+        length = rng.choice((2, 2, 4))
+        drive = rng.choice(("eighths", "gallop", "gallop") if self.fight else ("sparse", "eighths", "gallop") if busy >= 0.5
+                           else ("sparse", "sparse", "eighths"))
+        if pulse != 1.0 and drive == "gallop":
+            drive = "eighths"                                   # in six-eight and the odd metres the eighths are the gallop
+        pulses = [index * pulse for index in range(int(round(beats / pulse)))]
+        cycle = []
+        for bar in range(length):
+            strokes = []
+            for index, start in enumerate(starts):
+                if index and bar % 2 == 0 and rng.random() < 0.2:
+                    continue                                    # a strong beat left open now and then: air
+                strokes.append((start, 36 if index == 0 else 38, 1.0 if index == 0 else 0.85))
+            for edge in starts[1:] + [beats]:
+                if edge == beats or rng.random() < 0.6:
+                    strokes += [(edge + off, 41, loud) for off, loud in pickup]
+
+            def free(on: float) -> bool:
+                return not any(abs(on - at) < 1e-6 for at, _, _ in strokes)
+
+            if drive == "eighths":
+                strokes += [(on, 43 if on in pulses else 41, 0.4) for on in (index * 0.5 for index in range(int(round(beats / 0.5)))) if free(on)]
+            elif drive == "gallop":
+                for beat in pulses[1:] + [beats]:
+                    strokes += [(beat + off, 41, loud) for off, loud in ((-0.5, 0.38), (-0.25, 0.48)) if free(beat + off)]
+            else:
+                strokes += [(on, 43, 0.5) for on in pulses if on not in starts and rng.random() < 0.2 + 0.4 * busy and free(on)]
+            cycle.append(sorted(strokes))
+        # The run down: eighths over the bar's last group (the last two beats of a bar that has one group).
+        first = starts[-1] if len(starts) > 1 else beats - 2.0
+        count = int(round((beats - first) / 0.5))
+        run = [stroke for stroke in cycle[-1] if stroke[0] <= first + 1e-6] \
+            + [(first + index * 0.5, (47, 45, 43, 41)[(index - 1) % 4], 0.55 + 0.25 * index / count) for index in range(1, count)]
+        return cycle, sorted(run)
+
+    def frame_cycle(self) -> list[list[tuple[float, int, float]]]:
+        """Two bars for the frame drums, of this take's own: the low stroke on the strong
+        beats, the high one on some of the beats between, and quiet strokes in the gaps."""
+        rng, beats, pulse, starts = self.rng, self.beats, self.pulse, self.starts
+        busy = self.ch.busy
+        cycle = []
+        for _ in range(2):
+            strokes = []
+            for index in range(int(round(beats / pulse))):
+                on = index * pulse
+                if on in starts:
+                    strokes.append((on, 45 if on == 0 else 47, 0.9 if on == 0 else 0.75))
+                elif rng.random() < 0.45 + 0.4 * busy:
+                    strokes.append((on, 55 if rng.random() < 0.7 else 57, 0.55))
+                if rng.random() < 0.15 + 0.35 * busy:
+                    strokes.append((on + pulse / 2, 52 if rng.random() < 0.6 else 50, 0.38))
+            cycle.append(sorted(strokes))
+        return cycle
+
+    def war_drums(self) -> None:
+        """The war drums and the frame drums (see `big` and `hands` for where each plays)."""
+        ch, beats = self.ch, self.beats
+        if not (self.has_war or self.has_frames):
+            return
+        war, run = self.war_cycle() if self.has_war else ([], [])
+        frames = self.frame_cycle() if self.has_frames else []
+        bar_s = beats * 60.0 / self.fam.bpm
+        for section, first, _, chords in self.spans:
+            part, bars = section.part, section.bars
+            # A rise ends in a roll: quick strokes on two drums, struck harder and harder, over
+            # the last bar or two and through the breath, right up to the arrival. Sixteenths
+            # where the music moves fast enough for those to be a roll; where it is slower,
+            # six or eight to the beat, so that a roll is never under seven strokes a second.
+            rolled = min(2 if part == "climb" or bar_s < 2.0 else 1, bars) if self.has_war and part in ("build", "climb") else 0
+            quick = next((step for step in (0.25, 1.0 / 6.0) if step * 60.0 / self.fam.bpm <= 1.0 / 7.0 + 1e-9), 0.125)
+            for bar in range(bars):
+                level, bar_at, along = self.level(section, bar), first + bar * beats, bar / bars
+                way, strength = self.hands(part, along, bar)
+                if way and bar < bars - rolled:
+                    for on, drum, weight in frames[bar % len(frames)]:
+                        if (way == "all" or drum >= 50) and not self.breathing(bar_at + on):
+                            self.put("drums", "frame drums", bar_at + on, 0.25, drum, min(weight * strength * (0.6 + 0.5 * level), 1.0))
+                mode, strength = self.big(part, along)
+                if bar >= bars - rolled:
+                    count = int(round(beats / quick))
+                    for index in range(count):
+                        done = ((bar - (bars - rolled)) * count + index) / (rolled * count)
+                        self.put("drums", "war drums", bar_at + index * quick, quick, 38 if index % 2 == 0 else 41,
+                                 min((0.3 + 0.7 * done) * (0.7 + 0.3 * ch.weight), 1.0))
+                    continue
+                if mode is None:
+                    continue
+                if self.fight and not ch.band and part == "open" and bar == 0:
+                    strokes = [(0.0, 36, 1.0), (0.0, 41, 0.9), (0.0, 45, 0.8)]            # a fight begins with every drum at once
+                elif mode == "single":
+                    strokes = [(0.0, 36, 0.9)]
+                else:
+                    strokes = run if bar % 4 == 3 else war[bar % len(war)]
+                    if mode == "low":
+                        strokes = [stroke for stroke in strokes if stroke[1] <= 38 or (stroke[1] == 41 and stroke[0] >= beats - 0.5 - 1e-6)]
+                    elif mode == "top" and (part == "summit" or bar % 2 == 0):
+                        strokes = strokes + [(0.0, 43, 0.8), (0.0, 47, 0.7)]             # every drum together on the bar, with the orchestra
+                for on, drum, weight in strokes:
+                    self.put("drums", "war drums", bar_at + on, 0.25, drum, min(weight * strength * (0.62 + 0.45 * level), 1.0))
+
+    def marks(self) -> None:
+        """What marks an arrival. A cymbal swells into it: one note that ends on the arrival's
+        first beat and begins some seconds before, longer and louder before the summit than
+        before the first arrival, and in the biggest pieces a short one into the second theme
+        as well. A deep stroke lands on the first beat of the arrival and of the summit, and
+        again, less hard, each time the theme comes round in them. The heaviest orchestral
+        pieces have a gong at the summit (and the very heaviest a second, where the theme
+        comes round for the last time). And music of the fire that has no forge of its own
+        has an anvil struck on the second strong beat, every fourth bar of the arrival and
+        every second bar of the summit."""
+        ch, beats, period = self.ch, self.beats, self.fam.period
+        beat_s = 60.0 / self.fam.bpm
+        for index, (section, first, _, _) in enumerate(self.spans):
+            part, bars = section.part, section.bars
+            if self.has_swell and (part in ("arrival", "summit") or (part == "second" and ch.weight >= 0.95 and not ch.band)):
+                seconds = {"arrival": 2.5 + 2.0 * ch.weight, "summit": 4.0 + 3.0 * ch.weight, "second": 2.5}[part]
+                length = min(min(max(seconds, 2.0), 8.0) / beat_s, self.spans[index - 1][0].bars * beats)
+                loud = {"arrival": 0.5 + 0.3 * ch.weight, "summit": 0.65 + 0.35 * ch.weight, "second": 0.45}[part]
+                self.voice("drums", "swell").add(first - length, length, 49, loud)
+            if part not in ("arrival", "summit"):
+                continue
+            summit = part == "summit"
+            rounds = [bar for bar in range(0, bars, period) if bars - bar >= period]          # where the theme comes round
+            if self.has_war:
+                for bar in rounds:
+                    self.put("drums", "boom", first + bar * beats, 1.0, 36, (1.0 if summit else 0.85) if bar == 0 else (0.75 if summit else 0.65))
+            if self.has_gong and summit:
+                self.put("drums", "gong", first, 2.0, 48, 0.85)
+                if ch.weight >= 1.0 and len(rounds) > 1:
+                    self.put("drums", "gong", first + rounds[-1] * beats, 2.0, 48, 0.7)
+            if self.embers:
+                on = self.starts[1] if len(self.starts) > 1 else beats / 2
+                for bar in range(0, bars, 2 if summit else 4):
+                    self.put("drums", "anvil", first + bar * beats + on, 0.5, 60, 0.75 if summit else 0.6)

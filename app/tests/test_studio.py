@@ -157,7 +157,7 @@ def spans_of(take):
 def played(take, channel, part):
     """The notes a channel plays in one part of the story, with the name of whoever plays each."""
     first, last = spans_of(take)[part]
-    return [(name, note) for name, voice in take.voices[channel].items() for note in voice.notes if first - 0.3 <= note.start < last - 0.3]
+    return [(name, note) for name, voice in take.voices[channel].items() for note in voice.notes if first - 1e-6 <= note.start < last - 1e-6]
 
 
 def test_every_take_of_every_character_can_be_written_and_played():
@@ -283,6 +283,229 @@ def test_the_kettledrums_play_the_key_note_or_the_fourth_below_where_the_chord_h
                 found += 1
                 home += note.pitch % 12 in (key.tonic % 12, (key.tonic + 7) % 12)
     assert home >= 0.25 * found, "the kettledrums are hardly ever on the key note or the fourth below it"
+
+
+# --- the big drums and what marks an arrival -------------------------------------------------------
+
+NEW = {"war drums": (36, 47), "frame drums": (45, 57), "boom": (36, 36), "gong": (48, 48), "swell": (49, 49), "anvil": (60, 60)}
+
+
+def drums_of(take):
+    """The new drum voices a take has notes for, by name."""
+    return {name: take.voices["drums"][name].notes for name in NEW if name in take.voices["drums"] and take.voices["drums"][name].notes}
+
+
+def character_called(name):
+    return next(each for each in orchestra.CHARACTERS if each.name == name)
+
+
+def test_the_big_drums_are_where_they_should_be_and_nowhere_else():
+    for name, (low, high) in NEW.items():
+        inst = orchestra.INSTRUMENTS[name]
+        assert (inst.low, inst.high) == (low, high) and not inst.held and name in orchestra.LOUD
+    hand_places = {"desert", "jungle", "highland"}
+    for index, character in enumerate(orchestra.CHARACTERS):
+        take = orchestra.Take(orchestra.family(character, 60 + index, "f", "F"), 1 + index % 2)
+        have = drums_of(take)
+        fight, walk, heavy = character.role in orchestra.FIGHTS, character.role == "wander", character.weight >= 0.8
+        if not (fight or walk):
+            assert not have, "%s is for the %s and has %s" % (character.name, character.role, sorted(have))
+            continue
+        hand = len(character.kinds) < len(orchestra.KINDS_ALL) and bool(set(character.kinds) & hand_places)
+        forge = any("anvil" in groove for groove in character.grooves)
+        want = {"swell"} if fight or character.weight >= 0.6 else set()
+        if fight or heavy:
+            want |= {"war drums", "boom"}
+        if not character.band and (fight or heavy or (character.weight >= 0.6 and hand)):
+            want.add("frame drums")
+        if not character.band and (fight or heavy) and character.weight >= 0.9:
+            want.add("gong")
+        if forge or (not character.band and (fight or heavy) and len(character.kinds) < len(orchestra.KINDS_ALL)
+                     and "infernal" in character.kinds):
+            want.add("anvil")
+        assert set(have) == want, "%s has %s, not %s" % (character.name, sorted(have), sorted(want))
+        # Every stroke is a drum the instrument has, and falls inside the track.
+        for name, notes in have.items():
+            low, high = NEW[name]
+            assert all(low <= note.pitch <= high for note in notes), "%s: %s" % (character.name, name)
+            assert all(0 <= note.start < take.total for note in notes), "%s: %s" % (character.name, name)
+            assert take.voices["drums"][name].instrument == name and not take.voices["drums"][name].drums
+        assert len(have.get("gong", [])) <= 2
+        # The valley has no drums at all, but in a fight.
+        if not fight:
+            assert not played(take, "drums", "valley"), "%s has drums in its valley" % character.name
+
+
+def test_a_fight_has_war_drums_all_the_way_and_heavy_walking_music_from_each_rise_to_its_moment():
+    def strokes(take, part):
+        first, last = spans_of(take)[part]
+        return [note for note in take.voices["drums"]["war drums"].notes if first - 1e-6 <= note.start < last - 1e-6]
+    fight = orchestra.Take(orchestra.family(character_called("skirmish"), 5, "f", "F"), 1)
+    for part in orchestra.PARTS:
+        assert strokes(fight, part), "a fight has no war drums in its %s" % part
+    # The tense breather: one low stroke to the bar, on the bar.
+    first, _ = spans_of(fight)["valley"]
+    breather = strokes(fight, "valley")
+    assert len(breather) == fight.fam.section("valley").bars and {note.pitch for note in breather} == {36}
+    assert all(abs((note.start - first) % fight.beats) < 1e-6 for note in breather)
+    assert {name for name, _ in played(fight, "drums", "valley")} == {"war drums", "frame drums"}
+    # The summit is where they are struck most and hardest.
+    per_bar = {part: len(strokes(fight, part)) / fight.fam.section(part).bars for part in orchestra.PARTS}
+    assert per_bar["summit"] >= per_bar["arrival"] > per_bar["second"] > per_bar["valley"]
+    assert max(note.loud for note in strokes(fight, "summit")) >= max(note.loud for note in strokes(fight, "first"))
+
+    walk = orchestra.Take(orchestra.family(character_called("mountain pass"), 5, "f", "F"), 1)
+    for part in ("open", "first", "second", "valley"):
+        assert not strokes(walk, part), "heavy walking music has war drums in its %s" % part
+    for part in ("build", "arrival", "climb", "summit"):
+        assert strokes(walk, part), "heavy walking music has no war drums in its %s" % part
+    # In a rise they come in part of the way up and are struck harder as it goes.
+    first, last = spans_of(walk)["build"]
+    build = strokes(walk, "build")
+    assert min(note.start for note in build) >= first + 0.25 * (last - first)
+    early = [note.loud for note in build if note.pitch == 36 and note.start < first + 0.6 * (last - first)]
+    late = [note.loud for note in build if note.pitch == 36 and note.start >= first + 0.6 * (last - first)]
+    assert early and late and max(early) < max(late)
+    # In the close they fall away: nothing after its first half.
+    first, last = spans_of(walk)["close"]
+    assert strokes(walk, "close") and max(note.start for note in strokes(walk, "close")) < first + 0.55 * (last - first)
+    # The low drum is on the strong beats of the bar, in an ostinato that comes round.
+    first, _ = spans_of(walk)["summit"]
+    summit = strokes(walk, "summit")
+    for bar in range(4):
+        low = sorted(round(note.start - first - bar * walk.beats, 3) for note in summit
+                     if note.pitch in (36, 38) and bar * walk.beats - 1e-6 <= note.start - first < (bar + 1) * walk.beats - 1e-6)
+        assert low and low[0] == 0.0 and set(low) <= set(walk.starts), "bar %d: the low drums are at %s" % (bar + 1, low)
+    bars = [sorted((round(note.start - first - bar * walk.beats, 3), note.pitch) for note in summit
+                   if bar * walk.beats - 1e-6 <= note.start - first < (bar + 1) * walk.beats - 1e-6) for bar in range(16)]
+    assert bars[0] == bars[4] == bars[8] and bars[1] == bars[5], "the ostinato does not come round"
+    # Every fourth bar runs down the drums into the next.
+    assert bars[3] != bars[1] and {pitch for _, pitch in bars[3]} >= {47, 45, 43}
+    # Another take of the family has an ostinato of its own, over the same bars.
+    other = orchestra.Take(walk.fam, 2)
+    assert sorted((note.start, note.pitch) for note in strokes(other, "summit")) != sorted((note.start, note.pitch) for note in summit)
+
+
+def test_lighter_music_of_the_desert_has_frame_drums_and_a_village_dance_has_neither():
+    caravan = orchestra.Take(orchestra.family(character_called("caravan"), 5, "f", "F"), 1)
+    assert set(drums_of(caravan)) == {"frame drums", "swell"}
+    assert {part for part in orchestra.PARTS if any(name == "frame drums" for name, _ in played(caravan, "drums", part))} \
+        == {"second", "build", "arrival", "climb", "summit"}
+    dance = orchestra.Take(orchestra.family(character_called("village dance"), 5, "f", "F"), 1)
+    assert set(drums_of(dance)) == {"swell"}
+    # The kit's own bass drum is still the kit's: the deep stroke of the same name is another thing.
+    boom = orchestra.KITS[dance.ch.kit][1]["boom"]
+    assert any(note.pitch == boom for note in dance.voices["drums"]["kit"].notes) and "boom" not in dance.voices["drums"]
+
+
+def test_where_the_war_drums_play_the_orchestras_low_drums_make_room():
+    take = orchestra.Take(orchestra.family(character_called("skirmish"), 5, "f", "F"), 1)
+    kit, boom = take.voices["drums"]["kit"].notes, orchestra.KITS[take.ch.kit][1]["boom"]
+    war = {int(note.start / take.beats + 1e-6) for note in take.voices["drums"]["war drums"].notes}       # the bars they play in
+    assert len(war) > 0.9 * take.fam.bars
+    assert not [note for note in kit if note.pitch == boom and int(note.start / take.beats + 1e-6) in war], \
+        "the bass drum plays under the war drums"
+    assert not any(name in take.voices["drums"] for name in ("taiko", "great drum"))
+    # The kettledrums stay, and only mark the bar.
+    first, _ = spans_of(take)["summit"]
+    timpani = [note for name, note in played(take, "drums", "summit") if name == "timpani"]
+    assert timpani and all(abs((note.start - first) % take.beats) < 1e-6 for note in timpani)
+    # A band keeps its kit as it is: its bass drum goes on under its war drums.
+    band = orchestra.Take(orchestra.family(character_called("war machine"), 5, "f", "F"), 1)
+    kick = orchestra.KITS[band.ch.kit][1]["boom"]
+    assert any(name == "war drums" for name, _ in played(band, "drums", "build"))
+    assert any(name == "kit" and note.pitch == kick for name, note in played(band, "drums", "build"))
+
+
+def test_a_rise_ends_in_a_roll_and_a_breath_before_the_arrival():
+    for name in ("mountain pass", "village dance", "lullaby", "banner ride"):
+        take = orchestra.Take(orchestra.family(character_called(name), 5, "f", "F"), 1)
+        beat_s = 60.0 / take.fam.bpm
+        ends = [spans_of(take)[part][1] for part in ("build", "climb")]
+        assert [last for _, last in take.gaps] == ends and 0.4 <= take.breath * beat_s <= 1.2, name
+        for first, last in take.gaps:
+            # Nobody but the pad and the drums strikes a note in the breath...
+            for channel in ("lead", "rhythm", "bass"):
+                assert not [note for voice in take.voices[channel].values() for note in voice.notes if first - 1e-6 <= note.start < last - 1e-6], \
+                    "%s: the %s plays in the breath before an arrival" % (name, channel)
+            # ...the tune has been running up to it, and the pad holds through.
+            assert [note for voice in take.voices["lead"].values() for note in voice.notes if first - take.beats <= note.start < first], name
+            assert [note for voice in take.voices["texture"].values() for note in voice.notes if note.start < first < note.start + note.length], name
+            # And on the arrival's first beat the tune is back.
+            assert [note for voice in take.voices["lead"].values() for note in voice.notes if abs(note.start - last) < 1e-6], name
+    # Where there are war drums they roll through it, quicker than seven strokes a second and harder all the way.
+    take = orchestra.Take(orchestra.family(character_called("mountain pass"), 5, "f", "F"), 1)
+    beat_s = 60.0 / take.fam.bpm
+    for first, last in take.gaps:
+        before = sorted((note for note in take.voices["drums"]["war drums"].notes if last - 2 * take.beats - 1e-6 <= note.start < last - 1e-6),
+                        key=lambda note: note.start)
+        roll = [before[-1]]                                 # the run of quick strokes that ends at the arrival
+        for note in reversed(before[:-1]):
+            if (roll[0].start - note.start) * beat_s > 1.0 / 7.0 + 1e-6:
+                break
+            roll.insert(0, note)
+        assert len(roll) >= 8 and roll[-1].start >= first and (last - roll[0].start) >= take.beats - 1e-6
+        assert all(later.loud >= earlier.loud for earlier, later in zip(roll, roll[1:])) and roll[-1].loud > 2 * roll[0].loud
+        # Then every drum together, and the deep stroke, on the arrival's first beat.
+        assert {note.pitch for note in take.voices["drums"]["war drums"].notes if abs(note.start - last) < 1e-6} >= {36, 43, 47}
+        assert [note for note in take.voices["drums"]["boom"].notes if abs(note.start - last) < 1e-6]
+
+
+def test_a_cymbal_swells_into_each_arrival_and_ends_on_its_first_beat():
+    def swells(name):
+        take = orchestra.Take(orchestra.family(character_called(name), 5, "f", "F"), 1)
+        parts = {round(first, 6): part for part, (first, _) in spans_of(take).items()}
+        found = {}
+        for note in take.voices["drums"]["swell"].notes if "swell" in take.voices["drums"] else []:
+            assert abs(round(note.start + note.length, 6) - (note.start + note.length)) < 1e-6
+            into = parts[round(note.start + note.length, 6)]                 # it ends exactly where a part begins
+            seconds = note.length * 60.0 / take.fam.bpm
+            assert 2.0 <= seconds <= 8.0, "%s: a swell of %.1f s into the %s" % (name, seconds, into)
+            found[into] = (seconds, note.loud)
+        return found
+    big = swells("mountain pass")
+    assert set(big) == {"second", "arrival", "summit"}
+    assert big["summit"][0] > big["arrival"][0] > big["second"][0] and big["summit"][1] > big["arrival"][1] > big["second"][1]
+    assert set(swells("riverside waltz")) == {"arrival", "summit"}                # not into the second theme of a lighter piece
+    assert set(swells("banner ride")) == {"arrival", "summit"}                    # a band has them too
+    assert not swells("lullaby") and not swells("snowfall")
+
+
+def test_a_deep_stroke_lands_on_each_arrival_and_a_gong_at_the_summit_of_the_heaviest():
+    take = orchestra.Take(orchestra.family(character_called("mountain pass"), 5, "f", "F"), 1)
+    period = take.fam.period
+    for part in ("arrival", "summit"):
+        first, last = spans_of(take)[part]
+        booms = sorted(note.start for note in take.voices["drums"]["boom"].notes if first - 1e-6 <= note.start < last)
+        # On the first beat, and again each time the theme comes round: never more often.
+        assert booms[0] == pytest.approx(first) and all(((start - first) / take.beats) % period == pytest.approx(0) for start in booms)
+        assert 1 <= len(booms) <= take.fam.section(part).bars // period
+    assert len(take.voices["drums"]["boom"].notes) == len([note for part in ("arrival", "summit") for name, note in played(take, "drums", part)
+                                                           if name == "boom"])
+    hardest = max(take.voices["drums"]["boom"].notes, key=lambda note: note.loud)
+    assert hardest.start == pytest.approx(spans_of(take)["summit"][0])
+    gongs = take.voices["drums"]["gong"].notes
+    first, last = spans_of(take)["summit"]
+    assert 1 <= len(gongs) <= 2 and min(note.start for note in gongs) == pytest.approx(first) and all(note.start < last for note in gongs)
+    assert "gong" not in orchestra.Take(orchestra.family(character_called("long road home"), 5, "f", "F"), 1).voices["drums"]
+
+
+def test_an_anvil_is_struck_in_a_forge_and_in_music_of_the_fire():
+    forge = orchestra.Take(orchestra.family(character_called("the forge"), 5, "f", "F"), 1)
+    anvil = forge.voices["drums"]["anvil"].notes
+    ting = orchestra.KITS[forge.ch.kit][1]["ting"]
+    assert len(anvil) > 50 and not any(note.pitch == ting for note in forge.voices["drums"]["kit"].notes)
+    # On the back beats of the bar: a slow ostinato.
+    first, _ = spans_of(forge)["first"]
+    assert {round((note.start - first) % forge.beats, 3) for name, note in played(forge, "drums", "first") if name == "anvil"} <= {1.0, 3.0}
+    # Music of the fire that is no forge has single strokes at its arrival and its summit.
+    march = orchestra.Take(orchestra.family(character_called("ash march"), 5, "f", "F"), 1)
+    strokes = march.voices["drums"]["anvil"].notes
+    assert 4 <= len(strokes) <= 40
+    assert {part for part in orchestra.PARTS if any(name == "anvil" for name, _ in played(march, "drums", part))} == {"arrival", "summit"}
+    # And nowhere else is there an anvil.
+    assert "anvil" not in orchestra.Take(orchestra.family(character_called("coronation"), 5, "f", "F"), 1).voices["drums"]
+    assert "anvil" not in orchestra.Take(orchestra.family(character_called("deep mine"), 5, "f", "F"), 1).voices["drums"]
 
 
 # --- the MIDI file -------------------------------------------------------------------------------
