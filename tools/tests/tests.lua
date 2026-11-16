@@ -403,8 +403,14 @@ test("speed, a target that can be fought, and an achievement reach the strip", f
 end)
 
 test("enemies with a nameplate on screen are counted, and how many are in a fight", function()
+	-- One enemy's nameplate is already up when the addon loads, and no event announces it.
+	M.game.plates.nameplate5 = { enemy = true, fighting = true }
 	Load()
 	local frame = Frame()
+	eq(frame.enemies, 1, "a nameplate that was there before the addon was is counted")
+	eq(frame.fighting, 1)
+	M.game.plates.nameplate5 = nil
+	frame = Frame()
 	eq(frame.enemies, 0, "nobody about")
 	eq(frame.fighting, 0)
 	-- Three nameplates come on screen: two enemies, one of them fighting, and a friendly guard.
@@ -412,10 +418,8 @@ test("enemies with a nameplate on screen are counted, and how many are in a figh
 	M.game.plates.nameplate2 = { enemy = true }
 	M.game.plates.nameplate7 = { enemy = false, fighting = true }
 	M.Fire("NAME_PLATE_UNIT_ADDED", "nameplate1")
-	M.Fire("NAME_PLATE_UNIT_ADDED", "nameplate2")
-	M.Fire("NAME_PLATE_UNIT_ADDED", "nameplate7")
 	frame = ns.Beacon.BuildFrame()
-	eq(frame.enemies, 2, "counted at once, without waiting for the timer")
+	eq(frame.enemies, 2, "counted at once when the game announces a nameplate, without waiting for the timer")
 	eq(frame.fighting, 1)
 	-- The counts share their bytes with the command and the moment: the upper four bits.
 	ns.db.command, ns.db.moment = 2, 5
@@ -433,26 +437,26 @@ test("enemies with a nameplate on screen are counted, and how many are in a figh
 	-- A nameplate that goes with an event, and one that goes without.
 	M.game.plates.nameplate1 = nil
 	M.Fire("NAME_PLATE_UNIT_REMOVED", "nameplate1")
+	eq(ns.Beacon.BuildFrame().enemies, 1, "counted again at once")
 	M.game.plates.nameplate2 = nil
 	frame = Frame()
 	eq(frame.enemies, 0)
 	eq(frame.fighting, 0)
-	-- More than the strip can count.
-	for i = 10, 30 do
-		M.game.plates["nameplate" .. i] = { enemy = true, fighting = i % 2 == 0 }
-		M.Fire("NAME_PLATE_UNIT_ADDED", "nameplate" .. i)
+	-- More than the strip can count, up to the last token the game hands out.
+	for i = 10, 40 do
+		M.game.plates["nameplate" .. i] = { enemy = true, fighting = i % 3 == 0 }
 	end
 	frame = Frame()
 	eq(frame.enemies, 14, "fourteen stands for fourteen or more")
-	eq(frame.fighting, 11)
+	eq(frame.fighting, 10)
 	M.Slash("status")
-	truthy(Printed("Enemies with a nameplate on screen: 14 or more, in a fight: 11"), "the counts in the status report")
+	truthy(Printed("Enemies with a nameplate on screen: 14 or more, in a fight: 10"), "the counts in the status report")
+	truthy(Printed("Nameplates of any kind the game has up: 32"), "the game's own count in the status report")
 end)
 
 test("if the game seals anything about a nameplate, the counts are not sent", function()
 	Load()
 	M.game.plates.nameplate1 = { enemy = true, fighting = true }
-	M.Fire("NAME_PLATE_UNIT_ADDED", "nameplate1")
 	eq(Frame().enemies, 1)
 	for _, answer in ipairs({ "plateExists", "plateEnemy", "plateDead", "plateFighting" }) do
 		M.sealed[answer] = true
@@ -462,13 +466,23 @@ test("if the game seals anything about a nameplate, the counts are not sent", fu
 		M.sealed[answer] = nil
 		eq(Frame().enemies, 1, "known again")
 	end
-	-- A token the game seals is not kept at all.
-	M.sealed.plateToken = true
+	-- What a nameplate event carries is never looked at, sealed or not.
 	M.game.plates.nameplate2 = { enemy = true }
 	M.Fire("NAME_PLATE_UNIT_ADDED", M.SealedValue("nameplate2"))
-	eq(Frame().enemies, 1, "the sealed token was left alone")
+	eq(ns.Beacon.BuildFrame().enemies, 2)
+	-- The game's own list of nameplates is only for the status report, and may be withheld too.
+	M.sealed.plateList = true
 	M.Slash("status")
-	truthy(Printed("Enemies with a nameplate on screen: 1, in a fight: 1"))
+	truthy(Printed("Enemies with a nameplate on screen: 2, in a fight: 1"))
+	truthy(Printed("Nameplates of any kind the game has up: it does not say"))
+end)
+
+test("with no nameplates up, status says there is nothing to count", function()
+	Load()
+	M.Slash("status")
+	truthy(Printed("Enemies with a nameplate on screen: 0, in a fight: 0"))
+	truthy(Printed("Nameplates of any kind the game has up: none"))
+	truthy(Printed("the V key"), "and says where to switch them on")
 end)
 
 test("squares shrink to fit a narrow screen, and status says so", function()

@@ -188,30 +188,37 @@ local function ReadTarget()
 	end
 end
 
--- Enemies in view. The game puts a nameplate over an enemy that is near enough to matter and
--- says so with an event that carries a unit token for it ("nameplate7"); another event says when
--- the nameplate goes. FreeRock keeps those tokens and counts two things: how many of the units
--- can be attacked and are alive, and how many of those are in a fight. The music grows with the
+-- Enemies in view. The game puts a nameplate over an enemy that is near enough to matter, and
+-- gives each nameplate's unit one of forty tokens, nameplate1 to nameplate40. FreeRock goes
+-- through the forty and counts two things: how many of the units that are there can be
+-- attacked and are alive, and how many of those are in a fight. The music grows with the
 -- second number, which is the nearest thing the game gives to "three of them are on me".
 --
 -- That is all that is read about them. Not who they are, not their health, and not whom they
 -- are after: the game seals those, and FreeRock leaves them alone. The four functions used here
 -- (UnitExists, UnitCanAttack, UnitIsDead, UnitAffectingCombat) are documented with answers that
 -- are not sealed. If one comes back sealed all the same, both numbers are "not known".
-local plates = {}     -- unit token -> true, for every nameplate on screen
+--
+-- The game also announces each nameplate as it comes and goes. Those events are used only to
+-- count again at once; the tokens are not taken from them. (They were at first, and a
+-- nameplate that was already up when the addon loaded was then never counted.)
+local PLATES = 40
 local MANY = 14       -- the strip has four bits for each number: 14 stands for "14 or more"
+local plateUnits = {}
+for index = 1, PLATES do
+	plateUnits[index] = "nameplate" .. index
+end
 
 local function ReadEnemies()
 	local enemies, fighting = 0, 0
-	for unit in pairs(plates) do
+	for index = 1, PLATES do
+		local unit = plateUnits[index]
 		local exists = UnitExists(unit)
 		if ns.IsSealed(exists) then
 			enemies = nil
 			break
 		end
-		if not exists then
-			plates[unit] = nil        -- its nameplate went without a word
-		else
+		if exists then
 			local attackable, dead, busy = UnitCanAttack("player", unit), UnitIsDead(unit), UnitAffectingCombat(unit)
 			if ns.IsSealed(attackable) or ns.IsSealed(dead) or ns.IsSealed(busy) then
 				enemies = nil
@@ -232,6 +239,19 @@ local function ReadEnemies()
 		Put("enemies", math.min(enemies, MANY))
 		Put("fighting", math.min(fighting, MANY))
 	end
+end
+
+-- For /rock status: how many nameplates of any kind the game has up, by its own list. With
+-- none up there is nothing to count: enemy nameplates are switched off, or nobody is near.
+local function PlatesUp()
+	if not (C_NamePlate and C_NamePlate.GetNamePlates) then
+		return nil
+	end
+	local list = C_NamePlate.GetNamePlates()
+	if ns.IsSealed(list) or type(list) ~= "table" then
+		return nil
+	end
+	return #list
 end
 
 -- Boss encounters are announced by events, which carry the encounter's number and name. This
@@ -405,23 +425,14 @@ function Signals:Start()
 		end
 	end)
 
-	-- A nameplate has come on screen, or gone. The token is kept only if the game gives it plainly.
-	ns.On("NAME_PLATE_UNIT_ADDED", function(_, unit)
-		unit = Plain(unit)
-		if type(unit) == "string" then
-			plates[unit] = true
-			ReadEnemies()
-			Flush()
-		end
-	end)
-	ns.On("NAME_PLATE_UNIT_REMOVED", function(_, unit)
-		unit = Plain(unit)
-		if type(unit) == "string" then
-			plates[unit] = nil
-			ReadEnemies()
-			Flush()
-		end
-	end)
+	-- A nameplate has come on screen, or gone: count again at once. What the event carries is
+	-- not looked at.
+	local function OnPlates()
+		ReadEnemies()
+		Flush()
+	end
+	ns.On("NAME_PLATE_UNIT_ADDED", OnPlates)
+	ns.On("NAME_PLATE_UNIT_REMOVED", OnPlates)
 
 	ns.On("WEATHER_CHANGED", function()
 		ReadWeather()
@@ -542,6 +553,14 @@ function Signals:Describe()
 			state.fighting >= MANY and "14 or more" or tostring(state.fighting))
 	else
 		Add("Enemies with a nameplate on screen: the game does not say.")
+	end
+	local up = PlatesUp()
+	if up == nil then
+		Add("Nameplates of any kind the game has up: it does not say.")
+	elseif up == 0 then
+		Add("Nameplates of any kind the game has up: none. If enemies are near, enemy nameplates are switched off (the V key), and there is nothing to count.")
+	else
+		Add("Nameplates of any kind the game has up: %d.", up)
 	end
 	if state.weatherKnown then
 		Add("Weather: %s, intensity %s. The game said: %s.", WEATHER_NAMES[state.weatherKind] or ("kind " .. state.weatherKind),

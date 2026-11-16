@@ -193,6 +193,16 @@ function UnitAffectingCombat(unit)
 	OnlyPlayer(unit, "UnitAffectingCombat")
 	return M.game.combat
 end
+-- The game's own list of the nameplates that are up. FreeRock may ask how many there are.
+C_NamePlate = {
+	GetNamePlates = function()
+		local list = {}
+		for _ in pairs(M.game.plates) do
+			list[#list + 1] = {}
+		end
+		return Answer("plateList", list)
+	end,
+}
 function UnitIsDead(unit)
 	if not IsPlateToken(unit) then error("UnitIsDead asked about " .. tostring(unit), 2) end
 	local plate = Plate(unit)

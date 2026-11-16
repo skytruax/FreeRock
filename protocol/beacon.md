@@ -173,19 +173,23 @@ How many enemies are on the player is what a fight's music should grow with, and
 what the game seals (threat). The two counts in version 3 are the nearest thing that is not
 sealed, and they are counts and nothing more:
 
-- The game announces each nameplate that comes on screen with `NAME_PLATE_UNIT_ADDED`, which
-  carries a unit token such as `nameplate7`, and each one that goes with
-  `NAME_PLATE_UNIT_REMOVED`. FreeRock keeps the tokens.
-- Five times a second it asks, for each token: `UnitExists`, `UnitCanAttack("player", token)`,
-  `UnitIsDead` and `UnitAffectingCombat`. An enemy in view is a unit that exists, can be
-  attacked and is not dead; it is fighting if it is in combat (with anyone: the game does not
-  say with whom).
+- The game gives the unit behind each nameplate one of forty tokens, `nameplate1` to
+  `nameplate40`. Five times a second FreeRock goes through the forty and asks of each:
+  `UnitExists`, and if it is there `UnitCanAttack("player", token)`, `UnitIsDead` and
+  `UnitAffectingCombat`. An enemy in view is a unit that exists, can be attacked and is not
+  dead; it is fighting if it is in combat (with anyone: the game does not say with whom).
+- The game also announces each nameplate as it comes and goes (`NAME_PLATE_UNIT_ADDED`,
+  `NAME_PLATE_UNIT_REMOVED`). Those events only make FreeRock count again at once. What they
+  carry is not used: taking the tokens from them missed every nameplate that was already up
+  when the addon loaded.
 - Blizzard's generated documentation for this client (branch `forever` of the interface source,
-  `UnitDocumentation.lua` and `NamePlateManagerDocumentation.lua`) marks none of these four
-  answers and neither event payload as sealable. If one comes back sealed all the same, both
-  counts are sent as 15, not known.
+  `UnitDocumentation.lua`) marks none of these four answers as sealable. If one comes back
+  sealed all the same, both counts are sent as 15, not known.
 - Nothing else is asked about those units. Not their names, not their health, not whom they
   are after. `UnitThreatSituation` is not called.
+- `/rock status` also says how many nameplates of any kind the game has up
+  (`C_NamePlate.GetNamePlates`, its length only), so that "no enemies" can be told from "no
+  nameplates".
 
 The counts depend on the player's nameplate settings: with enemy nameplates switched off there
 are none to count, and the app then goes by the fight alone, as it did before version 3.
