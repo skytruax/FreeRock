@@ -699,6 +699,19 @@ tests.piecePlace = async () => {
   return { haunted: [...new Set(there.engine.log.map(pieceOf))], pastoral: [...new Set(here.engine.log.map(pieceOf))], order };
 };
 
+// A border crossed in the last seconds of a piece, after the track's next piece was made ready:
+// the track still gives way to the new place's music where the piece ends.
+tests.pieceBorderLate = async () => {
+  const bucket = makePieces("border", [{ id: "crypt", windows: 2, then: "vault", story: "open", track: "t", moods: ["haunted"] },
+                                       { id: "vault", windows: 2, phase: "crypt", story: "theme", track: "t", moods: ["haunted"] },
+                                       { id: "meadow", windows: 2, moods: ["pastoral"], light: true }]);
+  const run = await render(40, { bucket, target: Object.assign(mix(1), { kinds: ["haunted"] }),
+                                 script: [[11, (engine) => engine.setTarget({ kinds: ["pastoral"], light: true })]] });
+  const second = run.engine.log.filter((entry) => entry.at > 16 && entry.at < 16.2).map(pieceOf);
+  const sounding = TONE["border-meadow-rhythm1-w0"], dropped = TONE["border-crypt-rhythm1-w0"];
+  return { second: [...new Set(second)], meadow: strength(run.data, 19, 23, sounding), vault: strength(run.data, 22, 23, dropped) };
+};
+
 // Light and heavy take turns: two heavy tracks never follow each other while there is a light one.
 tests.pieceShade = async () => {
   const bucket = makePieces("shade", [{ id: "h1" }, { id: "h2" }, { id: "h3" }, { id: "l1", light: true }, { id: "l2", light: true }]);

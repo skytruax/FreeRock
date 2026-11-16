@@ -1547,6 +1547,10 @@
         }
         if (this.group) {
           if (before.place !== this.target.place || String(before.kinds) !== String(this.target.kinds)) this.standby = null;
+          // The player has walked into another kind of place in the last seconds of a piece,
+          // after the track's next piece was made ready: what follows is thought about again.
+          if (this.next && this.next.entry === "continue"
+              && (String(before.kinds) !== String(this.target.kinds) || before.light !== this.target.light)) this._dropNext();
           // A fight, or the calm after one, may call for another piece altogether.
           if (this.target.intensity >= WAVE_OFF) this._unrest(this.group);
           if (await this._regroup(false)) return;

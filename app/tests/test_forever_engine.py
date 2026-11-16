@@ -410,6 +410,12 @@ async def test_a_track_carries_on_through_a_calm_moment(results):
     assert order[:3] == ["one", "two", "calm"], "the track was dropped for the calm piece: %s" % order
 
 
+async def test_a_border_crossed_in_the_last_seconds_of_a_piece_still_changes_the_music(results):
+    border = of(results, "pieceBorderLate")
+    assert border["meadow"] == pytest.approx(0.1, rel=0.1), "the new place's music did not come: %s" % border
+    assert border["vault"] < 0.005, "the old track went on into its next piece"
+
+
 async def test_light_and_heavy_take_turns(results):
     shade = of(results, "pieceShade")
     assert len(shade["order"]) >= 12
