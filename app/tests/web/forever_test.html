@@ -1,0 +1,399 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>FreeRock forever-song engine tests</title></head>
+<body>
+<pre id="result">running</pre>
+<script src="/forever.js"></script>
+<script>
+// Renders the forever-song engine offline with made-up phrases whose every sample is known, and
+// measures what comes out. The numbers are handed to test_forever_engine.py, which holds them
+// against pass lines.
+"use strict";
+
+const RATE = 48000, BAR = 96000, BEAT = 24000;     // 120 beats a minute: a bar is 2 s, a beat 0.5 s
+const CHANNELS = ["texture", "lead", "rhythm", "drums", "bass"];
+const BARS = { texture: 8, lead: 8, rhythm: 4, drums: 4, bass: 4 };
+const TONE = {};          // clip id -> the frequency of its tone, so the output says which is playing
+const FRAMES = {};        // clip id -> its length in frames
+let nextTone = 200;
+
+// A bucket with `each` phrases in every pool: every channel at every strength, the drone at one.
+function makeBucket(key, barFrames, each, only) {
+  const clips = [];
+  for (const channel of CHANNELS) {
+    for (const tier of channel === "texture" ? [0] : [0, 1, 2]) {
+      for (let i = 0; i < each; i++) {
+        if (only && !only(channel, tier, i)) continue;
+        const id = key + "-" + channel + tier + "-" + i;
+        if (!(id in TONE)) { TONE[id] = nextTone; nextTone += 110; }
+        FRAMES[id] = BARS[channel] * barFrames;
+        clips.push({ id, channel, tier, bars: BARS[channel], frames: FRAMES[id], gain_db: 0 });
+      }
+    }
+  }
+  return { key: "test/" + key, zone: key, genre: "test", bpm: Math.round(RATE * 240 / barFrames), tonic: "A minor",
+           rate: RATE, bar_frames: barFrames, clips };
+}
+
+// kind "tones": every phrase is its own steady tone.
+// kind "marks": drums and bass are a click on every beat (0.5 and 0.25), everything else silent.
+// kind "loud":  every phrase is a full-scale tone, to push the limiter.
+function makeLoader(kind, fetched) {
+  return async (key, id) => {
+    if (!(id in TONE)) throw new Error("The test has no phrase " + id);
+    if (fetched) fetched.push(id);
+    const frames = FRAMES[id], out = new Int16Array(frames * 2);
+    const channel = CHANNELS.find((name) => id.includes("-" + name));
+    for (let frame = 0; frame < frames; frame++) {
+      let value = 0;
+      if (kind === "marks") {
+        if (frame % BEAT === 0) value = channel === "drums" ? 0.5 : channel === "bass" ? 0.25 : 0;
+      } else {
+        value = (kind === "loud" ? 0.9 : 0.1) * Math.sin(2 * Math.PI * TONE[id] * frame / RATE);
+      }
+      const sample = Math.max(-32768, Math.min(32767, Math.round(value * 32768)));
+      out[2 * frame] = sample;
+      out[2 * frame + 1] = sample;
+    }
+    return out.buffer;
+  };
+}
+
+// A mix: every channel at the same strength, with the levels given (1 where none is).
+function mix(tier, levels) {
+  const channels = {};
+  for (const channel of CHANNELS) {
+    channels[channel] = { level: levels && channel in levels ? levels[channel] : 1, tier: channel === "texture" ? 0 : tier };
+  }
+  return { channels, fade_s: 0.4 };
+}
+
+function seeded(seed) {
+  let state = seed;
+  return () => { state = (state * 1103515245 + 12345) & 0x7fffffff; return state / 0x80000000; };
+}
+
+// Runs the engine for `seconds`. `script` is a list of [time, action]; tick() is called after
+// each action and every `tickEvery` seconds, as the live page does from its timer.
+async function render(seconds, options) {
+  const bucket = options.bucket || makeBucket("home", BAR, 3);
+  const ctx = new OfflineAudioContext(2, seconds * RATE, RATE);
+  const engine = new FreeRockForever(ctx, makeLoader(options.kind || "tones", options.fetched),
+                                     { limiter: options.limiter === true, random: options.random || seeded(7) });
+  await engine.setTarget(options.target || mix(1));
+  await engine.setBucket(bucket);
+  await engine.start();
+  await engine.tick();
+  const moments = new Map();
+  const every = options.tickEvery || 0.5;
+  for (let t = every; t < seconds; t += every) moments.set(Math.round(t * 1000), []);
+  for (const [time, action] of options.script || []) {
+    const key = Math.round(time * 1000);
+    if (!moments.has(key)) moments.set(key, []);
+    moments.get(key).push(action);
+  }
+  // A step that goes wrong is noted and the render carries on: left paused, it would never finish
+  // and the whole run would hang instead of saying what failed.
+  const failures = [];
+  for (const [key, actions] of moments) {
+    ctx.suspend(key / 1000).then(async () => {
+      try {
+        for (const action of actions) await action(engine);
+        await engine.tick();
+      } catch (error) {
+        failures.push("at " + key / 1000 + " s: " + String(error && error.stack || error));
+      } finally {
+        ctx.resume();
+      }
+    });
+  }
+  const buffer = await ctx.startRendering();
+  if (failures.length) throw new Error(failures.join("\n"));
+  return { data: buffer.getChannelData(0), right: buffer.getChannelData(1), engine, bucket };
+}
+
+const at = (seconds) => Math.round(seconds * RATE);
+function rms(data, from, to) {
+  let sum = 0;
+  for (let i = at(from); i < at(to); i++) sum += data[i] * data[i];
+  return Math.sqrt(sum / (at(to) - at(from)));
+}
+function peak(data, from, to) {
+  let best = 0;
+  for (let i = at(from); i < at(to); i++) best = Math.max(best, Math.abs(data[i]));
+  return best;
+}
+// How strongly one frequency is present in a stretch.
+function strength(data, from, to, hz) {
+  let re = 0, im = 0;
+  for (let i = at(from); i < at(to); i++) {
+    re += data[i] * Math.cos(2 * Math.PI * hz * i / RATE);
+    im += data[i] * Math.sin(2 * Math.PI * hz * i / RATE);
+  }
+  return 2 * Math.sqrt(re * re + im * im) / (at(to) - at(from));
+}
+function biggestStep(data, from, to) {
+  let best = 0;
+  for (let i = at(from) + 1; i < at(to); i++) best = Math.max(best, Math.abs(data[i] - data[i - 1]));
+  return best;
+}
+const of = (log, channel) => log.filter((entry) => entry.channel === channel);
+const ORIGIN = 0.08;      // the engine starts its grid this long after the first tick
+
+const tests = {};
+
+// The drum and bass clicks must land on the same sample, on every beat, pass after pass, even as
+// the decks take other phrases.
+tests.lock = async () => {
+  // The clicks pass through the tone filters, which change their height but not their place, so
+  // the drums alone are rendered too: a drum click with a bass click on the same sample is one
+  // and a half times the drum click alone, and anything else means they fell apart.
+  const run = await render(60, { kind: "marks", target: mix(1, { texture: 0, lead: 0, rhythm: 0 }) });
+  const alone = await render(8, { kind: "marks", target: mix(1, { texture: 0, lead: 0, rhythm: 0, bass: 0 }) });
+  const d = run.data;
+  const clickAt = (data, beat) => {
+    const expected = at(ORIGIN) + beat * BEAT;
+    let best = 0, where = expected;
+    for (let i = expected - 200; i <= expected + 200; i++) if (Math.abs(data[i]) > best) { best = Math.abs(data[i]); where = i; }
+    return { height: best, offset: Math.abs(where - expected) };
+  };
+  const drum = clickAt(alone.data, 10).height;
+  let worst = 0, beats = 0, low = Infinity, high = 0;
+  for (let beat = 6; beat < 118; beat++) {          // the first beats are under the opening fade-in
+    const click = clickAt(d, beat);
+    worst = Math.max(worst, click.offset);
+    low = Math.min(low, click.height / drum);
+    high = Math.max(high, click.height / drum);
+    beats += 1;
+  }
+  let same = true;
+  for (let i = 0; i < d.length; i += 97) if (d[i] !== run.right[i]) same = false;
+  const changes = (channel) => new Set(of(run.engine.log, channel).map((entry) => entry.clip)).size;
+  return { beats, worstOffsetFrames: worst, minRatio: low, maxRatio: high, sameLeftAndRight: same,
+           drumPhrases: changes("drums"), bassPhrases: changes("bass"), late: run.engine.late };
+};
+
+// One deck alone: a phrase runs into its next pass, and into the next phrase, without a gap or a click.
+tests.seams = async () => {
+  const run = await render(40, { target: mix(1, { texture: 0, lead: 0, drums: 0, bass: 0 }) });
+  const log = of(run.engine.log, "rhythm");
+  const d = run.data;
+  let quietest = Infinity, stepAtSeam = 0;
+  for (const entry of log.slice(1, 4)) {
+    for (let t = entry.at - 0.06; t < entry.at + 0.06; t += 0.005) quietest = Math.min(quietest, rms(d, t, t + 0.03));
+    stepAtSeam = Math.max(stepAtSeam, biggestStep(d, entry.at - 0.03, entry.at + 0.03));
+  }
+  return { starts: log.map((entry) => entry.at), offsets: log.map((entry) => entry.offset),
+           clips: log.map((entry) => entry.clip), quietestAcrossSeam: quietest, steady: rms(d, 3, 4),
+           stepAtSeam, stepElsewhere: biggestStep(d, 3, 4), late: run.engine.late };
+};
+
+// With everything up, the song keeps moving: a deck takes a new phrase at nearly every four-bar
+// line, and never two decks at the same line.
+tests.oneAtATime = async () => {
+  const run = await render(170, { tickEvery: 1.0 });
+  const lines = new Map();
+  const last = {}, stints = {};
+  let changes = 0, soonestRepeat = Infinity;
+  for (const entry of run.engine.log) {
+    if (last[entry.channel] !== entry.clip) {
+      // How many other phrases the deck played before coming back to this one.
+      const before = stints[entry.channel] = stints[entry.channel] || [];
+      const again = before.lastIndexOf(entry.clip);
+      if (again >= 0) soonestRepeat = Math.min(soonestRepeat, before.length - again - 1);
+      before.push(entry.clip);
+    }
+    if (last[entry.channel] !== undefined && last[entry.channel] !== entry.clip) {
+      const line = Math.round((entry.at - ORIGIN) / 8 * 1000) / 1000;
+      const slot = Math.floor(line + 1e-6);
+      lines.set(slot, (lines.get(slot) || 0) + 1);
+      changes += 1;
+    }
+    last[entry.channel] = entry.clip;
+  }
+  const perChannel = {};
+  for (const channel of CHANNELS) perChannel[channel] = new Set(of(run.engine.log, channel).map((entry) => entry.clip)).size;
+  return { changes, mostAtOneLine: Math.max(...lines.values()), linesWithAChange: lines.size,
+           lines: Math.floor(170 / 8), perChannel, late: run.engine.late, soonestRepeat };
+};
+
+// A fight starts: the decks change to their hard phrases on the next half beat, in step.
+tests.gearUp = async () => {
+  const run = await render(20, { script: [[10.3, (engine) => engine.setTarget(mix(2))]] });
+  const drums = of(run.engine.log, "drums");
+  const hard = drums.find((entry) => entry.tier === 2);
+  const before = drums.filter((entry) => entry.at < 10.3).pop();
+  const d = run.data;
+  return { at: hard ? hard.at : null, offset: hard ? hard.offset : null,
+           expected: ORIGIN + Math.ceil((10.3 + 0.08 - ORIGIN) / 0.25) * 0.25,
+           expectedOffset: (ORIGIN + Math.ceil((10.3 + 0.08 - ORIGIN) / 0.25) * 0.25 - ORIGIN) % 8,
+           hardAfter: hard ? strength(d, hard.at + 0.1, hard.at + 0.4, TONE[hard.clip]) : 0,
+           steadyBefore: strength(d, 9.5, 10.0, TONE[before.clip]),
+           steadyAfter: hard ? strength(d, hard.at + 0.1, hard.at + 0.4, TONE[before.clip]) : null,
+           tiersAfter: CHANNELS.filter((name) => name !== "texture").map((name) => of(run.engine.log, name).pop().tier),
+           late: run.engine.late };
+};
+
+// The fight is over: the decks ease off on the next bar line.
+tests.gearDown = async () => {
+  const run = await render(20, { target: mix(2), script: [[10.3, (engine) => engine.setTarget(mix(0))]] });
+  const drums = of(run.engine.log, "drums");
+  const calm = drums.find((entry) => entry.tier === 0);
+  return { at: calm ? calm.at : null, expected: ORIGIN + Math.ceil((10.3 + 0.08 - ORIGIN) / 2) * 2,
+           tiersAfter: CHANNELS.filter((name) => name !== "texture").map((name) => of(run.engine.log, name).pop().tier) };
+};
+
+// A channel that is down plays on unheard, so it is there the moment it is brought up.
+tests.levels = async () => {
+  const run = await render(12, { target: mix(1, { drums: 0, bass: 0 }),
+                                 script: [[6, (engine) => engine.setTarget(mix(1, { drums: 1, bass: 0 }))]] });
+  const drums = of(run.engine.log, "drums"), d = run.data;
+  const tone = TONE[drums[0].clip];
+  return { before: strength(d, 4, 5.9, tone), after: strength(d, 6.3, 7.3, tone),
+           rhythm: strength(d, 4, 5.9, TONE[of(run.engine.log, "rhythm")[0].clip]) };
+};
+
+// What the server is told has been heard: a phrase on a channel that is down is not counted
+// until the channel comes up.
+tests.heard = async () => {
+  const seen = [];
+  const run = await render(10, { target: mix(1, { drums: 0, bass: 0 }), script: [
+    [3, (engine) => { seen.push(engine.status().heard); }],
+    [6, (engine) => engine.setTarget(mix(1, { drums: 1, bass: 0 }))],
+    [6.5, (engine) => { seen.push(engine.status().heard); }],
+  ] });
+  const channelOf = (id) => CHANNELS.find((name) => id.includes("-" + name));
+  return { first: seen[0].map(channelOf).sort(), second: seen[1].map(channelOf).sort(),
+           playing: Object.keys(run.engine.status().playing).sort() };
+};
+
+// A rest: the music fades right out, and comes back afresh.
+tests.rest = async () => {
+  const run = await render(30, { script: [
+    [8, (engine) => engine.setTarget({ rest: true, fade_s: 2 })],
+    [18, (engine) => engine.setTarget({ rest: false, fade_s: 0.4 })],
+  ] });
+  const d = run.data, log = run.engine.log;
+  return { before: rms(d, 5, 7), during: rms(d, 11, 17.9), after: rms(d, 24, 28),
+           scheduledDuring: log.filter((entry) => entry.at > 12.5 && entry.at < 18).length,
+           firstAfter: Math.min(...log.filter((entry) => entry.at >= 18).map((entry) => entry.at)),
+           offsetsAfter: log.filter((entry) => entry.at >= 18 && entry.at < 18.5).map((entry) => entry.offset) };
+};
+
+// Another place at another tempo: the old place's music fades away and the new comes in on its own grid.
+tests.newPlace = async () => {
+  const slow = makeBucket("slow", 120000, 2);
+  const run = await render(40, { script: [[12, (engine) => engine.setBucket(slow)]] });
+  const d = run.data, log = run.engine.log;
+  const old = log.filter((entry) => entry.at < 12 && entry.clip.startsWith("home"));
+  const fresh = log.filter((entry) => entry.clip.startsWith("slow"));
+  const rhythm = fresh.filter((entry) => entry.channel === "rhythm");
+  let oldAfter = 0;
+  for (const entry of old) oldAfter = Math.max(oldAfter, strength(d, 15, 16, TONE[entry.clip]));
+  return { firstNew: Math.min(...fresh.map((entry) => entry.at)), rhythmStarts: rhythm.map((entry) => entry.at).slice(0, 3),
+           oldAfter, newAfter: rms(d, 16, 20), oldScheduledAfter: log.filter((entry) => entry.at > 13 && entry.clip.startsWith("home")).length,
+           key: run.engine.status().bucket };
+};
+
+// Phrases arriving while the music plays: a channel with nothing comes in when its first phrase
+// arrives, a strength that was missing is taken up when it arrives, and a new phrase is played first.
+tests.arrivals = async () => {
+  const bucket = makeBucket("thin", BAR, 3, (channel, tier, i) => channel === "texture" && i === 0);
+  const full = makeBucket("thin", BAR, 3);
+  const drum = (tier, i) => full.clips.find((clip) => clip.id === "thin-drums" + tier + "-" + i);
+  const run = await render(30, { bucket, target: mix(2), script: [
+    [3, (engine) => engine.addClip("test/thin", drum(1, 0))],
+    [9.1, (engine) => engine.addClip("test/thin", Object.assign({ new: true }, drum(2, 1)))],
+  ] });
+  const drums = of(run.engine.log, "drums");
+  return { first: drums[0] ? { at: drums[0].at, tier: drums[0].tier, offset: drums[0].offset } : null,
+           hard: drums.find((entry) => entry.tier === 2) || null,
+           hardExpected: ORIGIN + Math.ceil((9.1 + 0.08 - ORIGIN) / 0.25) * 0.25,
+           channels: Array.from(new Set(run.engine.log.map((entry) => entry.channel))).sort() };
+};
+
+// A phrase that has been set aside finishes its pass and is not chosen again.
+tests.setAside = async () => {
+  let dropped = null;
+  const run = await render(60, { target: mix(1, { texture: 0, lead: 0, drums: 0, bass: 0 }), script: [
+    [5, (engine) => { dropped = engine.group.decks.rhythm.clip.id; engine.dropClips("test/home", [dropped]); }],
+  ] });
+  const rhythm = of(run.engine.log, "rhythm");
+  return { dropped, playedAfter: rhythm.filter((entry) => entry.at > 9 && entry.clip === dropped).length,
+           others: new Set(rhythm.filter((entry) => entry.at > 9).map((entry) => entry.clip)).size };
+};
+
+// The tune sits a phrase out now and then, and another tune follows.
+tests.layOut = async () => {
+  const run = await render(60, { random: () => 0, target: mix(1, { texture: 0, rhythm: 0, drums: 0, bass: 0 }) });
+  const lead = of(run.engine.log, "lead"), d = run.data;
+  return { starts: lead.map((entry) => entry.at), clips: lead.map((entry) => entry.clip),
+           playing: rms(d, 5, 15), sittingOut: rms(d, 17, 31), back: rms(d, 34, 46) };
+};
+
+// In a fight the tune does not sit out: it comes straight back in.
+tests.noLayOutInAFight = async () => {
+  const run = await render(40, { random: () => 0, target: mix(1, { texture: 0, rhythm: 0, drums: 0, bass: 0 }),
+                                 script: [[20.2, (engine) => engine.setTarget(mix(2, { texture: 0, rhythm: 0, drums: 0, bass: 0 }))]] });
+  const lead = of(run.engine.log, "lead");
+  const back = lead.find((entry) => entry.at > 16.5);
+  return { backAt: back ? back.at : null, tier: back ? back.tier : null, sittingOut: rms(run.data, 17, 20) };
+};
+
+// A death: the music runs down like a record stopping, and then starts again.
+tests.windDown = async () => {
+  const run = await render(16, { script: [[6, (engine) => engine.moment("died")]] });
+  const d = run.data;
+  return { before: rms(d, 4, 5.9), runningDown: rms(d, 6.1, 6.6), runDown: rms(d, 7.12, 7.19), after: rms(d, 9, 12),
+           restartedAt: Math.min(...run.engine.log.filter((entry) => entry.at > 6).map((entry) => entry.at)) };
+};
+
+// Skip: every deck that can be heard takes another phrase on the next bar line.
+tests.skip = async () => {
+  const run = await render(16, { script: [[5.2, (engine) => engine.skip()]] });
+  const moved = CHANNELS.filter((channel) => {
+    const entries = of(run.engine.log, channel);
+    const after = entries.find((entry) => Math.abs(entry.at - (ORIGIN + 6)) < 0.01);
+    return after && after.clip !== entries[0].clip;
+  });
+  return { moved: moved.sort() };
+};
+
+// Everything at full scale at once must still come out under full scale.
+tests.limiter = async () => {
+  const run = await render(12, { kind: "loud", limiter: true, target: mix(2) });
+  return { peak: peak(run.data, 1, 12), loud: rms(run.data, 4, 10) };
+};
+
+// The browser may slow a page's timers right down while the game is in front. Looked in on only
+// every three seconds, the song must still have no holes in it.
+tests.unattended = async () => {
+  const run = await render(60, { tickEvery: 3.0 });
+  let quietest = Infinity;
+  for (let t = 1; t < 59; t += 0.05) quietest = Math.min(quietest, rms(run.data, t, t + 0.05));
+  return { quietestWindow: quietest, typical: rms(run.data, 20, 40), late: run.engine.late,
+           passes: run.engine.log.length };
+};
+
+// Phrases are fetched before they are needed: by the time a fight starts, the hard ones are here.
+tests.fetchedAhead = async () => {
+  const fetched = [];
+  const run = await render(6, { fetched });
+  const hard = fetched.filter((id) => /[a-z]2-/.test(id));
+  return { hard: hard.length, fetched: fetched.length, twice: fetched.length - new Set(fetched).size };
+};
+
+(async () => {
+  const results = {};
+  for (const [name, test] of Object.entries(tests)) {
+    try { results[name] = await test(); }
+    catch (error) { results[name] = { error: String(error && error.stack || error) }; }
+  }
+  document.getElementById("result").textContent = JSON.stringify(results);
+  // Rendering happens outside the page's own clock, so the test runner cannot tell when it is
+  // finished by watching the page load. The results are handed to it directly.
+  await fetch("/done", { method: "POST", body: JSON.stringify(results) });
+})();
+</script>
+</body>
+</html>

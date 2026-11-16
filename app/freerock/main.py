@@ -10,7 +10,7 @@ import socket
 
 from aiohttp import web
 
-from . import conductor, server
+from . import conductor, forever, server
 from .director import Director, Rules
 from .eleven import Gateway
 from .ingest import Ingest
@@ -33,7 +33,7 @@ def build_app(config: server.ServerConfig | None = None, *, music: bool = True, 
         return app
     settings = settings or Settings.load()
     library = Library(settings.library_dir)
-    ingest, note = None, None
+    ingest, filler, note = None, None, None
     if not new_music:
         note = "New music is switched off; playing only what is in the library."
     else:
@@ -45,6 +45,7 @@ def build_app(config: server.ServerConfig | None = None, *, music: bool = True, 
         else:
             gateway = Gateway(settings)
             ingest = Ingest(gateway, library)
+            filler = forever.Filler(gateway)
 
             async def close_gateway(app: web.Application) -> None:
                 await gateway.aclose()
@@ -53,7 +54,7 @@ def build_app(config: server.ServerConfig | None = None, *, music: bool = True, 
     # The rests come from the settings: about so many minutes of music, then so many seconds without.
     rules = Rules(rest_every_s=settings.rest_every_minutes * 60.0, rest_for_s=settings.rest_seconds)
     music_side = conductor.attach(app, library=library, ingest=ingest, director=Director(rules),
-                                  settings=settings)
+                                  settings=settings, filler=filler)
     if note:
         music_side.notes.append(note)
     return app

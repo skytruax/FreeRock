@@ -40,15 +40,42 @@
     return response.arrayBuffer();
   }
 
+  // One whole phrase from a bucket (the forever song).
+  async function phraseLoader(key, clipId) {
+    const response = await fetch("/phrase/" + key + "/" + clipId);
+    if (!response.ok) throw new Error("The server would not give the phrase " + clipId + " (" + response.status + "): " + await response.text());
+    return response.arrayBuffer();
+  }
+
   function volume() { return Number($("volume").value) / 100; }
+
+  // The forever song: the server sends the bucket of phrases for the place, and the five decks
+  // play from it. If this page was playing songs until now, it changes over.
+  async function useBucket(message) {
+    const bucket = message.bucket;
+    if (engine && !(engine instanceof FreeRockForever)) { await engine.stop(); engine = null; }
+    if (!ctx) ctx = new AudioContext({ sampleRate: bucket.rate, latencyHint: "interactive" });
+    if (!engine) {
+      engine = new FreeRockForever(ctx, phraseLoader, { report: problem });
+      engine.setVolume(volume());
+      if (target) await engine.setTarget(target);
+    }
+    await engine.setBucket(bucket);
+    playing = bucket;
+    musicLine(false);
+    await begin();
+  }
 
   async function useAsset(message) {
     const asset = message.asset;
+    if (engine && engine instanceof FreeRockForever) { await engine.stop(); engine = null; }
     if (!ctx) {
       // The player runs at the music's own sample rate, so nothing is resampled and the three
       // layers stay locked.
       // A short path to the speakers, so that a change is heard as soon as it is made.
       ctx = new AudioContext({ sampleRate: asset.rate, latencyHint: "interactive" });
+    }
+    if (!engine) {
       engine = new FreeRockEngine(ctx, loader);
       engine.setVolume(volume());
       if (target) await engine.setTarget(target);
@@ -71,6 +98,12 @@
   // Whose music is playing, and whether this place is only borrowing it.
   function musicLine(borrowed) {
     if (!playing) return;
+    if (playing.clips) {
+      const count = engine && engine.bucket ? engine.bucket.clips.size : playing.clips.length;
+      $("music").textContent = "A song that never ends for " + playing.zone + " (" + playing.bpm + " BPM, " + playing.tonic
+        + "), put together as it goes from " + count + " phrases. New ones are made while you play.";
+      return;
+    }
     $("music").textContent = (borrowed ? "This place has no music of its own yet. Playing music made for " : "Music for ")
       + playing.zone + " (" + playing.set + " set, " + playing.bpm + " BPM, " + playing.tonic + ").";
   }
@@ -101,6 +134,9 @@
       if (outdated) banner("FreeRock has been updated. Reload this page (F5) to use the new version. The music carries on until you do.");
     }
     if (message.type === "asset") await useAsset(message);
+    else if (message.type === "bucket") await useBucket(message);
+    else if (message.type === "phrase" && engine && engine.addClip) { engine.addClip(message.key, message.clip); musicLine(false); }
+    else if (message.type === "retired" && engine && engine.dropClips) { engine.dropClips(message.key, message.ids); musicLine(false); }
     else if (message.type === "target") {
       target = message.target;
       if (engine) await engine.setTarget(target);
@@ -221,7 +257,17 @@
     if (!engine) return;
     engine.tick().catch((error) => problem(String(error && error.stack || error)));
     const status = engine.status();
-    $("section").textContent = status.section ? status.section + ", cell " + (status.cell + 1) : "nothing";
+    if (status.forever) {
+      // The five decks: which channels can be heard, and how hard each is playing.
+      const strength = ["calm", "steady", "hard"];
+      const up = Object.entries(status.playing).map(([channel, clip]) => channel + " (" + strength[clip.tier] + ")");
+      $("section").textContent = status.resting ? "a silence" : up.length ? up.length + " of 5 channels" : "nothing yet";
+      $("decksRow").hidden = false;
+      $("decks").textContent = up.join(", ") || "none";
+    } else {
+      $("decksRow").hidden = true;
+      $("section").textContent = status.section ? status.section + ", cell " + (status.cell + 1) : "nothing";
+    }
     if (lostAt !== null && Date.now() - lostAt > 60000 && !engine.target.silent) {
       banner("The FreeRock server has been out of reach for a minute. The music has faded out and returns when the server does.");
       engine.setTarget({ silent: true, fade_s: 2 }).catch((error) => problem(String(error)));

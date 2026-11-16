@@ -127,7 +127,7 @@ def _show_settings(arguments: argparse.Namespace) -> int:
             print("Give a value as well, for example: freerock settings %s 40" % arguments.name, file=sys.stderr)
             return 1
         try:
-            value = arguments.value if arguments.name == "genre" else float(arguments.value)
+            value = arguments.value if arguments.name in Settings.WORDS else float(arguments.value)
         except ValueError:
             print("%s takes a number, not %r" % (arguments.name, arguments.value), file=sys.stderr)
             return 1
@@ -145,6 +145,7 @@ def _show_settings(arguments: argparse.Namespace) -> int:
     print("rest_every_minutes  %g   about this much calm music between rests (0: never rest)" % settings.rest_every_minutes)
     print("rest_seconds        %g   about this long without music in a rest" % settings.rest_seconds)
     print("genre               %s   the style played and made: %s" % (settings.genre, ", ".join(Settings.GENRES)))
+    print("mode                %s   how the music is put together: %s" % (settings.mode, ", ".join(Settings.MODES)))
     return 0
 
 

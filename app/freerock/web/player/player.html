@@ -26,6 +26,7 @@
     <p id="music" class="soft">No music loaded yet.</p>
     <dl>
       <div><dt>Playing</dt><dd id="section">nothing</dd></div>
+      <div id="decksRow" hidden><dt>Channels</dt><dd id="decks">none yet</dd></div>
       <div><dt>Asked for</dt><dd id="place">nothing</dd></div>
       <div><dt>Intensity</dt><dd><div class="meter"><span id="intensity"></span></div></dd></div>
       <div><dt>Bed</dt><dd><div class="meter"><span id="bed"></span></div></dd></div>
@@ -55,8 +56,9 @@
     <label for="p-zone">Zone</label>
     <select id="p-zone"></select>
     <div class="checks">
-      <label><input type="checkbox" id="p-make"> Make new music for a zone that has none (about three
-        minutes of the monthly allowance per zone; ready in a minute or two)</label>
+      <label><input type="checkbox" id="p-make"> Make new music for the zone (it is asked for the
+        whole time this box is ticked, about a minute and a half of ElevenLabs music for every
+        minute played)</label>
     </div>
     <div class="checks">
       <label><input type="checkbox" data-field="indoors"> In a cave or building</label>
@@ -88,6 +90,7 @@
   <p id="problems" class="problems" hidden></p>
 </main>
 <script src="/player/engine.js"></script>
+<script src="/player/forever.js"></script>
 <script src="/player/player.js"></script>
 </body>
 </html>

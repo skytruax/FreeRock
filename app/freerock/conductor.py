@@ -21,7 +21,7 @@ from typing import Any
 
 from aiohttp import WSMsgType, web
 
-from . import atlas, composer
+from . import atlas, composer, forever
 from . import state as game
 from .director import Director, Target
 from .eleven import AllowanceExceeded, ElevenError
@@ -34,7 +34,8 @@ log = logging.getLogger("freerock.conductor")
 
 PLAYER_DIR = Path(__file__).resolve().parent / "web" / "player"
 PLAYER_FILES = {"player.html": "text/html", "player.js": "application/javascript",
-                "engine.js": "application/javascript", "player.css": "text/css"}
+                "engine.js": "application/javascript", "forever.js": "application/javascript",
+                "player.css": "text/css"}
 STEP_S = 0.25          # how often the director is asked again while nothing changes
 TICK_S = 1.0           # how often the players are nudged, so their queue never depends on a timer
 DWELL_S = 4.0          # how long the player has been in a zone before music is made for it
@@ -51,6 +52,13 @@ GROWTH_FLOAT = 6.0       # minutes of growth allowed before any hours have been 
 MIN_PLAY_S = 150.0       # however little music a place has, at least this much between rests
 PLACE_DWELL_S = 2.0      # how long in a named place inside a zone before it gets a piece of its own
 STOP_WAIT_S = 180.0      # how long a stopping server waits for music that is being made
+# The forever song (settings.mode "forever"): phrases for the bucket of the place the player is in.
+FILL_AT_ONCE = 2         # ElevenLabs makes two things at a time for this account
+CHANGE_BARS = 4          # the player takes a new phrase about every this many bars, and one is asked for as often
+POOL_REST_S = 90.0       # a pool whose phrase failed its checks three times running is left alone this long
+BUSY_S = 20.0            # how long to hold off when ElevenLabs is busy or stumbles
+SPENT_S = 3600.0         # how long to hold off when the account has nothing left to make music with
+SETTLE_S = 20.0          # a new place's bucket takes over after this long even if it is still thin
 
 
 def page_version() -> str:
@@ -67,7 +75,8 @@ def slug(name: str | None) -> str | None:
 class Conductor:
     def __init__(self, hub: game.Hub, library: Library, director: Director | None = None,
                  clock=time.monotonic, ingest: Ingest | None = None,
-                 settings: Settings | None = None, playtime: Playtime | None = None):
+                 settings: Settings | None = None, playtime: Playtime | None = None,
+                 filler: forever.Filler | None = None):
         self.hub = hub
         self.library = library
         self.director = director or Director()
@@ -103,6 +112,17 @@ class Conductor:
         self._noted: tuple | None = None     # the place and music last written to the notes
         self._told: tuple | None = None      # what the players were last told
         self._pretend_may_make = False
+        # The forever song.
+        self.filler = filler             # None: play what the buckets hold, ask for nothing new
+        self.buckets = forever.Buckets(self.settings.var_dir / "buckets")
+        self.bucket: forever.Bucket | None = None    # the bucket the players are playing from
+        self.mix: dict[str, dict[str, Any]] | None = None    # which channels are up and how hard
+        self._sent_bucket: str | None = None
+        self._here: tuple[str, float] | None = None  # (the bucket for where the player is, since when)
+        self._filling: dict[asyncio.Task, tuple[str, tuple[str, int]]] = {}   # phrases on their way
+        self._pool_rested: dict[tuple[str, tuple[str, int]], float] = {}      # pools left alone, until when
+        self._last_ask = -1e9
+        self.phrases_made = 0
 
     # --- choosing the music ----------------------------------------------------------------------
 
@@ -149,6 +169,11 @@ class Conductor:
     def genre(self) -> str:
         """The style in force: what is played, and what new music is made in."""
         return self.settings.genre
+
+    @property
+    def forever(self) -> bool:
+        """Whether the music is one song that never ends, built from a bucket of phrases."""
+        return self.settings.mode == "forever"
 
     def _in_style(self, zone: str | None = None, usable_only: bool = True) -> list[Asset]:
         """The library's music in the style in force, for one zone or for all."""
@@ -214,11 +239,17 @@ class Conductor:
         state = self.hub.state
         target = self.target.as_dict()
         target["scene_tag"] = self.scene_tag(state)
+        if self.forever:
+            # The mixing desk for the five decks: which channels are up, and how hard each plays.
+            target["channels"] = self.mix or forever.mix(self.target)
+            zone = self.bucket.zone if self.bucket else None
+        else:
+            zone = self.asset.zone if self.asset else None
         return {"type": "target", "target": target, "link": self.hub.link.value,
                 # The volume set in the game with /rock volume, 0 to 100; the page's own volume
                 # control follows it whenever it changes.
                 "game_volume": state.volume if state else None,
-                "music": {"zone": self.asset.zone if self.asset else None, "borrowed": self.borrowed},
+                "music": {"zone": zone, "borrowed": self.borrowed},
                 "where": {"zone": self.place_name(state) if state and not state.in_instance else None,
                           "subzone": self.spot_name(state) if state else None,
                           "instance": state.instance_name if state else None}}
@@ -245,6 +276,9 @@ class Conductor:
             target = Target(silent=True, fade_s=2.0, why=("the game cannot be seen",))
         else:
             target = self.director.update(state, now)
+        if self.forever:
+            await self._forever_step(state, target, now)
+            return
         music, borrowed = self.choose(state)
         if music:
             # Said once for each place, and again if the music under it changes: whose music is
@@ -280,6 +314,176 @@ class Conductor:
         exploring = sum((section.end - section.start) / asset.rate for asset in self.assets
                         for section in asset.sections if section.role in ("wander", "ember"))
         self.director.rules.rest_every_s = min(self._rest_every_s, max(MIN_PLAY_S, 2.0 * exploring))
+
+    # --- the forever song --------------------------------------------------------------------
+
+    def _bucket_message(self) -> dict[str, Any]:
+        return {"type": "bucket", "bucket": self.bucket.describe()}
+
+    async def _forever_step(self, state: game.GameState, target: Target, now: float) -> None:
+        """One look at the game with the forever song playing: which place's bucket the players
+        play from, how the five channels are mixed, and whether another phrase should be asked for."""
+        name = self.place_name(state)
+        if name:
+            here = self.buckets.get(name, self.genre)
+            if self._here is None or self._here[0] != here.key:
+                self._here = (here.key, now)
+            playing = self.bucket
+            if here is not playing and here.live():
+                # The music of the place the player has left plays on until the new place has
+                # enough to take over with: a drone, a tune, a rhythm part, drums and bass. A
+                # new style takes over as soon as it has anything, since it was asked for.
+                settled = now - self._here[1] >= SETTLE_S and len(here.live()) >= 3
+                if (playing is None or not playing.live() or playing.genre != here.genre
+                        or here.ready() or settled):
+                    self.bucket = here
+                    self.notes.append("Playing from the bucket for %s (%s): %d phrases so far." % (
+                        name, composer.GENRES[here.genre]["label"], len(here.live())))
+        if self.bucket is not None and self._sent_bucket != self.bucket.key:
+            self._sent_bucket = self.bucket.key
+            await self._broadcast(self._bucket_message())
+        mixed = forever.mix(target, self.mix)
+        told = (target, state.volume, self._sent_bucket, json.dumps(mixed, sort_keys=True))
+        if told != self._told:
+            self.target, self.mix, self._volume, self._told = target, mixed, state.volume, told
+            await self._broadcast(self._target_message())
+        self._consider_filling(state, name, now)
+
+    def phrase_words(self, state: game.GameState) -> list[str]:
+        """What is true in the game as a phrase is about to be asked for, in a word or two for the
+        tune and the drone: the hour and the weather. A phrase is made for the moment it is asked
+        for in."""
+        words = []
+        if state.daytime is False:
+            words.append("nocturnal")
+        strength = state.weather_intensity or 0.0
+        if state.weather == "rain" and strength >= 0.3:
+            words.append("rain-soaked")
+        elif state.weather == "snow" and strength >= 0.3:
+            words.append("hushed and wintry")
+        elif state.weather == "sandstorm" and strength >= 0.3:
+            words.append("dry desert wind")
+        return words
+
+    def _consider_filling(self, state: game.GameState, name: str | None, now: float) -> None:
+        """Asks for the next phrase for the bucket of the place the player is in, if it is time.
+
+        A place that is new gets its first phrases as fast as they can be made: one for every
+        channel at every strength. After that the bucket is fed in real time, one new phrase
+        about as often as the player takes one (every four bars), for whichever channel and
+        strength the music is drawing on that has the fewest phrases nobody has heard. So
+        while the game is played there is always something new in the bucket, and what is new
+        is what is being played."""
+        if self.filler is None or not name:
+            return
+        if state is self._pretend_state and not self._pretend_may_make:
+            return                       # a pretend game that has not asked for new music
+        if (self.hub.link is not game.Link.LIVE or not state.enabled or state.on_taxi
+                or state.loading or state.cinematic or not self.players or now < self._paused_until):
+            return
+        if len(self._filling) >= FILL_AT_ONCE:
+            return
+        bucket = self.buckets.get(name, self.genre)
+        coming: dict[tuple[str, int], int] = {}
+        for key, pool in self._filling.values():
+            if key == bucket.key:
+                coming[pool] = coming.get(pool, 0) + 1
+        resting = {pool for (key, pool), until in self._pool_rested.items() if key == bucket.key and until > now}
+        # A pool that is being left alone does not keep the bucket in its first rush.
+        if bucket.started({**coming, **{pool: 1 for pool in resting}}):
+            if self._filling or self.target is None or self.target.rest or self.target.silent:
+                return                   # one at a time from here on, and none while nothing is heard
+            if now - self._last_ask < CHANGE_BARS * 240.0 / bucket.bpm:
+                return
+        pool = bucket.wanted(forever.in_use(self.mix), coming, resting)
+        if pool in resting:
+            return
+        self._last_ask = now
+        spot = self.spot_name(state)
+        profile = atlas.place_profile(name, spot) if spot and slug(spot) != bucket.zone else atlas.profile_for(name)
+        task = asyncio.create_task(self._fill(bucket, profile, pool, self.phrase_words(state)),
+                                   name="freerock-phrase-%s-%s-%d" % (bucket.key, pool[0], pool[1]))
+        self._filling[task] = (bucket.key, pool)
+        task.add_done_callback(self._fill_ended)
+
+    async def _fill(self, bucket: forever.Bucket, profile: composer.ZoneProfile, pool: tuple[str, int],
+                    words: list[str]) -> None:
+        """Asks for one phrase and, when it has passed its checks, tells the players about it."""
+        channel, tier = pool
+        what = "%s (%s) for %s" % (channel, forever.TIER_WORDS[tier], bucket.zone)
+        try:
+            clip = await self.filler.phrase(bucket, profile, channel, tier, context=words)
+        except forever.PhraseFailed as failed:
+            self._pool_rested[(bucket.key, pool)] = self.clock() + POOL_REST_S
+            self.notes.append("%s Leaving that one for a minute and a half." % failed)
+            return
+        except AllowanceExceeded as over:
+            self._paused_until = self.clock() + PAUSE_S
+            self.notes.append(str(over))
+            return
+        except ElevenError as error:
+            if error.status == "quota_exceeded":
+                # Nothing left to make music with. The song goes on from what the buckets hold,
+                # and the phrases that had been set aside as worn come back into play.
+                self._paused_until = self.clock() + SPENT_S
+                self.notes.append("ElevenLabs has no credits left for new phrases: %s The song carries on from "
+                                  "the bucket, with every phrase made so far back in play." % error)
+                await self._play_everything()
+            elif error.http_status == 429 or error.http_status >= 500:
+                self._paused_until = self.clock() + BUSY_S
+                self.notes.append("ElevenLabs is busy (%s); asking again in a few seconds." % error)
+            else:
+                self._pool_rested[(bucket.key, pool)] = self.clock() + POOL_REST_S
+                self.notes.append("ElevenLabs would not make a phrase of %s: %s" % (what, error))
+            return
+        self.phrases_made += 1
+        gone = bucket.make_room(channel, tier)
+        await self._broadcast({"type": "phrase", "key": bucket.key, "clip": bucket.brief(clip)})
+        if gone:
+            await self._broadcast({"type": "retired", "key": bucket.key, "ids": [worn.id for worn in gone]})
+
+    def _fill_ended(self, task: asyncio.Task) -> None:
+        """A phrase has arrived or been turned away. Anything `_fill` did not expect is logged
+        and shown on the control page, and nothing more is asked for for a minute."""
+        self._filling.pop(task, None)
+        if task.cancelled():
+            return
+        error = task.exception()
+        if error is not None:
+            self._paused_until = self.clock() + 60.0
+            note = "Making a phrase failed: %r. No new phrases for a minute." % (error,)
+            log.error(note, exc_info=error)
+            self.notes.append(note)
+
+    async def _play_everything(self) -> None:
+        """Brings the phrases that were set aside as worn back into play, in every bucket in use."""
+        for bucket in {self.bucket, *(self.buckets.by_key(key) for key, _ in self._filling.values())}:
+            if bucket is not None and not bucket.everything:
+                bucket.everything = True
+                if bucket is self.bucket:
+                    await self._broadcast(self._bucket_message())
+
+    def _count_phrases(self, report: dict[str, Any]) -> None:
+        """Notes the phrases a player says have come in since it last said."""
+        heard, key = report.get("heard"), report.get("bucket")
+        if not heard or not key:
+            return
+        try:
+            self.buckets.by_key(key).played(heard)
+        except KeyError:
+            # The page is playing from a bucket this server does not have. Nothing to count.
+            log.warning("a player is playing from the bucket %s, which is not here", key)
+
+    def _playing_phrases(self) -> tuple[forever.Bucket, list[str]] | None:
+        """The bucket and the phrases a player is playing right now: what love and ban apply to."""
+        for status in self.statuses.values():
+            playing, key = status.get("playing"), status.get("bucket")
+            if playing and key:
+                try:
+                    return self.buckets.by_key(key), [entry["id"] for entry in playing.values()]
+                except KeyError:
+                    log.warning("a player is playing from the bucket %s, which is not here", key)
+        return None
 
     # --- making new music --------------------------------------------------------------------
 
@@ -518,6 +722,20 @@ class Conductor:
         if isinstance(event, game.CommandReceived):
             if event.name == "skip":
                 await self._broadcast({"type": "skip"})
+            elif event.name in ("love", "ban") and self.forever:
+                # In the forever song, love and ban are about the phrases playing at this moment.
+                # Loved ones are never set aside as worn; banned ones are not played again, and
+                # the decks playing them move on.
+                found = self._playing_phrases()
+                if found:
+                    bucket, ids = found
+                    if event.name == "love":
+                        bucket.mark(ids, loved=True)
+                        self.notes.append("The %d phrases playing are marked as loved." % len(ids))
+                    else:
+                        bucket.mark(ids, banned=True)
+                        self.notes.append("The %d phrases playing are banned." % len(ids))
+                        await self._broadcast({"type": "retired", "key": bucket.key, "ids": ids})
             elif event.name in ("love", "ban") and self.assets:
                 # Love and ban are about what is playing at this moment: the set the section came
                 # from, not the whole of a place's music.
@@ -575,7 +793,10 @@ class Conductor:
             # The page keeps the version it was loaded with; a different one after a reconnect
             # means the server was updated under it, and it says so.
             await self._send(socket, {"type": "hello", "version": page_version()})
-            if self.assets:
+            if self.forever:
+                if self.bucket is not None:
+                    await self._send(socket, self._bucket_message())
+            elif self.assets:
                 await self._send(socket, self._asset_message())
             if self.target is not None:
                 await self._send(socket, self._target_message())
@@ -585,7 +806,10 @@ class Conductor:
                 report = json.loads(message.data)
                 if report.get("type") == "status":
                     self.statuses[id(socket)] = report
-                    self._count_play(report)
+                    if report.get("forever"):
+                        self._count_phrases(report)
+                    else:
+                        self._count_play(report)
                 elif report.get("type") == "problem":
                     note = "The player page reported a problem: %s" % report.get("message")
                     log.error(note)
@@ -608,6 +832,17 @@ class Conductor:
             raise web.HTTPBadRequest(text="Cannot give that audio: %s" % error)
         return web.Response(body=data, content_type="application/octet-stream",
                             headers={"Cache-Control": "max-age=3600"})
+
+    async def phrase(self, request: web.Request) -> web.Response:
+        """One whole phrase from a bucket, as 16-bit stereo."""
+        key = "%s/%s" % (request.match_info["genre"], request.match_info["zone"])
+        try:
+            data = self.buckets.by_key(key).samples(request.match_info["clip"])
+        except KeyError as error:
+            raise web.HTTPNotFound(text="Cannot give that phrase: %s" % error)
+        # A phrase never changes once it is made, so the browser may keep it for good.
+        return web.Response(body=data, content_type="application/octet-stream",
+                            headers={"Cache-Control": "max-age=31536000, immutable"})
 
     async def page(self, request: web.Request) -> web.FileResponse:
         name = request.match_info.get("name", "player.html")
@@ -662,6 +897,7 @@ class Conductor:
                 raise web.HTTPBadRequest(text=str(error))
             self.settings.save()
             self._seen_in = self._seen_at = None      # the wait before making music starts again
+            self._here = None
             self.notes.append("The style is now %s." % composer.GENRES[self.genre]["label"])
         return web.json_response(self._styles())
 
@@ -678,7 +914,23 @@ class Conductor:
             "growth_minutes_left": round(self.growth_left(), 2),
             "target": self.target.as_dict() if self.target else None,
             "players": list(self.statuses.values()), "players_connected": len(self.players),
-            "making": self.making, "genre": self.genre, "notes": self.notes[-20:]})
+            "making": self.making, "genre": self.genre, "mode": self.settings.mode,
+            "forever": self._forever_status() if self.forever else None, "notes": self.notes[-20:]})
+
+    def _forever_status(self) -> dict[str, Any]:
+        """The forever song for the control page: the bucket in play, what each pool holds, what
+        is on its way, and how many phrases have been made since the server started."""
+        bucket = self.bucket
+        return {"bucket": bucket.key if bucket else None,
+                "bpm": bucket.bpm if bucket else None, "tonic": bucket.tonic if bucket else None,
+                "phrases": len(bucket.live()) if bucket else 0,
+                "kept": len(bucket.clips) if bucket else 0,
+                "pools": bucket.counts() if bucket else {},
+                "mix": self.mix,
+                "coming": ["%s %s" % (pool[0], forever.TIER_WORDS[pool[1]]) for _, pool in self._filling.values()],
+                "made": self.phrases_made,
+                "turned_away": self.filler.turned_away if self.filler else 0,
+                "new_phrases": self.filler is not None}
 
 
 def _ended(conductor: Conductor, task: asyncio.Task) -> None:
@@ -705,6 +957,13 @@ async def _stop(app: web.Application) -> None:
     for socket in list(conductor.players):
         await socket.close()
     conductor.playtime.save()
+    if conductor._filling:
+        # A phrase that is on its way has been paid for; it takes a few seconds to arrive.
+        log.warning("%d phrases are on their way; waiting for them before stopping", len(conductor._filling))
+        _, late = await asyncio.wait(list(conductor._filling), timeout=30.0)
+        for task in late:
+            log.error("a phrase was not finished in half a minute and is given up")
+            task.cancel()
     if conductor._making_task is not None and not conductor._making_task.done():
         # Music that is being made has been paid for by the time the request is out. Stopping
         # in the middle would throw it away, so the server waits for it to be finished and stored.
@@ -729,13 +988,13 @@ async def _stop(app: web.Application) -> None:
 def attach(app: web.Application, library: Library | None = None,
            director: Director | None = None, clock=time.monotonic,
            ingest: Ingest | None = None, settings: Settings | None = None,
-           playtime: Playtime | None = None) -> Conductor:
+           playtime: Playtime | None = None, filler: forever.Filler | None = None) -> Conductor:
     """Adds the music side to a server made by server.create_app(). With an `ingest`, music is
     made for zones that have none and grown where time is spent; without one, only what is in the
     library is played."""
     settings = settings or Settings()
     conductor = Conductor(app["hub"], library or Library(settings.library_dir), director, clock, ingest,
-                          settings=settings, playtime=playtime)
+                          settings=settings, playtime=playtime, filler=filler)
     app["conductor"] = conductor
     if "link" in app:
         app["link"].music = conductor.heard   # so the game link can say when nothing can be heard
@@ -743,6 +1002,7 @@ def attach(app: web.Application, library: Library | None = None,
     app.router.add_get("/player/{name}", conductor.page)
     app.router.add_get("/ws/player", conductor.player_socket)
     app.router.add_get("/audio/{asset}/{layer}", conductor.audio)
+    app.router.add_get("/phrase/{genre}/{zone}/{clip}", conductor.phrase)
     app.router.add_get("/api/music", conductor.status)
     app.router.add_get("/api/zones", conductor.zones)
     app.router.add_get("/api/style", conductor.style)
