@@ -758,6 +758,10 @@ class Bucket:
         the same place in the story are the same length, bar for bar and chord for chord, so
         the player may take any channel of one with the other channels of another. `light`
         says the piece is of the lighter kind; light and heavy take turns.
+
+        The bucket notes how many pieces of its track come before each piece (its `place`): a
+        long track uses a story word more than once (a theme, a second theme, the calm between
+        two rises), so the word alone does not say where in the story a piece stands.
         """
         if not parts:
             raise ValueError("A piece needs at least one part")
@@ -818,7 +822,9 @@ class Bucket:
             "serves": sorted(set(int(tier) for tier in serves)), "bar_frames": float(bar_frames), "bars": int(bars),
             "frames": int(whole), "windows": count, "tonic": tonic, "follow": follow or {}, "floor": floor or {},
             "source": source, "credit": credit, "family": family, "light": bool(light), "created": time.time(),
-            "banned": False, "loved": False}
+            "banned": False, "loved": False,
+            # (A piece put in before places were kept has none; it was the only one of its word.)
+            "place": int(self.pieces[after].get("place") or 0) + 1 if after else 0}
         if after:
             self.pieces[after]["next"] = piece_id
         self._save()
@@ -907,9 +913,9 @@ class Bucket:
                 "cycle_bars": self.cycle, "form": {"verse": verse, "build": build, "chorus": chorus},
                 "changes": CHANGES, "arc": ARC[self.genre],
                 # Written music: what each piece is. Its parts are among the clips.
-                "pieces": {piece_id: {name: piece[name] for name in (
+                "pieces": {piece_id: dict({name: piece[name] for name in (
                     "title", "track", "next", "story", "moods", "role", "serves", "bar_frames", "bars", "frames",
-                    "windows", "tonic", "follow", "floor", "family", "light")}
+                    "windows", "tonic", "follow", "floor", "family", "light")}, place=piece.get("place"))
                     for piece_id, piece in self.live_pieces().items()},
                 "free_share": FREE_SHARE,
                 "clips": [self.brief(clip) for clip in self.live()]}

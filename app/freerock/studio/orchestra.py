@@ -1,18 +1,27 @@
 """The orchestra's writer: original music for the Warcraft style, written as notes.
 
-A track is a story in five parts. It opens (a drone, a fragment of the tune on one instrument),
-states its theme, rises (the accompaniment quickens, fragments of the theme climb, the drums
-roll in), comes to its moment (the theme again with everyone playing, sometimes lifted into a
-higher key) and closes. How big the moment is depends on what the track is for: a village dance
-comes to a merry tutti of fiddles and tambourine, a march through the mountains to horns and
-timpani.
+A track is a story of about eight minutes, told in two waves and nine parts. It opens (a drone,
+a fragment of the first theme on one instrument); states its first theme; states a second
+theme, which begins away from home, has another singer and another figure under it; builds
+(the accompaniment quickens, fragments of the first theme climb, the drums roll in); and
+arrives: the first theme with most of the band. Then the valley, one of the themes on a single
+instrument over very little. From there the climb, longer than the build, made of both
+themes; the summit, the first theme with everyone playing and the second sung underneath it,
+sometimes lifted into a higher key; and the close. How big the summit is depends on what the
+track is for: a village dance comes to a merry tutti of fiddles and tambourine, a march through
+the mountains to horns and timpani. A fight does not wait to begin and its valley is only a
+breath; a night piece keeps the whole arc under its breath.
+
+The player knows five words for where a piece stands in a story (open, theme, rise, moment,
+close). A long story uses three of them more than once: both themes and the valley are
+"theme", the build and the climb "rise", the arrival and the summit "moment".
 
 What is written first is a FAMILY: the kind of place and moment it is for (its character), its
 key, tempo and metre, and its changes, the chord under every bar of the story. Then TAKES: each
-take is the whole story over those changes, written afresh from its own seed, with its own tune,
-its own accompaniment figure, bass line and drums, and its own choice of instruments from the
-character's palette. Since every take of a family follows the same chords bar for bar, the
-player can put the drums of one with the tune of another.
+take is the whole story over those changes, written afresh from its own seed, with its own two
+themes, its own accompaniment figures, bass line and drums, and its own choice of instruments
+from the character's palette. Since every take of a family follows the same chords bar for
+bar, the player can put the drums of one with the tune of another.
 
 Nothing here is copied from anywhere. The tunes are built the way tunes are: a motif of a bar,
 answered, repeated a step higher, and brought home; long notes on the notes of the chord, steps
@@ -580,6 +589,18 @@ THEMES = {
     "phrygian": ("1 2 1 7", "1 2 3 2", "1 7 6 2", "1 2 6 2", "1 4 2 1"),
     "phrygian dominant": ("1 2 1 7", "1 4 2 1", "1 2 4 2", "1 7 2 1"),
 }
+# Changes for a second theme: three chords of two bars each, and then the mode's way home. A
+# second theme begins away from home, on the mode's other side (the relative key of a minor
+# one, the fourth or the sixth of a major one), and uses only chords that are whole in the mode.
+SECONDS = {
+    "major": ("4 1 2", "6 4 1", "4 6 2", "6 3 4", "2 6 4", "4 1 6", "3 6 4"),
+    "lydian": ("5 6 1", "6 5 1", "6 1 5", "5 1 6", "3 6 5"),
+    "mixolydian": ("4 1 5", "5 4 1", "4 6 1", "6 4 1", "2 4 1"),
+    "dorian": ("3 7 1", "7 3 1", "3 1 7", "5 3 7", "7 1 3"),
+    "minor": ("3 7 6", "6 3 7", "6 7 1", "3 6 4", "4 7 3", "7 3 6"),
+    "phrygian": ("6 7 1", "3 6 7", "6 3 4", "4 3 6", "7 6 3"),
+    "phrygian dominant": ("4 7 1", "7 4 1", "4 1 7", "7 1 4"),
+}
 RISES = {
     "major": ("4 5 4 5", "6 4 2 5", "4 4 5 5", "2 3 4 5"), "lydian": ("2 2 5 5", "6 2 5 5", "6 5 2 5"),
     "mixolydian": ("4 4 7 7", "5 4 7 7", "4 7 4 7"), "dorian": ("3 4 3 7", "4 4 7 7", "3 4 7 7"),
@@ -592,15 +613,34 @@ COLOUR = {"major": "4", "lydian": "2", "mixolydian": "7", "dorian": "4", "minor"
 
 
 # ---------------------------------------------------------------------------------------------
-# A family: the changes every take is written over
+# The long story: nine parts in two waves
 # ---------------------------------------------------------------------------------------------
+# The parts of the story, in order, and the word the player knows each by. The player has five
+# words; a long story uses three of them more than once.
+PARTS = ("open", "first", "second", "build", "arrival", "valley", "climb", "summit", "close")
+WORD = {"open": "open", "first": "theme", "second": "theme", "build": "rise", "arrival": "moment", "valley": "theme",
+        "climb": "rise", "summit": "moment", "close": "close"}
+THEMATIC = ("first", "second", "arrival", "valley", "summit")      # the parts in which a theme is sung whole
+FIGHTS = ("battle", "boss", "storm")
+LONG = 480.0                   # seconds: about how long a track is
+SHORTEST, LONGEST = 455.0, 505.0
+# How the time is shared out. The summit is the longest part and the opening and the close the
+# shortest; a fight hardly opens at all.
+SHARES = {"open": 0.085, "first": 0.125, "second": 0.12, "build": 0.10, "arrival": 0.115, "valley": 0.10, "climb": 0.125,
+          "summit": 0.135, "close": 0.095}
+FIGHT_SHARES = {"open": 0.045, "first": 0.135, "second": 0.13, "build": 0.12, "arrival": 0.135, "valley": 0.10, "climb": 0.135,
+                "summit": 0.14, "close": 0.06}
+MINUTE = 66.0                  # a part in which a theme is sung is kept under this many seconds where it can be
+
+
 @dataclass
 class Section:
-    story: str
+    story: str                     # the player's word for it: open, theme, rise, moment or close
     bars: int
     chords: list[str]              # one for each bar
     level: tuple[float, float]     # how hard it is played at its start and at its end, 0 to 1
     lifted: bool = False           # in the higher key
+    part: str = ""                 # which part of the long story it is (PARTS)
 
 
 @dataclass
@@ -612,8 +652,10 @@ class Family:
     key: Key
     bpm: float
     metre: str
-    lift: int                      # semitones the moment is lifted by; 0 for none
+    lift: int                      # semitones the second wave is lifted by; 0 for none
     sections: list[Section] = field(default_factory=list)
+    period: int = 8                # bars in one statement of a theme: eight, or sixteen where eight would be over too soon
+    valley: str = "second"         # which theme is sung in the valley: the broader of the two
 
     @property
     def beats(self) -> float:
@@ -631,6 +673,9 @@ class Family:
     def seconds(self) -> float:
         return self.bars * self.beats * 60.0 / self.bpm
 
+    def section(self, part: str) -> Section:
+        return next(section for section in self.sections if section.part == part)
+
 
 def _spread(figures: str, bars: int) -> list[str]:
     """A run of chords laid over so many bars, each for as long as the others."""
@@ -638,8 +683,71 @@ def _spread(figures: str, bars: int) -> list[str]:
     return [chords[min(index * len(chords) // bars, len(chords) - 1)] for index in range(bars)]
 
 
+def _lengths(bar_s: float, period: int, fight: bool) -> dict[str, int]:
+    """How many bars each part of the story has, for a track of about eight minutes. A part in
+    which a theme is sung is so many statements of it, with room at the end, if need be, for
+    its second half once more; the other parts go in fours (in twos where a bar is long)."""
+    shares = FIGHT_SHARES if fight else SHARES
+    loose = 2 if bar_s >= 3.0 else 4
+    grid = {part: period // 2 if part in THEMATIC else loose for part in PARTS}
+    least = {part: period if part in THEMATIC else loose for part in PARTS}
+    bars = {}
+    for part in PARTS:
+        count = max(int(shares[part] * LONG / bar_s / grid[part] + 0.5) * grid[part], least[part])
+        if count * bar_s > MINUTE and count - grid[part] >= least[part]:
+            count -= grid[part]
+        bars[part] = count
+    # Then a step at a time until the whole is the right length: whatever is furthest over its
+    # share gives a step up, or whatever is furthest under takes one. A part that a step more
+    # would carry past the minute is passed over while there is another, and a fight's opening
+    # and close are the last to be made longer.
+    for _ in range(60):
+        whole = sum(bars.values()) * bar_s
+        if SHORTEST <= whole <= LONGEST:
+            break
+        over = {part: bars[part] * bar_s - shares[part] * LONG for part in PARTS}
+        if whole > LONGEST:
+            able = [part for part in PARTS if bars[part] - grid[part] >= least[part]]
+            part = max(able, key=lambda each: over[each])
+            bars[part] -= grid[part]
+        else:
+            inner = [part for part in PARTS if not (fight and part in ("open", "close"))]
+            able = [part for part in inner if (bars[part] + grid[part]) * bar_s <= MINUTE] \
+                or [part for part in inner if (bars[part] + grid[part]) * bar_s <= MINUTE + 4.0] or list(PARTS)
+            part = min(able, key=lambda each: over[each])
+            bars[part] += grid[part]
+    return bars
+
+
+def _levels(role: str, heavy: float) -> dict[str, tuple[float, float]]:
+    """How hard each part of the story is played, from its start to its end. The first arrival
+    is clearly under the summit, and the valley between them is the quietest the story gets
+    once it has begun. A fight is hard from its first bar, and its valley is only a breath; a
+    night piece never gets far above a murmur."""
+    if role in FIGHTS:
+        return {"open": (0.6, 0.72), "first": (0.7, 0.8), "second": (0.66, 0.78), "build": (0.75, 0.95), "arrival": (0.9, 0.9),
+                "valley": (0.58, 0.66), "climb": (0.68, 1.0), "summit": (1.0, 1.0), "close": (0.9, 0.65)}
+    if role in ("night", "ember", "depths"):
+        top, under = 0.5 + 0.4 * heavy, 0.46 + 0.26 * heavy
+        return {"open": (0.2, 0.3), "first": (0.4, 0.48), "second": (0.36, 0.46), "build": (0.42, 0.42 + 0.2 * heavy),
+                "arrival": (under, under), "valley": (0.24, 0.22), "climb": (0.3, 0.45 + 0.3 * heavy), "summit": (top, top),
+                "close": (0.4, 0.15)}
+    top, under = 0.55 + 0.45 * heavy, 0.52 + 0.3 * heavy
+    return {"open": (0.22, 0.34), "first": (0.45, 0.58), "second": (0.42, 0.56), "build": (0.5, 0.5 + 0.34 * heavy),
+            "arrival": (under, under), "valley": (0.26, 0.24), "climb": (0.34, 0.5 + 0.45 * heavy), "summit": (top, top),
+            "close": (0.5, 0.18)}
+
+
 def family(character: Character, seed: int, name: str, title: str) -> Family:
-    """Makes up the changes for one family of tracks of a character."""
+    """Makes up the changes for one family of tracks of a character: the chord under every bar
+    of a story of about eight minutes, in two waves.
+
+    It opens; states its first theme; states a second theme that begins away from home; builds
+    on the first; arrives (the first theme with most of the band). Then the valley: one of the
+    themes on a single instrument over very little. From there the climb, longer than the
+    build, ending on a held chord that wants to go home; the summit, the first theme with
+    everyone and the second sung underneath it; and the close. Where the family has a lift,
+    the second wave (the climb, the summit and the close) is in a higher key."""
     rng = random.Random(seed)
     mode = rng.choice(character.modes)
     key = Key(rng.randrange(12), mode)
@@ -647,49 +755,72 @@ def family(character: Character, seed: int, name: str, title: str) -> Family:
     beats = METRES[metre][0]
     bpm = float(rng.randint(*character.bpm))
     bar_s = beats * 60.0 / bpm
-    # Three minutes or so: the theme and the moment twice as long as the opening and the close,
-    # as many bars of each as the tempo leaves room for.
-    unit = min((4, 8, 12, 16, 20, 24), key=lambda bars: abs(bars * 7.5 * bar_s - 176.0))
-    lengths = {"open": unit, "theme": 2 * unit, "rise": unit + unit // 2, "moment": 2 * unit, "close": unit}
-    if character.role in ("battle", "boss", "storm"):
-        lengths["open"], lengths["close"] = max(unit // 2, 2), max(unit // 2, 2)      # a fight does not wait
-        lengths["rise"] = unit
-    theme = _spread(rng.choice(THEMES[mode]), 8)
-    theme[6], theme[7] = HOME[mode]
-    if theme[3] == "1":
-        theme[3] = HOME[mode][0]                       # the first half ends away from home, so the second can come back
-    def run(bars: int, eight: list[str]) -> list[str]:
-        if bars % 8 == 0:
-            return eight * (bars // 8)
-        # A length that is not a multiple of eight: the changes at half speed or cut short, ending at home.
-        out = [eight[min(index * 8 // bars, 7)] for index in range(bars)]
-        out[-2:] = HOME[mode] if bars >= 2 else out[-2:]
+    fight = character.role in FIGHTS
+    # A theme is eight bars; where eight bars are over in a quarter of a minute it is sixteen:
+    # eight that end on a question and eight that answer it.
+    period = 8 if 8 * bar_s >= 17.0 else 16
+    lengths = _lengths(bar_s, period, fight)
+    away, home = HOME[mode]
+    eight = _spread(rng.choice(THEMES[mode]), 8)
+    eight[6], eight[7] = away, home
+    if eight[3] == "1":
+        eight[3] = away                                # the first half ends away from home, so the second can come back
+    lift = rng.choice((2, 2, 3)) if rng.random() < character.lift else 0
+    one, two, three = rng.choice(SECONDS[mode]).split()
+    other = [one, one, two, two, three, three, away, home]
+    rises = list(RISES[mode])
+    rng.shuffle(rises)
+    # In the valley the broader of the two themes is sung: the second where the first is busy
+    # (a second theme is broad where the first is busy, and busy where it is broad).
+    valley = "second" if character.busy >= 0.5 else "first"
+
+    def whole(changes: list[str]) -> list[str]:
+        """One statement of a theme: its eight bars, or eight that stop on the chord before
+        home and then the eight."""
+        return list(changes) if period == 8 else changes[:6] + [away, away] + changes
+
+    first, second = whole(eight), whole(other)
+
+    def run(bars: int, changes: list[str]) -> list[str]:
+        """A theme's changes as often as they go into so many bars, and then, where there is
+        room for half a statement more, its second half again."""
+        out: list[str] = []
+        while bars - len(out) >= period:
+            out += changes
+        if bars - len(out) >= period // 2:
+            out += changes[period // 2:]
+        if len(out) != bars:
+            raise ValueError("%d bars is not so many statements of a theme of %d" % (bars, period))
         return out
+
     colour = COLOUR[mode]
-    heavy = character.weight
+    swing = colour if colour != away else "1"
     opening = ["1"] * lengths["open"]
     if lengths["open"] >= 4:
         opening[lengths["open"] // 2] = colour
-    closing = [colour if index % 2 == 0 else "1" for index in range(lengths["close"])]
-    closing[-1] = "1"
-    if lengths["close"] >= 3:
-        closing[-2] = "1"
-    lift = rng.choice((2, 2, 3)) if rng.random() < character.lift else 0
-    made = Family(name=name, title=title, character=character, seed=seed, key=key, bpm=bpm, metre=metre, lift=lift)
-    # How hard each part of the story is played, from its start to its end. A fight is hard
-    # from its first bar; a night piece never gets far above a murmur.
-    if character.role in ("battle", "boss", "storm"):
-        levels = {"open": (0.6, 0.72), "theme": (0.7, 0.8), "rise": (0.75, 1.0), "moment": (1.0, 1.0), "close": (0.9, 0.65)}
-    elif character.role in ("night", "ember", "depths"):
-        top = 0.5 + 0.4 * heavy
-        levels = {"open": (0.2, 0.3), "theme": (0.4, 0.5), "rise": (0.45, 0.45 + 0.3 * heavy), "moment": (top, top), "close": (0.4, 0.15)}
-    else:
-        top = 0.55 + 0.45 * heavy
-        levels = {"open": (0.22, 0.34), "theme": (0.45, 0.58), "rise": (0.5, 0.5 + 0.45 * heavy), "moment": (top, top), "close": (0.5, 0.18)}
-    changes = {"open": opening, "theme": run(lengths["theme"], theme), "rise": _spread(rng.choice(RISES[mode]), lengths["rise"]),
-               "moment": run(lengths["moment"], theme), "close": closing}
-    made.sections = [Section(story, lengths[story], changes[story], levels[story], bool(lift) and story in ("moment", "close"))
-                     for story in ("open", "theme", "rise", "moment", "close")]
+    for bar in range(lengths["open"] // 2 + 4, lengths["open"] - 1, 4):
+        opening[bar] = colour                          # a long opening stirs every fourth bar of its second half
+    turn = 1 if bar_s >= 2.4 else 2 if bar_s >= 1.3 else 4
+    closing = [colour if (index // turn) % 2 == 0 else "1" for index in range(lengths["close"])]
+    for bar in range(max(lengths["close"] - max(turn, 2), 0), lengths["close"]):
+        closing[bar] = "1"
+    # The climb: a rise of its own for its first half, then two chords swinging to and fro, and
+    # at the last the chord before home, held.
+    early = lengths["climb"] // 2
+    late = lengths["climb"] - early
+    hold = min(4 if late >= 8 else 2, late)
+    step = 1 if bar_s >= 2.2 else 2
+    climbing = _spread(rises[1 % len(rises)], early) + [swing if (index // step) % 2 == 0 else away for index in range(late - hold)] \
+        + [away] * hold
+    changes = {"open": opening, "first": run(lengths["first"], first), "second": run(lengths["second"], second),
+               "build": _spread(rises[0], lengths["build"]), "arrival": run(lengths["arrival"], first),
+               "valley": run(lengths["valley"], second if valley == "second" else first), "climb": climbing,
+               "summit": run(lengths["summit"], first), "close": closing}
+    levels = _levels(character.role, character.weight)
+    made = Family(name=name, title=title, character=character, seed=seed, key=key, bpm=bpm, metre=metre, lift=lift,
+                  period=period, valley=valley)
+    made.sections = [Section(WORD[part], lengths[part], changes[part], levels[part], bool(lift) and part in ("climb", "summit", "close"),
+                             part) for part in PARTS]
     return made
 
 
@@ -702,6 +833,13 @@ _SPLITS = {
     1.5: ((1.5,), (1.0, 0.5), (0.5, 1.0), (0.5, 0.5, 0.5)),
     2.0: ((2.0,), (1.0, 1.0), (1.5, 0.5), (1.0, 0.5, 0.5), (0.5, 0.5, 1.0), (0.75, 0.25, 1.0), (0.5, 0.5, 0.5, 0.5)),
     3.0: ((3.0,), (2.0, 1.0), (1.0, 2.0), (1.5, 1.5), (1.0, 1.0, 1.0), (1.5, 0.5, 1.0), (1.0, 0.5, 0.5, 1.0), (2.0, 0.5, 0.5)),
+}
+# Where each bar's first note lies between the bottom and the top of a tune: for eight bars
+# that come home, and for eight that end on a question. The highest note comes late. A second
+# theme begins high and comes down before it climbs, where a first begins in the middle.
+_HEIGHTS = {
+    "first": ((0.4, 0.5, 0.55, 0.42, 0.6, 0.95, 0.7, 0.3), (0.4, 0.5, 0.55, 0.42, 0.55, 0.72, 0.62, 0.48)),
+    "second": ((0.78, 0.64, 0.7, 0.5, 0.56, 0.92, 0.62, 0.3), (0.78, 0.64, 0.7, 0.5, 0.46, 0.6, 0.66, 0.5)),
 }
 
 
@@ -742,71 +880,177 @@ def _chord_steps(chord: Chord, low: int, high: int) -> list[int]:
     return [step for step in range(low, high + 1) if step % 7 in {note % 7 for note in chord.steps}]
 
 
-def theme(rng: random.Random, fam: Family, chords: list[Chord], busy: float) -> Line:
-    """An eight-bar tune over eight bars of chords. It is made the way tunes are: a motif of two
-    bars; the same motif again at another height, ending away from home; the motif a third
-    time, climbing to the tune's highest note; and two bars that bring it home. Each bar begins
-    on a note of its chord, and those notes, heard alone, are a line of their own that rises
-    over the phrase and falls back."""
+def theme(rng: random.Random, fam: Family, chords: list[Chord], busy: float, way: str = "first", broad: bool = False,
+          unlike: Line | None = None) -> Line:
+    """A tune over eight bars of chords, or over sixteen. It is made the way tunes are: a motif
+    of two bars; the same motif again at another height, ending away from home; the motif a
+    third time, climbing to the tune's highest note; and two bars that bring it home. Each bar
+    begins on a note of its chord, and those notes, heard alone, are a line of their own that
+    rises over the phrase and falls back.
+
+    Over sixteen bars it is a question and its answer: eight bars that end on a held note away
+    from home, then the same four bars again and four new ones that climb higher and come home.
+
+    `way` is "first" for a first theme, which begins in the middle of its range on a note of
+    the home chord, or "second" for a second theme, which begins high, comes down before it
+    climbs, sits a little lower and leans on the first note of its motif. A `broad` tune has
+    the first two notes of its motif, and of the bars that climb, drawn into one long one.
+    `unlike` is a tune this one is to be told from: its motif does not have that one's rhythm."""
     beats, group = fam.beats, fam.group
-    low, high = -3, 9                                             # a tenth and a bit, around the key note
-    heights = [0.4, 0.5, 0.55, 0.42, 0.6, 0.95, 0.7, 0.3]
-    start = rng.choice((0, 2, 4))                                 # the tune's first note: the key note, its third or its fifth
-    spine: list[int] = []
-    for bar, chord in enumerate(chords):
-        choices = _chord_steps(chord, low, high)
-        aim = start if bar == 0 else low + heights[bar] * (high - low) + rng.uniform(-1.0, 1.0)
-        if bar == 7:
-            choices = [step for step in choices if step % 7 == 0] or choices          # home
-            aim = min((0, 7), key=lambda step: abs(step - spine[-1]))
-        elif bar == 3:
-            away = [step for step in choices if step % 7 in (1, 4)]                   # the second or the fifth: a question
-            choices = away or choices
-        before = spine[-1] if spine else start
-        spine.append(min(choices, key=lambda step: abs(step - aim) + (1.5 if abs(step - before) > 4 else 0.0)
-                         + (0.8 if step == before and bar not in (0, 7) else 0.0)))
+    if len(chords) not in (8, 16):
+        raise ValueError("A tune is eight bars or sixteen, not %d" % len(chords))
+    low, high = (-3, 9) if way == "first" else (-4, 8)                # a tenth and a bit, around the key note
+    homeward, asking = _HEIGHTS[way]
+    start = rng.choice((0, 2, 4))                                 # a first theme's first note: the key note, its third or its fifth
     first, second, third = _cell(rng, group, busy), _cell(rng, group, busy * 0.7), _cell(rng, group, min(busy * 1.2, 1.0))
     if len(second) > 1:
         second = second[:-2] + [second[-2] + second[-1]]           # the answer ends on a longer note
-    cells = [first, second, first, second, third, first if rng.random() < 0.5 else third, second, [beats]]
+    if broad and len(third) > 2:
+        third = [third[0] + third[1]] + third[2:]
+
+    def motif(cell: list[float]) -> list[float]:
+        """A bar of rhythm made into a motif: two notes at the least; a second theme's with
+        its longest note first; a broad one's first two notes drawn into one."""
+        for _ in range(6):
+            if len(cell) > 1:
+                break
+            cell = _cell(rng, group, min(busy + 0.3, 1.0))
+        if way == "second":
+            cell = sorted(cell, reverse=True)
+        if broad and len(cell) > 2:
+            cell = [cell[0] + cell[1]] + cell[2:]
+        return cell
+
+    first = motif(first)
+    told = [length for at, length, _, _ in unlike.notes if at < beats - 1e-6] if unlike is not None else None
+    for _ in range(6):
+        if first != told:
+            break
+        first = motif(_cell(rng, group, busy))
+    sixth = "first" if rng.random() < 0.5 else "third"
     leap = rng.random() < 0.5
-    shapes = {id(first): _shape(rng, len(first) - 1, leap), id(second): _shape(rng, len(second) - 1, False),
-              id(third): _shape(rng, len(third) - 1, True)}
-    line = Line()
-    for bar, (cell, chord) in enumerate(zip(cells, chords)):
-        step, at = spine[bar], bar * beats
-        moves = shapes.get(id(cell), [])
-        chord_notes = {note % 7 for note in chord.steps}
-        for index, length in enumerate(cell):
-            if index:
-                step += moves[index - 1]
-                last = index == len(cell) - 1
-                if last and bar < 7 and len(cell) >= 3:
-                    # The bar's last note leads into the next bar's first by step.
-                    step = spine[bar + 1] + (1 if step >= spine[bar + 1] else -1)
-                elif length >= 1.0 and step % 7 not in chord_notes:
-                    step += 1 if (step + 1) % 7 in chord_notes else -1                 # a long note sits on the chord
-                step = min(max(step, low - 1), high + 1)
-            weight = 0.62 + 0.3 * heights[bar] + (0.08 if index == 0 else 0.0)
-            line.notes.append((at, length if bar < 7 else length * 0.75, step, min(weight, 1.0)))
-            at += length
-    # A tune that sits on one note is no tune: where a note comes three times running, one of
-    # the three (not one that begins a bar, if that can be helped) moves a step aside.
-    notes = line.notes
-    for index in range(len(notes) - 2):
-        if notes[index][2] == notes[index + 1][2] == notes[index + 2][2]:
-            on_bar = [abs(notes[which][0] / beats - round(notes[which][0] / beats)) < 1e-6 for which in (index, index + 1, index + 2)]
-            which = index + (2 if not on_bar[2] and index + 2 < len(notes) - 1 else 1 if not on_bar[1] else 0 if not on_bar[0] else 1)
-            start, length, step, weight = notes[which]
-            after = notes[which + 1][2] if which + 1 < len(notes) else step
-            notes[which] = (start, length, step + (1 if after > step or (after == step and which % 2) else -1), weight)
-    # No leap wider than an octave: a note further off than that comes an octave nearer.
-    for index in range(1, len(notes)):
-        start, length, step, weight = notes[index]
-        while abs(step - notes[index - 1][2]) > 7:
-            step += 7 if step < notes[index - 1][2] else -7
-        notes[index] = (start, length, step, weight)
-    return line
+    cells = {"first": (first, _shape(rng, len(first) - 1, leap)), "second": (second, _shape(rng, len(second) - 1, False)),
+             "third": (third, _shape(rng, len(third) - 1, True)), "end": ([beats], [])}
+    order = ("first", "second", "first", "second", "third", sixth, "second", "end")
+
+    def phrase(eight: list[Chord], heights: tuple[float, ...], home: bool, given: list[int] | None = None
+               ) -> tuple[list[int], list[tuple[float, float, int, float]]]:
+        """Eight bars: the note each bar begins on, and the notes. `given` is the notes the
+        first four bars begin on, where they are to be the same as another phrase's."""
+        spine: list[int] = list(given or [])
+        for bar in range(len(spine), 8):
+            choices = _chord_steps(eight[bar], low, high)
+            # Three bars do not begin on one note (unless that is the only way home).
+            thrice = spine[-1] if len(spine) >= 2 and spine[-1] == spine[-2] else None
+            free = [step for step in choices if step != thrice] or choices
+            if bar == 0:
+                aim = float(start) if way == "first" else low + heights[0] * (high - low)
+            else:
+                aim = low + heights[bar] * (high - low) + rng.uniform(-1.0, 1.0)
+            if bar == 7 and home:
+                choices = [step for step in choices if step % 7 == 0] or choices          # home
+                aim = min((0, 7), key=lambda step: abs(step - spine[-1]))
+            elif bar == 7:
+                # A question: the second or the fifth of the scale, or at least not the key note.
+                choices = [step for step in free if step % 7 in (1, 4)] or [step for step in free if step % 7] or free
+            elif bar == 3:
+                choices = [step for step in free if step % 7 in (1, 4)] or free            # the second or the fifth: a question
+            else:
+                choices = free
+            before = spine[-1] if spine else aim
+            spine.append(min(choices, key=lambda step: abs(step - aim) + (1.5 if abs(step - before) > 4 else 0.0)
+                             + (0.8 if step == before and bar not in (0, 7) else 0.0)))
+        notes: list[tuple[float, float, int, float]] = []
+        for bar, chord in enumerate(eight):
+            cell, moves = cells[order[bar]]
+            step, at = spine[bar], bar * beats
+            chord_notes = {note % 7 for note in chord.steps}
+            for index, length in enumerate(cell):
+                if index:
+                    step += moves[index - 1]
+                    last = index == len(cell) - 1
+                    if last and bar < 7 and len(cell) >= 3:
+                        # The bar's last note leads into the next bar's first by step.
+                        step = spine[bar + 1] + (1 if step >= spine[bar + 1] else -1)
+                    elif length >= 1.0 and step % 7 not in chord_notes:
+                        step += 1 if (step + 1) % 7 in chord_notes else -1                 # a long note sits on the chord
+                    step = min(max(step, low - 1), high + 1)
+                weight = 0.62 + 0.3 * heights[bar] + (0.08 if index == 0 else 0.0)
+                notes.append((at, length if bar < 7 else length * 0.75, step, min(weight, 1.0)))
+                at += length
+        return spine, notes
+
+    if len(chords) == 8:
+        _, notes = phrase(chords, homeward, True)
+    else:
+        spine, notes = phrase(chords[:8], asking, False)
+        _, answer_notes = phrase(chords[8:], homeward, True, given=spine[:4])
+        notes += [(at + 8 * beats, length, step, weight) for at, length, step, weight in answer_notes]
+    return Line(_singable(notes, beats, chords))
+
+
+def _singable(notes: list[tuple[float, float, int, float]], beats: float, chords: list[Chord],
+              widest: int | None = 14) -> list[tuple[float, float, int, float]]:
+    """A line put right where it is awkward to sing, and a tune never wider than two octaves:
+    what is further out than that comes a step back in, and the line is looked over again.
+    (A line that goes under a tune may be as wide as it likes: `widest` is None.)"""
+    for _ in range(4):
+        notes = _smoothed(notes, beats, chords)
+        steps = [step for _, _, step, _ in notes]
+        if widest is None or max(steps) - min(steps) <= widest:
+            break
+        top = max(steps)
+        notes = [(at, length, step - 1 if step == top else step, weight) for at, length, step, weight in notes]
+    return notes
+
+
+def _smoothed(notes: list[tuple[float, float, int, float]], beats: float, chords: list[Chord]) -> list[tuple[float, float, int, float]]:
+    """A tune that sits on one note is no tune: where a note comes three times running, one of
+    the three (not one that begins a bar, if that can be helped) moves a step aside; one that
+    does begin a bar moves to another note of its chord. And no leap is wider than an octave:
+    a note further off than that comes an octave nearer."""
+    def threes(steps: list[int], around: int) -> bool:
+        """Whether a note stands in a run of three of the same."""
+        return any(steps[at] == steps[at + 1] == steps[at + 2] for at in range(max(around - 2, 0), min(around, len(steps) - 3) + 1))
+
+    for _ in range(4):
+        moved = False
+        for index in range(len(notes) - 2):
+            if not notes[index][2] == notes[index + 1][2] == notes[index + 2][2]:
+                continue
+            steps = [note[2] for note in notes]
+            on_bar = {which: abs(notes[which][0] / beats - round(notes[which][0] / beats)) < 1e-6 for which in (index, index + 1, index + 2)}
+            # Which of the three moves: not the tune's last note, not one that begins a bar, and
+            # the later the better; and it moves the way that does not make another three.
+            order = sorted((index, index + 1, index + 2), key=lambda which: (which == len(notes) - 1, on_bar[which], -which))
+            ways = []
+            for which in order:
+                after = steps[which + 1] if which + 1 < len(steps) else steps[which]
+                way = 1 if after > steps[which] or (after == steps[which] and which % 2) else -1
+                moves = [way, -way]
+                if on_bar[which]:
+                    chord = chords[min(int(round(notes[which][0] / beats)), len(chords) - 1)]
+                    moves = sorted((tone - steps[which] for tone in _chord_steps(chord, steps[which] - 4, steps[which] + 4)
+                                    if tone != steps[which]), key=lambda move: (abs(move), -move * way))
+                for by in moves:
+                    trial = list(steps)
+                    trial[which] += by
+                    if not threes(trial, which):
+                        ways.append((which, by))
+            # ...and, where it can, without making the tune any wider than it is.
+            inside = [(which, by) for which, by in ways if min(steps) <= steps[which] + by <= max(steps)]
+            which, by = (inside or ways or [(order[0], 1)])[0]
+            at, length, step, weight = notes[which]
+            notes[which] = (at, length, step + by, weight)
+            moved = True
+        for index in range(1, len(notes)):
+            at, length, step, weight = notes[index]
+            while abs(step - notes[index - 1][2]) > 7:
+                step += 7 if step < notes[index - 1][2] else -7
+            notes[index] = (at, length, step, weight)
+        if not moved:
+            break
+    return notes
 
 
 def varied(rng: random.Random, line: Line) -> Line:
@@ -849,6 +1093,31 @@ def answer(rng: random.Random, fam: Family, chords: list[Chord], tune: Line) -> 
             line.notes.append((bar * beats, beats, step, 0.7))
             before = step
     return line
+
+
+def recast(line: Line, chords: list[Chord], beats: float) -> Line:
+    """A tune made to fit other chords than the ones it was written over. Bar by bar it is
+    moved the least it can be for the bar's first note to be a note of the new chord (never
+    more than a step), and a long note left off the chord moves on to it. What comes out has
+    the tune's rhythm and its shape, which is what lets a second theme be sung under the
+    first when the story comes to its summit."""
+    out = Line()
+    firsts: list[int] = []                      # the note each bar begins on: not the same one three bars running
+    for bar, chord in enumerate(chords):
+        notes = line.cut(bar * beats, (bar + 1) * beats).notes
+        if not notes:
+            continue
+        on_chord = {step % 7 for step in chord.steps}
+        moves = [move for move in (0, -1, 1, -2, 2, -3, 3) if (notes[0][2] + move) % 7 in on_chord]
+        move = next((each for each in moves if not (len(firsts) >= 2 and notes[0][2] + each == firsts[-1] == firsts[-2])), moves[0])
+        firsts.append(notes[0][2] + move)
+        for start, length, step, weight in notes:
+            step += move
+            if length >= 1.0 and step % 7 not in on_chord:
+                step += 1 if (step + 1) % 7 in on_chord else -1
+            out.notes.append((bar * beats + start, length, step, weight))
+    out.notes = _singable(out.notes, beats, chords, widest=None)
+    return out
 
 
 # ---------------------------------------------------------------------------------------------
@@ -959,13 +1228,33 @@ GROOVES = {
                  moment=[("block", "mid", .3, 2), ("great drum", "down", .55, 2), ("tick", "back", .2)], roll=None, hit=None),
 }
 CHANNELS = ("texture", "lead", "rhythm", "drums", "bass")
+# Instruments that are there to hold chords and can carry a tune as well: who a second theme
+# may be given to when the leads are all of a kind.
+SINGERS = ("rock organ", "organ", "accordion", "choir", "oohs", "harmonica", "bagpipe", "shenai", "pan flute")
+# A section of an orchestra plays one note at a time. A chord for the strings is therefore a
+# line for each section, not a block: who takes which note, from the bottom up, by how many
+# notes the chord has. (The second violins are the violins again, on a part of their own.)
+DESKS = {
+    "strings": {2: (("celli", ""), ("violas", "")), 3: (("celli", ""), ("violas", ""), ("violins", "")),
+                4: (("celli", ""), ("violas", ""), ("violins", " seconds"), ("violins", ""))},
+    "strings slow": {2: (("celli slow", ""), ("violas", "")), 3: (("celli slow", ""), ("violas", ""), ("violins slow", "")),
+                     4: (("celli slow", ""), ("violas", ""), ("violins slow", " seconds"), ("violins slow", ""))},
+}
+# Who doubles a tune an octave above it rather than where the tune is: high woodwinds and bells.
+HIGH = ("flute", "piccolo", "whistle", "recorder", "ocarina", "pan flute", "glock", "celesta", "xylophone")
 
 
 # ---------------------------------------------------------------------------------------------
 # A take: the whole story, written out for the band
 # ---------------------------------------------------------------------------------------------
 class Take:
-    """One take of a family: every part of the story written for every channel."""
+    """One take of a family: every part of the story written for every channel.
+
+    A take has two themes of its own over the family's changes. Who sings them, what the
+    accompaniment plays under each, how the bass walks and what the drums do are settled once
+    (`cast`) and differ from one part of the story to the next, so that eight minutes are
+    not one minute eight times: the second theme has another singer, another figure under it,
+    another pad and another groove than the first."""
 
     def __init__(self, fam: Family, take: int):
         self.fam, self.take, self.ch = fam, take, fam.character
@@ -973,6 +1262,10 @@ class Take:
         self.beats, self.group = fam.beats, fam.group
         # What the feet tap: a quarter note, or in six-eight and seven-eight an eighth.
         self.pulse = 0.5 if any(size % 1 for size in self.group) else 1.0
+        self.starts, at = [], 0.0
+        for size in self.group:
+            self.starts.append(at)
+            at += size
         self.voices: dict[str, dict[str, Voice]] = {channel: {} for channel in CHANNELS}
         self.spans: list[tuple[Section, float, Key, list[Chord]]] = []
         at = 0.0
@@ -982,23 +1275,65 @@ class Take:
             at += section.bars * self.beats
         self.total = at
         self.heavy = self.ch.weight >= 0.8
+        self.fight = self.ch.role in FIGHTS
+        self.cast()
         for write in (self.lead, self.texture, self.rhythm, self.bass, self.drums):
             write()
 
     # --- the players -----------------------------------------------------------------------
+    def cast(self) -> None:
+        """Who does what in this take. The leads take turns from take to take; the second theme
+        goes to someone who sits well away from the first theme's singer; and each of the pad,
+        the accompaniment, the bass and the drums has a way of playing under the first theme
+        and another under the second."""
+        ch, rng, take = self.ch, self.rng, self.take
+        turn = take % len(ch.leads)
+        order = ch.leads[turn:] + ch.leads[:turn]
+        self.solo, self.mate, self.third = order[0], order[1 % len(order)], order[2 % len(order)]
+        self.strong = ch.strong[take % len(ch.strong):] + ch.strong[:take % len(ch.strong)]
+        home = INSTRUMENTS[self.solo].home
+        pool = [name for name in dict.fromkeys(order[1:] + ch.under + self.strong + tuple(pad for pad in ch.pads if pad in SINGERS))
+                if name != self.solo]
+        far = [name for name in pool if abs(INSTRUMENTS[name].home - home) >= 5] or pool
+        self.other = far[take % len(far)] if far else self.solo
+        # In the valley a theme is sung by someone who has not stated it.
+        stated = self.solo if self.fam.valley == "first" else self.other
+        self.hush = next((name for name in order + (self.other,) if name != stated), stated)
+        self.pad, self.pad_b = ch.pads[take % len(ch.pads)], ch.pads[(take + 1) % len(ch.pads)]
+        # In the valley there is as little as there can be: broken chords on the harp, slowly, or two notes held.
+        self.valley_way = "arp" if "arp" in ch.pad_ways else "drone" if "drone" in ch.pad_ways else "pad"
+        spin = rng.randrange(2)
+        self.way, self.way_b = ch.pad_ways[(take + spin) % len(ch.pad_ways)], ch.pad_ways[(take + spin + 1) % len(ch.pad_ways)]
+        self.pluck, self.pluck_b = ch.plucks[take % len(ch.plucks)], ch.plucks[(take + 1) % len(ch.plucks)]
+        spin = rng.randrange(2)
+        self.figure, self.figure_b = ch.figures[(take + spin) % len(ch.figures)], ch.figures[(take + spin + 1) % len(ch.figures)]
+        ways = ("two", "walk", "oct") if ch.busy >= 0.5 else ("long", "two", "walk")
+        self.bass_way = rng.choice(ways)
+        if ch.band and self.heavy:
+            self.bass_way = "eight"
+        self.bass_way_b = rng.choice([way for way in ways if way != self.bass_way])
+        spin = rng.randrange(2)
+        self.groove = GROOVES[ch.grooves[(take + spin) % len(ch.grooves)]]
+        self.groove_b = GROOVES[ch.grooves[(take + spin + 1) % len(ch.grooves)]]
+        # Music for wandering is often left unresolved, so that its mood carries into the quiet
+        # after it: half the takes end on the fifth of the key, not on the key note. A fight
+        # and the music of a great city come home.
+        homeward = self.fight or "regal" in ch.kinds or rng.random() < 0.5
+        self.rest = 0 if homeward else 4
+
     def voice(self, channel: str, name: str, tag: str = "") -> Voice:
         have = self.voices[channel]
         if name + tag not in have:
             inst = INSTRUMENTS[name]
             volume = min(10 ** ((LEVEL - LOUD[name]) / 40.0) * inst.level, 1.0)
             have[name + tag] = Voice(inst.program, bank=inst.bank, volume=volume, shift=inst.early,
-                                     pan=self.rng.uniform(-0.35, 0.35), wired=inst.wired)
+                                     pan=self.rng.uniform(-0.35, 0.35), wired=inst.wired, instrument=name)
         return have[name + tag]
 
     def kit(self) -> Voice:
         have = self.voices["drums"]
         if "kit" not in have:
-            have["kit"] = Voice(KITS[self.ch.kit][0], drums=True)
+            have["kit"] = Voice(KITS[self.ch.kit][0], drums=True, instrument="kit " + self.ch.kit)
         return have["kit"]
 
     def put(self, channel: str, name: str, start: float, length: float, pitch: int, loud: float, tag: str = "") -> None:
@@ -1011,6 +1346,15 @@ class Take:
             # A bow or a breath needs a moment to speak: no note of theirs is shorter than this.
             length = max(length * 0.97, 0.11 * self.fam.bpm / 60.0)
         self.voice(channel, name, tag).add(start, length, pitch, loud)
+
+    def desk(self, name: str, rank: int, count: int) -> tuple[str, str]:
+        """Who plays one note of a chord, and on which part: for the strings, the section whose
+        line it is (`rank` counts the chord's notes from the bottom, `count` is how many it
+        has); for anyone else, the instrument itself."""
+        if name not in DESKS:
+            return name, ""
+        desks = DESKS[name][min(max(count, 2), 4)]
+        return desks[min(max(rank, 0), len(desks) - 1)]
 
     def level(self, section: Section, bar: float) -> float:
         low, high = section.level
@@ -1044,16 +1388,18 @@ class Take:
         while min(pitches) + shift < inst.low:
             shift += 12
         for (start, length, _, weight), pitch in zip(line.notes, pitches):
-            self.voice(channel, name, tag).add(at + start, length * (0.96 if inst.held else 1.0), pitch + shift,
-                                               min(weight * loud, 1.0))
+            pitch += shift
+            # A line wider than the instrument: the notes it cannot reach come an octave in.
+            while pitch > inst.high:
+                pitch -= 12
+            while pitch < inst.low:
+                pitch += 12
+            self.voice(channel, name, tag).add(at + start, length * (0.96 if inst.held else 1.0), pitch, min(weight * loud, 1.0))
 
     def spots(self, where: str) -> list[tuple[float, float]]:
         """The moments in a bar a drum pattern names, each with how strongly it is struck."""
         beats, pulse = self.beats, self.pulse
-        starts, at = [], 0.0
-        for size in self.group:
-            starts.append(at)
-            at += size
+        starts = self.starts
         simple = pulse == 1.0
         count = int(round(beats / pulse))
         pulses = [index * pulse for index in range(count)]
@@ -1092,102 +1438,237 @@ class Take:
             return [(starts[1] if len(starts) > 1 else pulse * (count // 2), 0.9)]
         raise ValueError("No such place in the bar: %r" % where)
 
-    # --- the tune ----------------------------------------------------------------------------
+    # --- the tunes ---------------------------------------------------------------------------
     def lead(self) -> None:
-        ch, rng, beats = self.ch, self.rng, self.beats
-        chords8 = next(chords for section, _, _, chords in self.spans if section.story == "theme")[:8]
-        tune = theme(rng, self.fam, chords8, ch.busy)
+        ch, rng, beats, fam = self.ch, self.rng, self.beats, self.fam
+        period = fam.period
+        solo, mate, third, other, hush, strong = self.solo, self.mate, self.third, self.other, self.hush, self.strong
+        first_chords = next(chords for section, _, _, chords in self.spans if section.part == "first")[:period]
+        second_chords = next(chords for section, _, _, chords in self.spans if section.part == "second")[:period]
+        # The first theme, and the same again with its leaps filled in; a second theme, which is
+        # broad where the first is busy and busy where the first is broad; a slower line to go
+        # under each; and the second theme made to fit the first one's chords, for the summit.
+        tune = theme(rng, fam, first_chords, ch.busy)
         again = varied(rng, tune)
-        other = theme(rng, self.fam, chords8, max(ch.busy - 0.15, 0.2))
-        under = answer(rng, self.fam, chords8, tune)
-        turn = self.take % len(ch.leads)
-        order = ch.leads[turn:] + ch.leads[:turn]
-        solo, second, third = order[0], order[1 % len(order)], order[2 % len(order)]
-        strong = ch.strong[self.take % len(ch.strong):] + ch.strong[:self.take % len(ch.strong)]
-        self.tune = tune
+        broad = ch.busy >= 0.5
+        tune_b = theme(rng, fam, second_chords, ch.busy * 0.45 if broad else min(ch.busy + 0.55, 1.0), way="second", broad=broad,
+                       unlike=tune)
+        again_b = varied(rng, tune_b)
+        under = answer(rng, fam, first_chords, tune)
+        under_b = answer(rng, fam, second_chords, tune_b)
+        counter = recast(tune_b, first_chords, beats)
+        self.tune, self.second, self.counter = tune, tune_b, counter
+        whole, half = period * beats, period // 2 * beats
+
+        def turns(bars: int) -> list[tuple[int, bool]]:
+            """The statements of a theme that a part of the story has room for: the bar each
+            begins at, and whether it is the whole theme or only its second half."""
+            out, at = [], 0
+            while bars - at >= period:
+                out.append((at, True))
+                at += period
+            if bars - at >= period // 2:
+                out.append((at, False))
+            return out
+
+        def octave_of(second: str, first: str) -> int:
+            """Where a second player doubles a tune. In its own register: that is an octave
+            off where the two sit far apart (horns under the violins) and the same notes where
+            they sit close (a trumpet with the violins). A high woodwind or a bell that sits
+            close goes an octave above."""
+            return 1 if second in HIGH and INSTRUMENTS[second].home - INSTRUMENTS[first].home < 7 else 0
+
         for section, first, key, chords in self.spans:
-            bars, story = section.bars, section.story
-            if story == "open":
-                motif = self.fit(tune.cut(0, min(2, bars) * beats), chords[min(1, bars - 1)])
-                self.sing("lead", solo, motif, first + min(1, bars - 1) * beats, key, chords, first, loud=self.hard(section.level[0], 0.9))
-                if bars >= 6:
-                    echo = self.fit(tune.cut(0, 2 * beats), chords[bars // 2 + 1], aim=rng.choice((-3, 2, 4)))
-                    self.sing("lead", second, echo, first + (bars // 2 + 1) * beats, key, chords, first,
-                              loud=self.hard(section.level[1], 0.85))
-            elif story == "theme":
-                for turn in range(bars // 8):
-                    at, loud = first + turn * 8 * beats, self.hard(self.level(section, turn * 8 + 4))
-                    if turn == 0:
-                        self.sing("lead", solo, tune, at, key, chords, first, loud=loud)
-                    elif turn == 1:
-                        self.sing("lead", second, again, at, key, chords, first, loud=loud)
-                    elif turn % 4 == 2:
-                        self.sing("lead", third, other, at, key, chords, first, loud=loud)
-                    else:
-                        self.sing("lead", solo, tune, at, key, chords, first, loud=loud)
-                        self.sing("lead", second, again, at, key, chords, first, loud=loud * 0.9, octave=1 if second != solo else -1)
-            elif story == "rise":
-                motif, bar, players = tune.cut(0, beats), 0, [solo]
-                while bar < bars - 1:
-                    along = bar / bars
-                    piece = self.fit(motif, chords[bar], aim=round(along * 6) - 2)
-                    for name in players:
-                        self.sing("lead", name, piece, first + bar * beats, key, chords, first, loud=self.hard(self.level(section, bar), 0.95))
-                    if along >= 0.4 and second not in players:
-                        players.append(second)
-                    if along >= 0.7 and strong[0] not in players:
-                        players.append(strong[0])
-                    bar += 2 if along < 0.5 else 1
-                # The last bar runs up the scale to where the moment begins.
-                step = self.pulse / 2 if self.fam.bpm < 110 else self.pulse
+            bars, part = section.bars, section.part
+
+            def sing(name: str, line: Line, bar: float, loud: float, octave: int = 0, tag: str = "") -> None:
+                self.sing("lead", name, line, first + bar * beats, key, chords, first, loud=loud, octave=octave, tag=tag)
+
+            def run_up(players: list[str]) -> None:
+                """The last bar of a rise runs up the scale to where the tune will begin."""
+                step = self.pulse / 2 if fam.bpm < 110 else self.pulse
                 count = max(int(round(beats / step)), 2)
                 top = tune.notes[0][2] + 7
                 run = Line([(index * step, step, top - (count - index), 0.7 + 0.3 * index / count) for index in range(count)])
                 for name in players:
-                    self.sing("lead", name, run, first + (bars - 1) * beats, key, chords, first, loud=self.hard(section.level[1]))
-            elif story == "moment":
-                for turn in range(bars // 8):
-                    at, use = first + turn * 8 * beats, tune if turn % 2 == 0 else again
+                    sing(name, run, bars - 1, self.hard(section.level[1]))
+
+            if part == "open":
+                # A hint of the first theme: its first two bars, alone, and again from someone else.
+                at = min(1, bars - 1)
+                sing(solo, self.fit(tune.cut(0, min(2, bars) * beats), chords[at]), at, self.hard(section.level[0], 0.9))
+                if bars >= 6:
+                    at = bars // 2 + 1
+                    sing(mate, self.fit(tune.cut(0, 2 * beats), chords[at], aim=rng.choice((-3, 2, 4))), at,
+                         self.hard(self.level(section, at), 0.85))
+                if bars >= 14:
+                    at = bars * 3 // 4 + 1
+                    sing(third, self.fit(tune.cut(0, 2 * beats), chords[at], aim=rng.choice((-2, 3))), at,
+                         self.hard(section.level[1], 0.85))
+            elif part == "first":
+                # The first theme: stated, then again by another with its leaps filled in, then
+                # by a third, then by two together. What room is left is its second half once more.
+                for index, (bar, full) in enumerate(turns(bars)):
+                    loud = self.hard(self.level(section, bar + period // 2))
+                    if not full:
+                        sing(third if third != solo else mate, again.cut(half, whole), bar, loud * 0.9)
+                    elif index % 4 == 0:
+                        sing(solo, tune, bar, loud)
+                    elif index % 4 == 1:
+                        sing(mate, again, bar, loud)
+                    elif index % 4 == 2:
+                        sing(third, tune, bar, loud)
+                    else:
+                        sing(solo, tune, bar, loud)
+                        sing(mate, again, bar, loud * 0.9, octave=1 if mate != solo else -1)
+            elif part == "second":
+                # The second theme, from someone who sits well away from the first one's singer;
+                # the second time another has it and the first singer goes underneath.
+                partner = next((name for name in (mate, third, solo) if name != other), other)
+                for index, (bar, full) in enumerate(turns(bars)):
+                    loud = self.hard(self.level(section, bar + period // 2), 0.95)
+                    if not full:
+                        sing(other, tune_b.cut(half, whole), bar, loud * 0.9)
+                    elif index % 3 == 0:
+                        sing(other, tune_b, bar, loud)
+                    elif index % 3 == 1:
+                        sing(partner, again_b, bar, loud)
+                        if INSTRUMENTS[other].held and other != partner:
+                            sing(other, under_b, bar, loud * 0.7, tag=" under")
+                    else:
+                        sing(other, tune_b, bar, loud)
+                        sing(partner, again_b, bar, loud * 0.9, octave=1 if partner != other else -1)
+            elif part == "build":
+                # The first theme's first bar and its second, turn about, each time a little
+                # higher; more players as it goes, and closer together.
+                motifs, bar, count, players = [tune.cut(0, beats), tune.cut(beats, 2 * beats)], 0, 0, [solo]
+                while bar < bars - 1:
+                    along = bar / bars
+                    piece = self.fit(motifs[count % 2 if along < 0.6 else 0], chords[bar], aim=round(along * 6) - 2)
+                    for name in players:
+                        sing(name, piece, bar, self.hard(self.level(section, bar), 0.95))
+                    if along >= 0.4 and mate not in players:
+                        players.append(mate)
+                    if along >= 0.7 and strong[0] not in players:
+                        players.append(strong[0])
+                    bar += 2 if along < 0.5 else 1
+                    count += 1
+                run_up(players)
+            elif part == "arrival":
+                # The first arrival: the first theme from whoever is strongest, a second strong
+                # player joining for the second time round, and a slower line underneath.
+                for index, (bar, full) in enumerate(turns(bars)):
+                    use = (tune if index % 2 == 0 else again) if full else tune.cut(half, whole)
                     loud = self.hard(section.level[0])
-                    self.sing("lead", strong[0], use, at, key, chords, first, loud=loud)
+                    sing(strong[0], use, bar, loud)
+                    if len(strong) > 1 and full and (index >= 1 or ch.weight >= 0.9):
+                        # (In light music the second player has the tune a third above, not the same notes.)
+                        sing(strong[1], use.moved(steps=2) if ch.light and not ch.band else use, bar, loud * 0.92,
+                             octave=octave_of(strong[1], strong[0]))
+                    if ch.under and full:
+                        sing(ch.under[0], under, bar, loud * 0.75, tag=" under")
+            elif part == "valley":
+                # The valley: one of the themes from a single player who has not stated it, and
+                # where there is time, again from another.
+                sung, sung_again = (tune, again) if fam.valley == "first" else (tune_b, again_b)
+                echo = next((name for name in (mate, third, other, solo) if name != hush), hush)
+                for index, (bar, full) in enumerate(turns(bars)):
+                    loud = self.hard(self.level(section, bar + period // 2), 0.9)
+                    if not full:
+                        sing(hush, sung.cut(half, whole), bar, loud * 0.9)
+                    elif index % 2 == 0:
+                        sing(hush, sung, bar, loud)
+                    else:
+                        sing(echo, sung_again, bar, loud * 0.95)
+            elif part == "climb":
+                # The climb. First the second theme's opening, handed from one player to another
+                # and back; then the first theme's first bar, higher each time and closer
+                # together, the strong players coming in one by one.
+                opening, motifs = tune_b.cut(0, 2 * beats), [tune.cut(0, beats), tune.cut(beats, 2 * beats)]
+                pair = [other, next((name for name in (mate, solo, third) if name != other), other)]
+                turn, bar, count = bars // 3, 0, 0
+                while bar + 2 <= turn:
+                    piece = self.fit(opening, chords[bar], aim=round(4 * bar / max(turn, 1)) - 3)
+                    sing(pair[count % 2], piece, bar, self.hard(self.level(section, bar), 0.9))
+                    bar += 2
+                    count += 1
+                bar, count, players = turn, 0, [solo]
+                while bar < bars - 1:
+                    along = bar / bars
+                    piece = self.fit(motifs[count % 2 if along < 0.75 else 0], chords[bar], aim=round((along - 0.33) * 9) - 2)
+                    for name in players:
+                        sing(name, piece, bar, self.hard(self.level(section, bar), 0.95))
+                    if along >= 0.5 and mate not in players:
+                        players.append(mate)
+                    if along >= 0.66 and strong[0] not in players:
+                        players.append(strong[0])
+                    if along >= 0.85 and strong[-1] not in players:
+                        players.append(strong[-1])
+                    bar += 2 if along < 0.66 else 1
+                    count += 1
+                run_up(players)
+            elif part == "summit":
+                # The summit: the first theme from everyone strong, and underneath it the
+                # second theme, made to fit these chords. Where the theme comes round more
+                # than once, the first time has only the slower line under it, so that the
+                # two themes together are the last thing to arrive.
+                stated = turns(bars)
+                several = sum(1 for _, full in stated if full) > 1
+                below = ch.under or ((other,) if other not in strong else ())
+                for index, (bar, full) in enumerate(stated):
+                    use = (tune if index % 2 == 0 else again) if full else tune.cut(half, whole)
+                    loud = self.hard(section.level[0])
+                    sing(strong[0], use, bar, loud)
                     if len(strong) > 1:
-                        self.sing("lead", strong[1], use, at, key, chords, first, loud=loud * 0.95,
-                                  octave=1 if INSTRUMENTS[strong[1]].home - INSTRUMENTS[strong[0]].home < 7 else 0)
-                    for name in ch.under:
-                        self.sing("lead", name, under, at, key, chords, first, loud=loud * 0.8, tag=" under")
+                        sing(strong[1], use, bar, loud * 0.95, octave=octave_of(strong[1], strong[0]))
+                    if full:
+                        both = index >= 1 or not several
+                        for name in below:
+                            sing(name, counter if both else under, bar, loud * (0.85 if both else 0.8), tag=" under")
                     if ch.band and INSTRUMENTS[strong[0]].wired:
                         # Twin guitars: the tune again a third above it.
-                        self.sing("lead", strong[0], use.moved(steps=2), at, key, chords, first, loud=loud * 0.8, tag=" twin")
-                    if turn % 2 == 1 and not ch.band:
+                        sing(strong[0], use.moved(steps=2), bar, loud * 0.8, tag=" twin")
+                    if not ch.band and full and (index % 2 == 1 or not several):
                         top = "piccolo" if self.heavy else "glock"
-                        self.sing("lead", top, use, at, key, chords, first, loud=loud * 0.6, octave=1 if self.heavy else 0)
+                        sing(top, use, bar, loud * 0.6, octave=1 if self.heavy else 0)
             else:
+                # The close: the first theme's opening once more, a memory of the second, the
+                # first theme's last two bars, and the key note held.
                 if bars >= 6:
-                    self.sing("lead", second, self.fit(tune.cut(0, 2 * beats), chords[0]), first, key, chords, first,
-                              loud=self.hard(section.level[0], 0.8))
+                    sing(mate, self.fit(tune.cut(0, 2 * beats), chords[0]), 0, self.hard(section.level[0], 0.8))
+                if bars >= 12:
+                    at = bars // 2 - 1
+                    sing(other, self.fit(tune_b.cut(0, 2 * beats), chords[at], aim=-2), at, self.hard(self.level(section, at), 0.8))
                 home = max(bars - 4, 0)
-                tail = self.fit(tune.cut(6 * beats, 8 * beats), chords[home], aim=0)
-                self.sing("lead", solo, tail, first + home * beats, key, chords, first, loud=self.hard(self.level(section, home), 0.85))
+                sing(solo, self.fit(tune.cut(whole - 2 * beats, whole), chords[home], aim=0), home,
+                     self.hard(self.level(section, home), 0.85))
                 if bars >= 3:
-                    last = Line([(0.0, min(2, bars - home - 1) * beats + beats * 0.5, 0, 0.6)])
-                    self.sing("lead", solo, last, first + (bars - 2) * beats, key, chords, first, loud=self.hard(section.level[1], 0.9))
+                    # The last note, held: the key note, or where the take leaves the story open, its fifth.
+                    last = Line([(0.0, min(2, bars - home - 1) * beats + beats * 0.5, self.rest, 0.6)])
+                    sing(solo, last, bars - 2, self.hard(section.level[1], 0.9))
 
     # --- the pad -----------------------------------------------------------------------------
     def texture(self) -> None:
-        ch, rng, beats = self.ch, self.rng, self.beats
-        way = ch.pad_ways[(self.take + rng.randrange(2)) % len(ch.pad_ways)]
-        pad = ch.pads[self.take % len(ch.pads)]
+        ch, beats = self.ch, self.beats
         lift = 5 if ch.light else 0
+        # Under a second theme that is sung high the pad sits low, and the other way about.
+        second_centre = 55 if INSTRUMENTS[self.other].home >= 64 else 62
         before: list[int] | None = None
         for section, first, key, chords in self.spans:
-            story, bars = section.story, section.bars
-            name = "tremolo" if way == "tremolo" and story in ("open", "rise") else pad
-            count = {"open": 2, "theme": 3, "rise": 4, "moment": 4, "close": 3}[story]
-            centre = {"open": 53, "theme": 58, "rise": 60, "moment": 62, "close": 56}[story] + lift
-            arp = way == "arp" and story in ("open", "theme", "close")
-            drone = way == "drone" and story != "moment"
+            part, bars = section.part, section.bars
+            pad, way = (self.pad_b, self.way_b) if part in ("second", "valley") else (self.pad, self.way)
+            if part == "valley" and not self.fight:
+                way = self.valley_way
+            name = "tremolo" if way == "tremolo" and part in ("open", "build", "climb") else pad
+            count = {"open": 2, "first": 3, "second": 3, "build": 4, "arrival": 4, "valley": 2, "climb": 4, "summit": 4, "close": 3}[part]
+            centre = {"open": 53, "first": 58, "second": second_centre, "build": 60, "arrival": 62, "valley": 56, "climb": 61,
+                      "summit": 62, "close": 56}[part] + lift
+            arp = way == "arp" and part in ("open", "first", "second", "valley", "close")
+            drone = way == "drone" and part not in ("arrival", "summit")
             held: dict[int, tuple[float, int]] = {}                # which player: (since when, what pitch)
-            swell = self.voice("texture", name)
+            # (For the strings a player is a section: each of them has one line of the chord.)
+            who = [self.desk(name, player, count) for player in range(count)]
+            swells = [self.voice("texture", player, tag) for player, tag in dict.fromkeys(who)]
             for bar, chord in enumerate(chords):
                 at, level = first + bar * beats, self.level(section, bar)
                 if drone:
@@ -1196,12 +1677,13 @@ class Take:
                 else:
                     notes = voiced(key, chord, before if before and len(before) == count else None, count, centre)
                     before = notes
-                swell.swells.append((at, 0.3 + 0.62 * level))
-                swell.swells.append((at + beats * 0.5, 0.3 + 0.62 * min(level + 0.05, 1.0)))
+                for swell in swells:
+                    swell.swells.append((at, 0.3 + 0.62 * level))
+                    swell.swells.append((at + beats * 0.5, 0.3 + 0.62 * min(level + 0.05, 1.0)))
                 if arp:
                     # Broken chords on the harp: up through the chord and down again.
                     ladder = notes + [notes[0] + 12] + notes[::-1][:-1]
-                    step = self.pulse / 2 if self.pulse == 1.0 else self.pulse
+                    step = (self.pulse / 2 if self.pulse == 1.0 else self.pulse) * (2 if part == "valley" else 1)
                     for index in range(int(round(beats / step))):
                         self.put("texture", "harp", at + index * step, step * 2, ladder[index % len(ladder)],
                                  self.hard(level, 0.75 if index else 0.9))
@@ -1211,64 +1693,99 @@ class Take:
                         continue                                    # the same note again: it is held over the bar line
                     if player in held:
                         since, was = held[player]
-                        self.put("texture", name, since, at - since, was, self.hard(0.55, 1.0))
+                        self.put("texture", who[player][0], since, at - since, was, self.hard(0.55, 1.0), tag=who[player][1])
                     held[player] = (at, pitch)
             end = first + bars * beats
-            for since, was in held.values():
-                self.put("texture", name, since, end - since, was, self.hard(0.55, 1.0))
-            swell.swells.append((end - 0.01, 0.3 + 0.62 * section.level[1]))
-            if story == "moment" and self.heavy and not ch.band:
-                # Everyone: the violins an octave above the pad, and voices where the palette has them.
+            for player, (since, was) in held.items():
+                self.put("texture", who[player][0], since, end - since, was, self.hard(0.55, 1.0), tag=who[player][1])
+            for swell in swells:
+                swell.swells.append((end - 0.01, 0.3 + 0.62 * section.level[1]))
+            if part in ("arrival", "summit") and self.heavy and not ch.band:
+                # Most of the band at the first arrival: two lines an octave above the pad.
+                # Everyone at the summit: voices too, where the palette has them. The two lines
+                # are the first and second violins, unless the violins are busy (they have the
+                # tune, or the pad is theirs already): then a flute and an oboe hold them.
+                busy = "violins" in self.strong or name in DESKS
+                above = (("oboe", ""), ("flute", "")) if busy else (("violins", " seconds"), ("violins", ""))
                 for bar, chord in enumerate(chords):
                     at = first + bar * beats
-                    top = voiced(key, chord, None, 2, centre + 14)
-                    for pitch in top:
-                        self.put("texture", "violins", at, beats, pitch, self.hard(0.8))
-                    if "choir" in ch.pads + ch.strong:
+                    for (player, tag), pitch in zip(above, voiced(key, chord, None, 2, centre + 14)):
+                        self.put("texture", player, at, beats, pitch, self.hard(0.8 if part == "summit" else 0.65), tag=tag)
+                    if part == "summit" and "choir" in ch.pads + ch.strong:
                         for pitch in voiced(key, chord, None, 3, 62):
                             self.put("texture", "choir", at, beats, pitch, self.hard(0.75), tag=" tutti")
 
     # --- the accompaniment -------------------------------------------------------------------
     def rhythm(self) -> None:
-        ch, rng, beats, pulse = self.ch, self.rng, self.beats, self.pulse
-        name = ch.plucks[self.take % len(ch.plucks)]
-        figure = ch.figures[(self.take + rng.randrange(2)) % len(ch.figures)]
-        inst = INSTRUMENTS[name]
-        starts, at = [], 0.0
-        for size in self.group:
-            starts.append(at)
-            at += size
+        ch, rng, beats, pulse, starts = self.ch, self.rng, self.beats, self.pulse, self.starts
         half = pulse / 2 if pulse == 1.0 else pulse
         slots = int(round(beats / half))
-        # A riff of its own for this take: where in the bar the chords fall and how long each rings.
-        if beats == 4.0:
-            self.riff = list(rng.choice((
-                ((0.0, 1.5), (1.5, 1.0), (2.5, 1.5)), ((0.0, 0.75), (2.0, 0.75), (3.0, 0.5), (3.5, 0.5)),
-                ((0.0, 2.0), (2.5, 0.5), (3.0, 1.0)), ((0.0, 0.5), (0.5, 0.5), (1.5, 1.0), (2.5, 1.5)),
-                ((0.0, 1.0), (1.0, 0.5), (2.0, 1.0), (3.5, 0.5)), ((0.0, 3.0), (3.0, 0.5), (3.5, 0.5)))))
-        elif beats == 3.0 and pulse == 0.5:
-            self.riff = list(rng.choice((((0.0, 1.0), (1.5, 1.0)), ((0.0, 1.5), (1.5, 0.5), (2.0, 1.0)), ((0.0, 0.5), (1.0, 0.5), (1.5, 1.5)))))
-        else:
-            self.riff = [(start, size * 0.8) for start, size in zip(starts, self.group)]
-        # A pattern of its own for this take: which note of the chord falls on which half beat.
-        walk, pattern = rng.randrange(3), []
-        for slot in range(slots):
-            walk = (walk + rng.choice((-1, 1, 1, 2))) % 4
-            pattern.append(walk if slot == 0 or rng.random() < 0.68 else None)
+
+        def riff() -> list[tuple[float, float]]:
+            """A riff of its own: where in the bar the chords fall and how long each rings."""
+            if beats == 4.0:
+                return list(rng.choice((
+                    ((0.0, 1.5), (1.5, 1.0), (2.5, 1.5)), ((0.0, 0.75), (2.0, 0.75), (3.0, 0.5), (3.5, 0.5)),
+                    ((0.0, 2.0), (2.5, 0.5), (3.0, 1.0)), ((0.0, 0.5), (0.5, 0.5), (1.5, 1.0), (2.5, 1.5)),
+                    ((0.0, 1.0), (1.0, 0.5), (2.0, 1.0), (3.5, 0.5)), ((0.0, 3.0), (3.0, 0.5), (3.5, 0.5)))))
+            if beats == 3.0 and pulse == 0.5:
+                return list(rng.choice((((0.0, 1.0), (1.5, 1.0)), ((0.0, 1.5), (1.5, 0.5), (2.0, 1.0)), ((0.0, 0.5), (1.0, 0.5), (1.5, 1.5)))))
+            return [(start, size * 0.8) for start, size in zip(starts, self.group)]
+
+        def pattern() -> list[int | None]:
+            """A pattern of its own: which note of the chord falls on which half beat."""
+            walk, out = rng.randrange(3), []
+            for slot in range(slots):
+                walk = (walk + rng.choice((-1, 1, 1, 2))) % 4
+                out.append(walk if slot == 0 or rng.random() < 0.68 else None)
+            return out
+
+        # One riff and one pattern for the first theme and what is made of it, and another for
+        # the second: a take that has only one figure to its name still plays two things.
+        self.riff, riff_b = riff(), riff()
+        for _ in range(8):
+            if riff_b != self.riff:
+                break
+            riff_b = riff()
+        pattern_a, pattern_b = pattern(), pattern()
+
+        def pluck(name: str, rank: int, at: float, length: float, pitch: int, loud: float, short: bool = False) -> None:
+            """One note of the figure: `rank` is which note of the chord it is, from the bottom.
+            Where the strings play the figure each section has its own note of the chord; and a
+            `short` note from a bow is kept short enough to be a short stroke of it, not a long
+            one cut off."""
+            who, tag = self.desk(name, rank, 3)
+            if short and INSTRUMENTS[who].held:
+                length = min(length, 0.2 * self.fam.bpm / 60.0)
+            self.put("rhythm", who, at, length, pitch, loud, tag=tag)
+
         before: list[int] | None = None
+        setup = None
         for section, first, key, chords in self.spans:
-            story, bars = section.story, section.bars
+            part, bars = section.part, section.bars
             for bar, chord in enumerate(chords):
-                level = self.level(section, bar)
-                along = bar / bars
-                density = {"open": 0.15, "theme": 0.5, "rise": 0.5 + 0.5 * along, "moment": 1.0, "close": 0.4 * (1.0 - along)}[story]
-                if story == "open" and not ch.band and (figure not in ("toll", "rock", "arp") or bar % 2 == 1 or bar == 0):
+                level, along = self.level(section, bar), bar / bars
+                second = part in ("second", "valley") or (part == "climb" and along < 0.5)
+                name, figure = (self.pluck_b, self.figure_b) if second else (self.pluck, self.figure)
+                inst = INSTRUMENTS[name]
+                density = {"open": 0.15, "first": 0.5, "second": 0.45, "build": 0.5 + 0.5 * along, "arrival": 0.9,
+                           "valley": 0.5 if self.fight else 0.2, "climb": 0.35 + 0.65 * along, "summit": 1.0,
+                           "close": 0.4 * (1.0 - along)}[part]
+                bare = part == "open" or (part == "valley" and not self.fight)
+                if bare and not ch.band and (figure not in ("toll", "rock", "arp") or bar % 2 == 1 or bar == 0):
                     continue
-                if ch.band and story == "open":
+                if ch.band and part == "open":
                     density = 0.3                              # a band opens on its riff alone
+                if bare and part == "valley" and (ch.band or self.valley_way == "arp"):
+                    continue                                   # ...and in the valley its guitars rest; so does whoever would play against the harp
                 if density < 0.12:
                     continue
-                notes = voiced(key, chord, before, 3, inst.home - 4)
+                # Where the second theme has the same figure on the same instrument as the first,
+                # it is at least played a fourth higher.
+                raised = 5 if second and (self.pluck_b, self.figure_b) == (self.pluck, self.figure) else 0
+                if setup != (name, raised):
+                    before, setup = None, (name, raised)
+                notes = voiced(key, chord, before, 3, inst.home - 4 + raised)
                 before = notes
                 ladder = notes + [notes[0] + 12]
                 bar_at = first + bar * beats
@@ -1281,60 +1798,62 @@ class Take:
                     for index in range(int(round(beats / step))):
                         on = index * step
                         strong = on in starts
-                        for pitch in ((notes[0], notes[2]) if strong or index % 2 == 0 else (notes[1],)):
-                            self.put("rhythm", name, bar_at + on, step * 0.45, pitch, loud * (1.0 if strong else 0.72))
+                        for rank in ((0, 2) if strong or index % 2 == 0 else (1,)):
+                            pluck(name, rank, bar_at + on, step * 0.45, notes[rank], loud * (1.0 if strong else 0.72), short=True)
                 elif figure == "arp":
                     for index in range(slots):
                         if thin and index % 2:
                             continue
-                        order = (0, 1, 2, 3, 2, 1)
-                        self.put("rhythm", name, bar_at + index * half, half * 1.6, ladder[order[index % 6]],
-                                 loud * (1.0 if index * half in starts else 0.75))
+                        order = (0, 1, 2, 3, 2, 1) if not second else (0, 2, 1, 3, 1, 2)
+                        pluck(name, order[index % 6], bar_at + index * half, half * 1.6, ladder[order[index % 6]],
+                              loud * (1.0 if index * half in starts else 0.75))
                 elif figure == "strum":
                     for index in range(slots):
                         on = index * half
                         down = on in starts
                         if not down and (thin or index % 2 == 0 and pulse == 1.0 and density < 0.8):
                             continue
-                        chord_notes = ladder if down else ladder[1:][::-1]
-                        for string, pitch in enumerate(chord_notes):
-                            self.put("rhythm", name, bar_at + on + string * 0.012, half * 0.9, pitch, loud * (0.95 if down else 0.6))
+                        for string, rank in enumerate((0, 1, 2, 3) if down else (3, 2, 1)):
+                            pluck(name, rank, bar_at + on + string * 0.012, half * 0.9, ladder[rank], loud * (0.95 if down else 0.6))
                 elif figure == "oompah":
                     for index in range(int(round(beats / pulse))):
                         on = index * pulse
                         if on in starts:
                             continue
-                        for pitch in ladder[1:]:
-                            self.put("rhythm", name, bar_at + on, pulse * 0.5, pitch, loud * 0.8)
+                        for rank in (1, 2, 3):
+                            pluck(name, rank, bar_at + on, pulse * 0.5, ladder[rank], loud * 0.8, short=True)
                 elif figure == "rock":
-                    order = (0, 2, 1, 2)
+                    order = (0, 2, 1, 2) if not second else (0, 1, 2, 1)
                     for index in range(int(round(beats / pulse))):
                         if thin and index % 2:
                             continue
-                        self.put("rhythm", name, bar_at + index * pulse, pulse * 1.5, ladder[order[index % 4]], loud * 0.8)
+                        pluck(name, order[index % 4], bar_at + index * pulse, pulse * 1.5, ladder[order[index % 4]], loud * 0.8)
                 elif figure == "toll":
                     if bar % 2 == 0 or density > 0.8:
-                        self.put("rhythm", name, bar_at, beats, notes[0] + 12, loud)
-                        self.put("rhythm", name, bar_at + (starts[1] if len(starts) > 1 else beats / 2), beats / 2, notes[2], loud * 0.6)
+                        pluck(name, 3, bar_at, beats, notes[0] + 12, loud)
+                        pluck(name, 2, bar_at + (starts[1] if len(starts) > 1 else beats / 2), beats / 2, notes[2], loud * 0.6)
                 elif figure == "gallop":
                     for on, weight in self.spots("gallop" if not thin else "groups"):
-                        self.put("rhythm", name, bar_at + on, 0.22, notes[0] if weight >= 1.0 else notes[1], loud * weight)
+                        pluck(name, 0 if weight >= 1.0 else 1, bar_at + on, 0.22, notes[0] if weight >= 1.0 else notes[1], loud * weight,
+                              short=True)
                         if weight >= 1.0:
-                            self.put("rhythm", name, bar_at + on, 0.22, notes[2], loud * 0.85)
+                            pluck(name, 2, bar_at + on, 0.22, notes[2], loud * 0.85, short=True)
                 elif figure == "hammer":
                     for on, weight in self.spots("three"):
-                        for pitch in notes:
-                            self.put("rhythm", name, bar_at + on, half * 0.6, pitch, loud * weight)
+                        for rank, pitch in enumerate(notes):
+                            pluck(name, rank, bar_at + on, half * 0.6, pitch, loud * weight, short=True)
                     if not thin:
+                        # Underneath, the lowest note an octave down: from the basses where the strings are hammering.
+                        low = "basses" if name in DESKS else name
                         for on, weight in self.spots("halves"):
-                            self.put("rhythm", name, bar_at + on, half * 0.4, notes[0] - 12, loud * 0.5 * weight)
+                            pluck(low, 0, bar_at + on, half * 0.4, notes[0] - 12, loud * 0.5 * weight, short=True)
                 elif figure in ("riff", "chug"):
                     # A riff: power chords with room between them, and the muted string chugging
                     # where the chords are not. Root, fifth and octave: the third is left to the tune.
                     root = key.pitch(chord.root, 45)
                     root += 12 if root < 40 else -12 if root > 52 else 0
                     power = (root, root + 7, root + 12)
-                    hits = self.riff
+                    hits: list[tuple[float, float | None]] = list(riff_b if second else self.riff)
                     if density > 0.85 or figure == "chug":
                         hits = hits + [(on, None) for on in [index * half for index in range(slots)]
                                        if not any(abs(on - at) < 1e-6 for at, _ in hits)]
@@ -1348,42 +1867,44 @@ class Take:
                             for pitch in power:
                                 self.put("rhythm", "rhythm guitar", bar_at + on, length * 0.92, pitch, loud * (1.0 if on in starts else 0.9))
                 elif figure == "pattern":
-                    for slot, which in enumerate(pattern):
+                    for slot, which in enumerate(pattern_b if second else pattern_a):
                         if which is None or (thin and slot % 2):
                             continue
-                        self.put("rhythm", name, bar_at + slot * half, half * 1.2, ladder[which], loud * (1.0 if slot * half in starts else 0.75))
+                        pluck(name, which, bar_at + slot * half, half * 1.2, ladder[which], loud * (1.0 if slot * half in starts else 0.75))
                 else:
                     raise ValueError("No such figure: %r" % figure)
-                if story == "moment" and self.heavy and not ch.band:
-                    # At the moment the brass marks the chord on the strong beats.
-                    for on in starts:
-                        for pitch in voiced(key, chord, None, 3, 58):
-                            self.put("rhythm", "brass", bar_at + on, pulse * 0.8, pitch, self.hard(level, 0.85), tag=" stabs")
+                if part in ("arrival", "summit") and self.heavy and not ch.band:
+                    # The brass marks the chord: on the bar at the first arrival, on every strong beat
+                    # at the summit. A line each for the trombones, the horns and the trumpets;
+                    # until then the heavy brass has rested, so that it means something.
+                    for on in (starts if part == "summit" else starts[:1]):
+                        for player, pitch in zip(("trombone", "horns", "trumpet"), voiced(key, chord, None, 3, 58)):
+                            self.put("rhythm", player, bar_at + on, pulse * 0.8, pitch, self.hard(level, 0.85), tag=" stabs")
 
     # --- the bass ----------------------------------------------------------------------------
     def bass(self) -> None:
-        ch, rng, beats, pulse = self.ch, self.rng, self.beats, self.pulse
+        ch, beats, pulse, starts = self.ch, self.beats, self.pulse, self.starts
         name = ch.basses[self.take % len(ch.basses)]
         inst = INSTRUMENTS[name]
-        way = rng.choice(("two", "walk", "oct") if ch.busy >= 0.5 else ("long", "two", "walk"))
-        if ch.band and self.heavy:
-            way = "eight"
-        starts, at = [], 0.0
-        for size in self.group:
-            starts.append(at)
-            at += size
+        one, two = self.bass_way, self.bass_way_b
+        drive = "eight" if ch.band and self.heavy else "pulse"
         for section, first, key, chords in self.spans:
-            story, bars = section.story, section.bars
+            part, bars = section.part, section.bars
             for bar, chord in enumerate(chords):
-                level, bar_at = self.level(section, bar), first + bar * beats
+                level, bar_at, along = self.level(section, bar), first + bar * beats, bar / bars
                 root = key.pitch(chord.root, inst.home - 5)
                 loud = self.hard(level, 0.9)
                 after = chords[bar + 1] if bar + 1 < bars else chord
-                if story == "open":
+                if part == "open":
                     if self.heavy or bar >= bars // 2:
                         self.put("bass", name, bar_at, beats, key.pitch(0, inst.home - 5), loud * 0.8)      # the key note, held
                     continue
-                if story == "close" or way == "long":
+                # One way of playing for the first theme and what is made of it, another for the
+                # second; long notes where the story is quiet; and at the top of the climb the
+                # root over and over, driving at the summit.
+                way = {"first": one, "second": two, "build": one, "arrival": one, "valley": two if self.fight else "long",
+                       "climb": two if along < 0.5 else drive, "summit": one, "close": "long"}[part]
+                if way == "long":
                     self.put("bass", name, bar_at, beats, root, loud)
                 elif way == "two":
                     for index, on in enumerate(starts):
@@ -1404,26 +1925,52 @@ class Take:
                     for index in range(int(round(beats / step))):
                         on = index * step
                         self.put("bass", name, bar_at + on, step * 0.85, root, loud * (1.0 if on in starts else 0.8))
+                elif way == "pulse":
+                    for index in range(int(round(beats / pulse))):
+                        on = index * pulse
+                        self.put("bass", name, bar_at + on, pulse * 0.85, root, loud * (1.0 if on in starts else 0.8))
                 else:
                     step = pulse if pulse == 1.0 else pulse * 1.0
                     for index in range(int(round(beats / step))):
                         self.put("bass", name, bar_at + index * step, step * 0.8, root + (12 if index % 2 else 0), loud * (1.0 if index % 2 == 0 else 0.75))
-                if story == "moment" and self.heavy and not ch.band:
-                    low = "tuba" if "tuba" in ch.basses + ch.under else "basses"
-                    self.put("bass", low, bar_at, beats, root, self.hard(level, 0.8), tag=" tutti")
+                if part in ("arrival", "summit") and self.heavy and not ch.band:
+                    # The low end at the big moments: the celli and the basses an octave apart,
+                    # whichever of them has the bass line; and at the summit the low brass with
+                    # them, where the palette has it: the tuba on the bass's note, the trombones
+                    # an octave above. Nothing is left open between the bass and the chords.
+                    weight = self.hard(level, 0.8)
+                    upper = key.pitch(chord.root, INSTRUMENTS["celli"].home - 5)        # where the celli have the bass
+                    lower = upper - 12                                                  # and the basses under them
+                    if not name.startswith("celli"):
+                        self.put("bass", "celli", bar_at, beats, upper, weight, tag=" tutti")
+                    if not name.startswith("basses"):
+                        self.put("bass", "basses", bar_at, beats, lower, weight, tag=" tutti")
+                    if part == "summit":
+                        if "tuba" in ch.basses + ch.under and name != "tuba":
+                            self.put("bass", "tuba", bar_at, beats, lower, weight, tag=" tutti")
+                        if "trombone" in ch.under + ch.leads:
+                            self.put("bass", "trombone", bar_at, beats, upper, weight * 0.9, tag=" tutti")
 
     # --- the drums ---------------------------------------------------------------------------
     def strike(self, sound: str, at: float, loud: float, chord: Chord, key: Key) -> None:
-        if sound in INSTRUMENTS:
+        if sound == "timpani":
+            # A pair of kettledrums is tuned to the key note and the fourth below it. They play
+            # whichever of the two is in the chord, and the chord's own root only where neither is.
+            notes = {step % 7 for step in chord.steps}
+            step = 0 if 0 in notes else -3 if 4 in notes else chord.root
+            self.put("drums", sound, at, 0.5, key.pitch(step, INSTRUMENTS[sound].home), loud)
+        elif sound in INSTRUMENTS:
             inst = INSTRUMENTS[sound]
             self.put("drums", sound, at, 0.5, key.pitch(chord.root, inst.home), loud)
         else:
             self.kit().add(at, 0.25, KITS[self.ch.kit][1][sound], loud)
 
     def drums(self) -> None:
-        ch, rng, beats = self.ch, self.rng, self.beats
-        groove = GROOVES[ch.grooves[(self.take + rng.randrange(2)) % len(ch.grooves)]]
-        fight = ch.role in ("battle", "boss", "storm")
+        ch, beats, fight = self.ch, self.beats, self.fight
+        main, other = self.groove, self.groove_b
+        # A second groove for the second theme; where the character has only one, the same
+        # with its last layer left out.
+        second = other["theme"] if other is not main else main["theme"][:max(len(main["theme"]) - 1, 1)]
 
         def lay(layers: list, bar: int, bar_at: float, level: float, scale: float, chord: Chord, key: Key) -> None:
             for layer in layers:
@@ -1434,10 +1981,10 @@ class Take:
                     self.strike(sound, bar_at + on, min(loud * weight * scale * (0.55 + 0.6 * level), 1.0), chord, key)
 
         for section, first, key, chords in self.spans:
-            story, bars = section.story, section.bars
+            part, bars = section.part, section.bars
             for bar, chord in enumerate(chords):
                 level, bar_at, along = self.level(section, bar), first + bar * beats, bar / bars
-                if story == "open":
+                if part == "open":
                     if ch.band and not fight and bar == bars - 1 and ch.kit in ("rock", "room"):
                         for on, weight in self.spots("pulses"):          # the sticks count the band in
                             self.strike("hat", bar_at + on, 0.5 * weight, chord, key)
@@ -1446,31 +1993,41 @@ class Take:
                             for sound in ("crash", "great drum" if "great drum" in ch.drums else "boom"):
                                 self.strike(sound, bar_at, 0.85, chord, key)
                         elif bar >= 1:
-                            lay(groove["theme"], bar, bar_at, level, 0.8, chord, key)
-                elif story == "theme":
-                    lay(groove["theme"], bar, bar_at, level, 1.0, chord, key)
-                elif story == "rise":
-                    lay(groove["theme"] if along < 0.5 else groove["moment"], bar, bar_at, level, 1.0 if along < 0.5 else 0.7, chord, key)
-                    roll = groove["roll"]
-                    length = 2 if self.heavy else 1
+                            lay(main["theme"], bar, bar_at, level, 0.8, chord, key)
+                elif part == "first":
+                    lay(main["theme"], bar, bar_at, level, 1.0, chord, key)
+                elif part == "second":
+                    lay(second, bar, bar_at, level, 1.0 if other is not main else 0.85, chord, key)
+                elif part in ("build", "climb"):
+                    # A rise begins on a theme's groove (the climb on the second theme's) and
+                    # goes over to the moment's; its last bars are a roll, longer before the summit.
+                    turn = 0.5 if part == "build" else 0.6
+                    early = second if part == "climb" else main["theme"]
+                    lay(early if along < turn else main["moment"], bar, bar_at, level, 1.0 if along < turn else 0.7, chord, key)
+                    roll = main["roll"]
+                    length = min((2 if self.heavy else 1) * (2 if part == "climb" else 1), bars)
                     if roll and bar >= bars - length:
                         step = 0.25
                         count = int(round(beats / step))
                         for index in range(count):
                             done = ((bar - (bars - length)) * count + index) / (length * count)
                             self.strike(roll, bar_at + index * step, (0.2 + 0.7 * done) * (0.6 + 0.4 * ch.weight), chord, key)
-                elif story == "moment":
-                    lay(groove["moment"], bar, bar_at, level, 1.0, chord, key)
-                    if bar == 0 and groove["hit"]:
-                        self.strike(groove["hit"], bar_at, 0.6 + 0.35 * ch.weight, chord, key)
+                elif part in ("arrival", "summit"):
+                    big = part == "summit"
+                    lay(main["moment"], bar, bar_at, level, 1.0 if big else 0.85, chord, key)
+                    if bar == 0 and main["hit"]:
+                        self.strike(main["hit"], bar_at, (0.6 + 0.35 * ch.weight) * (1.0 if big else 0.85), chord, key)
                         if self.heavy:
-                            for sound in ch.drums[:2]:
-                                self.strike(sound, bar_at, 0.9, chord, key)
-                    if bar % 8 == 7 and groove["roll"] and bars - bar > 1:
+                            for sound in ch.drums[:2 if big else 1]:
+                                self.strike(sound, bar_at, 0.9 if big else 0.75, chord, key)
+                    if bar % 8 == 7 and main["roll"] and bars - bar > 1:
                         for index in range(4):                       # a fill into the next time round
-                            self.strike(groove["roll"], bar_at + beats - (4 - index) * 0.25, 0.45 + 0.12 * index, chord, key)
+                            self.strike(main["roll"], bar_at + beats - (4 - index) * 0.25, 0.45 + 0.12 * index, chord, key)
+                elif part == "valley":
+                    if fight:
+                        lay(main["theme"], bar, bar_at, level, 0.65, chord, key)       # a fight's valley keeps its pulse
                 else:
                     if along < 0.5 and bar % 2 == 0:
-                        lay(groove["theme"], bar, bar_at, level, 0.7, chord, key)
-                    if bar == bars - 2 and groove["hit"] and self.heavy:
+                        lay(main["theme"], bar, bar_at, level, 0.7, chord, key)
+                    if bar == bars - 2 and main["hit"] and self.heavy:
                         self.strike("timpani" if "timpani" in ch.drums else "ting", bar_at, 0.45, chord, key)

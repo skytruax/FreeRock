@@ -438,6 +438,20 @@ async def test_pieces_over_the_same_changes_lend_each_other_their_parts(results)
     assert kin["late"] == 0
 
 
+@pytest.mark.parametrize("name", ["pieceLong", "pieceLongPlaced"])
+async def test_a_long_track_is_played_in_its_order_and_kin_keep_to_their_place(results, name):
+    """Nine pieces whose story words come round more than once: a theme, a second theme, the
+    calm between two rises. Whether the bucket tells each piece's place or the player has to
+    count the pieces before it, a part is lent only to the piece at the same place."""
+    long = of(results, name)
+    assert long["order"] == list(range(9)), "the track was not played right through"
+    assert long["words"] == ["open", "theme", "theme", "rise", "moment", "theme", "rise", "moment", "close"]
+    assert all(parts == 3 for parts in long["parts"]), "a piece came without all its parts: %s" % long["parts"]
+    assert long["astray"] == 0, "a part was played under a piece from another place in the story"
+    assert long["mixed"] >= 1, "the two takes never lent each other a part"
+    assert long["late"] == 0
+
+
 async def test_one_track_hands_over_to_the_next_on_the_beat(results):
     hand = of(results, "pieceHandover")
     assert len(hand["order"]) >= 2 and hand["order"][0] != hand["order"][1]

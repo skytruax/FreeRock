@@ -500,10 +500,23 @@
     // A piece that is missing any of its parts is left out. Pieces of one family (written over
     // the same changes, bar for bar) that stand at the same place in the story are kin: any
     // channel of one may be played with the other channels of another.
+    //
+    // The place is how many pieces of its track come before a piece, not its story word: a long
+    // track has a word more than once (a theme, a second theme, the calm between two rises),
+    // and those are over different chords. The bucket says the place; for a piece put in before
+    // it did, the pieces that lead to it are counted.
     _index(bucket) {
       bucket = bucket || this.bucket;
       if (bucket.index) return bucket.index;
       const index = new Map(), described = bucket.pieces || {};
+      const leads = new Map();
+      for (const id of Object.keys(described)) if (described[id].next) leads.set(described[id].next, id);
+      const placeOf = (id) => {
+        if (Number.isInteger(described[id].place)) return described[id].place;
+        let place = 0;
+        for (let at = id; leads.has(at) && place < 64; at = leads.get(at)) place++;
+        return place;
+      };
       for (const clip of bucket.clips.values()) {
         if (!clip.piece || !described[clip.piece]) continue;
         let piece = index.get(clip.piece);
@@ -527,7 +540,8 @@
         if (!whole) { index.delete(id); continue; }
         piece.kin = [piece];
         if (piece.meta.family) {
-          const key = [piece.meta.family, piece.meta.story, piece.meta.frames, piece.meta.bar_frames, piece.meta.bars].join("|");
+          const key = [piece.meta.family, placeOf(id), piece.meta.story, piece.meta.frames, piece.meta.bar_frames,
+                       piece.meta.bars].join("|");
           if (!families.has(key)) families.set(key, []);
           families.get(key).push(piece);
           piece.kin = families.get(key);

@@ -33,6 +33,7 @@ class Voice:
     volume: float = 1.0        # 0 to 1: how loud the instrument is set
     wired: bool = False        # a guitar that is recorded clean and then played through the amplifier
     shift: float = 0.0         # seconds: an instrument that speaks late is played a little early
+    instrument: str = ""       # what it is called ("celli", "kit rock"): the studio's desk finds its real sound by this
 
     def add(self, start: float, length: float, pitch: int, loud: float = 0.7) -> None:
         if length > 0 and 0 <= pitch <= 127:

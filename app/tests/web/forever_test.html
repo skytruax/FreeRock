@@ -603,6 +603,7 @@ function makePieces(key, pieces, free) {
       moods: piece.moods || [], role: piece.role || "wander", serves: piece.serves || [0, 1], bar_frames: BAR, bars,
       frames: windows * bars * BAR, windows, tonic: piece.tonic || "A minor", follow: piece.follow || {}, floor: piece.floor || {},
       family: piece.family || "", light: piece.light === true };
+    if (piece.place !== undefined) base.pieces[piece.id].place = piece.place;
   }
   if (free !== undefined) base.free_share = 1;
   return base;
@@ -752,6 +753,40 @@ tests.pieceKin = async () => {
   }
   return { casts: casts.size, mixed: mixed.length, late: run.engine.late };
 };
+
+// A long track: nine pieces, with the story's words coming round more than once (a theme, a
+// second theme, the calm between two rises). It is played right through in its order, and
+// where two takes of it are in the bucket, a part is only ever lent to the piece that stands
+// at the same place: never the drums of the second theme under the tune of the first, though
+// both are called "theme" and are the same length. `placed` says whether the bucket tells
+// each piece's place, or leaves the player to count the pieces that lead to it.
+const longTrack = async (placed) => {
+  const words = ["open", "theme", "theme", "rise", "moment", "theme", "rise", "moment", "close"];
+  const pieces = [];
+  for (const take of ["a", "b"]) {
+    words.forEach((story, index) => pieces.push(Object.assign(
+      { id: take + index, story, track: take, family: "long", then: index < words.length - 1 ? take + (index + 1) : "" },
+      placed ? { place: index } : {})));
+  }
+  const length = 4 * BAR / RATE;
+  const run = await render(words.length * length + 6, { bucket: makePieces(placed ? "placed" : "long", pieces), tickEvery: 2.0,
+                                                        random: seeded(3) });
+  const slots = new Map();
+  let astray = 0, mixed = 0;
+  for (const entry of run.engine.log) {
+    const slot = Math.round((entry.at - ORIGIN) / length);
+    if (slot >= words.length) continue;
+    if (!slots.has(slot)) slots.set(slot, []);
+    slots.get(slot).push(pieceOf(entry));
+    if (Number(pieceOf(entry).slice(1)) !== slot) astray++;
+  }
+  const order = [...slots.keys()].sort((a, b) => a - b);
+  for (const ids of slots.values()) if (new Set(ids.map((id) => id[0])).size > 1) mixed++;
+  return { order, parts: order.map((slot) => slots.get(slot).length), astray, mixed, late: run.engine.late,
+           words: order.map((slot) => words[Number(slots.get(slot)[0].slice(1))]) };
+};
+tests.pieceLong = () => longTrack(false);
+tests.pieceLongPlaced = () => longTrack(true);
 
 // A track goes on through a calm moment (the game says "ember" after a fight), even though the
 // bucket has a piece written for calm moments; that piece comes when the track has ended.

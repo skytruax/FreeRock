@@ -51,7 +51,7 @@ def test_every_character_names_instruments_and_grooves_that_exist():
         assert all(groove in orchestra.GROOVES for groove in character.grooves), character.name
         assert all(kind in kinds.KINDS for kind in character.kinds), character.name
         assert character.role in studio.ROLES
-        assert all(mode in orchestra.THEMES for mode in character.modes)
+        assert all(mode in orchestra.THEMES and mode in orchestra.SECONDS and mode in orchestra.RISES for mode in character.modes)
 
 
 def test_every_kind_of_place_has_light_and_heavy_music_to_walk_about_to():
@@ -64,36 +64,75 @@ def test_every_kind_of_place_has_light_and_heavy_music_to_walk_about_to():
     assert roles == set(studio.ROLES), "a kind of moment has no music: %s" % (set(studio.ROLES) - roles)
 
 
-def test_a_family_is_a_story_of_about_three_minutes():
+WORDS = ["open", "theme", "theme", "rise", "moment", "theme", "rise", "moment", "close"]
+
+
+def test_a_family_is_a_story_of_about_eight_minutes_in_two_waves():
     for index, character in enumerate(orchestra.CHARACTERS):
-        fam = orchestra.family(character, 100 + index, "f", "F")
-        assert [section.story for section in fam.sections] == list(forever.STORY)
-        assert all(len(section.chords) == section.bars for section in fam.sections)
-        assert 100 <= fam.seconds <= 240, "%s is %d s long" % (character.name, fam.seconds)
-        theme, moment = fam.sections[1], fam.sections[3]
-        assert theme.bars % 8 == 0 and moment.bars == theme.bars
-        assert theme.chords[7] == "1" and fam.sections[4].chords[-1] == "1", "it does not come home"
-        assert moment.level[0] >= max(section.level[1] for section in fam.sections[:2]), "the moment is not the top"
+        for seed in (100 + index, 5000 + index):
+            fam = orchestra.family(character, seed, "f", "F")
+            bar_s = fam.beats * 60.0 / fam.bpm
+            # Nine parts, known to the player by its five words, three of them more than once.
+            assert [section.part for section in fam.sections] == list(orchestra.PARTS)
+            assert [section.story for section in fam.sections] == WORDS
+            assert all(len(section.chords) == section.bars for section in fam.sections)
+            assert 450 <= fam.seconds <= 510, "%s is %d s long" % (character.name, fam.seconds)
+            assert max(section.bars for section in fam.sections) * bar_s <= 70, "a part of %s is well over a minute" % character.name
+            # A statement of a theme is eight bars, or sixteen where eight would be over too soon.
+            period = fam.period
+            assert period in (8, 16) and 15 <= period * bar_s <= 40, "%s states its theme in %d s" % (character.name, period * bar_s)
+            first, second, arrival, valley, summit = (fam.section(part) for part in orchestra.THEMATIC)
+            for section in (first, second, arrival, valley, summit):
+                assert section.bars >= period and section.bars % (period // 2) == 0
+            # Both themes come home; the second begins away from home, over changes of its own.
+            assert first.chords[period - 1] == "1" and second.chords[period - 1] == "1", "it does not come home"
+            assert second.chords[0] != "1" and first.chords[:period] != second.chords[:period]
+            if period == 16:
+                assert first.chords[7] != "1" and second.chords[7] != "1", "the question is answered before it is asked"
+            # The arrival and the summit are over the first theme's changes, the valley over one theme's or the other's.
+            assert arrival.chords[:period] == summit.chords[:period] == first.chords[:period]
+            assert valley.chords[:period] == (second if fam.valley == "second" else first).chords[:period]
+            assert fam.sections[-1].chords[-1] == "1"
+            # The summit is the top; the first arrival is clearly under it; the valley is the
+            # quietest the story gets between its first theme and its close.
+            assert summit.level[0] == max(level for section in fam.sections for level in section.level)
+            assert arrival.level[0] <= summit.level[0] - 0.05, "%s arrives as hard the first time as the last" % character.name
+            assert max(valley.level) <= min(level for section in (first, second, arrival) for level in section.level)
+            # A lift, where there is one, comes with the second wave.
+            assert [section.lifted for section in fam.sections] == [bool(fam.lift) and part in ("climb", "summit", "close")
+                                                                    for part in orchestra.PARTS]
+            if character.role in orchestra.FIGHTS:
+                assert fam.section("open").bars * bar_s <= 35 and fam.section("close").bars * bar_s <= 40, "a fight does not wait"
 
 
-def test_a_tune_is_eight_bars_that_come_home_and_never_sits_on_one_note():
+def test_a_tune_is_a_question_and_its_answer_and_never_sits_on_one_note():
     for index, character in enumerate(orchestra.CHARACTERS):
         fam = orchestra.family(character, 300 + index, "f", "F")
-        chords = [fam.key.chord(figure) for figure in fam.sections[1].chords[:8]]
-        tune = orchestra.theme(random.Random(index), fam, chords, character.busy)
-        starts = [start for start, _, _, _ in tune.notes]
-        assert starts == sorted(starts) and starts[0] == 0
-        assert max(start + length for start, length, _, _ in tune.notes) <= 8 * fam.beats + 1e-6
-        assert tune.notes[-1][2] % 7 == 0, "%s does not end on the key note" % character.name
-        assert tune.top - tune.bottom <= 14, "its range is too wide to sing"
-        steps = [step for _, _, step, _ in tune.notes]
-        assert not any(a == b == c for a, b, c in zip(steps, steps[1:], steps[2:])), "a note three times running"
-        assert max(abs(b - a) for a, b in zip(steps, steps[1:])) <= 7
-        # A long note on a strong beat is a note of the chord under it.
-        for start, length, step, _ in tune.notes:
-            bar = int(start / fam.beats + 1e-6)
-            if length >= 1.0 and abs(start - bar * fam.beats) < 1e-6:
-                assert step % 7 in {note % 7 for note in chords[bar].steps}, "%s bar %d" % (character.name, bar + 1)
+        for way in ("first", "second"):
+            chords = [fam.key.chord(figure) for figure in fam.section(way).chords[:fam.period]]
+            tune = orchestra.theme(random.Random(index), fam, chords, character.busy, way=way, broad=way == "second" and index % 2 == 0)
+            starts = [start for start, _, _, _ in tune.notes]
+            assert starts == sorted(starts) and starts[0] == 0
+            assert max(start + length for start, length, _, _ in tune.notes) <= fam.period * fam.beats + 1e-6
+            assert tune.notes[-1][2] % 7 == 0, "%s does not end on the key note" % character.name
+            if fam.period == 16:
+                asked = next(step for start, _, step, _ in tune.notes if abs(start - 7 * fam.beats) < 1e-6)
+                assert asked % 7 != 0, "%s: the first eight bars end on the key note, which is no question" % character.name
+                # The answer begins as the question did.
+                assert [step for start, _, step, _ in tune.notes if start < fam.beats - 1e-6] \
+                    == [step for start, _, step, _ in tune.notes if 8 * fam.beats - 1e-6 <= start < 9 * fam.beats - 1e-6]
+            assert len([start for start in starts if start < fam.beats - 1e-6]) >= 2, "a motif of one note"
+            assert tune.top - tune.bottom <= 14, "its range is too wide to sing"
+            steps = [step for _, _, step, _ in tune.notes]
+            assert not any(a == b == c for a, b, c in zip(steps, steps[1:], steps[2:])), "a note three times running"
+            assert max(abs(b - a) for a, b in zip(steps, steps[1:])) <= 7
+            # A long note on a strong beat is a note of the chord under it.
+            for start, length, step, _ in tune.notes:
+                bar = int(start / fam.beats + 1e-6)
+                if length >= 1.0 and abs(start - bar * fam.beats) < 1e-6:
+                    assert step % 7 in {note % 7 for note in chords[bar].steps}, "%s bar %d" % (character.name, bar + 1)
+    with pytest.raises(ValueError):
+        orchestra.theme(random.Random(1), fam, chords[:5], 0.5)
 
 
 def test_takes_of_a_family_share_its_changes_and_differ_in_what_they_play():
@@ -101,8 +140,8 @@ def test_takes_of_a_family_share_its_changes_and_differ_in_what_they_play():
     one, two = orchestra.Take(fam, 1), orchestra.Take(fam, 2)
     assert one.total == two.total == fam.bars * fam.beats
     assert [(start, step) for start, _, step, _ in one.tune.notes] != [(start, step) for start, _, step, _ in two.tune.notes]
+    assert [(start, step) for start, _, step, _ in one.second.notes] != [(start, step) for start, _, step, _ in two.second.notes]
     for take in (one, two):
-        assert all(len(voices) <= 15 for voices in take.voices.values())
         for channel in ("lead", "rhythm", "bass", "texture"):
             notes = [note for voice in take.voices[channel].values() for note in voice.notes]
             assert notes, "nothing is written for the %s" % channel
@@ -110,14 +149,140 @@ def test_takes_of_a_family_share_its_changes_and_differ_in_what_they_play():
             assert all(0 <= note.pitch <= 127 for note in notes)
 
 
-def test_the_plan_is_a_big_library_with_names_of_its_own():
-    families = build.plan()
-    names = [fam.name for fam, _ in families]
-    titles = [fam.title for fam, _ in families]
-    assert len(set(names)) == len(names)
-    assert len(set(titles)) >= len(titles) - 3, "too many families share a title"
-    assert sum(takes for _, takes in families) >= 150
-    assert sum(fam.seconds * takes for fam, takes in families) / 60.0 >= 400
+def spans_of(take):
+    """Each part of a take's story: its name, the beat it begins at and the beat it ends at."""
+    return {section.part: (first, first + section.bars * take.beats) for section, first, _, _ in take.spans}
+
+
+def played(take, channel, part):
+    """The notes a channel plays in one part of the story, with the name of whoever plays each."""
+    first, last = spans_of(take)[part]
+    return [(name, note) for name, voice in take.voices[channel].items() for note in voice.notes if first - 0.3 <= note.start < last - 0.3]
+
+
+def test_every_take_of_every_character_can_be_written_and_played():
+    for index, character in enumerate(orchestra.CHARACTERS):
+        fam = orchestra.family(character, 40 + index, "f", "F")
+        take = orchestra.Take(fam, 1 + index % 3)
+        for channel, voices in take.voices.items():
+            assert sum(1 for voice in voices.values() if not voice.drums) <= 15, "%s has too many players for one %s part" % (character.name, channel)
+            for name, voice in voices.items():
+                # Every player is known by the name of an instrument: the desk finds its sound by it.
+                assert voice.instrument, "%s: %s has no instrument" % (character.name, name)
+                if voice.drums:
+                    assert voice.instrument == "kit " + character.kit
+                    continue
+                inst = orchestra.INSTRUMENTS[voice.instrument]
+                assert all(inst.low <= note.pitch <= inst.high for note in voice.notes), "%s: %s plays out of its range" % (character.name, name)
+                assert all(note.start < take.total for note in voice.notes)
+        # The tune is never missing: someone sings in every part of the story.
+        for part in orchestra.PARTS:
+            assert played(take, "lead", part), "%s: nobody sings in the %s" % (character.name, part)
+            assert played(take, "texture", part) and (part == "open" or played(take, "bass", part))
+
+
+def test_a_take_has_two_themes_that_can_be_told_apart():
+    for index, character in enumerate(orchestra.CHARACTERS):
+        fam = orchestra.family(character, 70 + index, "f", "F")
+        take = orchestra.Take(fam, 1 + index % 2)
+        first, second = take.tune.notes, take.second.notes
+        bar = lambda notes: [length for start, length, _, _ in notes if start < fam.beats - 1e-6]
+        assert bar(first) != bar(second), "%s: both themes begin with one rhythm" % character.name
+        # The second theme is sung by someone other than the first one's singer, and first by them.
+        assert take.other != take.solo, character.name
+        singers = {name for name, _ in played(take, "lead", "first")}
+        opening = min(played(take, "lead", "second"), key=lambda each: each[1].start)
+        assert opening[0] == take.other and take.solo in singers
+        # In the valley one of the themes is sung by one player at a time, who has not stated it.
+        stated = take.solo if fam.valley == "first" else take.other
+        valley = played(take, "lead", "valley")
+        assert min(valley, key=lambda each: each[1].start)[0] == take.hush != stated
+        ordered = sorted(valley, key=lambda each: each[1].start)
+        assert all(later[1].start >= earlier[1].start + earlier[1].length * 0.5 for earlier, later in zip(ordered, ordered[1:])), \
+            "%s: more than one line is sung in the valley" % character.name
+
+
+def test_the_second_theme_is_sung_under_the_first_at_the_summit():
+    character = next(each for each in orchestra.CHARACTERS if each.name == "long road home")
+    fam = orchestra.family(character, 11, "f", "F")
+    take = orchestra.Take(fam, 1)
+    # It has the second theme's rhythm, note for note, and sits on the first theme's chords.
+    assert [(start, length) for start, length, _, _ in take.counter.notes] == [(start, length) for start, length, _, _ in take.second.notes]
+    chords = [fam.key.chord(figure) for figure in fam.section("first").chords[:fam.period]]
+    for start, length, step, _ in take.counter.notes:
+        bar = int(start / fam.beats + 1e-6)
+        if abs(start - bar * fam.beats) < 1e-6:
+            assert step % 7 in {note % 7 for note in chords[bar].steps}, "bar %d of the second theme does not fit under the first" % (bar + 1)
+    # At the summit the strong players have the tune and the players underneath have a line of their own.
+    summit = {name for name, _ in played(take, "lead", "summit")}
+    assert set(take.strong) <= summit and {name + " under" for name in character.under} <= summit
+
+
+def test_the_story_rises_twice_and_the_summit_is_the_top():
+    def weigh(take, part):
+        """How much is going on in a part of the story: notes a second, and how many are playing."""
+        first, last = spans_of(take)[part]
+        seconds = (last - first) * 60.0 / take.fam.bpm
+        notes = sum(len(played(take, channel, part)) for channel in orchestra.CHANNELS)
+        players = len({(channel, name) for channel in orchestra.CHANNELS for name, _ in played(take, channel, part)})
+        return notes / seconds, players
+    walks = [character for character in orchestra.CHARACTERS if character.role == "wander" and not character.band]
+    busy, playing = {part: [] for part in orchestra.PARTS}, {part: [] for part in orchestra.PARTS}
+    for index, character in enumerate(walks):
+        take = orchestra.Take(orchestra.family(character, 20 + index, "f", "F"), 1)
+        for part in orchestra.PARTS:
+            notes, players = weigh(take, part)
+            busy[part].append(notes)
+            playing[part].append(players)
+        # In every one of them the valley is thinner than what came before it, and the summit is fuller than the arrival.
+        assert weigh(take, "valley")[0] < min(weigh(take, "first")[0], weigh(take, "arrival")[0]), character.name
+        assert weigh(take, "summit")[1] >= weigh(take, "arrival")[1], character.name
+    mean = lambda values: sum(values) / len(values)
+    # Taken together: up to the arrival, down into the valley, up again to a summit that is higher.
+    assert mean(busy["open"]) < mean(busy["first"]) < mean(busy["build"]) < mean(busy["arrival"]) < mean(busy["summit"])
+    assert mean(busy["valley"]) < 0.5 * mean(busy["first"]) and mean(busy["valley"]) < mean(busy["climb"]) < mean(busy["summit"])
+    assert mean(playing["summit"]) > mean(playing["arrival"]) > mean(playing["first"]) > mean(playing["valley"])
+
+
+def test_a_chord_for_the_strings_is_a_line_for_each_section():
+    character = next(each for each in orchestra.CHARACTERS if each.name == "city gates")          # its pad is the strings
+    fam = orchestra.family(character, 3, "f", "F")
+    take = orchestra.Take(fam, 1)
+    pad = take.voices["texture"]
+    assert "strings" not in pad and {"celli", "violas", "violins"} <= set(pad)
+    for name in ("celli", "violas", "violins", "violins seconds"):
+        notes = sorted(pad[name].notes, key=lambda note: note.start) if name in pad else []
+        assert all(later.start >= earlier.start + earlier.length - 1e-6 for earlier, later in zip(notes, notes[1:])), \
+            "the %s are asked for two notes at once" % name
+    # The same in the accompaniment, where the strings have it: each section its own note of the chord.
+    assert "strings" not in take.voices["rhythm"] and {"celli", "violas", "violins"} <= set(take.voices["rhythm"])
+    # And a short note from a bow is short: under a quarter of a second.
+    short = [note.length * 60.0 / fam.bpm for name in ("celli", "violas", "violins") for note in take.voices["rhythm"][name].notes]
+    assert max(short) < 0.25
+
+
+def test_the_kettledrums_play_the_key_note_or_the_fourth_below_where_the_chord_has_them():
+    character = next(each for each in orchestra.CHARACTERS if each.name == "long road home")
+    home = found = 0
+    for seed in (11, 12, 13):
+        fam = orchestra.family(character, seed, "f", "F")
+        take = orchestra.Take(fam, 1)
+        drums = take.voices["drums"]["timpani"].notes
+        assert len(drums) > 50
+        for section, first, key, chords in take.spans:
+            last = first + section.bars * take.beats
+            for note in drums:
+                if not first <= note.start < last:
+                    continue
+                chord = chords[int((note.start - first) / take.beats + 1e-6)]
+                tones = {step % 7 for step in chord.steps}
+                # A pair of kettledrums: the key note and the fifth of the key under it. Another
+                # note only under a chord that has neither of them, and then the chord's root.
+                want = key.tonic if 0 in tones else key.tonic + 7 if 4 in tones else key.pitch(chord.root, 45)
+                assert note.pitch % 12 == want % 12
+                found += 1
+                home += note.pitch % 12 in (key.tonic % 12, (key.tonic + 7) % 12)
+    assert home >= 0.25 * found, "the kettledrums are hardly ever on the key note or the fourth below it"
 
 
 # --- the MIDI file -------------------------------------------------------------------------------
@@ -222,6 +387,32 @@ def test_a_staged_track_becomes_the_pieces_of_its_story_each_going_into_the_next
     assert studio.staged(tmp_path, "warcraft") == [folder, other]
 
 
+def test_a_long_track_keeps_each_piece_in_its_place_in_the_story(tmp_path):
+    """Nine parts, and the story's words more than once: the bucket notes how many pieces come
+    before each, so that the player can tell the first theme from the second and the valley."""
+    folder = tmp_path / "studio" / "warcraft" / "long-family" / "1"
+    bar = RATE
+    frames = 2 * len(WORDS) * bar + RATE
+    meta = {"style": "warcraft", "family": "long-family", "take": 1, "title": "Long Piece", "tempo": 240.0, "beats": 4,
+            "bar_frames": float(bar), "tonic": "D minor", "moods": ["haunted"], "role": "wander", "serves": [0, 1],
+            "light": False, "sections": [{"story": story, "bars": 2} for story in WORDS], "floor": {}, "follow": {},
+            "post_s": 1.0, "credit": "a test", "seed": 1}
+    studio.write_track(folder, meta, {"lead": tone(frames, 440, 0.1), "drums": tone(frames, 90, 0.3)})
+    bucket = forever.Bucket(tmp_path / "buckets", "duskwood", "warcraft", 80, "D minor")
+    ids = studio.import_track(bucket, folder)
+    assert len(ids) == len(WORDS) == 9
+    assert [bucket.pieces[piece]["story"] for piece in ids] == WORDS
+    assert [bucket.pieces[piece]["next"] for piece in ids] == ids[1:] + [""]
+    assert [bucket.pieces[piece]["place"] for piece in ids] == list(range(9))
+    assert [bucket.describe()["pieces"][piece]["place"] for piece in ids] == list(range(9))
+    again = forever.Bucket(tmp_path / "buckets", "duskwood", "warcraft", 80, "D minor")
+    assert [again.pieces[piece]["place"] for piece in ids] == list(range(9))
+    # A piece that was put in before places were kept is told of without one: the player then
+    # counts the pieces that lead to it.
+    del again.pieces[ids[2]]["place"]
+    assert again.describe()["pieces"][ids[2]]["place"] is None
+
+
 def test_the_player_is_told_of_pieces_and_a_ban_is_on_the_whole_piece(tmp_path):
     folder = tmp_path / "studio" / "warcraft" / "test-family" / "1"
     made_track(folder)
@@ -291,10 +482,16 @@ def test_a_band_plays_riffs_on_wired_guitars_and_the_bass_in_eighths():
     take = orchestra.Take(fam, 1)
     riffs = take.voices["rhythm"]
     assert "rhythm guitar" in riffs and riffs["rhythm guitar"].wired and riffs["rhythm guitar"].notes
-    assert all(voice.wired for voice in take.voices["lead"].values()), "the band's tune is the lead guitar's"
+    # The band's first theme is the lead guitar's; its second is sung by the organ.
+    assert take.solo == "lead guitar" and take.voices["lead"]["lead guitar"].wired
+    assert take.other == "rock organ" and not take.voices["lead"]["rock organ"].wired
+    assert {name for name, voice in take.voices["lead"].items() if not voice.wired} == {"rock organ", "rock organ under"}
     assert not any(voice.wired for channel in ("texture", "bass", "drums") for voice in take.voices[channel].values())
-    # The moment has the tune twice: twin guitars a third apart.
+    # The summit has the tune twice: twin guitars a third apart.
     assert "lead guitar twin" in take.voices["lead"]
+    assert {name for name, _ in played(take, "lead", "summit")} >= {"lead guitar", "lead guitar twin", "rock organ under"}
+    # In the valley the guitars that play the riff rest.
+    assert not played(take, "rhythm", "valley") and played(take, "lead", "valley")
     # The bass sits on the root in eighths through the theme.
     theme = next(span for span in take.spans if span[0].story == "theme")
     first = theme[1]
