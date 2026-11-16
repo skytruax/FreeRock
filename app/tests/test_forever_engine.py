@@ -380,6 +380,13 @@ async def test_a_fight_cuts_in_with_its_own_piece_and_the_track_is_picked_up_aft
     assert fight["late"] == 0
 
 
+async def test_a_fight_in_the_last_bars_of_a_piece_and_the_track_goes_on_from_the_next(results):
+    late = of(results, "pieceFightAtTheEnd")
+    assert late["brawlAt"] == pytest.approx(ORIGIN + 13.5, abs=1e-6)
+    assert late["after"] == "two" and late["afterOffset"] == 0, "the track did not go on from its next piece: %s" % late
+    assert late["afterAt"] == pytest.approx(ORIGIN + 13.5 + 8.0, abs=1e-6)
+
+
 async def test_the_piece_is_chosen_for_the_kind_of_place(results):
     place = of(results, "piecePlace")
     assert place["haunted"] == ["crypt"]

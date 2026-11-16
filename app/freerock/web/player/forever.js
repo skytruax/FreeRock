@@ -635,6 +635,9 @@
         const from = Math.floor(left.position / piece.bar + 1e-6) * piece.bar;
         this.left = null;
         if (piece.seconds - from > 2 * piece.bar) return { piece, from, laps: 1, cast: this._cast(piece, left.casting), entry: "resume" };
+        // It was all but over when the fight came: the track goes on from its next piece.
+        const onward = piece.meta.next ? index.get(piece.meta.next) : null;
+        if (onward && serves(onward)) return { piece: onward, from: 0, laps: 1, cast: this._cast(onward, left.casting), entry: "resume" };
       }
       const kinds = this.target.kinds || [], place = this.target.place, also = this.target.also || [];
       const off = (piece) => {
@@ -873,7 +876,7 @@
       const harder = !force && ask > Math.max(...here.filter((tier) => tier <= 2), 0) && (group.piece ? true : ask === 2);
       const when = Math.max(this._lineAfter(group, now + NOTICE, harder ? 0.25 : 1), group.start);
       const fade = Math.min((harder ? BLEND_FIGHT : BLEND_EASING) * group.bar, 6.0);
-      if (group.piece && !gone && !force && when < group.until - 2 * group.bar) {
+      if (group.piece && !gone && !force) {
         this.left = { key: this.bucket.key, piece: group.piece.id, position: (when - group.origin) % group.piece.seconds,
                       at: now, casting: group.casting };
       }

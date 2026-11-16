@@ -660,6 +660,20 @@ tests.pieceFight = async () => {
            backOffset: back.length ? back[0].offset : null, late: run.engine.late, piece: run.engine.status().piece };
 };
 
+// A fight that comes in the last bars of a piece: afterwards the track goes on from its next piece.
+tests.pieceFightAtTheEnd = async () => {
+  const bucket = makePieces("late", [{ id: "one", windows: 2, then: "two", story: "open", track: "t" },
+                                     { id: "two", windows: 2, phase: "one", story: "theme", track: "t" },
+                                     { id: "brawl", windows: 1, serves: [2], role: "battle" }]);
+  const run = await render(40, { bucket, target: Object.assign(mix(1), { kinds: [] }),
+                                 script: [[13.3, (engine) => engine.setTarget(mix(2))], [20.3, (engine) => engine.setTarget(mix(1))]] });
+  // What came in when the fight was over (the log also holds what was laid down for later and then dropped).
+  const brawl = run.engine.log.find((entry) => pieceOf(entry) === "brawl");
+  const after = run.engine.log.filter((entry) => entry.at > 20.3 && pieceOf(entry) !== "brawl").sort((a, b) => a.at - b.at)[0];
+  return { brawlAt: brawl ? brawl.at : null, after: after ? pieceOf(after) : null, afterAt: after ? after.at : null,
+           afterOffset: after ? after.offset : null };
+};
+
 // The piece is chosen for the kind of place the player is in.
 tests.piecePlace = async () => {
   const pieces = [{ id: "meadow", moods: ["pastoral"], light: true }, { id: "crypt", moods: ["haunted"] }];
