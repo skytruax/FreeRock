@@ -1,5 +1,46 @@
 # Changelog
 
+## A band, players that breathe, and music that goes where the player goes (2026-11-16, night)
+
+Said while the evening's music was being rendered: "make sure our location changes CHANGE
+SONGS based on tone ect", "start rocking make sure tonight you print enough of these for
+every type of situation", "get working on some of our acdc knight rock ones too", "it still
+seems like the instruments are a little bland".
+
+- **The music follows the player (`forever.js`, `director.py`).** A walk into another kind of
+  place used to change the music only where the piece that was playing ended (up to a
+  minute on), and a cave or an inn only when the whole eight-minute track had ended. Now,
+  four seconds after the player has gone into another kind of place, into a cave or an inn,
+  or out of one, the track written for it takes over on the next bar line, the old one giving
+  way over two bars. A step over a border and back within those seconds changes nothing; the
+  music does not move twice within twenty seconds; and going back picks the old track up at
+  the bar it had reached. The director says when the kind of moment comes from where the
+  player stands (`sited`: a cave, an inn) and not from what is going on: the calm after a
+  fight is not a place, and the walking track still goes on through it. A place's first kind
+  now counts for more than its second (Stormwind is regal before it is pastoral), so a city
+  brings the city's music. In a fight nothing moves for a place.
+- **A band (`studio/muse.py`, `studio/sounds.py`).** The knight rock pieces had no players in
+  the new studio. Now: the riff is played twice, as a record is made, by Muse's Les Paul on
+  the left and its Stratocaster on the right, each through its own amplifier, the second a
+  hundredth of a second behind the first; muted notes are the same two playing short with
+  the top taken off; the tune is the Les Paul's lead tone with an echo; the bass is Muse's
+  electric bass, made narrow; the organ is its Hammond; a band's plain guitar is the
+  Stratocaster played clean; the kit is the 1970s rock kit with the kick under its bass
+  drum. Each sound was measured alone against the rock stems that were liked and set by
+  that: the two guitars brought level (they were 8 dB apart), the Les Paul's fizz taken off,
+  the Stratocaster's honk at 450 Hz down, the lead given a body and its top taken down (it
+  was 5 dB bright and thin), the kit given more stroke and less box.
+- **A held note is never still.** MuseScore's players follow a hairpin under a held note, and
+  written without one they held every long note at one level; and the pads (strings, choir,
+  organ) were written at one strength for all eight minutes, the story's rise and fall
+  being in the writer's swells, which were not being passed on. Now a long note of a bowed,
+  blown or sung part begins a mark under its strength, is fullest past its middle and falls
+  away, further at the end of a phrase; a line of long notes that run into each other is one
+  breath; and a pad goes with the writer's swell from note to note and inside each note.
+- **Adding to a bucket no longer reads what is already in it** (four minutes for 28 tracks
+  became seconds), and `tools/fresh_bucket.py <style> --keep-style` makes a second style
+  ready without changing the one in force.
+
 ## An orchestra that is given a score (2026-11-16, evening)
 
 The reworked sample instruments were heard and turned down too: "still sounds like a 90s

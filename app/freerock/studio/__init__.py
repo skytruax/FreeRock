@@ -88,8 +88,13 @@ def write_track(folder: Path, meta: dict[str, Any], parts: dict[str, np.ndarray]
     scratch.replace(folder / "track.json")
 
 
+def described(folder: Path) -> dict[str, Any]:
+    """What a staged track says about itself, without reading its recordings."""
+    return json.loads((Path(folder) / "track.json").read_text(encoding="utf-8"))
+
+
 def read_track(folder: Path) -> tuple[dict[str, Any], dict[str, np.ndarray]]:
-    meta = json.loads((Path(folder) / "track.json").read_text(encoding="utf-8"))
+    meta = described(folder)
     parts = {}
     for channel in forever.CHANNELS:
         path = Path(folder) / (channel + ".flac")
@@ -113,10 +118,11 @@ def import_track(bucket: forever.Bucket, folder: Path) -> list[str]:
     The whole track gets one gain, which brings its loudest part (every channel playing) to a
     little over the bucket's usual level: so the story keeps its shape, quiet where it was
     written quiet. A channel that is silent in a part of the story has no part in that piece."""
-    meta, parts = read_track(folder)
+    meta = described(folder)
     source = "%s/%s/%s" % (meta["style"], meta["family"], meta["take"])
     if any(piece.get("source") == source for piece in bucket.pieces.values()):
-        return []
+        return []                       # asked before its eight minutes of recordings are read: with a bucketful staged, that is minutes
+    meta, parts = read_track(folder)
     bar = float(meta["bar_frames"])
     edges, bars = [0], 0
     for section in meta["sections"]:

@@ -35,6 +35,8 @@ from pathlib import Path
 from urllib.parse import quote
 from xml.sax.saxutils import escape
 
+import numpy as np
+
 from . import desk
 from .score import Note
 
@@ -89,6 +91,21 @@ PARTS: dict[str, tuple[tuple, ...]] = {
     "pan flute": (("Flute", 0, 127, "", "Muse Woodwinds/Alto Flute"),), "shakuhachi": (("Flute", 0, 127, "", "Muse Woodwinds/Alto Flute"),),
     "ocarina": (("Flute", 0, 127, "", "Muse Woodwinds/Flute 1"),),
     "shenai": (("Oboe", 0, 127, ""),), "bagpipe": (("English Horn", 0, 127, ""),),
+    # The band. The riff is played twice, as a record is made: a Les Paul on one side and a Stratocaster on the
+    # other, each through its own amplifier (two parts with the same notes; `sounds` seats them). The Les Paul has
+    # the weight (its low strings are all there), the Stratocaster the bite. The tune is the Les Paul's lead tone:
+    # the Stratocaster's has four times the power between 2.5 and 5 kHz that it has anywhere else (measured), which
+    # is the "cheesy" lead that was turned down by ear before. A band's plain guitar is the Stratocaster played clean.
+    "rhythm guitar": (("Rhythm Guitar", 0, 127, "", "Muse Guitars Vol 1/Electric LP - Heavy"),
+                      ("Rhythm Guitar", 0, 127, "", "Muse Guitars Vol 1/Electric SC - Heavy")),
+    # A riff's muted notes (the heel of the hand on the strings) are the same two guitars playing short, with the
+    # top taken off at the desk: dull and percussive, as a muted string is.
+    "muted guitar": (("Muted Guitar", 0, 127, "", "Muse Guitars Vol 1/Electric LP - Heavy"),
+                     ("Muted Guitar", 0, 127, "", "Muse Guitars Vol 1/Electric SC - Heavy")),
+    "lead guitar": (("Electric Guitar", 0, 127, "", "Muse Guitars Vol 1/Electric LP - Lead"),),
+    "clean guitar": (("Clean Guitar", 0, 127, "", "Muse Guitars Vol 1/Electric SC - Clean"),),
+    "picked bass": (("Bass Guitar", 0, 127, "", "Muse Guitars Vol 1/Electric Bass"),),
+    "rock organ": (("Hammond Organ", 0, 127, "", "Muse Keys/Hammond Organ"),),
 }
 # What MuseScore has to be told about a part beside its name, for the part to be that instrument and not a
 # nameless staff played by its plain built-in sounds: the instrument's sound in MusicXML's list, and a program.
@@ -102,6 +119,9 @@ KINDS = {
     "Timpani": ("drum.timpani", 48), "Glockenspiel": ("pitched-percussion.glockenspiel", 10), "Vibraphone": ("pitched-percussion.vibraphone", 12),
     "Marimba": ("pitched-percussion.marimba", 13), "Xylophone": ("pitched-percussion.xylophone", 14), "Tubular Bells": ("pitched-percussion.tubular-bells", 15),
     "Classical Guitar": ("pluck.guitar.nylon-string", 25), "Bass Guitar": ("pluck.bass.electric", 34), "Harpsichord": ("keyboard.harpsichord", 7),
+    "Electric Guitar": ("pluck.guitar.electric", 31), "Rhythm Guitar": ("pluck.guitar.electric", 31), "Muted Guitar": ("pluck.guitar.electric", 31),
+    "Clean Guitar": ("pluck.guitar.electric", 28),
+    "Hammond Organ": ("keyboard.organ.drawbar", 17),
 }
 # Which Muse Sound plays a part, where it is not the one MuseScore picks by itself (its first: one horn, one
 # trumpet, the first violins): the sounds a part may be given, as they are filed under ~/Muse Sounds. A piece
@@ -122,7 +142,7 @@ CHOICES: dict[str, tuple[str, ...]] = {
     "Men": ("Muse Choir/Men", "Muse Choir/Tenors", "Muse Choir/Basses"),
 }
 STRUCK = ("Harp", "Celesta", "Glockenspiel", "Vibraphone", "Marimba", "Xylophone", "Tubular Bells", "Piano", "Timpani", "Classical Guitar", "Bass Guitar",
-          "Harpsichord")      # no dots, no slurs: each note rings
+          "Harpsichord", "Rhythm Guitar", "Muted Guitar", "Clean Guitar")      # no dots, no slurs: each note rings (a lead guitar's line is slurred: hammered on and pulled off)
 
 
 def program() -> Path:
@@ -142,6 +162,15 @@ def available() -> bool:
 
 def _mark(loud: float) -> int:
     return next(index for index, (under, _) in enumerate(MARKS) if loud < under)
+
+
+# A held note is never still. MuseScore's players follow a hairpin under a held note, smoothly (measured
+# 2026-11-16: a crescendo from p to f under one note of the violins rises 18 dB over its length, a horn's 30 dB),
+# and written without one they hold every long note at one level, which is what made the orchestra sound flat.
+LONG_S = 1.5                   # seconds: a note held this long is leaned into and let fall away
+UNSHAPED = ("Electric Guitar",)        # held, but left as it is: a guitar's note can only die away
+_DYNAMIC = '<direction placement="below"><direction-type><dynamics><%s/></dynamics></direction-type></direction>'
+_WEDGE = '<direction placement="below"><direction-type><wedge type="%s" number="1"/></direction-type></direction>'
 
 
 def _events(notes: list[Note]) -> list[list[list]]:
@@ -172,16 +201,31 @@ def _events(notes: list[Note]) -> list[list[list]]:
     return voices
 
 
-def score(part: str, notes: list[Note], *, bpm: float, way: str = "") -> str:
+def score(part: str, notes: list[Note], *, bpm: float, way: str = "", swells: list[tuple[float, float]] | None = None) -> str:
     """One instrument's notes as a score in MusicXML, written the way a player is given it:
     dynamics where the strength changes, a dot on a short note, a slur over notes that follow
     at once on each other in a single line, an accent on a note struck harder than those
-    about it; tremolo strokes or "pizz." where `way` says so."""
+    about it; tremolo strokes or "pizz." where `way` says so.
+
+    A long note of a bowed, blown or sung part has a hairpin under it: it begins a mark under
+    its strength, is fullest past its middle and eases off, further at the end of a phrase.
+    `swells` is the writer's own rise and fall for the part ((beat, 0 to 1), as a pad has
+    through the story): each note is as strong as the swell is where it begins, and a long
+    note goes with the swell to where it stands at the note's end."""
     voices = _events(notes)
     if not voices:
         raise ValueError("There are no notes to write for %s" % part)
     struck = part in STRUCK
     beat_s = 60.0 / bpm
+    if swells:
+        drawn = sorted(swells)
+        beats, amounts = [beat for beat, _ in drawn], [max(amount, 0.0) ** 0.8 for _, amount in drawn]
+
+        def swell(division: float) -> float:
+            return max(float(np.interp(division / DIVISIONS, beats, amounts)), 0.05)
+        for voice in voices:
+            for event in voice:
+                event[3] = min(event[3] * swell(event[0]), 1.0)
     single = len(voices) == 1 and all(len(event[2]) == 1 for event in voices[0])
     # How each event is played, voice by voice: its dynamic mark if it changes there, dot, accent, slur.
     told: dict[tuple[int, int], dict] = {}
@@ -198,8 +242,52 @@ def score(part: str, notes: list[Note], *, bpm: float, way: str = "") -> str:
                 how["mark"], now, level = MARKS[mark][1], mark, event[3]
             elif event[3] - (level or 0.0) >= 0.13 and not struck:
                 how["accent"] = True
+            how["level"] = now
         if not struck and way == "" and event[4] * beat_s < 0.28:
             how["dot"] = True
+    # The hairpins under the long notes of the first voice (a staff has one set of dynamics): what is written in
+    # the middle of a note or at its end, by where in the piece it stands, in divisions.
+    timed: list[tuple[int, str]] = []
+    if not struck and way != "pizz" and part not in UNSHAPED:
+        voice, restate, carried = voices[0], False, False
+        for at, event in enumerate(voice):
+            how, here = told[(0, at)], told[(0, at)]["level"]
+            if restate and "mark" not in how:
+                how["mark"] = MARKS[here][1]               # after a hairpin the strength is said again
+            restate, arrived, carried = False, carried, False
+            if event[4] * beat_s < LONG_S or event[1] < 4:
+                continue
+            after = voice[at + 1] if at + 1 < len(voice) else None
+            end = event[0] + event[1]
+            joined = after is not None and after[0] <= end
+            if swells:
+                goal = _mark(min(event[3] * swell(end) / swell(event[0]), 1.0))
+                if goal != here:
+                    # The writer's swell moves under this note: the note goes with it.
+                    how["mark"], how["wedge"], restate = MARKS[here][1], "crescendo" if goal > here else "diminuendo", True
+                    timed.append((end, _WEDGE % "stop" + ("" if joined else _DYNAMIC % MARKS[goal][1])))
+                    continue
+            # A line of long notes that run into each other is one breath: leaned into on its first note, held
+            # through the ones between, let fall on its last. A long note by itself is all three.
+            holds = joined and told[(0, at + 1)]["level"] >= here          # what follows at once is as strong
+            peak, low = here, max(here - 1, 0)
+            if low == peak:
+                peak = min(peak + 1, len(MARKS) - 1)       # the softest there is: it swells up from there
+            # Where it is fullest differs from note to note, and is the same each time the piece is written.
+            draw = (event[0] / DIVISIONS * 7.31 + min(event[2]) * 0.37) % 1.0
+            top = event[0] + min(max(int(round(event[1] * (0.5 + 0.25 * draw))), 1), event[1] - 1)
+            if not arrived:
+                how["mark"], how["wedge"] = MARKS[low][1], "crescendo"
+                timed.append((top, _WEDGE % "stop" + _DYNAMIC % MARKS[peak][1] + ("" if holds else _WEDGE % "diminuendo")))
+            elif not holds:
+                timed.append((top, _WEDGE % "diminuendo"))
+            if holds:
+                carried = True
+                restate = restate or not arrived
+            else:
+                ends_phrase = after is None or (after[0] - end) / DIVISIONS * beat_s >= 0.4
+                timed.append((end, _WEDGE % "stop" + ("" if joined else _DYNAMIC % MARKS[max(low - 1, 0) if ends_phrase else low][1])))
+                restate = True
     if single and not struck and way == "":
         voice = voices[0]
         run = False
@@ -233,6 +321,15 @@ def score(part: str, notes: list[Note], *, bpm: float, way: str = "") -> str:
         return ["<note><rest/><duration>%d</duration><voice>%d</voice><type>%s</type>%s</note>" % (size, voice + 1, kind, "<dot/>" if dotted else "")
                 for size, kind, dotted in lengths(span)]
 
+    def due(voice: int, at: int, span: int) -> list[str]:
+        """What is written under the first voice between `at` and `at + span`: each said to stand so far on from here."""
+        out = []
+        while voice == 0 and timed and timed[0][0] < at + span:
+            division, said = timed.pop(0)
+            on = max(division - at, 0)
+            out.append(said.replace("</direction>", "<offset>%d</offset></direction>" % on) if on else said)
+        return out
+
     at_event = [0] * len(voices)
     held: list[list | None] = [None] * len(voices)            # an event that runs on over the bar line: [divisions left, pitches]
     for bar in range(bars):
@@ -251,6 +348,7 @@ def score(part: str, notes: list[Note], *, bpm: float, way: str = "") -> str:
             if held[index]:
                 left, pitches = held[index]
                 span = min(left, BAR)
+                rows += due(index, bar_at, span)
                 rows += _sounding(pitches, span, index, lengths, tied_in=True, tied_out=left > BAR, how={}, way=way)
                 held[index] = [left - span, pitches] if left > span else None
                 place = span
@@ -258,18 +356,27 @@ def score(part: str, notes: list[Note], *, bpm: float, way: str = "") -> str:
                 event = voice[at_event[index]]
                 how = told.get((index, at_event[index]), {})
                 if event[0] - bar_at > place:
+                    rows += due(index, bar_at + place, event[0] - bar_at - place)
                     rows += rest(event[0] - bar_at - place, index)
                     place = event[0] - bar_at
-                if "mark" in how:
-                    rows.append('<direction placement="below"><direction-type><dynamics><%s/></dynamics></direction-type></direction>' % how["mark"])
                 span = min(event[1], BAR - place)
+                rows += due(index, bar_at + place, 1)                  # what ends where this note begins comes before its own marks
+                if "mark" in how:
+                    rows.append(_DYNAMIC % how["mark"])
+                if "wedge" in how:
+                    rows.append(_WEDGE % how["wedge"])
+                rows += due(index, bar_at + place, span)
                 rows += _sounding(event[2], span, index, lengths, tied_in=False, tied_out=event[1] > span, how=how, way=way)
                 if event[1] > span:
                     held[index] = [event[1] - span, event[2]]
                 place += span
                 at_event[index] += 1
             if place < BAR:
+                rows += due(index, bar_at + place, BAR - place)
                 rows += rest(BAR - place, index)
+        if bar == bars - 1:
+            rows += [said for _, said in timed]                        # what ends with the last note of all
+            timed.clear()
         rows.append("</measure>")
     rows += ["</part>", "</score-partwise>"]
     return "\n".join(rows) + "\n"
@@ -377,12 +484,14 @@ def _run(arguments: list[str]) -> subprocess.CompletedProcess:
     return subprocess.run([str(program())] + arguments, env=env, capture_output=True, text=True, timeout=900.0)
 
 
-def perform(part: str, notes: list[Note], *, bpm: float, way: str = "", sound: str | None = None) -> Path:
+def perform(part: str, notes: list[Note], *, bpm: float, way: str = "", sound: str | None = None,
+            swells: list[tuple[float, float]] | None = None) -> Path:
     """Has MuseScore play one instrument's notes and returns the recording (44.1 kHz, as
     MuseScore writes it; REAPER plays it at the project's rate). `sound` names the Muse Sound
-    that plays it ("Muse Brass/French Horns a6") where that is not the one MuseScore picks. A
-    score that was performed before is not performed again."""
-    text = score(part, notes, bpm=bpm, way=way)
+    that plays it ("Muse Brass/French Horns a6") where that is not the one MuseScore picks;
+    `swells` is the writer's rise and fall for the part (see `score`). A score that was
+    performed before is not performed again."""
+    text = score(part, notes, bpm=bpm, way=way, swells=swells)
     profile = "MuseSounds" if sounds() else "MuseScore Basic"       # as MuseScore 4.7 spells it; a name it does not know is passed over without a word
     name = hashlib.sha1((profile + "\n" + (sound or "") + "\n" + text).encode("utf-8")).hexdigest()[:20]
     made = KEPT / (name + ".wav")
@@ -458,11 +567,13 @@ def shared(written: str, notes: list[Note], seed: int = 0) -> list[tuple[str, st
     return out
 
 
-def prepare(jobs: list[tuple[str, list[Note], float]], seed: int = 0, workers: int = 6) -> None:
-    """Performs many written voices at once ((written instrument, notes, bpm) each), so that a
-    whole piece's instruments are ready when its project is put together. `seed` is the
-    piece's: it settles which Muse Sound each part is given."""
-    each = [(part, notes, bpm, way, sound) for written, voice, bpm in jobs if written in PARTS for part, way, notes, sound in shared(written, voice, seed)]
+def prepare(jobs: list[tuple[str, list[Note], float, list[tuple[float, float]]]], seed: int = 0, workers: int = 6) -> None:
+    """Performs many written voices at once ((written instrument, notes, bpm, the writer's
+    swells) each), so that a whole piece's instruments are ready when its project is put
+    together. `seed` is the piece's: it settles which Muse Sound each part is given."""
+    each = [(part, notes, bpm, way, sound, swells) for written, voice, bpm, swells in jobs if written in PARTS
+            for part, way, notes, sound in shared(written, voice, seed)]
     with ThreadPoolExecutor(max_workers=workers) as pool:
-        for finished in [pool.submit(perform, part, notes, bpm=bpm, way=way, sound=sound) for part, notes, bpm, way, sound in each]:
+        for finished in [pool.submit(perform, part, notes, bpm=bpm, way=way, sound=sound, swells=swells or None)
+                         for part, notes, bpm, way, sound, swells in each]:
             finished.result()                                  # anything that went wrong stops the piece and says why

@@ -178,9 +178,15 @@ def stage(fam: Family, take: int) -> dict:
         if sung and "choir" not in {voice.instrument for voice in written.voices["texture"].values()}:
             written.voices["texture"]["choir at the moments"] = Voice(0, notes=[type(note)(note.start, note.length, note.pitch, 0.72) for note in sung],
                                                                       instrument="choir")
+    if muse.available() and character.band:
+        # A band's plain guitar is an electric one played clean (its steel-strung ones stay acoustic).
+        for channel in CHANNELS:
+            for voice in written.voices[channel].values():
+                if voice.instrument == "guitar":
+                    voice.instrument = "clean guitar"
     if muse.available():
         # MuseScore performs every instrument it has, several at a time, before the project is put together.
-        muse.prepare([(voice.instrument, voice.notes, fam.bpm) for channel in CHANNELS for voice in written.voices[channel].values()
+        muse.prepare([(voice.instrument, voice.notes, fam.bpm, voice.swells) for channel in CHANNELS for voice in written.voices[channel].values()
                       if voice.notes and not voice.drums], seed=fam.seed * 31 + take, workers=MUSE_WORKERS)
     folders = []
     for channel in CHANNELS:
@@ -267,10 +273,11 @@ def stage(fam: Family, take: int) -> dict:
         "bar_frames": bar_frames, "tonic": fam.key.name, "moods": list(character.kinds), "role": character.role,
         "serves": list(character.serves), "light": character.light, "sections": sections, "floor": FLOOR,
         "follow": {"rhythm": ["lead"], "texture": ["lead"]}, "post_s": forever.POST_S,
-        "credit": "Written by FreeRock's studio (%s, %s); played in REAPER by the sfizz sampler on the VSCO 2 Community "
+        "credit": "Written by FreeRock's studio (%s, %s); %sput together in REAPER, with the sfizz sampler on the VSCO 2 Community "
                   "Edition and VCSL recordings (Versilian Studios, CC0), the TinySOL recordings (Cella, Ghisi, Lostanlen, Levy, "
-                  "Fineberg and Maresz, IRCAM, CC BY 4.0) and Big Rusty Drums (Karoryfer, CC0), by the AVL drum kits (Glen "
-                  "MacArthur, CC BY-SA 3.0) and by the Surge XT and ZynAddSubFX synths" % (character.name, fam.metre),
+                  "Fineberg and Maresz, IRCAM, CC BY 4.0), Naked Drums (Wilkinson Audio, CC BY 4.0) and Big Rusty Drums (Karoryfer, "
+                  "CC0), the AVL drum kits (Glen MacArthur, CC BY-SA 3.0) and the Surge XT, ZynAddSubFX and Geonkick synths"
+                  % (character.name, fam.metre, "its instruments performed by MuseScore Studio with Muse Sounds (Muse Group) and " if muse.available() else ""),
         "seed": fam.seed, "measured": {"sections": loudness, "channels": levels, "gains": gains},
     }
     write_track(folder_of(fam, take), meta, parts)

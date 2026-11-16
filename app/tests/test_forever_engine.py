@@ -5,6 +5,7 @@ known and reports numbers; the tests here hold those numbers against pass lines.
 Chrome is not installed.
 """
 import asyncio
+import os
 import shutil
 from pathlib import Path
 
@@ -58,7 +59,8 @@ async def render_once(tmp_path_factory):
         str(server.make_url("/test.html")),
         stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.PIPE)
     try:
-        await asyncio.wait_for(finished.wait(), timeout=400)
+        # (A machine that is busy rendering music needs longer: FREEROCK_ENGINE_TEST_S says how long.)
+        await asyncio.wait_for(finished.wait(), timeout=float(os.environ.get("FREEROCK_ENGINE_TEST_S", "400")))
     except asyncio.TimeoutError:
         process.terminate()
         _, err = await process.communicate()
@@ -403,6 +405,27 @@ async def test_the_piece_is_chosen_for_the_kind_of_place(results):
     assert place["pastoral"] == ["meadow"]
     assert place["order"][:2] == ["crypt", "meadow"], "the next track was not the new place's"
     assert "crypt" not in place["order"][1:], "a light place was not kept light"
+
+
+async def test_the_music_follows_the_player_into_another_kind_of_place_within_a_few_bars(results):
+    follows = of(results, "pieceFollows")
+    # A step over the border at 5 s and back at 7 moved nothing; in for good at 8.5 s: four seconds to be
+    # sure of it, then the next bar line (a bar is two seconds), long before the piece ends at 48 s.
+    assert follows["cryptAt"] == pytest.approx(ORIGIN + 14.0, abs=1e-6), "the new place's track did not come on the bar line after the player had stayed: %s" % follows
+    assert follows["meadowBefore"] > 0.05 and follows["cryptBefore"] < 0.005, "the music moved before the player had stayed: %s" % follows
+    assert follows["cryptThere"] > 0.05 and follows["meadowThere"] < 0.005, "the old place's track had not given way: %s" % follows
+    # Back at 20 s: the music does not move twice within twenty seconds; then the old track, from the bar it had reached.
+    assert follows["backAt"] == pytest.approx(ORIGIN + 34.0, abs=1e-6), follows
+    assert follows["backClip"].endswith("-w1") and follows["backOffset"] == pytest.approx(6.0, abs=1e-6), "the old track was not picked up where it was left: %s" % follows
+    assert follows["meadowBack"] > 0.05 and follows["cryptBack"] < 0.005, follows
+
+
+async def test_a_cave_brings_its_own_music_at_once_and_the_calm_after_a_fight_does_not(results):
+    cave = of(results, "pieceIntoCave")
+    assert cave["deepAt"] == pytest.approx(ORIGIN + 10.0, abs=1e-6), "the cave's music did not come on the bar line after the player had stayed: %s" % cave
+    assert cave["backAt"] == pytest.approx(ORIGIN + 46.0, abs=1e-6), "the walking music did not come back outside: %s" % cave
+    assert cave["backOffset"] == pytest.approx(2.0, abs=1e-6), "the walking track was not picked up where it was left: %s" % cave
+    assert cave["calm"] == ["walk"], "the calm after a fight took the walking track away: %s" % cave
 
 
 async def test_a_track_carries_on_through_a_calm_moment(results):

@@ -43,6 +43,10 @@ class Target:
     # Other kinds of section that take turns with `place` for as long as it lasts, so that one
     # part is never left to loop: the zone's riffs in a cave, the Night part at night.
     also: tuple[str, ...] = ()
+    # Whether `place` is named for where the player stands (a cave, an inn) and not for what is
+    # going on (the calm after a fight): the forever song goes there within a few bars, and comes
+    # back when the player leaves ("make sure our location changes CHANGE SONGS", 2026-11-16).
+    sited: bool = False
     scene: int = 0                    # goes up when the player crosses into another part of the zone
     cut: str = "bar"                  # how soon a change of place should land: bar | beat
     bed: float = 1.0                  # layer levels, 0 to 1
@@ -110,9 +114,16 @@ class Rules:
     base_dungeon: float = 0.40        # a dungeon is tenser than the open world
     inn_ceiling: float = 0.30         # inside an inn nothing but a fight rises above this
     # Where the layers and the hard-rock part come in on the way up, and go on the way down.
-    drums_on: float = 0.33
+    # ("theres not much difference between quet and full, we want more ... drasticness", 2026-11-16. Twenty seconds on
+    # foot used to bring the drums to 73% and the bass to 72%, and a fight could only add the last quarter. Now
+    # standing has neither, walking has a hint of the drums and a third of the bass, riding about half, and it is a
+    # fight that brings them in whole.)
+    drums_on: float = 0.45
+    drums_least: float = 0.1          # how much of the drums there is the moment they come in
+    drums_bend: float = 1.5           # above 1, the drums stay low for longer on the way up to a fight
     bass_on: float = 0.55
     bass_off: float = 0.47
+    bass_least: float = 0.3
     charge_at: float = 0.70           # out of a fight, this much going on moves to the hard-rock part
     charge_off: float = 0.62
     decay_per_s: float = 0.12         # how fast the intensity comes down when things calm
@@ -408,8 +419,8 @@ class Director:
             m.bass_in = True
         elif intensity < rules.bass_off:
             m.bass_in = False
-        bass = 0.7 + 0.3 * _share(intensity, rules.bass_on, rules.combat_start) if m.bass_in else 0.0
-        drums = 0.45 + 0.55 * _share(intensity, rules.drums_on, rules.combat_start) \
+        bass = rules.bass_least + (1.0 - rules.bass_least) * _share(intensity, rules.bass_on, rules.combat_start) if m.bass_in else 0.0
+        drums = rules.drums_least + (1.0 - rules.drums_least) * _share(intensity, rules.drums_on, rules.combat_start) ** rules.drums_bend \
             if intensity >= rules.drums_on else 0.0
         bed = 1.0
 
@@ -463,7 +474,7 @@ class Director:
 
         # `place` is where the music goes now; `also` is what takes turns with it for as long as
         # it lasts, so that one part is never left to loop.
-        cut, also = "bar", []
+        cut, also, sited = "bar", [], False
         if boss and not fallen:
             place, cut = "boss", "beat"
             also.append("battle")
@@ -486,11 +497,11 @@ class Director:
             place = "battle"       # the next pull may be coming; do not leave Battle yet
             also.append("storm")
         elif m.in_depths:
-            place, cut = "depths", "beat"
+            place, cut, sited = "depths", "beat", True
             also.append("wander")
             why.append("indoors for a while")
         elif inn:
-            place = "ember"
+            place, sited = "ember", True
             also.append("wander")
             why.append("resting")
         elif m.in_storm and not state.indoors:
@@ -603,7 +614,7 @@ class Director:
             fade = rules.rest_fade_s
             why.append("a rest, as the game has between pieces")
 
-        return Target(place=place, also=tuple(also), scene=m.scene, cut=cut, gap_s=rules.rest_for_s,
+        return Target(place=place, also=tuple(also), sited=sited, scene=m.scene, cut=cut, gap_s=rules.rest_for_s,
                       bed=round(bed, 3), drums=_step(drums), bass=_step(bass),
                       bed_highpass_hz=FLOOR_HZ if bass > 0 else 110.0,
                       lowpass_hz=round(lowpass, 1), highpass_hz=round(highpass, 1),

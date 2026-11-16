@@ -574,7 +574,7 @@ def test_a_staged_track_is_read_back_as_it_was_written(tmp_path):
         studio.write_track(tmp_path / "bad", meta, {"lead": tone(RATE, 440)})          # not the length the story says
 
 
-def test_a_staged_track_becomes_the_pieces_of_its_story_each_going_into_the_next(tmp_path):
+def test_a_staged_track_becomes_the_pieces_of_its_story_each_going_into_the_next(tmp_path, monkeypatch):
     folder = tmp_path / "studio" / "warcraft" / "test-family" / "1"
     made_track(folder)
     bucket = forever.Bucket(tmp_path / "buckets", "duskwood", "warcraft", 80, "D minor")
@@ -601,8 +601,13 @@ def test_a_staged_track_becomes_the_pieces_of_its_story_each_going_into_the_next
         # ...up to six seconds of it, or as much as there is: the last piece has only the ringing-on.
         left = (4 - ids.index(clip.piece)) * 2 * RATE + RATE
         assert clip.post == min(int(forever.POST_S * RATE), left)
-    # A second time adds nothing.
-    assert studio.import_track(bucket, folder) == []
+    # A second time adds nothing, and does not so much as open the recordings (with a bucketful
+    # of eight-minute tracks staged, reading them all again took four minutes).
+    def never(*told, **more):
+        raise AssertionError("the recordings of a track already in the bucket were read")
+    with monkeypatch.context() as patched:
+        patched.setattr(studio.soundfile, "read", never)
+        assert studio.import_track(bucket, folder) == []
     # And another take of the family is its kin.
     other = tmp_path / "studio" / "warcraft" / "test-family" / "2"
     made_track(other, take=2)

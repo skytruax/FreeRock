@@ -326,8 +326,10 @@ KIT_PLUGS: dict[str, tuple[str, dict[str, int]]] = {
                                 "tamb": 46, "tick": 48, "crash": 49, "ting": 50, "cowbell": 51}),
     "folk": (BUSK + "#hands", {"clack": 39, "shake": 42, "jingle": 44, "tamb": 46, "tick": 48}),
 }
-# The kits whose bass-drum stroke ("boom") has the kick with it, beside the kit's own drum.
-KICKED = ("orchestra", "march", "folk", "wood")
+# The kits whose bass-drum stroke ("boom") has the kick with it, beside the kit's own drum. A band's kits have a
+# bass drum that is meant to be heard (Red Zeppelin's is 26 inches across and booms): the kick goes with it at half
+# the strength, for the stroke and the bottom that drum does not have.
+KICKED = ("orchestra", "march", "folk", "wood", "rock", "room")
 SOUNDS: dict[str, Sound] = {
     "violins": _bowed("violins", -0.4), "violins slow": _bowed("violins", -0.4, "slow"),
     "violas": _bowed("violas", 0.12), "celli": _bowed("celli", 0.3), "celli slow": _bowed("celli", 0.3, "slow"),
@@ -743,8 +745,11 @@ def chain(name: str, bpm: float) -> list[str]:
                     smash(0.45), warm(0.4)]
         if role == "hands":
             return [punch(0.2, 0.0), equalise(low_cut=45.0, bands=((3500.0, 2.0, 1.6),)), smash(0.3)]
-        return [punch(0.3, 0.1), equalise(low_cut=32.0, bands=((320.0, -2.0, 1.2), (4000.0, 2.5, 1.6)), high_shelf=(10000.0, 2.0)),
-                smash(0.4), warm(0.3)]
+        # A kit behind a band. (Measured in "Lance Cry" against the rock kits that were liked, 2026-11-16: 4.5 dB too
+        # much from 320 Hz to 5 kHz, 4 dB too little at 160 to 320 Hz, and strokes that rose 9 dB in ten milliseconds
+        # where the liked ones rise 16: more stroke, less of what rings, the box down, the shell up, less tape.)
+        return [punch(0.5, 0.0), equalise(low_cut=32.0, low_shelf=(200.0, 2.0), bands=((480.0, -4.0, 1.4), (2200.0, -2.0, 1.6))),
+                smash(0.3), warm(0.15)]
     if kind == "woodwind" and _dry(name):
         # Recorded close: the keys and the breath are nearer than they are from a seat in the hall.
         return [equalise(low_cut=cut, high_shelf=(7500.0, -3.0))]
@@ -1135,10 +1140,35 @@ def _slurred(notes: list[Note], beat: float) -> list[Note] | None:
 MUSE_LEVEL = 6.0               # dB: MuseScore's recordings are laid in this much up (it leaves a lot of room over its sounds)
 MUSE_SEND = -12.0              # dB to the hall: Muse Sounds come with a room of their own; this sets them deep in one hall with the rest
 MUSE_SENDS = {"Horn in F": -9.0, "Trumpet in B♭": -10.0, "Trombone": -10.0, "Tuba": -12.0, "Women": -8.0, "Men": -8.0, "Harp": -9.0, "Celesta": -8.0,
-              "Tubular Bells": -7.0, "Glockenspiel": -8.0, "Contrabasses": -16.0}
-ECHOED = ("Harp", "Celesta", "Glockenspiel", "Marimba", "Vibraphone", "Classical Guitar")       # parts that get a tempo echo from side to side
+              "Tubular Bells": -7.0, "Glockenspiel": -8.0, "Contrabasses": -16.0,
+              # A band stands close: its amplifiers a little way into the hall, its bass hardly at all, the tune further in.
+              "Rhythm Guitar": -19.0, "Muted Guitar": -22.0, "Electric Guitar": -11.0, "Bass Guitar": -26.0, "Hammond Organ": -14.0}
+ECHOED = ("Harp", "Celesta", "Glockenspiel", "Marimba", "Vibraphone", "Classical Guitar", "Clean Guitar")       # parts that get a tempo echo from side to side
 MUSE_CUT = {"Violins 1": 170.0, "Violin": 170.0, "Violas": 115.0, "Viola": 115.0, "Flute": 230.0, "Piccolo": 480.0, "Oboe": 210.0, "Trumpet in B♭": 150.0,
-            "Clarinet in B♭": 130.0, "Women": 150.0, "Celesta": 200.0, "Glockenspiel": 400.0}
+            "Clarinet in B♭": 130.0, "Women": 150.0, "Celesta": 200.0, "Glockenspiel": 400.0,
+            "Rhythm Guitar": 85.0, "Muted Guitar": 85.0, "Electric Guitar": 110.0, "Hammond Organ": 90.0}       # under the guitars and the organ is the bass guitar's
+MUTED_TOP = 3200.0             # Hz: a muted string has nothing above this
+# Where the two rhythm guitars sit (one each side, as a record is made), and how far the second is behind the
+# first: two takes are never together to the sample, and that is what makes two guitars sound like two.
+MUSE_SEATS = {"Muse Guitars Vol 1/Electric LP - Heavy": -0.6, "Muse Guitars Vol 1/Electric SC - Heavy": 0.65}
+MUSE_LATE = {"Muse Guitars Vol 1/Electric SC - Heavy": 0.011}
+# The band's sounds one at a time against the rock stems that were liked (2026-11-16: the same riff, tune and bass
+# line played by each, measured by octave). Played the same riff the Les Paul is 8 dB quieter than the Stratocaster
+# (-26 against -18.5 LUFS): they are brought level, the Stratocaster a little under, since it is all middle. The Les
+# Paul has 6 dB more than the liked guitars from 1.2 to 5 kHz and 24 dB more fizz over 10 kHz; the Stratocaster has
+# 9 dB more at 320 to 640 Hz (a honk); the lead is 9 dB hotter at 2.5 to 5 kHz than the liked leads are; the bass is
+# close, with less of the pick; the Hammond is brighter, and so wide that its two sides nearly cancel in the bass.
+MUSE_TRIM = {"Muse Guitars Vol 1/Electric LP - Heavy": 4.0, "Muse Guitars Vol 1/Electric SC - Heavy": -5.0}
+# (The first whole piece, "Lance Cry", measured the same evening: the two guitars together stood where the liked ones
+# do from 160 Hz to 10 kHz, 6 dB short under 160 Hz; the lead still had 5 dB too much from 640 Hz to 5 kHz and 8 to
+# 20 dB too little under 320 Hz: a thin, bright lead. So: more of the bottom string on the Les Paul, and the lead
+# given a body and its top taken down further.)
+MUSE_TONE = {"Muse Guitars Vol 1/Electric LP - Heavy": dict(low_shelf=(170.0, 3.0), bands=((1800.0, -3.0, 1.5),), high_shelf=(7500.0, -8.0)),
+             "Muse Guitars Vol 1/Electric SC - Heavy": dict(bands=((450.0, -5.0, 1.4),)),
+             "Muse Guitars Vol 1/Electric LP - Lead": dict(bands=((260.0, 4.0, 1.6), (3200.0, -7.0, 1.8)), high_shelf=(7500.0, -8.0)),
+             "Muse Guitars Vol 1/Electric Bass": dict(bands=((800.0, 3.0, 1.2),)),
+             "Muse Keys/Hammond Organ": dict(bands=((1500.0, -3.0, 2.0),))}
+MUSE_NARROW = {"Muse Guitars Vol 1/Electric Bass": 0.35, "Muse Keys/Hammond Organ": 0.4}       # how much of what differs between left and right is kept
 
 
 def _muse(voice: Voice, title: str, bpm: float, taste: float, room: float, seed: int) -> list[desk.Line]:
@@ -1148,14 +1178,22 @@ def _muse(voice: Voice, title: str, bpm: float, taste: float, room: float, seed:
     import soundfile
     out = []
     for part, way, notes, sound in muse.shared(voice.instrument, voice.notes, seed):
-        made = muse.perform(part, notes, bpm=bpm, way=way, sound=sound)
-        effects = [equalise(low_cut=MUSE_CUT.get(part, 28.0))]
+        made = muse.perform(part, notes, bpm=bpm, way=way, sound=sound, swells=voice.swells or None)
+        effects = [equalise(low_cut=MUSE_CUT.get(part, 28.0), high_cut=MUTED_TOP if part == "Muted Guitar" else 0.0, **MUSE_TONE.get(sound or "", {}))]
+        if sound in MUSE_NARROW:
+            effects.append(wide(MUSE_NARROW[sound]))
         if part in ECHOED or way == "pizz":
             effects.append(echo(bpm, 0.16))                    # plucked and struck things answer themselves, a dotted eighth later
         if part in ("Horn in F", "Trumpet in B♭", "Trombone", "Tuba"):
             effects.append(warm(0.25))                         # brass through tape: rounder at the top of a swell
-        out.append(desk.Line("%s: %s" % (title, part), desk.bare(part, []), volume=_db(MUSE_LEVEL) * taste, pan=0.0,
-                             clips=[(0.0, soundfile.info(str(made)).duration, str(made))], send=_db(MUSE_SENDS.get(part, MUSE_SEND)) * room,
+        if part == "Electric Guitar":
+            effects += [echo(bpm, 0.22), warm(0.2)]            # a lead guitar's echo, and tape on its top
+        if part in ("Rhythm Guitar", "Muted Guitar", "Bass Guitar"):
+            effects.append(warm(0.2))
+        late = MUSE_LATE.get(sound or "", 0.0)
+        out.append(desk.Line("%s: %s" % (title, part), desk.bare(part, []), volume=_db(MUSE_LEVEL + MUSE_TRIM.get(sound or "", 0.0)) * taste,
+                             pan=MUSE_SEATS.get(sound or "", 0.0),
+                             clips=[(late, soundfile.info(str(made)).duration, str(made))], send=_db(MUSE_SENDS.get(part, MUSE_SEND)) * room,
                              effects=effects))
     if voice.instrument in ("basses", "basses slow"):
         # Stacked under the basses where they play out: a synth's plain sub at their pitch, felt more than heard.
@@ -1198,7 +1236,8 @@ def lines(voice: Voice, title: str, bpm: float, *, taste: float = 1.0, room: flo
             boom = KITS[kit][1]["boom"]
             struck = [Note(note.start, note.length, 36, note.loud) for note in voice.notes if note.pitch == boom]
             if struck:
-                out += lines(Voice(0, notes=struck, instrument="kick"), title + " kick", bpm, taste=taste, room=room, seed=seed)
+                own = "boom" in KIT_PLUGS.get(kit, ("", {}))[1]          # the kit's plug-in has a bass drum of its own
+                out += lines(Voice(0, notes=struck, instrument="kick"), title + " kick", bpm, taste=taste * (_db(-6.0) if own else 1.0), room=room, seed=seed)
         return out
     if voice.instrument == "swell":
         return _swell(voice, title, bpm, taste, room)

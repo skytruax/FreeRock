@@ -57,22 +57,23 @@ def test_standing_is_a_riff_with_the_guitars_alone():
     assert not calm.silent and not calm.rest
 
 
-def test_moving_brings_the_drums_in_at_once_and_stopping_takes_them_out():
+def test_moving_brings_a_hint_of_the_drums_after_a_few_steps_and_stopping_takes_them_out():
     at = play([(10, {"speed": 7.0}), (20, {"speed": 0.0})], 30, start=STANDING)
     assert at(10).drums == 0.0, "the very first instant is not yet on the move"
     moving = at(10.25)
-    assert moving.drums == 0.55 and moving.bass == 0.0 and moving.intensity == pytest.approx(0.40, abs=0.01)
+    assert moving.drums == 0.0 and moving.bass == 0.0 and moving.intensity == pytest.approx(0.40, abs=0.01)
     assert "on the move" in moving.why and moving.place == "wander"
+    assert 0.0 < at(19).drums <= 0.2, "some seconds on: a hint of the drums, no more (it is a fight that brings them in)"
     assert at(21).drums > 0.0, "a short stop changes nothing"
     assert at(21.5).why[0] == "standing still" and at(23).drums == 0.0, "stopped: the drums leave within a few seconds"
 
 
 def test_keeping_going_fills_the_band_out():
     at = play([(5, {"speed": 7.0})], 40, start=STANDING)
-    assert levels(at(6)) == (0.55, 0.0)
+    assert levels(at(6)) == (0.0, 0.0)
     assert at(15).drums > at(6).drums and at(15).bass == 0.0
     filled = at(27)
-    assert filled.bass == 0.70 and filled.drums == 0.75 and filled.intensity == pytest.approx(0.57)
+    assert filled.bass == 0.35 and filled.drums == 0.30 and filled.intensity == pytest.approx(0.57)       # a third: the rest is a fight's
     assert "on the move for a while: the band has filled out" in filled.why
     assert filled.place == "wander", "on foot it never reaches the hard-rock part"
 
@@ -80,11 +81,11 @@ def test_keeping_going_fills_the_band_out():
 def test_riding_is_drums_and_bass_at_once_and_a_long_ride_reaches_the_hard_rock_part():
     at = play([(2, {"speed": 14.0, "mounted": True}), (42, {"speed": 0.0})], 55, start=STANDING)
     riding = at(2.25)
-    assert levels(riding) == (0.75, 0.75) and riding.intensity == pytest.approx(0.60, abs=0.01) and "riding" in riding.why
+    assert levels(riding) == (0.35, 0.45) and riding.intensity == pytest.approx(0.60, abs=0.01) and "riding" in riding.why
     assert riding.place == "wander"
     assert at(18).place == "wander" and at(19).place == "storm" and at(19).also == ("wander",)
     assert "at full tilt" in at(19).why and at(19).cut == "bar"
-    assert at(30).intensity == pytest.approx(0.75) and levels(at(30)) == (0.95, 0.95)
+    assert at(30).intensity == pytest.approx(0.75) and levels(at(30)) == (0.80, 0.85)
     assert at(44.5).place == "wander", "off the mount for a moment: back to the riffs"
     assert at(47).drums == 0.0 and at(47).bass == 0.0
 
@@ -100,7 +101,7 @@ def test_standing_still_for_a_while_lets_the_calm_part_in():
     at = play([(40, {"speed": 7.0})], 50, start=STANDING)
     assert at(14).also == () and at(15.25).also == ("ember",) and "standing still for a while" in at(16).why
     assert at(30).intensity == pytest.approx(0.10)
-    assert at(41).also == () and at(41).drums == 0.55, "moving again: the riffs alone, drums in"
+    assert at(41).also == () and at(41).drums == 0.0 and at(49).drums > 0.0, "moving again: the riffs alone, the drums a few seconds behind"
 
 
 def walking(start, end, origin=(0.40, 0.60), map_id=1429):
@@ -115,7 +116,7 @@ def walking(start, end, origin=(0.40, 0.60), map_id=1429):
 def test_an_older_addon_is_followed_by_its_position():
     at = play(walking(10, 20), 30)
     assert at(9).drums == 0.0 and "standing still" in at(9).why
-    assert at(11).drums == 0.55 and "on the move" in at(11).why
+    assert at(11).drums == 0.0 and "on the move" in at(11).why and at(19.5).drums > 0.0
     assert at(24).drums == 0.0
 
 
@@ -124,7 +125,7 @@ def test_without_any_word_on_movement_nothing_is_assumed():
     assert levels(at(50)) == (0.0, 0.0) and at(50).also == () and at(50).why == ()
     assert at(50).intensity == pytest.approx(0.25)
     mounted = play([(5, {"mounted": True})], 8)
-    assert mounted(5.5).drums == 0.0 and levels(mounted(6.25)) == (0.75, 0.75) and "mounted" in mounted(6.25).why
+    assert mounted(5.5).drums == 0.0 and levels(mounted(6.25)) == (0.35, 0.45) and "mounted" in mounted(6.25).why
 
 
 # --- a target, a fight, a boss --------------------------------------------------------------------
@@ -134,11 +135,11 @@ def test_sizing_up_a_target_brings_the_band_in_before_the_pull():
                (12, {"has_target": False, "target_class": "none", "target_hostile": False})], 20, start=STANDING)
     assert at(5).bass == 0.0, "not at the very instant: a moment later"
     sizing = at(5.25)
-    assert levels(sizing) == (0.75, 0.70) and sizing.bed_highpass_hz == 20.0
+    assert levels(sizing) == (0.30, 0.35) and sizing.bed_highpass_hz == 20.0
     assert "a target in your sights" in sizing.why and sizing.place == "wander"
     assert at(13.5).bass == 0.0
     big = play([(5, {"has_target": True, "target_class": "elite", "target_hostile": True})], 8, start=STANDING)(8)
-    assert levels(big) == (0.85, 0.85) and "something big in your sights" in big.why
+    assert levels(big) == (0.60, 0.65) and "something big in your sights" in big.why
 
 
 def test_a_friendly_target_or_an_addon_that_does_not_say_changes_nothing():
@@ -226,6 +227,7 @@ def test_after_a_long_fight_hold_then_the_calm_part_then_the_riffs():
     assert at(19.75).place == "battle"
     assert at(22).place == "battle" and at(22).bass == 1.0 and "holding after the fight" in at(22).why
     assert at(24).place == "ember" and "after the fight" in at(24).why
+    assert not at(24).sited, "the calm after a fight is not a place: the walking track goes on through it"
     assert at(30.75).place == "ember" and at(31.25).place == "wander"
     assert at(50).intensity == pytest.approx(0.10) and at(50).bass == 0.0
 
@@ -299,6 +301,7 @@ def test_walking_indoors_muffles_at_once_and_moves_to_depths_if_you_stay():
     inside = at(5)
     assert inside.lowpass_hz == 2500.0 and inside.reverb == 0.40 and inside.place == "wander"
     assert at(5.75).place == "wander" and at(6).place == "depths" and at(6).cut == "beat"
+    assert at(6).sited and not at(5.75).sited, "a cave is a place the player stands in: the music is to go there"
     assert at(6).also == ("wander",), "the cave part takes turns with the zone's riffs"
     out = at(15)
     assert out.lowpass_hz == 20000.0 and out.reverb == 0.0 and out.place == "depths"
@@ -313,11 +316,12 @@ def test_ducking_into_a_doorway_does_not_change_the_section():
 def test_an_inn_is_calm_and_quieter_and_a_citys_streets_are_not():
     inn = play([(5, {"indoors": True, "resting": True})], 12, start=STANDING)(10)
     assert inn.place == "ember" and inn.also == ("wander",) and inn.volume == pytest.approx(0.63) and inn.bass == 0.0
+    assert inn.sited, "an inn is a place the player stands in: the music is to go there"
     assert inn.lowpass_hz == 2500.0 and "quieter in an inn" in inn.why
     running_in = play([(1, {"indoors": True, "resting": True, "speed": 7.0})], 30, start=STANDING)(30)
     assert running_in.intensity == pytest.approx(0.30) and running_in.bass == 0.0, "nothing but a fight rises in an inn"
     streets = play([(1, {"resting": True, "speed": 7.0})], 30, start=STANDING)(30)
-    assert streets.place == "wander" and streets.volume == 1.0 and streets.bass > 0 and streets.drums > 0.7
+    assert streets.place == "wander" and streets.volume == 1.0 and streets.bass > 0 and streets.drums > 0.2
 
 
 def test_a_dungeon_is_tenser_and_is_not_treated_as_a_cave():
@@ -327,9 +331,9 @@ def test_a_dungeon_is_tenser_and_is_not_treated_as_a_cave():
     blind = play([], 20, start=inside)(20)                    # the game gives no position in there
     assert blind.place == "wander" and blind.also == ("depths",)
     assert blind.lowpass_hz == 20000.0 and blind.reverb == 0.0
-    assert blind.intensity == pytest.approx(0.40) and levels(blind) == (0.55, 0.0)
+    assert blind.intensity == pytest.approx(0.40) and levels(blind) == (0.0, 0.0)
     told = play([(5, {"speed": 7.0})], 12, start=dataclasses.replace(inside, speed=0.0))
-    assert levels(told(4)) == (0.55, 0.0) and told(6).bass > 0, "with a speed from the addon it follows the feet"
+    assert levels(told(4)) == (0.0, 0.0) and told(6).bass > 0, "with a speed from the addon it follows the feet"
     fight = play([(3, FIGHT)], 6, start=inside)(4)
     assert fight.place == "battle" and fight.also == ("storm", "boss")
 
@@ -354,7 +358,7 @@ def test_rain_brings_the_drums_and_a_rain_storm_the_whole_band():
     assert drizzle.drums == 0.0 and drizzle.lowpass_hz == 20000.0 and drizzle.reverb == pytest.approx(0.104)
     assert at(12).drums == 0.6 and at(12).bass == 0.0, "steady rain: the drums"
     storm = at(20)
-    assert storm.bass > 0.8 and storm.drums > 0.8 and storm.lowpass_hz == 20000.0, "a storm: the whole band, not muffled"
+    assert storm.bass > 0.8 and storm.drums >= 0.8 and storm.lowpass_hz == 20000.0, "a storm: the whole band, not muffled"
     assert "a rain storm: the whole band" in storm.why and storm.place == "wander"
     assert at(24).place == "storm" and at(24).cut == "beat" and at(24).also == ("wander",)
     assert at(59).place == "storm" and at(61).place == "wander", "it leaves twenty seconds after the weather clears"

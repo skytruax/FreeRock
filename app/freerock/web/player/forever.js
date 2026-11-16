@@ -102,6 +102,10 @@
   const HANDOVER = 12.0;       // what follows a piece is made ready this long before the piece ends
   const RESUME_WITHIN = 900;   // a piece that a fight cut into is gone back to if the fight is over within this long
   const FIGHT_AGAIN = 600;     // a fight's own track is gone on with if the next fight comes within this long
+  // Where the player goes, the music follows ("make sure our location changes CHANGE SONGS", 2026-11-16).
+  const SETTLE = 4.0;          // seconds in another kind of place (or in a cave, an inn) before the music follows: a step over a border and back changes nothing
+  const PLACE_STAY = 20.0;     // ...and the music does not move for a place twice within this long
+  const BLEND_PLACE = 2;       // bars the track that is playing takes to give way to the new place's
   const FREE_SHARE = 0.25;     // how often a stretch of loose phrases follows a track, where there are enough of them
   const FREE_ENOUGH = 3;       // ...which is this many for every channel
   const RING = 2;              // bars a piece rings on under the next, when the two are in keys that sit together
@@ -132,6 +136,8 @@
       // next fight, so that a fight's music gets past its opening over an evening).
       this.left = { walk: null, fight: null };
       this.standby = null;       // the piece a fight would bring in, chosen ahead so that it can be fetched ahead
+      this.followDue = null;     // when to look whether the music should follow the player somewhere new
+      this.movedAt = -Infinity;  // when it last did
       this.restDue = null;       // when the next moment of silence is due, where pieces are strung together
       this.pieceAt = new Map();  // piece id -> when it was last played here
       this.pieceTurn = 0;
@@ -691,6 +697,35 @@
     // `options.after` is the decks whose music is ending of its own accord (`natural`) or is
     // being cut into; `except` a piece not to choose; `ask` a strength to choose for in place
     // of the one the game asks for now.
+    // How well a piece suits the kind of place the player is in: written for the place's first
+    // kind (Duskwood is haunted before it is anything else), for another of its kinds, or for
+    // neither. A piece that does not say, or a place that does not, is in between.
+    _mood(meta) {
+      const kinds = this.target.kinds || [];
+      if (!kinds.length || !meta.moods.length) return 0.5;
+      if (meta.moods.includes(kinds[0])) return 0;
+      return meta.moods.some((mood) => kinds.includes(mood)) ? 0.3 : 1;
+    }
+
+    // How far a piece is from what the game asks for at strength `ask`: first how hard it plays,
+    // then the kind of moment, then the kind of place. `follow` is the reckoning for a player who
+    // has gone somewhere else: where the game names a place the player is standing in (a cave,
+    // an inn: `sited`), what was written for that place comes before the walking music that
+    // takes turns with it; anywhere else walking music is never out of place.
+    _off(piece, ask, follow) {
+      const meta = piece.meta, place = this.target.place, also = this.target.also || [];
+      const strength = meta.serves.includes(ask) ? 0 : Math.min(...meta.serves.map((tier) => Math.abs(tier - ask)));
+      // The kind of moment the game names comes first; the kinds that take turns with it are
+      // as good, except in a fight, where a piece written for a fight is wanted before a storm.
+      const fight = place === "battle" || place === "boss";
+      let role = meta.role === place ? 0 : also.includes(meta.role) ? (fight ? 0.3 : 0) : 1;
+      if (follow && !fight) {
+        if (this.target.sited === true) role = meta.role === place ? 0 : also.includes(meta.role) ? 0.5 : 1;
+        else if (meta.role === "wander") role = 0;
+      }
+      return strength * 100 + role * 10 + this._mood(meta);
+    }
+
     _nextItem(bucket, options) {
       options = options || {};
       const index = this._index(bucket);
@@ -703,9 +738,21 @@
         ? Math.min(3, Math.max(1, Math.round(LAP_S / piece.seconds))) : 1;
       const slot = ask === 2 ? "fight" : "walk";
       const left = this.left[slot];
+      // The walking music that was left is gone back to only where it still belongs: not if the
+      // player has since gone into another kind of place that has music of its own, nor into a
+      // cave or an inn that has.
+      const belongs = (piece) => {
+        if (slot !== "walk") return true;
+        for (const other of index.values()) {
+          if (!serves(other)) continue;
+          if (other.meta.role === piece.meta.role && this._mood(other.meta) < this._mood(piece.meta)) return false;
+          if (this.target.sited === true && other.meta.role === this.target.place && piece.meta.role !== this.target.place) return false;
+        }
+        return true;
+      };
       if (left && !options.natural && left.key === bucket.key && left.piece !== options.except
           && index.has(left.piece) && serves(index.get(left.piece)) && now - left.at < (slot === "fight" ? FIGHT_AGAIN : RESUME_WITHIN)
-          && (slot === "walk" || index.get(left.piece).meta.role === this.target.place)) {
+          && (slot === "walk" || index.get(left.piece).meta.role === this.target.place) && belongs(index.get(left.piece))) {
         // (A fight's track is only gone on with in the same kind of moment: a fight's in a
         // fight, a boss's against a boss, a storm's in a storm.)
         const piece = index.get(left.piece);
@@ -716,17 +763,8 @@
         const onward = piece.meta.next ? index.get(piece.meta.next) : null;
         if (onward && serves(onward)) return { piece: onward, from: 0, laps: 1, cast: this._cast(onward, left.casting), entry: "resume" };
       }
-      const kinds = this.target.kinds || [], place = this.target.place, also = this.target.also || [];
-      const off = (piece) => {
-        const meta = piece.meta;
-        const strength = serves(piece) ? 0 : Math.min(...meta.serves.map((tier) => Math.abs(tier - ask)));
-        // The kind of moment the game names comes first; the kinds that take turns with it are
-        // as good, except in a fight, where a piece written for a fight is wanted before a storm.
-        const fight = place === "battle" || place === "boss";
-        const role = meta.role === place ? 0 : also.includes(meta.role) ? (fight ? 0.3 : 0) : 1;
-        const mood = !kinds.length || !meta.moods.length ? 0.5 : meta.moods.some((mood) => kinds.includes(mood)) ? 0 : 1;
-        return strength * 100 + role * 10 + mood;
-      };
+      const place = this.target.place, also = this.target.also || [];
+      const off = (piece) => this._off(piece, ask, options.follow === true);
       let least = Infinity;
       for (const piece of index.values()) least = Math.min(least, off(piece));
       const casting = after ? after.casting : null;
@@ -739,8 +777,7 @@
         // by a calm moment, a cave or nightfall: what is written for those comes when it has ended.
         const next = after.piece.meta.next ? index.get(after.piece.meta.next) : null;
         if (next && serves(next)) {
-          const kind = (piece) => !kinds.length || !piece.meta.moods.length ? 0.5
-            : piece.meta.moods.some((mood) => kinds.includes(mood)) ? 0 : 1;
+          const kind = (piece) => this._mood(piece.meta);
           let nearer = false, lighter = false;
           for (const piece of index.values()) {
             if (!serves(piece) || piece.meta.role !== next.meta.role) continue;
@@ -968,6 +1005,45 @@
       this._dropNext();
       this._release(group, when, fade);
       this.group = this._group(when, harder ? 0 : fade, item);
+      for (const deck of Object.values(this.group.decks)) {
+        deck.audible = this._level(this.group, deck.channel) > 0;
+        await this._fill(this.group, deck);
+        if (!this.group || !this.started) return true;
+      }
+      return true;
+    }
+
+    // The player has gone somewhere else and stayed a moment: into another kind of place, into
+    // a cave or an inn, or out of one. If the bucket has a piece that suits where the player is
+    // now better than the one that is playing, it takes over on the next bar line, the old
+    // track giving way over a couple of bars; and the old track is remembered, so that going
+    // back picks it up where it was left. Not in a fight: a fight is a fight wherever it is.
+    // True if the music moved.
+    async _follow() {
+      const group = this.group;
+      const index = this.bucket ? this._index() : null;
+      if (!group || !group.piece || !index || !index.has(group.piece.id) || this._quiet()) return false;
+      const ask = this._ask();
+      const place = this.target.place;
+      if (ask === 2 || this.target.intensity >= WAVE_OFF || place === "battle" || place === "boss") return false;
+      if (!group.piece.meta.serves.includes(ask)) return false;          // how hard it plays is _regroup's to answer
+      const item = this._nextItem(this.bucket, { after: group, except: group.piece.id, follow: true });
+      if (!item || !item.piece) return false;
+      // Only for something that suits the place better than what is playing (and not for the
+      // same track's next piece: that comes by itself).
+      if (!(this._off(item.piece, ask, true) < this._off(group.piece, ask, true))) return false;
+      if (item.piece.meta.track === group.piece.meta.track) return false;
+      await this._first(this.bucket, item);
+      if (!this.started || this.group !== group || this._quiet()) return false;
+      const now = this.ctx.currentTime;
+      const when = Math.max(this._lineAfter(group, now + NOTICE, 1), group.start);
+      const fade = Math.min(BLEND_PLACE * group.bar, 6.0);
+      this.left.walk = { key: this.bucket.key, piece: group.piece.id, position: (when - group.origin) % group.piece.seconds,
+                         at: now, casting: group.casting };
+      this._dropNext();
+      this._release(group, when, fade);
+      this.group = this._group(when, fade, item);
+      this.movedAt = now;
       for (const deck of Object.values(this.group.decks)) {
         deck.audible = this._level(this.group, deck.channel) > 0;
         await this._fill(this.group, deck);
@@ -1574,6 +1650,19 @@
         // A fight, or the calm after one, may call for another piece altogether.
         await this._regroup(false);
         if (!this.group || !this.started) return;
+        // And so may somewhere new, once the player has stayed there a moment.
+        if (this.followDue !== null && this.ctx.currentTime >= this.followDue) {
+          const ending = this.group.until - this.ctx.currentTime;
+          if (this.ctx.currentTime - this.movedAt < PLACE_STAY) this.followDue = this.movedAt + PLACE_STAY;
+          // In the last bars of a piece what follows it is being made ready, and comes in whole on
+          // its first beat: the look is taken again when it has.
+          else if (ending <= HANDOVER) this.followDue = this.group.until + 0.5;
+          else {
+            this.followDue = null;
+            await this._follow();
+            if (!this.group || !this.started) return;
+          }
+        }
         const group = this.group;
         for (const deck of Object.values(group.decks)) {
           deck.audible = this._level(group, deck.channel) > 0;
@@ -1612,6 +1701,10 @@
       this.target = Object.assign({}, before, target);
       const wasQuiet = before.rest === true || before.silent === true;
       if (this._quiet() && !wasQuiet) this.restSince = this.ctx.currentTime;
+      // Somewhere else (another kind of place, a cave, an inn, or out of one): the music follows
+      // once the player has stayed there a moment.
+      if (String(before.kinds) !== String(this.target.kinds) || before.light !== this.target.light
+          || before.place !== this.target.place || before.sited !== this.target.sited) this.followDue = this.ctx.currentTime + SETTLE;
       this._levels(before, wasQuiet);
       return this._serial(async () => {
         if (!this.started || !this.bucket) return;

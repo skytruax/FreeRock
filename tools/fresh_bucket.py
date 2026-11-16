@@ -1,13 +1,16 @@
 """Out with a style's old written pieces, in with what is staged now.
 
     cd app && uv run --no-sync python ../tools/fresh_bucket.py warcraft          (the server must be stopped)
+    cd app && uv run --no-sync python ../tools/fresh_bucket.py knight --keep-style
 
 When the way the studio's tracks are played changes for the better, the bucket should hold
 only the new ones: this takes every written piece whose source begins with "<style>/" out of
 the style's bucket for good (the studio's own tracks and the real scores; the loose phrases
 and the songs cut into pieces stay), then puts every staged track of the style in, and makes
-the style the one in force. `freerock pieces drop` does the first part too, but saves the
-bucket after every piece, which for two thousand pieces is minutes; here it is saved once.
+the style the one in force (with `--keep-style` the style in force is left as it is: a second
+style is made ready while the first goes on being played). `freerock pieces drop` does the
+first part too, but saves the bucket after every piece, which for two thousand pieces is
+minutes; here it is saved once.
 """
 from __future__ import annotations
 
@@ -22,6 +25,8 @@ PORT = 8765
 
 
 def main(argv: list[str]) -> int:
+    keep = "--keep-style" in argv
+    argv = [each for each in argv if each != "--keep-style"]
     if len(argv) != 1:
         print(__doc__)
         return 2
@@ -50,9 +55,12 @@ def main(argv: list[str]) -> int:
     print("%s: %d tracks put in; the bucket now has %d pieces in %d tracks, %.0f minutes" % (style, put, after["pieces"], after["tracks"], after["minutes"]))
     settings = VAR / "settings.json"
     told = json.loads(settings.read_text(encoding="utf-8"))
-    told["genre"] = style
-    settings.write_text(json.dumps(told, indent=1), encoding="utf-8")
-    print("the style in force is now %s" % style)
+    if keep:
+        print("the style in force is left as it is: %s" % told.get("genre"))
+    else:
+        told["genre"] = style
+        settings.write_text(json.dumps(told, indent=1), encoding="utf-8")
+        print("the style in force is now %s" % style)
     for folder, problem in wrong:
         print("NOT put in: %s: %s" % (folder, problem))
     return 1 if wrong else 0

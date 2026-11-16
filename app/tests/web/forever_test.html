@@ -701,6 +701,46 @@ tests.piecePlace = async () => {
   return { haunted: [...new Set(there.engine.log.map(pieceOf))], pastoral: [...new Set(here.engine.log.map(pieceOf))], order };
 };
 
+// Where the player goes, the music follows: into another kind of place the new place's track
+// takes over a few seconds after the border, on a bar line, long before the piece that was
+// playing has ended; and a step back picks the old track up where it was left.
+tests.pieceFollows = async () => {
+  const bucket = makePieces("follow", [{ id: "meadow", windows: 6, moods: ["pastoral"], light: true }, { id: "crypt", windows: 6, moods: ["haunted"] }]);
+  const run = await render(60, { bucket, target: Object.assign(mix(1), { kinds: ["pastoral"], light: true }),
+                                 script: [[5, (engine) => engine.setTarget({ kinds: ["haunted"], light: false })],
+                                          [7, (engine) => engine.setTarget({ kinds: ["pastoral"], light: true })],       // a step back at once: nothing
+                                          [8.5, (engine) => engine.setTarget({ kinds: ["haunted"], light: false })],
+                                          [20, (engine) => engine.setTarget({ kinds: ["pastoral"], light: true })]] });
+  const log = [...run.engine.log].sort((a, b) => a.at - b.at);
+  const crypt = log.find((entry) => pieceOf(entry) === "crypt");
+  // (What the old track had laid down ahead when the new one took over is in the log too: the return is looked for later.)
+  const back = log.find((entry) => pieceOf(entry) === "meadow" && entry.at > 30);
+  const meadow = TONE["follow-meadow-rhythm1-w0"], haunted = TONE["follow-crypt-rhythm1-w0"];
+  return { cryptAt: crypt ? crypt.at : null, backAt: back ? back.at : null, backOffset: back ? back.offset : null, backClip: back ? back.clip : null,
+           meadowBefore: strength(run.data, 9, 13, meadow), cryptBefore: strength(run.data, 9, 13, haunted),
+           meadowThere: strength(run.data, 19, 23, meadow), cryptThere: strength(run.data, 19, 23, haunted),
+           meadowBack: strength(run.data, 39, 43, meadow), cryptBack: strength(run.data, 39, 43, haunted) };
+};
+
+// A cave or an inn is a place the player stands in: what was written for it comes at once, though
+// walking music takes turns with it there, and the walking track is picked up again outside.
+tests.pieceIntoCave = async () => {
+  const bucket = makePieces("cave", [{ id: "walk", windows: 8 }, { id: "deep", windows: 8, role: "depths" }]);
+  const run = await render(70, { bucket, target: Object.assign(mix(1), { place: "wander", also: [] }),
+                                 script: [[5, (engine) => engine.setTarget({ place: "depths", also: ["wander"], sited: true })],
+                                          [40.5, (engine) => engine.setTarget({ place: "wander", also: [], sited: false })]] });
+  const log = [...run.engine.log].sort((a, b) => a.at - b.at);
+  const deep = log.find((entry) => pieceOf(entry) === "deep");
+  const back = log.find((entry) => pieceOf(entry) === "walk" && entry.at > 30);
+  // The calm after a fight is not a place: the walking track goes on through it (pieceCarriesOn),
+  // and here too, with nothing but the kind of moment changing and no place named.
+  const calm = await render(40, { bucket: makePieces("calm", [{ id: "walk", windows: 8 }, { id: "rest", windows: 8, role: "ember" }]),
+                                  target: Object.assign(mix(1), { place: "wander", also: [] }),
+                                  script: [[5, (engine) => engine.setTarget({ place: "ember", also: [], sited: false })]] });
+  return { deepAt: deep ? deep.at : null, backAt: back ? back.at : null, backOffset: back ? back.offset : null,
+           calm: [...new Set(calm.engine.log.map(pieceOf))] };
+};
+
 // A border crossed in the last seconds of a piece, after the track's next piece was made ready:
 // the track still gives way to the new place's music where the piece ends.
 tests.pieceBorderLate = async () => {
