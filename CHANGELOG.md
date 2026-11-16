@@ -70,10 +70,24 @@ What was added that night:
     Egmont, Coriolan and more: 251 tracks, 743 minutes, each credited with its source.
   - *House* (`house.py`, `synth.py`): progressive house at 110 beats a minute on a synthesiser
     of our own, drums from CC0 recordings of a drum machine. 53 families, 159 tracks, 438 minutes.
-  - With Knight Rock's 101 tracks that is 734 tracks, about 32 hours, before any two takes
-    swap parts.
+  - *Knight Rock's band* (the same writer, with a band's instruments): riffs with room between
+    the chords and the muted string chugging, a lead guitar that doubles in thirds at the
+    moment, the bass on the root in eighths, a rock kit, a drone as of a hurdy-gurdy; the
+    light ones are the band unplugged. The guitars are the SoundFont's clean ones played
+    through an amplifier of our own (`amp.py`), so that a power chord's two notes beat against
+    each other as they do in a real one. 32 families, 74 tracks, 211 minutes, for every kind
+    of place and moment; the songs on disk cover only three kinds of place.
+  - With the 101 tracks cut from Knight Rock's songs that is 808 tracks, about 35 hours,
+    before any two takes swap parts.
+- **A fight's own track goes on at the next fight** from the bar it had reached, so that over
+  an evening of short fights the fight music gets past its opening; a boss still gets a boss's
+  piece and a storm a storm's. After a fight the track that was playing goes on, from its next
+  piece if the fight came in its last bars.
 - **A way back.** A tick box on the player page ("Play the written pieces"; `freerock settings
-  pieces off`) plays only the loose phrases, as the forever song was before.
+  pieces off`) plays only the loose phrases, as the forever song was before. And `freerock
+  pieces drop <style> <source>` takes every piece from one source out of a bucket for good
+  (`knight/` is the studio's Knight Rock, `warcraft/real-` the real scores, `song/` the
+  songs); what they were made from stays on disk, so they can be put back.
 - **Listening without the game.** `tools/listen.py` writes every staged track as one file with
   a page to play them from; the server shows them at `/listen/`. `tools/soak.py` plays a
   pretend evening (a walk, a fight, a border, an inn, a boss, a desert at night, a cave) through

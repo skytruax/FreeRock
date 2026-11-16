@@ -129,8 +129,9 @@ back with a fresh opening. Anything happening brings it straight back.
 | `freerock ledger` | What has been spent this month and today, and the account's credit balance |
 | `freerock pieces songs [style]` | Cuts every song on disk in a style into written pieces, in the style's bucket. Does nothing the second time. Stop the server first. |
 | `freerock pieces add [style]` | Puts every track the studio has staged for a style in its bucket, skipping those already there. Stop the server first. |
+| `freerock pieces drop <style> <source>` | Takes every piece whose source begins with `<source>` out of the style's bucket for good: `knight/` for the studio's Knight Rock, `warcraft/real-` for the real scores, `song/` for the songs. Stop the server first. |
 | `freerock pieces list [style]` | What written pieces a style has: how many, how long, and how they divide by kind of moment, kind of place, light and heavy |
-| `uv run --no-sync python -m freerock.studio.build` | The studio's orchestra: writes and plays every family of original orchestral tracks, staging them under `var/studio/warcraft/` (`--list` says what there would be) |
+| `uv run --no-sync python -m freerock.studio.build` | The studio's orchestra and its band: writes and plays every family of original tracks, staging the orchestra's under `var/studio/warcraft/` and Knight Rock's under `var/studio/knight/` (`--list` says what there would be, `--style knight` does only the band) |
 | `uv run --no-sync --with numba python -m freerock.studio.house` | The studio's house writer and its synthesiser: stages tracks under `var/studio/house/` |
 | `uv run --no-sync python -I -m freerock.studio.scores stage` | Real public-domain scores, played by family and staged (`fetch` gets them first) |
 | `uv run --no-sync python ../tools/listen.py [style]` | Every staged track as one file to listen to, under `var/listen/`; the server shows them at `/listen/` |
