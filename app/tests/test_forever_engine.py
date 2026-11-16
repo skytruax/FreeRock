@@ -388,6 +388,11 @@ async def test_the_piece_is_chosen_for_the_kind_of_place(results):
     assert "crypt" not in place["order"][1:], "a light place was not kept light"
 
 
+async def test_a_track_carries_on_through_a_calm_moment(results):
+    order = of(results, "pieceCarriesOn")["order"]
+    assert order[:3] == ["one", "two", "calm"], "the track was dropped for the calm piece: %s" % order
+
+
 async def test_light_and_heavy_take_turns(results):
     shade = of(results, "pieceShade")
     assert len(shade["order"]) >= 12

@@ -651,9 +651,23 @@
       for (const piece of index.values()) least = Math.min(least, off(piece));
       const casting = after ? after.casting : null;
       if (after && options.natural) {
+        // The track goes on into its next piece for as long as that piece answers what the
+        // game asks. Two things end a track early: the player has walked into another kind of
+        // place that the bucket has music of this sort for, or into a light place and the track
+        // is a heavy one. (A calm moment, a cave or nightfall does not: what is written for
+        // those comes when the track has ended.)
         const next = after.piece.meta.next ? index.get(after.piece.meta.next) : null;
-        if (next && serves(next) && off(next) <= least) {
-          return { piece: next, from: 0, laps: 1, cast: this._cast(next, casting), entry: "continue" };
+        if (next && serves(next)) {
+          const kind = (piece) => !kinds.length || !piece.meta.moods.length ? 0.5
+            : piece.meta.moods.some((mood) => kinds.includes(mood)) ? 0 : 1;
+          let nearer = false, lighter = false;
+          for (const piece of index.values()) {
+            if (!serves(piece) || piece.meta.role !== next.meta.role) continue;
+            if (kind(piece) < kind(next)) nearer = true;
+            if (piece.meta.light) lighter = true;
+          }
+          const tooHeavy = this.target.light === true && !next.meta.light && lighter;
+          if (!nearer && !tooHeavy) return { piece: next, from: 0, laps: 1, cast: this._cast(next, casting), entry: "continue" };
         }
       }
       // A track has ended, or the moment has moved on from it. Now and then, where the bucket
@@ -836,7 +850,10 @@
       if (!force && !gone) {
         if (group.piece ? here.includes(ask) : ask < 2) return false;
       }
-      const standby = this.standby && this.standby.piece && ask === 2 && !force && index.has(this.standby.piece.id) ? this.standby : null;
+      // What was fetched ahead for a fight is what comes in, unless this is a boss and that is
+      // not a boss's piece: then one is chosen now.
+      const ready = this.standby && this.standby.piece && ask === 2 && !force && index.has(this.standby.piece.id);
+      const standby = ready && (this.target.place !== "boss" || this.standby.piece.meta.role === "boss") ? this.standby : null;
       const item = standby || this._nextItem(this.bucket, { after: group, except: group.piece ? group.piece.id : null });
       this.standby = null;
       if (!item) return false;

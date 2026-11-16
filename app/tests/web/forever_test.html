@@ -713,6 +713,18 @@ tests.pieceKin = async () => {
   return { casts: casts.size, mixed: mixed.length, late: run.engine.late };
 };
 
+// A track goes on through a calm moment (the game says "ember" after a fight), even though the
+// bucket has a piece written for calm moments; that piece comes when the track has ended.
+tests.pieceCarriesOn = async () => {
+  const bucket = makePieces("carry", [{ id: "one", then: "two", story: "open", track: "t" }, { id: "two", phase: "one", story: "moment", track: "t" },
+                                      { id: "calm", role: "ember", serves: [0] }]);
+  const run = await render(50, { bucket, target: Object.assign(mix(1), { place: "wander", also: [] }),
+                                 script: [[2, (engine) => engine.setTarget(Object.assign(mix(0), { place: "ember", also: [] }))]] });
+  const order = [];
+  for (const entry of run.engine.log) if (order[order.length - 1] !== pieceOf(entry)) order.push(pieceOf(entry));
+  return { order };
+};
+
 // One track ends and another begins on that beat, while the first rings on underneath.
 tests.pieceHandover = async () => {
   const bucket = makePieces("hand", [{ id: "first", windows: 2 }, { id: "other", windows: 2 }]);
