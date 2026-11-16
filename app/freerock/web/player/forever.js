@@ -721,7 +721,10 @@
       if (!(deck.channel in group.cast)) { deck.until = group.until; return; }      // nobody plays this channel in the piece
       while (deck.until < this.ctx.currentTime + AHEAD) {
         const at = deck.until;
-        if (at >= group.until - 1e-6) break;                           // the piece is over: what follows has decks of its own
+        // The piece is over: what follows has decks of its own. (Its stretches are each a whole
+        // number of samples, so their sum may be a sample or two off the length the piece
+        // gives for itself; anything that close to the end is the end.)
+        if (at >= group.until - 0.005) break;
         if (group.endAt !== undefined && at >= group.endAt - 1e-6) break;
         const where = this._where(group, at + 1e-4);
         const clip = this._part(group, where.order, deck.channel, this._tierAt(group, deck.channel, at + 0.001));

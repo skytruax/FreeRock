@@ -40,8 +40,15 @@ tempo, beat and tuning. REAPER is free to try for sixty days and then needs a li
 dollars for personal use). The studio does not depend on it: the orchestra is FluidSynth and
 the dance music is our own synthesiser.
 
-## Everything else
+## The dance music's drums
 
-The house writer keeps its drum recordings under `var/tools/drums/` and the real
-scores are fetched into `var/scores/`; `studio/house.py` and `studio/scores.py` say from where
-and under what licence.
+The house writer (`studio/house.py`) plays our own synthesiser (`studio/synth.py`, which needs
+numba: run it with `uv run --no-sync --with numba ...`) and takes its drums from recordings of
+a TR-8 drum machine: `var/tools/drums/mck/`, from github.com/MckAudio/MckSamplePacks, CC0.
+(`var/tools/drums/fischer808/`, from github.com/tidalcycles/sounds-tr808-fischer, CC0, was
+fetched too and is not used.)
+
+## The real scores
+
+`studio/scores.py` fetches public-domain scores into `var/scores/` and says for each where it
+came from and under what licence; every track made from one carries that in its credit.

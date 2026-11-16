@@ -624,6 +624,7 @@ class Bucket:
         self.folder = self.root / genre / zone
         self.clips: list[Clip] = []
         self.pieces: dict[str, dict[str, Any]] = {}       # written music: what each piece is, by its id
+        self._loose_for, self._loose_kept = -1, []
         self.version = 0
         self.everything = False        # play the worn phrases too: set when no new ones can be made
         index = self.folder / "bucket.json"
@@ -673,8 +674,15 @@ class Bucket:
     def pool(self, channel: str, tier: int) -> list[Clip]:
         """The phrases that stand alone, for one channel at one strength. The parts of pieces are
         not in any pool: they are played as the piece they belong to."""
-        return [clip for clip in self.clips if clip.channel == channel and clip.tier == tier and not clip.piece
-                and self._in_play(clip)]
+        return [clip for clip in self._loose() if clip.channel == channel and clip.tier == tier and self._in_play(clip)]
+
+    def _loose(self) -> list[Clip]:
+        """The phrases that are not parts of pieces. Kept, since a bucket may hold thousands of
+        parts and the pools are looked at many times a second."""
+        if self._loose_for != len(self.clips):
+            self._loose_kept = [clip for clip in self.clips if not clip.piece]
+            self._loose_for = len(self.clips)
+        return self._loose_kept
 
     def live(self) -> list[Clip]:
         return [clip for clip in self.clips if self._in_play(clip)]
@@ -784,7 +792,9 @@ class Bucket:
             peak = max(analysis.peak(middle), analysis.peak(loudest), 1e-6)
             gain_db = min(PIECE_LEVEL - lufs, -20.0 * float(np.log10(peak)) - 1.0)
         window = bars * bar_frames
-        count = max(int(np.ceil(whole / window - 1e-9)), 1)
+        # (A bar is not always a whole number of samples, and a part that is one sample over
+        # so many bars is not given a stretch of one sample for it.)
+        count = max(int(np.ceil((whole - 1.0) / window)), 1)
         edges = [min(int(round(index * window)), whole) for index in range(count)] + [whole]
         piece_id = uuid.uuid4().hex[:10]
         (self.folder / "clips").mkdir(parents=True, exist_ok=True)

@@ -35,6 +35,8 @@ track.json holds:
     floor                   for each part of the story, the least each channel is played at: {"moment": {"drums": 0.7}}
     follow                  channels that are as loud as the loudest of some others: {"rhythm": ["lead"]}
     post_s                  how many seconds of ringing-on each recording has after the last bar
+    level_db                (optional) how far under the usual level the whole track sits: music for an inn or
+                            for the night is quieter than music for the road
     credit, seed            who or what wrote it, and the number it was written from
 
 Each recording is the whole track (the bars of every section, in order) followed by `post_s`
@@ -124,7 +126,7 @@ def import_track(bucket: forever.Bucket, folder: Path) -> list[str]:
     mix = sum(audio[:whole] for audio in parts.values())
     loudest = max(analysis.loudness_lufs(mix[first:last], RATE) for first, last in zip(edges, edges[1:]))
     peak = max(analysis.peak(mix), 1e-6)
-    gain = min(forever.PIECE_LEVEL + LIFT - loudest, -20.0 * float(np.log10(peak)) - 1.0)
+    gain = min(forever.PIECE_LEVEL + LIFT - loudest, -20.0 * float(np.log10(peak)) - 1.0) + float(meta.get("level_db", 0.0))
     ids: list[str] = []
     for index, (section, first, last) in enumerate(zip(meta["sections"], edges, edges[1:])):
         tail = min(int(forever.POST_S * RATE), min(len(audio) for audio in parts.values()) - last)
