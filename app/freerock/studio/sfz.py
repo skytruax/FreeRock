@@ -7,11 +7,12 @@ sound played:
 
   a held note swells and fades   the soft and the hard recordings of a bowed or blown note
                                  play together, and controller 1 (which the desk draws under
-                                 every line) fades from one to the other, opening a filter as
-                                 it rises: louder is brighter, as it is on the instrument
-  a section is several players   every note of a string section is three recordings: its own,
-                                 and the neighbouring ones bent to the same pitch, a few cents
-                                 apart, a little late, to the left and to the right
+                                 every line) fades from one to the other. Only at its softest
+                                 is a note also a little duller than it was recorded
+  a soloist can be several       a note can be played by its own recording and the neighbouring
+                                 ones bent to the same pitch, a few cents apart, a little late,
+                                 to the left and to the right. A recording of a whole section
+                                 is left as it is: it has its players in it already
   no two notes are the same      each note starts a few milliseconds off, a few cents off, a
                                  shade louder or softer; recordings that were made more than
                                  once take turns
@@ -19,13 +20,24 @@ sound played:
                                  switching, and a soft stroke is duller as well as quieter
   a held note has no end         it goes round the steady middle of the recording, and drifts
                                  slowly in pitch as players do
+  a slur is not two notes        in a line of single notes, a note begun while the last is
+                                 still held joins it: it comes in without its own start, as
+                                 the next note under one bow or in one breath does
 
 `held`, `struck` and `kit` return the text of an SFZ file for a patch (studio.samples). The
 files are kept in var/reaper/sfz, and can be loaded into sfizz by hand as well.
+
+The filters here are gentle on purpose. They used to follow the note (so a cello's or a
+bass's top was cut two octaves lower than a violin's) and stand half shut at a middling
+strength, and the whole orchestra came out dull: measured against recordings that were liked,
+ten to eighteen decibels short above 2.5 kHz (2026-11-16). The breath, the rosin and the
+stick are up there, and they do not go away when a player plays softly.
 """
 from __future__ import annotations
 
 from pathlib import Path
+
+import os
 
 import soundfile
 
@@ -74,23 +86,33 @@ def _loop(zone: Zone, file: str) -> str:
     return "loop_start=%d loop_end=%d" % (int(round(zone.loop / 1000.0 * info.samplerate)), int(zone.until * info.frames) - 1)
 
 
-def held(patch: Patch, *, players: int = 1, dark: float = 1400.0, opens: float = 4200.0, range_db: float = 16.0,
-         drift: float = 3.0, spread: float = 45.0, bite: Patch | None = None) -> str:
-    """A bowed or blown instrument. `players` is how many play each note (1 a soloist, 3 a
-    section: the others are the neighbouring recordings); `dark` the filter's cutoff in Hz at
-    the softest (for the A above middle C: it follows the note) and `opens` how many cents it
-    opens by the loudest; `range_db` how much louder the loudest is than the softest on top of
-    what the recordings themselves differ by; `bite` a patch of short strokes that is heard at
-    the start of a note struck hard (the bow digging in)."""
+def held(patch: Patch, *, players: int = 1, blend: bool | None = None, dark: float = 3200.0, opens: float = 3600.0, range_db: float = 16.0,
+         drift: float = 3.0, spread: float = 45.0, bite: Patch | None = None, slur: float = 0.0) -> str:
+    """A bowed or blown instrument. `players` is how many play each note (1 the recording as
+    it is: a soloist, or a section that was recorded as one; 2 or 3 add the neighbouring
+    recordings as further players, which only sounds like more players where the neighbours
+    are a semitone away). `blend` says what the soft and the hard recordings of a note do:
+    fade into each other as controller 1 moves (several players swelling together; the usual
+    for more than one player), or the note's own strength picks one of them for the whole note
+    (one player: two recordings of him at once are two players). `dark` is the filter's cutoff
+    in Hz at the softest and `opens` how many cents it opens by the loudest (it is past 9 kHz
+    by the middle); `range_db` how much louder the loudest is than the softest on top of what
+    the recordings themselves differ by; `bite` a patch of short strokes that is heard at the
+    start of a note struck hard (the bow digging in).
+
+    With `slur` (seconds), a note begun while another is still held is slurred to it: it
+    leaves out that much of the start of its recording and comes in over the same time, so
+    the bow or the breath carries on instead of starting again. This is for a line of single
+    notes, which the desk writes with each slurred note reaching a little into the next."""
+    if blend is None:
+        blend = players > 1
     rows = _head()
     attack = patch.attack / 1000.0
     rows += ["<global>", "loop_mode=loop_sustain loop_crossfade=0.25",
-             # A note begun softly speaks slowly, one begun hard at once. The swell is on the controller.
-             "ampeg_attack=%.3f ampeg_vel2attack=%.3f ampeg_release=%.3f" % (attack * 1.7, -attack * 1.45, patch.release / 1000.0),
-             "amp_veltrack=18",
+             "ampeg_release=%.3f" % (patch.release / 1000.0), "amp_veltrack=18",
              # One draw of the dice for every recording of a note, so that layers fading into each other stay in tune together.
              "pitch_oncc136=5 amp_random=0.8",
-             "fil_type=lpf_1p cutoff=%.0f cutoff_cc%d=%.0f fil_keytrack=100 fil_keycenter=69 resonance=0" % (dark, DYNAMICS, opens),
+             "fil_type=lpf_1p cutoff=%.0f cutoff_cc%d=%.0f resonance=0" % (dark, DYNAMICS, opens),
              "volume=%.1f gain_cc%d=%.1f" % (-range_db, DYNAMICS, range_db), "xf_cccurve=power",
              "lfo01_freq=0.19 lfo01_pitch=%.1f lfo01_phase_oncc135=1" % drift]
     layers = _layers(patch.zones)
@@ -100,28 +122,36 @@ def held(patch: Patch, *, players: int = 1, dark: float = 1400.0, opens: float =
         voices.append((1, 8.0, -spread, 0.017, -5.0))
     if players >= 3:
         voices.append((-1, -7.0, spread, 0.029, -5.0))
-    for step, tune, pan, late, level in voices:
-        for index, root in enumerate(roots):
-            # Another player is the neighbouring recording, bent to these notes.
-            other = index + step
-            if not 0 <= other < len(roots):
-                other = index - step
-            if not 0 <= other < len(roots):
-                other = index
-            own, lent = layers[root], layers[roots[other]]
-            for place, zone in enumerate(own):
-                source = lent[min(place, len(lent) - 1)]
-                fade = _fades(len(own), place, "cc%d" % DYNAMICS)
-                for turn, file in enumerate(source.files):
-                    words = ["<region>", "sample=%s" % file, "lokey=%d hikey=%d pitch_keycenter=%d" % (zone.low, zone.high, source.root),
-                             "tune=%d" % round(source.tune + tune), _loop(source, file), fade]
-                    if step:
-                        words.append("pan=%.0f delay=%.3f volume=%.1f" % (pan, late, level - range_db))
-                    if len(source.files) > 1:
-                        words.append("seq_length=%d seq_position=%d" % (len(source.files), turn + 1))
-                    rows.append(" ".join(word for word in words if word))
+    # A note begun softly speaks slowly, one begun hard at once. The swell is on the controller.
+    spoken = "ampeg_attack=%.3f ampeg_vel2attack=%.3f" % (attack * 1.7, -attack * 1.45)
+    ways = [("", spoken, 0.0)] if slur <= 0.0 else [("trigger=first", spoken, 0.0), ("trigger=legato", "ampeg_attack=%.3f ampeg_vel2attack=0" % slur, slur)]
+    for trigger, speaks, skipped in ways:
+        rows.append(" ".join(word for word in ("<group>", trigger, speaks) if word))
+        for step, tune, pan, late, level in voices:
+            for index, root in enumerate(roots):
+                # Another player is the neighbouring recording, bent to these notes.
+                other = index + step
+                if not 0 <= other < len(roots):
+                    other = index - step
+                if not 0 <= other < len(roots):
+                    other = index
+                own, lent = layers[root], layers[roots[other]]
+                for place, zone in enumerate(own):
+                    source = lent[min(place, len(lent) - 1)]
+                    which = _fades(len(own), place, "cc%d" % DYNAMICS) if blend else "lovel=%d hivel=%d" % (zone.soft, zone.hard)
+                    for turn, file in enumerate(source.files):
+                        words = ["<region>", "sample=%s" % file, "lokey=%d hikey=%d pitch_keycenter=%d" % (zone.low, zone.high, source.root),
+                                 "tune=%d" % round(source.tune + tune), _loop(source, file), which]
+                        if skipped:
+                            words.append("offset=%d" % round(skipped * soundfile.info(str(SAMPLES / file)).samplerate))
+                        if step:
+                            words.append("pan=%.0f delay=%.3f volume=%.1f" % (pan, late, level - range_db))
+                        if len(source.files) > 1:
+                            words.append("seq_length=%d seq_position=%d" % (len(source.files), turn + 1))
+                        rows.append(" ".join(word for word in words if word))
     if bite is not None:
         # The start of a hard note: a short stroke under it, heard only when the note is struck hard.
+        rows.append("<group> trigger=first" if slur > 0.0 else "<group>")
         for zone in bite.zones:
             if zone.hard < 100:
                 continue                       # only the hardest strokes
@@ -135,14 +165,14 @@ def held(patch: Patch, *, players: int = 1, dark: float = 1400.0, opens: float =
     return "\n".join(rows) + "\n"
 
 
-def struck(patch: Patch, *, dull: float = 1500.0, opens: float = 5400.0, players: int = 1, spread: float = 0.0) -> str:
+def struck(patch: Patch, *, dull: float = 3500.0, opens: float = 3600.0, players: int = 1, spread: float = 0.0) -> str:
     """A plucked or struck instrument, or one short bow stroke. Left to ring unless the patch
     is held (a piano, a harpsichord: stopped when the key is let go)."""
     rows = _head()
     rows += ["<global>", "loop_mode=%s" % ("no_loop" if patch.held else "one_shot"),
              "ampeg_attack=%.4f ampeg_release=%.3f" % (patch.attack / 1000.0, patch.release / 1000.0),
              "amp_veltrack=72", "pitch_oncc136=4 amp_random=0.7",
-             "fil_type=lpf_1p cutoff=%.0f fil_veltrack=%.0f fil_keytrack=100 fil_keycenter=69 resonance=0" % (dull, opens), "xf_velcurve=power"]
+             "fil_type=lpf_1p cutoff=%.0f fil_veltrack=%.0f resonance=0" % (dull, opens), "xf_velcurve=power"]
     layers = _layers(patch.zones)
     voices = [(0.0, 0.0, 0.0, 0.0)]
     if players >= 2:
@@ -174,7 +204,7 @@ def kit(strokes: list[tuple[int, Patch]], *, chokes: dict[int, int] | None = Non
     silence each other (an open hi-hat is stopped by a closed one): note -> group number."""
     rows = _head()
     rows += ["<global>", "loop_mode=one_shot", "amp_veltrack=85", "pitch_random=9 amp_random=1.0 delay_random=0.004",
-             "fil_type=lpf_2p cutoff=3000 fil_veltrack=3800 resonance=0", "ampeg_release=0.6"]
+             "fil_type=lpf_1p cutoff=5000 fil_veltrack=3000 resonance=0", "ampeg_release=0.6"]
     for note, patch in strokes:
         own = sorted(patch.zones, key=lambda zone: zone.soft)
         for zone in own:
@@ -188,32 +218,43 @@ def kit(strokes: list[tuple[int, Patch]], *, chokes: dict[int, int] | None = Non
     return "\n".join(rows) + "\n"
 
 
-def layered(parts: list[tuple[Patch, float, float]], low: int, high: int, *, players: int = 3, spread: float = 55.0) -> str:
-    """Several drums struck as one, by several players: a war-drum ensemble. Each part is a
-    patch of one drum's strokes (answering to one note), how many semitones lower it is played
-    than recorded, and its level in dB. Every written note from `low` to `high` strikes all of
-    them, shifted with the note (so a lower note is a bigger drum), each player a little apart
-    in time, pitch and place."""
+def layered(parts: list[tuple[Patch, int, float, int, int]], *, players: int = 3, spread: float = 55.0, track: float = 35.0) -> str:
+    """Several drums struck by several players: a war-drum ensemble. Each part is one drum: a
+    patch of its strokes, the written note at which it sounds as it was recorded, its level in
+    dB, and the lowest and highest written note that strike it (so the low notes are the big
+    drums and the high ones the small, and a note between two drums strikes both). A drum
+    moves only `track` cents for each written note away from its own: a drum tuned far from
+    where it was recorded is all boom and no skin. Each player strikes a different recording
+    of the stroke, a little apart in time and place: three drummers, not one drum in a chorus."""
     rows = _head()
-    rows += ["<global>", "loop_mode=one_shot", "amp_veltrack=80", "amp_random=1.2", "fil_type=lpf_2p cutoff=1600 fil_veltrack=5200 resonance=0",
-             "ampeg_release=1.2"]
-    seats = [(0.0, 0.0, 0.0, 0.0), (-28.0, -spread, 0.014, -3.5), (22.0, spread, 0.026, -3.5), (-45.0, -spread * 0.5, 0.037, -5.0)][:max(players, 1)]
-    for patch, lower, level in parts:
+    rows += ["<global>", "loop_mode=one_shot", "amp_veltrack=85", "amp_random=1.0", "pitch_keytrack=%.0f" % track, "ampeg_release=1.5"]
+    seats = [(0.0, 0.0, 0.0, 0.0), (-9.0, -spread, 0.012, -2.5), (7.0, spread, 0.021, -2.5), (-14.0, -spread * 0.5, 0.03, -4.0)][:max(players, 1)]
+    for patch, centre, level, low, high in parts:
         own = sorted(patch.zones, key=lambda zone: zone.soft)
-        for tune, pan, late, down in seats:
+        for seat, (tune, pan, late, down) in enumerate(seats):
             for zone in own:
-                for turn, file in enumerate(zone.files):
-                    words = ["<region>", "sample=%s" % file, "lokey=%d hikey=%d pitch_keycenter=%d" % (low, high, zone.root + round(lower)),
+                count = len(zone.files)
+                for turn in range(count):
+                    words = ["<region>", "sample=%s" % zone.files[(turn + seat) % count], "lokey=%d hikey=%d pitch_keycenter=%d" % (low, high, centre),
                              "lovel=%d hivel=%d" % (zone.soft, zone.hard), "tune=%d" % round(tune), "volume=%.1f" % (level + down),
-                             "pan=%.0f delay=%.3f delay_random=0.012 pitch_random=18" % (pan, late)]
-                    if len(zone.files) > 1:
-                        words.append("seq_length=%d seq_position=%d" % (len(zone.files), turn + 1))
+                             "pan=%.0f delay=%.3f delay_random=0.008 pitch_random=6" % (pan, late)]
+                    if count > 1:
+                        words.append("seq_length=%d seq_position=%d" % (count, turn + 1))
                     rows.append(" ".join(words))
     return "\n".join(rows) + "\n"
 
 
 def write(name: str, text: str) -> Path:
+    """Keeps an instrument's text under its name. A file that says the same already is not
+    touched: the sampler watches its instrument's file and loads it again when it changes,
+    and a render in which that happens stops dead (found 2026-11-16: one instrument played
+    alone for the listening page while a whole piece was rendering). A file that does change
+    is put in place whole."""
     FOLDER.mkdir(parents=True, exist_ok=True)
     path = FOLDER / (name + ".sfz")
-    path.write_text(text, encoding="utf-8")
+    if path.is_file() and path.read_text(encoding="utf-8") == text:
+        return path
+    fresh = FOLDER / ("%s.%d.part" % (name, os.getpid()))
+    fresh.write_text(text, encoding="utf-8")
+    os.replace(fresh, path)
     return path

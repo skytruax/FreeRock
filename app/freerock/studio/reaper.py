@@ -23,6 +23,7 @@ REPO = Path(__file__).resolve().parents[3]
 TOOLS = REPO / "var" / "tools"
 HOME = TOOLS / "reaper" / "reaper_linux_x86_64" / "REAPER"
 XDG = TOOLS / "xdg"
+JSFX = Path(__file__).resolve().parent / "jsfx"       # effects of the studio's own, written for REAPER
 # Where REAPER is to look for plug-ins of each kind: the key in reaper.ini, and the folders.
 # The studio's own (unpacked under var/tools) first, then wherever the system's packages and the
 # user's own installs put theirs, so that a plug-in installed in the usual way is found too.
@@ -39,7 +40,7 @@ PLUGINS = {
 SCREEN = "1280x800x24"
 # Other settings written into reaper.ini. One REAPER uses this many processor threads: several
 # render side by side, and each taking every core at once makes all of them slower.
-SETTINGS = {"workthreads": "3"}
+SETTINGS = {"workthreads": "6", "autonbworkerthreads": "0"}       # the second turns off REAPER's own count of the cores, which overrides the first
 
 
 def configure() -> None:
@@ -61,6 +62,13 @@ def configure() -> None:
             at = [line.strip().lower() for line in lines].index("[reaper]")
             lines.insert(at + 1, wanted)
     ini.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    # The studio's own effects (plain-text JSFX) go where REAPER looks for them by name.
+    ours = HOME / "Effects" / "freerock"
+    ours.mkdir(parents=True, exist_ok=True)
+    for source in sorted(JSFX.iterdir()):
+        target = ours / source.name
+        if not target.is_file() or target.read_bytes() != source.read_bytes():
+            target.write_bytes(source.read_bytes())
 
 
 class Display:

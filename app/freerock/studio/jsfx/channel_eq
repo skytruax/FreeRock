@@ -1,0 +1,97 @@
+desc: FreeRock channel equaliser (low cut, low shelf, three bands, high shelf, high cut)
+// Part of FreeRock's studio. A plain equaliser for every instrument's channel: six second-order
+// filters in a row (the usual "cookbook" forms), with nothing drawn and nothing analysed, so
+// that sixty of them in a project cost next to nothing. Copied into REAPER's Effects folder
+// by freerock.studio.reaper.configure.
+
+slider1:0<0,2000,1>Low cut (Hz, 0 is off)
+slider2:0<0,22000,10>High cut (Hz, 0 is off)
+slider3:100<20,1000,1>Low shelf (Hz)
+slider4:0<-18,18,0.1>Low shelf (dB)
+slider5:300<20,20000,1>Band 1 (Hz)
+slider6:0<-18,18,0.1>Band 1 (dB)
+slider7:1<0.1,4,0.05>Band 1 (width in octaves)
+slider8:1000<20,20000,1>Band 2 (Hz)
+slider9:0<-18,18,0.1>Band 2 (dB)
+slider10:1<0.1,4,0.05>Band 2 (width in octaves)
+slider11:3000<20,20000,1>Band 3 (Hz)
+slider12:0<-18,18,0.1>Band 3 (dB)
+slider13:1<0.1,4,0.05>Band 3 (width in octaves)
+slider14:8000<1000,20000,10>High shelf (Hz)
+slider15:0<-18,18,0.1>High shelf (dB)
+
+in_pin:left input
+in_pin:right input
+out_pin:left output
+out_pin:right output
+
+@init
+ext_tail_size = -1;
+coef = 0;        // six filters, five numbers each
+state = 64;      // six filters, two channels, two numbers each
+memset(state, 0, 24);
+
+function sinh(x) ( (exp(x) - exp(-x)) / 2 );
+function put(band b0 b1 b2 a0 a1 a2) local(p) (
+  p = coef + band * 5;
+  p[0] = b0 / a0; p[1] = b1 / a0; p[2] = b2 / a0; p[3] = a1 / a0; p[4] = a2 / a0;
+);
+function plain(band) local(p) (
+  p = coef + band * 5;
+  p[0] = 1; p[1] = 0; p[2] = 0; p[3] = 0; p[4] = 0;
+);
+function cut(band hz high) local(w cw alpha) (
+  hz <= 0 || hz >= srate * 0.49 ? plain(band) : (
+    w = 2 * $pi * hz / srate; cw = cos(w); alpha = sin(w) / (2 * 0.7071);
+    high ? put(band, (1 - cw) / 2, 1 - cw, (1 - cw) / 2, 1 + alpha, -2 * cw, 1 - alpha)
+         : put(band, (1 + cw) / 2, -(1 + cw), (1 + cw) / 2, 1 + alpha, -2 * cw, 1 - alpha);
+  );
+);
+function shelf(band hz db high) local(a w cw alpha ra) (
+  abs(db) < 0.01 ? plain(band) : (
+    a = 10 ^ (db / 40); w = 2 * $pi * min(hz, srate * 0.45) / srate; cw = cos(w);
+    alpha = sin(w) / 2 * sqrt(2); ra = 2 * sqrt(a) * alpha;
+    high ? put(band, a * ((a + 1) + (a - 1) * cw + ra), -2 * a * ((a - 1) + (a + 1) * cw), a * ((a + 1) + (a - 1) * cw - ra),
+               (a + 1) - (a - 1) * cw + ra, 2 * ((a - 1) - (a + 1) * cw), (a + 1) - (a - 1) * cw - ra)
+         : put(band, a * ((a + 1) - (a - 1) * cw + ra), 2 * a * ((a - 1) - (a + 1) * cw), a * ((a + 1) - (a - 1) * cw - ra),
+               (a + 1) + (a - 1) * cw + ra, -2 * ((a - 1) + (a + 1) * cw), (a + 1) + (a - 1) * cw - ra);
+  );
+);
+function bell(band hz db octaves) local(a w cw sw alpha) (
+  abs(db) < 0.01 ? plain(band) : (
+    a = 10 ^ (db / 40); w = 2 * $pi * min(hz, srate * 0.45) / srate; cw = cos(w); sw = sin(w);
+    alpha = sw * sinh(log(2) / 2 * octaves * w / sw);
+    put(band, 1 + alpha * a, -2 * cw, 1 - alpha * a, 1 + alpha / a, -2 * cw, 1 - alpha / a);
+  );
+);
+@slider
+cut(0, slider1, 0);
+shelf(1, slider3, slider4, 0);
+bell(2, slider5, slider6, slider7);
+bell(3, slider8, slider9, slider10);
+bell(4, slider11, slider12, slider13);
+shelf(5, slider14, slider15, 1);
+// The high cut shares the last place with nothing: it is a seventh filter kept apart.
+hc_on = slider2 > 0 && slider2 < srate * 0.49;
+hc_on ? (
+  hw = 2 * $pi * slider2 / srate; hcw = cos(hw); halpha = sin(hw) / (2 * 0.7071);
+  h0 = ((1 - hcw) / 2) / (1 + halpha); h1 = (1 - hcw) / (1 + halpha); h2 = h0;
+  h3 = (-2 * hcw) / (1 + halpha); h4 = (1 - halpha) / (1 + halpha);
+);
+
+@sample
+x0 = spl0; x1 = spl1;
+band = 0;
+loop(6,
+  p = coef + band * 5; s = state + band * 4;
+  y0 = p[0] * x0 + s[0]; s[0] = p[1] * x0 - p[3] * y0 + s[1]; s[1] = p[2] * x0 - p[4] * y0;
+  y1 = p[0] * x1 + s[2]; s[2] = p[1] * x1 - p[3] * y1 + s[3]; s[3] = p[2] * x1 - p[4] * y1;
+  x0 = y0; x1 = y1;
+  band += 1;
+);
+hc_on ? (
+  y0 = h0 * x0 + hz0; hz0 = h1 * x0 - h3 * y0 + hz1; hz1 = h2 * x0 - h4 * y0;
+  y1 = h0 * x1 + hz2; hz2 = h1 * x1 - h3 * y1 + hz3; hz3 = h2 * x1 - h4 * y1;
+  x0 = y0; x1 = y1;
+);
+spl0 = x0; spl1 = x1;

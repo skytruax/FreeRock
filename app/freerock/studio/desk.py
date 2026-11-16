@@ -30,6 +30,10 @@ from .score import Note
 
 RATE = 48000
 TICKS = 960                    # to a quarter note, in the notes REAPER is given
+# Every project begins with this much silence, which is cut from what REAPER renders. Some
+# instruments (the AVL drum kits, DrumGizmo) fetch their recordings when the first stretch of
+# sound is asked of them, and play nothing in it: a note on the first beat would be lost.
+LEAD = 1.0
 VAR = Path(__file__).resolve().parents[3] / "var"
 TEMPLATES = VAR / "reaper" / "templates"
 LUA = Path(__file__).resolve().parent / "lua"
@@ -444,19 +448,19 @@ def track(line: Line, *, bpm: float, seconds: float, folder: int = 0, selected: 
         out += ["    <VOLENV2", "      ACT 1 -1", "      VIS 1 1 1", "      LANEHEIGHT 0 0", "      ARM 0", "      DEFSHAPE 0 -1 -1"]
         last = -1.0
         for beat, level in sorted(line.moves):
-            at = max(beat * 60.0 / bpm - ahead, 0.0)
+            at = max(beat * 60.0 / bpm - ahead, 0.0) + LEAD
             if at <= last:
                 at = last + 0.001
             out.append("      PT %.4f %.5f 0" % (at, max(level, 0.0)))
             last = at
         out.append("    >")
     if line.notes:
-        out += ["    <ITEM", "      POSITION 0", "      LENGTH %.6f" % seconds, "      LOOP 0", "      NAME " + _quote(line.name),
+        out += ["    <ITEM", "      POSITION %.6f" % LEAD, "      LENGTH %.6f" % seconds, "      LOOP 0", "      NAME " + _quote(line.name),
                 "      <SOURCE MIDI", "        HASDATA 1 %d QN" % TICKS]
         out += ["        " + event for event in _events(line.notes, bpm, seconds, line.early, line.controls)]
         out += ["      >", "    >"]
     for at, long, file in line.clips:
-        out += ["    <ITEM", "      POSITION %.6f" % at, "      LENGTH %.6f" % long, "      LOOP 0", "      <SOURCE WAVE",
+        out += ["    <ITEM", "      POSITION %.6f" % (at + LEAD), "      LENGTH %.6f" % long, "      LOOP 0", "      <SOURCE WAVE",
                 "        FILE " + _quote(file), "      >", "    >"]
     out.append("  >")
     return "\n".join(out)
@@ -465,14 +469,15 @@ def track(line: Line, *, bpm: float, seconds: float, folder: int = 0, selected: 
 def project(folders: list[tuple[Line, list[Line]]], *, bpm: float, seconds: float, out: Path, tail: float = 0.0,
             hall: str | None = None) -> str:
     """A whole project as text: each folder (a bus track and the tracks under it) one after the
-    other, set up to render every folder as its own file, `seconds` long plus `tail`, into
-    `out`, 48 kHz, named after the folder. With `hall` (the template of a reverb track), every
+    other, set up to render every folder as its own file, `seconds` long plus `tail` (after
+    LEAD seconds of silence, which `stems` and `heard` take off again), into `out`, 48 kHz,
+    named after the folder. With `hall` (the template of a reverb track), every
     folder gets a hall of its own as its last track, and each track under the folder sends to
     it as much as its `send` says: so each rendered file carries its own share of the room."""
     rows = ['<REAPER_PROJECT 0.1 "7.86/linux-x86_64" 0 0', "  RIPPLE 0 0", "  AUTOXFADE 129", "  PANLAW 1", "  PANMODE 3",
             "  SAMPLERATE %d 0 0" % RATE,
             "  RENDER_FILE " + _quote(str(out)), "  RENDER_PATTERN $track", "  RENDER_FMT 0 2 %d" % RATE, "  RENDER_1X 0 0",
-            "  RENDER_RANGE 0 0 %.6f 0 0" % (seconds + tail), "  RENDER_RESAMPLE 3 0 1", "  RENDER_ADDTOPROJ 0", "  RENDER_STEMS 3",
+            "  RENDER_RANGE 0 0 %.6f 0 0" % (LEAD + seconds + tail), "  RENDER_RESAMPLE 3 0 1", "  RENDER_ADDTOPROJ 0", "  RENDER_STEMS 3",
             "  RENDER_DITHER 0", "  <RENDER_CFG", "    %s" % WAV_FLOAT, "  >",
             "  TEMPO %.6f 4 4 0" % bpm, "  MASTER_NCH 2 2", "  MASTER_VOLUME 1 0 -1 -1 1"]
     number = 0
@@ -514,16 +519,21 @@ def render(rpp: Path, *, display: str, timeout: float = 600.0) -> None:
     reaper.run(["-renderproject", str(rpp)], display=display, work=rpp.parent, timeout=timeout)
 
 
+def heard(path: Path) -> np.ndarray:
+    """One file REAPER rendered, without the silence every project begins with."""
+    if not path.is_file():
+        raise FileNotFoundError("REAPER did not render %s" % path)
+    audio, rate = soundfile.read(str(path), dtype="float32", always_2d=True)
+    if rate != RATE:
+        raise RuntimeError("REAPER rendered %s at %d Hz, not %d" % (path, rate, RATE))
+    return audio[int(round(LEAD * RATE)):]
+
+
 def stems(folder: Path, names: list[str], frames: int) -> dict[str, np.ndarray]:
     """The files REAPER rendered into `folder`, by name, each exactly `frames` long."""
     out = {}
     for name in names:
-        path = folder / (name + ".wav")
-        if not path.is_file():
-            raise FileNotFoundError("REAPER did not render %s" % path)
-        audio, rate = soundfile.read(str(path), dtype="float32", always_2d=True)
-        if rate != RATE:
-            raise RuntimeError("REAPER rendered %s at %d Hz, not %d" % (path, rate, RATE))
+        audio = heard(folder / (name + ".wav"))
         if len(audio) < frames:
             audio = np.concatenate([audio, np.zeros((frames - len(audio), audio.shape[1]), dtype=np.float32)])
         out[name] = audio[:frames]

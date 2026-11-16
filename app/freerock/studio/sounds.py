@@ -2,20 +2,28 @@
 
 The writers name their instruments ("violins", "horns", "harp", "kit orchestra"). Here each
 name is given its PLAYERS: recorded instruments from the sample sets on the drive, played by
-REAPER's sampler, and patches of the Surge XT synth. A written instrument can have several: the
-bowed recording for its long notes and the short-bow one for its quick notes; one section for
-its low notes and another for its high ones; a synth underneath.
+the sfizz sampler in REAPER; drum-kit plug-ins; and patches of synths. A written instrument
+can have several: the bowed recording for its long notes and the short-bow one for its quick
+notes; one section for its low notes and another for its high ones; two drum kits and a third
+set of drums for the war drums; a sub underneath.
 
 RECORDED is every recorded instrument there is (a folder of single notes, and how to play
-them). STROKES and KITS are the drums, DRUMS the big drums made of several. SOUNDS is the
-writers' names. Each recorded instrument is written out as an instrument for the sfizz sampler
-(studio.sfz: sections of several players, swells that change the tone, no two notes alike) and
-sits on a REAPER track with the effects its family gets (`chain`). `build` writes them all,
-`levels` measures how loud each one is so that they can be set level with each other, and
-`lines` turns one written voice into the REAPER tracks that play it.
+them). STROKES and KIT_STROKES are the drums, DRUMS the big drums made of several, KIT_PLUGS
+what the drum-kit plug-ins take over. SOUNDS is the writers' names. Each recorded instrument
+is written out as an instrument for the sampler (studio.sfz) as what it is: a section that
+was recorded as a section is played as recorded, a soloist is one player, and the brass,
+which was recorded soft, medium and loud at every semitone, swells through its three
+strengths and is made into small sections from neighbouring semitones. A line of single notes
+is slurred. Each instrument sits on a REAPER track with the few effects its family gets
+(`chain`). `levels` plays each one alone to measure how loud it is and, where the same
+instrument is among the recordings that were liked (studio.ear), what its top needs; `lines`
+turns one written voice into the REAPER tracks that play it.
 
-The sample sets: VSCO 2 Community Edition and VCSL (Versilian Studios, CC0). See
-tools/stems/README.md.
+    uv run --no-sync python -m freerock.studio.sounds        write and measure every instrument
+
+The sample sets: VSCO 2 Community Edition and VCSL (Versilian Studios, CC0), TinySOL (IRCAM,
+CC BY 4.0), Big Rusty Drums (Karoryfer, CC0); the AVL drum kits (Glen MacArthur, CC BY-SA
+3.0). See tools/stems/README.md.
 """
 from __future__ import annotations
 
@@ -33,7 +41,7 @@ from .score import Note, Voice
 PATCHES = desk.VAR / "reaper" / "patches"          # each recorded instrument as read (kept, since reading measures every recording)
 LEVELS = desk.TEMPLATES / "levels.json"            # how many dB each template is turned by, to play at LEVEL
 LEVEL = -30.0                                      # LUFS: every instrument alone, at a firm strength, is brought to this
-V2, VC = "vsco2/", "vcsl/"
+V2, VC, SOL = "vsco2/", "vcsl/", "tinysol/"
 _STR, _WW, _BR = V2 + "Strings/", V2 + "Woodwinds/", V2 + "Brass/"
 _EDGE = VC + "Aerophones/Edge-blown Aerophones/"
 _ZITH = VC + "Chordophones/Zithers/"
@@ -71,19 +79,29 @@ RECORDED: dict[str, tuple[str, dict]] = {
     "flute short": (_WW + "Flute/stac", SHORT),
     "piccolo long": (_WW + "Piccolo/Sus", WIND), "piccolo short": (_WW + "Piccolo/Stac", SHORT),
     "oboe long": (_WW + "Oboe/Vib", WIND), "oboe plain": (_WW + "Oboe/Sus", WIND), "oboe short": (_WW + "Oboe/Stacc", SHORT),
-    "clarinet long": (_WW + "Clarinet/susLong", WIND), "clarinet short": (_WW + "Clarinet/stac", SHORT),
-    "bassoon long": (_WW + "Bassoon/vib", WIND), "bassoon plain": (_WW + "Bassoon/sus", WIND), "bassoon short": (_WW + "Bassoon/stac", SHORT),
+    # The clarinet and the bassoon are TinySOL's: every semitone played soft, medium and loud. A clarinet has no
+    # vibrato, and its tone changes more from soft to loud than any other woodwind's; one recording cannot do that.
+    "clarinet long": (SOL + "Winds/Clarinet_Bb/ordinario", WIND), "clarinet short": (_WW + "Clarinet/stac", SHORT),
+    "bassoon long": (SOL + "Winds/Bassoon/ordinario", WIND), "bassoon plain": (_WW + "Bassoon/sus", WIND), "bassoon short": (_WW + "Bassoon/stac", SHORT),
     "recorder high long": (_EDGE + "Baroque Soprano Recorder/Sustain", WIND), "recorder high short": (_EDGE + "Baroque Soprano Recorder/Staccato", SHORT),
     "recorder long": (_EDGE + "Baroque Alto Recorder/SusVib", WIND), "recorder short": (_EDGE + "Baroque Alto Recorder/Staccato", SHORT),
     "recorder low long": (_EDGE + "Baroque Tenor Recorder/SusVib", WIND), "recorder low short": (_EDGE + "Baroque Tenor Recorder/Staccato", SHORT),
     "recorder bass long": (_EDGE + "Baroque Bass Recorder/SusVib", WIND),
     "ocarina long": (_EDGE + "Ocarina, Small/Sustain", WIND), "ocarina short": (_EDGE + "Ocarina, Small/Staccato", SHORT),
-    # --- brass ---
-    "horn long": (_BR + "F Horn/sus", dict(WIND, attack=45.0, release=260.0)), "horn short": (_BR + "F Horn/stac", SHORT),
+    # --- brass: TinySOL (IRCAM, CC BY 4.0), every semitone played soft, medium and loud, with no vibrato ---
+    # Brass is the family that changes most with strength: a horn played loud is twenty decibels louder than one
+    # played soft and has twenty-five more above 2.5 kHz. The brass there was before (VSCO 2) had one strength, a
+    # mellow one, and its trumpet a wide vibrato; nothing on the desk makes that blaze. The short notes are the
+    # same recordings begun at once and let go at once.
+    "horn long": (SOL + "Brass/Horn/ordinario", dict(WIND, attack=40.0, release=240.0)),
+    "horn short": (SOL + "Brass/Horn/ordinario", dict(WIND, attack=8.0, release=110.0)),
     "horn muted": (_BR + "F Horn/mute", WIND),
-    "trumpet long": (_BR + "Trumpet/susvib", WIND), "trumpet plain": (_BR + "Trumpet/sus", WIND), "trumpet short": (_BR + "Trumpet/stac", SHORT),
-    "trombone long": (_BR + "Tenor Trombone/sus", dict(WIND, attack=45.0)), "trombone short": (_BR + "Tenor Trombone/stac", SHORT),
-    "tuba long": (_BR + "Tuba/sus", dict(WIND, attack=50.0)), "tuba short": (_BR + "Tuba/stac", SHORT),
+    "trumpet long": (SOL + "Brass/Trumpet_C/ordinario", dict(WIND, attack=30.0, release=200.0)),
+    "trumpet short": (SOL + "Brass/Trumpet_C/ordinario", dict(WIND, attack=6.0, release=90.0)),
+    "trombone long": (SOL + "Brass/Trombone/ordinario", dict(WIND, attack=40.0, release=230.0)),
+    "trombone short": (SOL + "Brass/Trombone/ordinario", dict(WIND, attack=8.0, release=110.0)),
+    "tuba long": (SOL + "Brass/Bass_Tuba/ordinario", dict(WIND, attack=50.0, release=240.0)),
+    "tuba short": (SOL + "Brass/Bass_Tuba/ordinario", dict(WIND, attack=10.0, release=120.0)),
     # --- keys and things plucked ---
     "organ loud": (_EDGE + "Pipe Organ/Loud", dict(attack=25.0, release=260.0, floor=-3.0)),
     "organ quiet": (_EDGE + "Pipe Organ/Quiet", dict(attack=25.0, release=260.0, floor=-3.0)),
@@ -161,20 +179,25 @@ KIT_STROKES: dict[str, dict[str, str]] = {
 }
 
 
-# Big drums made of several drums struck as one by several players (studio.sfz.layered):
-# name -> (the drums: the strokes, the written note at which they sound as recorded, level in
-# dB), the lowest and highest written note, how many players.
-_RUSTY = "big-rusty-drums/Samples/"            # Karoryfer's Big Rusty Drums (CC0): a 24-inch kick, a 22-inch kick hung as a tom, an 18-inch floor tom
-DRUMS: dict[str, tuple[list[tuple[str, int, float]], int, int, int]] = {
-    # The war drums: the 22-inch drum struck with mallets (the room's microphones and the close one), the undamped
-    # 24-inch kick under it for the depth, and the 18-inch floor tom. Written note 36 is the biggest.
-    "war drums": ([(_RUSTY + "tom_22/mallet/oh/t22_m_vl*_rr*.flac", 43, 0.0), (_RUSTY + "tom_22/mallet/cl/t22_m_vl*_rr*.flac", 43, -4.0),
-                   (_RUSTY + "kick_24_nodamp/kick/oh/k_nodamp_vl*_rr*.flac", 41, -2.0), (_RUSTY + "tom_18/mallet/oh/t18_m_vl*_rr*.flac", 47, -4.0)],
-                  28, 54, 3),
-    "frame drums": ([(_MEMB + "Frame Drum/HDrumL_Hit_v*.wav", 48, 0.0), (_MEMB + "Frame Drum/HDrumS_Hit_v*.wav", 53, -2.0),
-                     (_RUSTY + "tom_15/mallet/oh/t15_m_vl*_rr*.flac", 55, -6.0)], 40, 64, 3),
-    "boom": ([(_RUSTY + "kick_24_nodamp/kick/oh/k_nodamp_vl*_rr*.flac", 46, 0.0), (_RUSTY + "tom_22/mallet/oh/t22_m_vl*_rr*.flac", 50, -3.0),
-              (_MEMB + "Bass Drum 1/BDrumNew_hit_*.wav", 46, -3.0)], 24, 50, 2),
+# Big drums made of several drums struck by several players (studio.sfz.layered): name -> (the
+# drums, how many players). Each drum is its strokes, the written note at which it sounds as
+# it was recorded, its level in dB, and the lowest and highest written note that strike it.
+#
+# Every drum is played at the pitch it was recorded at, or within a semitone of it. The first
+# war drums had these same drums tuned five to fifteen semitones down, through a low-pass
+# filter: measured, nearly all their power lay under 160 Hz and their top was twenty decibels
+# short of drums that were liked. No stick, no skin: a thud (2026-11-16).
+_RUSTY = "big-rusty-drums/Samples/"            # Karoryfer's Big Rusty Drums (CC0): a 24-inch kick, a 22-inch kick hung as a tom, 18- and 15-inch toms
+DRUMS: dict[str, tuple[list[tuple[str, int, float, int, int]], int]] = {
+    # Written 36 and 38 are the 22-inch drum, 41 and 43 the 18-inch, 45 and 47 the 15-inch: struck in the middle with
+    # sticks, heard over the kit (where the skin and the stick are) with the close microphone under it for the thump.
+    "war drums": ([(_RUSTY + "tom_22/center/oh/t22_vl*_rr*.flac", 38, 0.0, 36, 39), (_RUSTY + "tom_22/center/cl/t22_vl*_rr*.flac", 38, -7.0, 36, 39),
+                   (_RUSTY + "tom_18/center/oh/t18_vl*_rr*.flac", 42, 0.0, 40, 43), (_RUSTY + "tom_18/center/cl/t18_vl*_rr*.flac", 42, -7.0, 40, 43),
+                   (_RUSTY + "tom_15/center/oh/t15_vl*_rr*.flac", 46, -1.0, 44, 47)], 3),
+    "frame drums": ([(_MEMB + "Frame Drum/HDrumL_Hit_v*.wav", 46, 0.0, 40, 49), (_MEMB + "Frame Drum/HDrumS_Hit_v*.wav", 55, -2.0, 50, 64)], 2),
+    # The deep stroke on an arrival: the undamped 24-inch kick, the 22-inch drum under a mallet and a concert bass drum, as one.
+    "boom": ([(_RUSTY + "kick_24_nodamp/kick/oh/k_nodamp_vl*_rr*.flac", 36, 0.0, 24, 50), (_RUSTY + "tom_22/mallet/oh/t22_m_vl*_rr*.flac", 36, -3.0, 24, 50),
+              (_MEMB + "Bass Drum 1/BDrumNew_hit_*.wav", 36, -1.0, 24, 50)], 2),
 }
 # Single things that are struck, each on one written note: name -> (the strokes, the note).
 STRUCK: dict[str, tuple[str, int]] = {
@@ -198,6 +221,9 @@ class Player:
     gain: float = 0.0          # dB
     octave: int = 0            # played this many octaves away from where it is written
     seat: float | None = None  # where it sits, -1 left to 1 right; None leaves it to the writer
+    # For a drum kit, whose every note is a different drum: (the written note, or -1 for any; the kit's note that is
+    # struck for it; how much softer it is struck, in dB). A written note may strike several of the kit's drums.
+    takes: tuple[tuple[int, int, float], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -208,8 +234,10 @@ class Sound:
 
 def _bowed(name: str, seat: float, long: str = "long") -> Sound:
     players = (Player("%s %s" % (name, long), "long", seat=seat), Player(name + " short", "short", seat=seat))
-    if name in ("violins", "violas", "celli"):
-        players += (Player(SILK, "long", gain=-13.0, seat=seat * 0.5),)        # silk under the section: felt more than heard
+    if name == "basses":
+        # A recorded double bass has little of its own bottom octave. Where the basses play out, a synth's plain sub
+        # sits under them at their pitch, in the middle: felt more than heard, and the only thing down there.
+        players += (Player(SUB, "long", over=0.55, gain=-9.0, octave=1, seat=0.0),)
     return Sound(players)
 
 
@@ -234,7 +262,34 @@ def _strings(long: str) -> Sound:
 CHOIR = "zyn:Fantasy: 0011-Space Choir1.xiz"            # a wide, diffuse choir (PADsynth)
 OOHS = "zyn:Collection: 0121-Breathy Ahh.xiz"
 SILK = "zyn:Collection: 0024-Full Strings.xiz"         # a string pad that goes under the recorded sections
-SUB = "surge:patches_factory/Basses/Sub 1.fxp"
+SUB = "surge:patches_factory/Basses/Sub 1.fxp"          # a plain sine that sounds an octave under the note it is given (measured): played an octave up, it is at the note
+# Drum-kit plug-ins: the AVL drum kits (Glen MacArthur's recordings, CC BY-SA 3.0, in Robin
+# Gareus's plug-in). Red Zeppelin is a 1970s rock kit with a 26-inch bass drum, Black Pearl a
+# tighter modern kit with a deeper floor tom, Buskman's Holiday hand percussion; every drum was
+# recorded at five strengths (the hand percussion at ten). After "#" stands what the kit is
+# used as: the same kit is mixed one way as war drums and another behind a band.
+#   Both kits: 36 kick, 37 side stick, 38 snare, 40 snare edge, 41 floor tom, 43 floor tom edge, 45 tom, 47 tom edge,
+#   42 44 46 48 hi-hat (closed, pedal, half open, swish), 49 57 60 crashes, 51 53 59 ride, 54 tambourine, 56 cowbell, 61 maraca.
+#   Buskman's: 35 stick click, 36 cajon thump, 38 40 cajon slaps, 39 claps, 41 43 big conga, 45 47 small conga, 42 shakers,
+#   44 46 tambourine, 48 claves, 49 cymbal, 50 its bell, 51 cowbell, 52 foot stomp, 53 bucket.
+RED, PEARL, BUSK = "avl:Red Zeppelin Drumkit", "avl:Black Pearl Drumkit", "avl:Buskman's Holiday Percussion"
+# The war drums are two drummers at two kits and a third at the big rusty drums. Written 36 is
+# everything low at once (the 26-inch bass drum and both floor toms), 38 the deep floor tom,
+# 41 the other kit's, 43 the deep one struck at its edge, 45 and 47 the two kits' toms: so a
+# roll (38, 41, 38, 41) goes from drummer to drummer, as do the eighths that drive (43, 41).
+_WAR = (Player(PEARL + "#war", takes=((36, 41, 0.0), (38, 41, 0.0), (43, 43, 0.0), (45, 45, 0.0)), seat=-0.3),
+        Player(RED + "#war", takes=((36, 36, 0.0), (36, 41, -3.0), (41, 41, 0.0), (47, 45, 0.0)), seat=0.3),
+        Player("war drums", gain=-3.0, seat=0.0))
+# A kit's strokes that a kit plug-in plays (the rest stay with the recordings in the sampler):
+# kit -> (the plug-in, the writer's stroke -> the plug-in's note).
+_ROCK = {"boom": 36, "snare": 38, "clack": 37, "crash": 49, "crash2": 57, "tamb": 54, "hat": 42, "hat open": 46, "ride": 51, "bell": 53,
+         "tom": 45, "tom low": 41, "tom high": 47, "cowbell": 56, "shake": 61}
+KIT_PLUGS: dict[str, tuple[str, dict[str, int]]] = {
+    "rock": (RED + "#kit", _ROCK), "room": (PEARL + "#kit", _ROCK),
+    "hands": (BUSK + "#hands", {"boom": 41, "conga low": 43, "snare": 45, "conga": 47, "clack": 38, "mute": 40, "deep": 36, "shake": 42, "jingle": 44,
+                                "tamb": 46, "tick": 48, "crash": 49, "ting": 50, "cowbell": 51}),
+    "folk": (BUSK + "#hands", {"clack": 39, "shake": 42, "jingle": 44, "tamb": 46, "tick": 48}),
+}
 SOUNDS: dict[str, Sound] = {
     "violins": _bowed("violins", -0.4), "violins slow": _bowed("violins", -0.4, "slow"),
     "violas": _bowed("violas", 0.12), "celli": _bowed("celli", 0.3), "celli slow": _bowed("celli", 0.3, "slow"),
@@ -261,7 +316,10 @@ SOUNDS: dict[str, Sound] = {
     "brass": Sound((Player("trumpet long", "long", low=58, gain=-2.0, seat=0.2), Player("trumpet short", "short", low=58, gain=-2.0, seat=0.2),
                     Player("trombone long", "long", high=66, gain=-2.0, seat=0.32), Player("trombone short", "short", high=66, gain=-2.0, seat=0.32),
                     Player("horn long", "long", low=41, high=74, gain=-5.0, seat=-0.28)), short=0.2),
-    "harp": Sound((Player("harp", seat=-0.45),)), "celesta": Sound((Player("tube glock", seat=-0.3),)),
+    "harp": Sound((Player("harp", seat=-0.45),)),
+    # There is no recording of a celesta. Of what there is, a vibraphone under soft mallets is nearest: metal bars over
+    # resonators, a soft stroke, a pure note. (A glockenspiel, which stood in before, is glass beside it.)
+    "celesta": Sound((Player("vibes", seat=-0.3),)),
     "glock": Sound((Player("glock", seat=0.25),)), "music box": Sound((Player("kalimba", octave=1, seat=-0.1),)),
     "vibes": Sound((Player("vibes", seat=0.3),)), "marimba": Sound((Player("marimba", seat=0.3),)),
     "xylophone": Sound((Player("xylophone", seat=0.3),)),
@@ -280,10 +338,21 @@ SOUNDS: dict[str, Sound] = {
     "shenai": Sound((Player("oboe plain", seat=0.05),)),
     "choir": Sound((Player(CHOIR, gain=-3.0, seat=0.0),)), "oohs": Sound((Player(OOHS, gain=-3.0, seat=0.0),)),
     "timpani": Sound((Player("timpani", seat=-0.1),)),
-    "taiko": Sound((Player("war drums", seat=0.0),)),
-    "great drum": Sound((Player("great drum", seat=0.0),)), "melodic tom": Sound((Player("tom mallet", seat=0.15),)),
-    "war drums": Sound((Player("war drums", seat=0.0),)), "frame drums": Sound((Player("frame drums", seat=0.1),)),
-    "boom": Sound((Player("boom", seat=0.0), Player(SUB, gain=-3.0, octave=-1, seat=0.0))),
+    # A drum written at the chord's note, whatever that is: the deep floor tom and the rusty drums nearest that size.
+    "taiko": Sound((Player(PEARL + "#war", takes=((-1, 41, 0.0),), seat=-0.2), Player(RED + "#war", takes=((-1, 41, -2.0),), seat=0.2),
+                    Player("war drums", gain=-3.0, seat=0.0))),
+    "great drum": Sound((Player("great drum", seat=0.0), Player(RED + "#war", takes=((-1, 36, -2.0),), gain=-4.0, seat=0.0))),
+    "melodic tom": Sound((Player("tom mallet", seat=0.15),)),
+    "war drums": Sound(_WAR),
+    # The frame drums and a cajon with them: its thump under the low strokes, its slaps with the high ones.
+    "frame drums": Sound((Player("frame drums", seat=0.1),
+                          Player(BUSK + "#hands", takes=((45, 36, 0.0), (47, 36, -2.0), (55, 38, -3.0), (57, 40, -3.0), (50, 38, -8.0), (52, 40, -8.0)),
+                                 gain=-5.0, seat=-0.15))),
+    # The deep stroke on an arrival: both kits' bass drums and the deep floor tom, the big rusty kick and a concert bass
+    # drum, and a synth's sub under them an octave above the bottom of hearing (it used to sit at 33 Hz, where it
+    # could not be heard and every loudspeaker had to carry it).
+    "boom": Sound((Player(RED + "#war", takes=((36, 36, 0.0),), seat=0.0), Player(PEARL + "#war", takes=((36, 36, -2.0), (36, 41, 0.0)), seat=0.0),
+                   Player("boom", gain=-2.0, seat=0.0), Player(SUB, gain=-6.0, octave=1, seat=0.0))),
     "gong": Sound((Player("gong", seat=0.2),)), "anvil": Sound((Player("anvil", seat=-0.2),)),
 }
 
@@ -295,12 +364,28 @@ def _file(name: str) -> str:
     return re.sub(r"[^A-Za-z0-9 _.-]+", " ", name).strip()
 
 
+_patches: dict[str, Patch] = {}
+
+
 def patch(name: str) -> Patch:
     """A recorded instrument by name, read from its folder (and kept, since reading it means
     measuring every recording)."""
+    if name not in _patches:
+        _patches[name] = _read_patch(name)
+    return _patches[name]
+
+
+def _read_patch(name: str) -> Patch:
     kept = PATCHES / (_file(name) + ".json")
     if kept.is_file():
-        return Patch.load(kept)
+        had = Patch.load(kept)
+        if name not in RECORDED:
+            return had
+        # A kept reading is good only while the instrument is still read from the same folder in the same way.
+        folder, how = RECORDED[name]
+        if (had.zones and had.zones[0].files[0].startswith(folder + "/") and had.attack == how.get("attack", 4.0)
+                and had.release == how.get("release", 180.0) and had.held == how.get("held", True)):
+            return had
     if name in KETTLES:
         made = samples.kettles(SAMPLES / KETTLES[name], name, only="main")
     elif name in RECORDED:
@@ -326,11 +411,20 @@ def patch(name: str) -> Patch:
     return made
 
 
+def _kit_plug(name: str) -> bool:
+    """Whether a player is a drum-kit plug-in ("avl:<the plug-in's name>#<what it is used as>")."""
+    return name.startswith("avl:")
+
+
+def _role(name: str) -> str:
+    return name.split("#", 1)[1] if "#" in name else ""
+
+
 def family(name: str) -> str:
     """Which kind of instrument a recorded one is: it settles how it is written for the sampler
     and what effects go on its channel."""
     first = name.split(" ")[0]
-    if name in DRUMS or name in TUNED_DRUMS or name in KETTLES or name in STRUCK or name.startswith("kit "):
+    if _kit_plug(name) or name in DRUMS or name in TUNED_DRUMS or name in KETTLES or name in STRUCK or name.startswith("kit "):
         return "drums"
     if first in ("violins", "violas", "celli", "basses"):
         return "strings short" if name.endswith(("short", "pizz")) else "strings"
@@ -371,53 +465,78 @@ def kit_patches(name: str, strokes: dict[str, int]) -> list[tuple[int, Patch]]:
     return out
 
 
-def instrument(name: str) -> Path:
+_written: dict[tuple[str, bool], Path] = {}
+# How many play each note of a held instrument, where that is more than the recording itself:
+# the brass, whose every semitone was recorded, so that the players beside the first are the
+# neighbouring semitones bent to the note (three horns, two trumpets, two trombones, one tuba).
+PLAYERS = {"horn": 3, "trumpet": 2, "trombone": 2}
+# How long a slurred note takes to come in over the note before it, in seconds, by family.
+SLUR = {"strings": 0.12, "solo strings": 0.09, "woodwind": 0.07, "brass": 0.08}
+
+
+def _dry(name: str) -> bool:
+    """Whether an instrument was recorded with no room about it (TinySOL: one microphone, close)."""
+    return name in RECORDED and RECORDED[name][0].startswith(SOL)
+
+
+def instrument(name: str, slurs: bool = False) -> Path:
     """The sampler instrument (an SFZ file) for a recorded instrument, a big drum or a kit
-    ("kit orchestra"), written if it is not there yet."""
-    made = sfz.FOLDER / (_file(name) + ".sfz")
-    if made.is_file():
-        return made
+    ("kit orchestra"). It is written afresh the first time it is asked for in a run, so that a
+    change to how instruments are written reaches every one of them. With `slurs`, the
+    instrument for a line of single notes: a note begun while the last is held joins it."""
+    if (name, slurs) in _written:
+        return _written[(name, slurs)]
     kind = family(name)
+    slur = SLUR.get(kind, 0.0) if slurs else 0.0
     if name.startswith("kit "):
         from .orchestra import KITS
         strokes = KITS[name[4:]][1]
         hats = {strokes[each]: 1 for each in ("hat", "hat open") if each in strokes}
         text = sfz.kit(kit_patches(name[4:], strokes), chokes=hats)
     elif name in DRUMS:
-        parts, low, high, players = DRUMS[name]
+        parts, players = DRUMS[name]
         made_parts = []
-        for pattern, centre, level in parts:
+        for pattern, centre, level, low, high in parts:
             files = sorted(SAMPLES.glob(pattern))
             if not files:
                 raise FileNotFoundError("No recordings match %s (for %s)" % (pattern, name))
-            made_parts.append((samples.struck(files, name, centre, release=1500.0), 0.0, level))
-        text = sfz.layered(made_parts, low, high, players=players)
+            made_parts.append((samples.struck(files, name, centre, release=1500.0), centre, level, low, high))
+        text = sfz.layered(made_parts, players=players)
     else:
         read = patch(name)
         if read.held and any(zone.loop for zone in read.zones):
             first = name.split(" ")[0]
+            # Every instrument is its recording as it is: a section that was recorded as a section has its players
+            # in it, and a soloist is one player. (Sections used to be three recordings a few cents and a few
+            # hundredths of a second apart: that is a chorus, and a chorus on strings is a keyboard's strings.)
             if kind == "strings":
+                # (A section swells from its soft recording into its loud one: many players do not change all at once.)
                 bite = patch(first + " short") if name.endswith(("long", "slow")) else None
-                text = sfz.held(read, players=3, dark=1400.0, opens=4200.0, range_db=16.0, drift=3.5, bite=bite)
+                text = sfz.held(read, blend=True, range_db=14.0, drift=2.0, bite=bite, slur=slur)
             elif kind == "solo strings":
-                text = sfz.held(read, players=1, dark=1500.0, opens=4000.0, range_db=16.0, drift=3.0)
+                text = sfz.held(read, range_db=14.0, drift=3.0, slur=slur)
+            elif kind == "woodwind" and _dry(name):
+                # Three recorded strengths: the note's own strength picks one (one player), and they differ as recorded.
+                text = sfz.held(read, blend=False, dark=6000.0, opens=2400.0, range_db=5.0, drift=2.0, slur=slur)
             elif kind == "woodwind":
-                text = sfz.held(read, players=1, dark=1900.0, opens=3600.0, range_db=20.0 if len({zone.soft for zone in read.zones}) == 1 else 15.0, drift=2.5)
+                text = sfz.held(read, range_db=18.0 if len({zone.soft for zone in read.zones}) == 1 else 13.0, drift=2.5, slur=slur)
+            elif kind in ("brass", "brass short") and _dry(name):
+                # The three recorded strengths fade into each other as the players swell: that is the whole of a brass
+                # section's dynamics, and it is in the recordings. Nothing is added but a few decibels of range.
+                count = PLAYERS.get(first, 1)
+                text = sfz.held(read, players=count, blend=count > 1, dark=7000.0, opens=2400.0, range_db=4.0, drift=1.5, spread=26.0, slur=slur)
             elif kind == "brass":
-                text = sfz.held(read, players=2 if name.startswith("horn") else 1, dark=850.0, opens=5200.0, range_db=14.0, drift=2.0, spread=30.0)
+                text = sfz.held(read, dark=2400.0, opens=4000.0, range_db=14.0, drift=2.0, slur=slur)
             elif kind == "organ":
-                text = sfz.held(read, players=1, dark=6000.0, opens=1500.0, range_db=8.0, drift=0.6)
+                text = sfz.held(read, dark=8000.0, opens=1800.0, range_db=8.0, drift=0.6)
             else:
-                text = sfz.held(read, players=2, dark=1800.0, opens=3900.0, range_db=16.0, drift=2.5)
-        elif kind == "strings short":
-            text = sfz.struck(read, dull=1500.0, opens=4800.0, players=3, spread=42.0)
+                text = sfz.held(read, range_db=14.0, drift=2.5)
         elif kind == "drums":
-            text = sfz.struck(read, dull=700.0, opens=6200.0)
-        elif kind in ("bells", "mallets"):
-            text = sfz.struck(read, dull=2000.0, opens=4600.0)
+            text = sfz.struck(read, dull=6000.0, opens=2400.0)
         else:
-            text = sfz.struck(read, dull=1200.0, opens=5200.0)
-    return sfz.write(_file(name), text)
+            text = sfz.struck(read)
+    _written[(name, slurs)] = sfz.write(_file(name) + (" slurred" if slur else ""), text)
+    return _written[(name, slurs)]
 
 
 # ---------------------------------------------------------------------------------------------
@@ -429,31 +548,18 @@ def _db(value: float) -> float:
 
 def equalise(*, low_cut: float = 0.0, high_cut: float = 0.0, low_shelf: tuple[float, float] | None = None,
              high_shelf: tuple[float, float] | None = None, bands: tuple[tuple[float, float, float], ...] = ()) -> str:
-    """An equaliser (x42's parametric): cuts in Hz, shelves as (Hz, dB), up to four bands as
-    (Hz, dB, width in octaves), given from low to high."""
-    put: dict[str, float] = {}
-    if low_cut:
-        put.update(HighPass=1, HPfreq=max(low_cut, 5.0))
-    if high_cut:
-        put.update(LowPass=1, LPfreq=high_cut)
-    if low_shelf:
-        put.update(LSfreq=min(max(low_shelf[0], 25.0), 400.0), LSgain=low_shelf[1])
-    if high_shelf:
-        put.update(HSfreq=min(max(high_shelf[0], 1000.0), 16000.0), HSgain=high_shelf[1])
-    # Its four sections each cover a part of the range: a band goes to the lowest free section that reaches it.
-    reach = {1: (20.0, 2000.0), 2: (40.0, 4000.0), 3: (100.0, 10000.0), 4: (200.0, 20000.0)}
-    free = [1, 2, 3, 4]
-    for hz, gain, width in sorted(bands):
-        section = next((each for each in free if reach[each][0] <= hz <= reach[each][1]), None)
-        if section is None:
-            raise ValueError("The equaliser has no section left for a band at %.0f Hz" % hz)
-        free.remove(section)
-        put.update({"freq%d" % section: hz, "gain%d" % section: gain, "q%d" % section: width})
-    return desk.lv2("x42-eq - Parametric Equalizer Stereo", **put)
+    """The studio's own equaliser (studio/jsfx/channel_eq: six plain filters, cheap enough for
+    every channel): cuts in Hz, shelves as (Hz, dB), up to three bands as (Hz, dB, width in octaves)."""
+    if len(bands) > 3:
+        raise ValueError("The equaliser has three bands; %d were asked for" % len(bands))
+    three = list(bands) + [(1000.0, 0.0, 1.0)] * (3 - len(bands))
+    low = low_shelf or (100.0, 0.0)
+    high = high_shelf or (8000.0, 0.0)
+    return desk.js("freerock/channel_eq", low_cut, high_cut, low[0], low[1], *[value for band in three for value in band], high[0], high[1])
 
 
 def ensemble(amount: float, *, voices: int = 6, rate: float = 0.35, depth: float = 2.5) -> str:
-    """A chorus (Calf's multi chorus): a few players made to sound like more."""
+    """A chorus (Calf's multi chorus): for synths. Not for recorded strings."""
     return desk.lv2("Calf Multi Chorus", voices=voices, min_delay=6.0, mod_depth=depth, mod_rate=rate, stereo=180.0, vphase=300.0,
                     amount=amount, dry=1.0 - 0.35 * amount)
 
@@ -463,10 +569,17 @@ def wide(side: float) -> str:
     return desk.lv2("Calf Stereo Tools", slev=side)
 
 
+def flipped() -> str:
+    """Left and right changed over (Calf's stereo tools): a second kit of the same make has its
+    drums where the first has them, and two drummers do not sit on each other's lap."""
+    return desk.lv2("Calf Stereo Tools", mode=6)
+
+
 def warm(amount: float) -> str:
-    """Tape (Calf's tape simulator with its hiss and wobble off): rounds the peaks, thickens."""
+    """Tape (Calf's tape simulator with its hiss and wobble off, and its own top cut out of
+    the way): rounds the peaks and thickens what is under them."""
     return desk.lv2("Calf Tape Simulator", level_in=0.33 * (1.0 + 1.6 * amount), level_out=1.0 / (1.0 + 0.9 * amount), mix=min(0.3 + 0.5 * amount, 1.0),
-                    lowpass=12000.0, noise=0.0, mechanical=0.0, magnetical=1.0)
+                    lowpass=20000.0, noise=0.0, mechanical=0.0, magnetical=1.0)
 
 
 def punch(strike: float, body: float) -> str:
@@ -480,6 +593,15 @@ def squeeze(threshold: float, ratio: float, attack: float, release: float, makeu
                     makeup_gain=max(makeup, 0.0))
 
 
+def smash(amount: float, *, threshold: float = -28.0, ratio: float = 8.0, attack: float = 6.0, release: float = 110.0, makeup: float = 10.0) -> str:
+    """A compressor laid beside the sound instead of over it (Calf's compressor with its mix
+    part-way: what drummers' engineers call parallel compression). The strokes stay as they
+    were played; what rings between them, the skin and the room, comes up under them.
+    `amount` is how much of the squeezed sound is mixed in, 0 to 1."""
+    return desk.lv2("Calf Compressor", threshold=_db(threshold), ratio=ratio, attack=attack, release=release, makeup=_db(makeup), knee=_db(6.0),
+                    detection=0, stereo_link=0, mix=amount)
+
+
 def echo(bpm: float, amount: float, *, left: int = 3, right: int = 3, again: float = 0.35) -> str:
     """A tempo echo from side to side (Calf's vintage delay), counted in sixteenths: three is a dotted eighth."""
     return desk.lv2("Calf Vintage Delay", timing=0, bpm=min(max(bpm, 30.0), 300.0), subdiv=4, time_l=left, time_r=right, feedback=again, amount=amount,
@@ -490,88 +612,118 @@ def ceiling(threshold: float = -1.0) -> str:
     return desk.lv2("x42-dpl - Digital Peak Limiter Stereo", threshold=threshold, release=0.05)
 
 
-def row(depth: float) -> str:
+def row(depth: float, dry: bool = False) -> str:
     """Where on the stage a player sits, front to back (Dragonfly's early reflections): the
-    further back, the more of the first echoes off the walls, the bigger they are, and the
-    less of the top."""
-    return desk.lv2("Dragonfly Early Reflections", dry_level=100.0 - 25.0 * depth, early_level=15.0 + 30.0 * depth, program=2,
-                    size=14.0 + 18.0 * depth, width=110.0 - 20.0 * depth, low_cut=80.0 - 30.0 * depth, high_cut=13000.0 - 6500.0 * depth)
+    further back, the more of the first echoes off the walls and the bigger they are. The
+    player's own sound is left whole and its top is left alone. A recording made close, with
+    no room in it (`dry`), is given more of the stage: it has none of its own."""
+    more = 1.7 if dry else 1.0
+    return desk.lv2("Dragonfly Early Reflections", dry_level=100.0 - 10.0 * depth * more, early_level=min((10.0 + 25.0 * depth) * more, 60.0), program=2,
+                    size=14.0 + 18.0 * depth, width=110.0 - 20.0 * depth, low_cut=80.0 - 30.0 * depth, high_cut=16000.0 - 4000.0 * depth)
 
 
 def drum_room() -> str:
     """A big drum room around the drums themselves (Dragonfly's room reverb)."""
     return desk.lv2("Dragonfly Room Reverb", dry_level=90.0, early_level=20.0, early_send=20.0, late_level=25.0, size=14.0, width=100.0,
-                    predelay=16.0, decay=0.7, diffuse=40.0, spin=2.7, wander=10.0, in_high_cut=16000.0, early_damp=8000.0, late_damp=5000.0,
-                    low_boost=60.0, boost_freq=300.0, in_low_cut=4.0)
+                    predelay=16.0, decay=0.7, diffuse=40.0, spin=2.7, wander=10.0, in_high_cut=16000.0, early_damp=10000.0, late_damp=7000.0,
+                    low_boost=30.0, boost_freq=300.0, in_low_cut=4.0)
 
 
 LOW_CUT = {"violins": 170.0, "violas": 115.0, "celli": 58.0, "basses": 30.0, "violin": 175.0, "flute": 230.0, "piccolo": 480.0, "oboe": 210.0,
            "clarinet": 130.0, "bassoon": 52.0, "recorder": 220.0, "ocarina": 400.0, "horn": 60.0, "trumpet": 150.0, "trombone": 55.0, "tuba": 30.0}
+VOICING = desk.TEMPLATES / "voicing.json"          # what the ear worked out for each instrument's top (see `levels`)
+_voicing: dict[str, dict] | None = None
+
+
+def voiced(name: str) -> dict:
+    """What the equaliser does to an instrument's top so that it stands where the same
+    instrument stands in recordings that were liked: {"bands": ..., "high_shelf": ...} for
+    `equalise`, worked out by `levels` and kept. Nothing, for an instrument there is no such
+    recording of."""
+    global _voicing
+    if _voicing is None:
+        _voicing = json.loads(VOICING.read_text(encoding="utf-8")) if VOICING.is_file() else {}
+    found = _voicing.get(template_of(name))
+    if not found and name.endswith(" short") and name in RECORDED and RECORDED[name][0] == RECORDED.get(name[:-6] + " long", ("",))[0]:
+        found = _voicing.get(template_of(name[:-6] + " long"))          # the same recordings, begun and let go at once
+    if not found:
+        return {}
+    return {"bands": tuple(tuple(band) for band in found["bands"]), "high_shelf": tuple(found["high_shelf"])}
 
 
 def chain(name: str, bpm: float) -> list[str]:
-    """The effects on a recorded instrument's channel, by its family."""
+    """The effects on a recorded instrument's channel, by its family. Less than there was: an
+    equaliser that takes away what is under the instrument and sets its top by ear (`voiced`),
+    and for a few families one thing more. Each further box used to be there on principle,
+    and together they made the orchestra dull and wide and unlike itself."""
     kind = family(name)
     first = name.split(" ")[0]
     cut = LOW_CUT.get(first, 0.0)
-    if kind == "strings":
-        return [equalise(low_cut=cut, bands=((300.0, -1.5, 1.5), (3200.0, -2.5, 1.0)), high_shelf=(10000.0, 2.5)), ensemble(0.3), wide(1.3), warm(0.15)]
-    if kind == "strings short":
-        return [equalise(low_cut=cut, bands=((3200.0, -1.5, 1.0),), high_shelf=(10000.0, 1.5)), wide(1.2)]
-    if kind.startswith("solo strings"):
-        return [equalise(low_cut=cut, bands=((3000.0, -1.5, 1.0),), high_shelf=(10000.0, 1.5))]
-    if kind.startswith("woodwind"):
-        return [equalise(low_cut=cut, bands=((3000.0, -1.5, 1.0),), high_shelf=(10000.0, 1.5 if first in ("flute", "piccolo", "recorder") else 0.0))]
+    tone = voiced(name)
+    if _kit_plug(name):
+        role = _role(name)
+        if role == "war":
+            # The stroke brought out, the box at 260 Hz down, the stick up; then the skin and the room brought up
+            # under the strokes, and tape to thicken it.
+            return [punch(0.35, 0.2), equalise(low_cut=36.0, bands=((260.0, -2.0, 1.2), (3600.0, 3.0, 1.6)), high_shelf=(9000.0, 2.0)),
+                    smash(0.45), warm(0.4)]
+        if role == "hands":
+            return [punch(0.2, 0.0), equalise(low_cut=45.0, bands=((3500.0, 2.0, 1.6),)), smash(0.3)]
+        return [punch(0.3, 0.1), equalise(low_cut=32.0, bands=((320.0, -2.0, 1.2), (4000.0, 2.5, 1.6)), high_shelf=(10000.0, 2.0)),
+                smash(0.4), warm(0.3)]
+    if kind == "woodwind" and _dry(name):
+        # Recorded close: the keys and the breath are nearer than they are from a seat in the hall.
+        return [equalise(low_cut=cut, high_shelf=(7500.0, -3.0))]
+    if kind in ("strings", "strings short", "solo strings", "solo strings short", "woodwind", "woodwind short"):
+        return [equalise(low_cut=cut, **tone)]
     if kind.startswith("brass"):
-        return [equalise(low_cut=cut, low_shelf=(200.0, 1.5), bands=((3000.0, -2.5, 1.2),), high_shelf=(7000.0, -3.0)), warm(0.35)]
+        return [equalise(low_cut=cut, **tone), warm(0.3)]
     if kind == "organ":
-        return [equalise(low_cut=28.0, bands=((300.0, -2.0, 1.0),)), wide(1.25)]
+        return [equalise(low_cut=28.0, bands=((300.0, -2.0, 1.0),))]
     if kind == "bowed metal":
-        return [equalise(low_cut=150.0), ensemble(0.4, voices=4, rate=0.2)]
+        return [equalise(low_cut=150.0)]
     if kind == "bells":
-        return [equalise(low_cut=250.0, high_shelf=(10000.0, 2.0)), ensemble(0.3, voices=3, rate=0.8, depth=1.2), echo(bpm, 0.2)]
+        return [equalise(low_cut=250.0, **tone), echo(bpm, 0.15)]
     if kind == "mallets":
-        return [equalise(low_cut=90.0), echo(bpm, 0.1)]
+        return [equalise(low_cut=90.0, **tone)]
     if kind == "keys":
-        return [equalise(low_cut=45.0, bands=((2500.0, -1.0, 1.0),))]
+        return [equalise(low_cut=45.0, **tone)]
     if kind == "plucked":
-        return [equalise(low_cut=70.0, high_shelf=(10000.0, 2.0)), ensemble(0.2, voices=3, rate=0.6, depth=1.2),
-                echo(bpm, 0.1) if name in ("zither", "zither bent", "psaltery", "kalimba", "mbira") else ""]
+        return [equalise(low_cut=70.0, **tone), echo(bpm, 0.1) if name in ("zither", "zither bent", "psaltery", "kalimba", "mbira") else ""]
     if name in ("war drums", "boom"):
-        # Weight at 80 Hz, the box at 300 out, the crack of the stick up top; squeezed hard so the ring comes up; a big room.
-        return [punch(0.4, 0.25), warm(0.6), equalise(low_cut=26.0, low_shelf=(85.0, 4.0), bands=((300.0, -3.5, 1.2), (4700.0, 5.0, 1.5))),
-                squeeze(-22.0, 4.0, 14.0, 130.0, 4.0), drum_room(), wide(1.3)]
+        return [punch(0.3, 0.2), equalise(low_cut=34.0, bands=((280.0, -2.5, 1.2), (3200.0, 4.0, 1.8)), high_shelf=(8000.0, 3.0)), smash(0.5), warm(0.45)]
     if name == "frame drums":
-        return [punch(0.3, 0.1), warm(0.3), equalise(low_cut=45.0, low_shelf=(110.0, 2.5), bands=((400.0, -2.5, 1.2), (4500.0, 3.0, 1.5))),
-                squeeze(-20.0, 3.0, 14.0, 130.0, 2.0), drum_room()]
+        return [punch(0.3, 0.1), equalise(low_cut=45.0, bands=((400.0, -2.0, 1.2), (4000.0, 3.0, 1.6))), smash(0.35), warm(0.3)]
     if name in ("timpani", "great drum", "war drum", "tom mallet", "frame drum"):
-        return [punch(0.25, 0.1), equalise(low_cut=30.0, low_shelf=(90.0, 3.0), bands=((300.0, -2.5, 1.2), (3500.0, 2.0, 1.5))),
-                squeeze(-14.0, 3.0, 30.0, 150.0, 2.0), drum_room()]
+        return [punch(0.25, 0.1), equalise(low_cut=32.0, bands=((450.0, -2.5, 1.4), (3500.0, 2.0, 1.6))), smash(0.3)]
     if name in ("gong", "anvil"):
         return [equalise(low_cut=60.0)]
     if name.startswith("kit "):
-        return [punch(0.25, 0.05), equalise(low_cut=30.0, low_shelf=(80.0, 2.0), bands=((400.0, -2.0, 1.0), (5000.0, 1.5, 1.5))),
-                squeeze(-18.0, 2.5, 12.0, 140.0, 1.5), drum_room()]
+        # The cymbals and the tambourine were recorded close and are bright enough: the top is eased, not lifted.
+        return [punch(0.25, 0.05), equalise(low_cut=30.0, bands=((400.0, -2.0, 1.0),), high_shelf=(8000.0, -4.0)), smash(0.3)]
     return [equalise(low_cut=40.0)]
 
 
 def synth_chain(player: str, bpm: float) -> list[str]:
     """The effects on a synth's channel."""
     if player in (CHOIR, OOHS):
-        return [equalise(low_cut=120.0, bands=((350.0, -2.0, 1.5), (3000.0, -2.0, 1.0)), high_shelf=(11000.0, 2.5)), ensemble(0.5, voices=8, rate=0.2, depth=3.5),
-                wide(1.4)]
+        return [equalise(low_cut=120.0, bands=((350.0, -2.0, 1.5),), high_shelf=(11000.0, 2.5)), ensemble(0.4, voices=6, rate=0.2, depth=3.0)]
     if player == SILK:
-        return [equalise(low_cut=150.0, high_cut=9000.0, bands=((2500.0, -2.0, 1.0),)), wide(1.3)]
+        return [equalise(low_cut=150.0, high_cut=11000.0)]
     if player == SUB:
-        return [equalise(high_cut=260.0), squeeze(-18.0, 4.0, 25.0, 125.0, 2.0)]
+        return [equalise(low_cut=28.0, high_cut=260.0), squeeze(-18.0, 4.0, 25.0, 125.0, 2.0)]
     return []
 
 
 def bus(channel: str) -> list[str]:
-    """What is on a whole channel's folder: a little glue and tape, and a ceiling over the drums."""
+    """What is on a whole channel's folder. The drums: their room, a compressor that holds
+    them together, tape, and a ceiling. The others: a compressor that evens the channel out
+    (the recordings that were liked wander a third as far in level as bare playing does) and
+    a ceiling."""
+    # Under 28 Hz nothing is heard, and what is there uses up the room every loudspeaker and limiter has.
     if channel == "drums":
-        return [squeeze(-12.0, 2.0, 30.0, 200.0, 1.0), warm(0.3), ceiling(-2.0)]
-    return [squeeze(-16.0, 2.0, 40.0, 300.0, 1.0), warm(0.12)]
+        return [equalise(low_cut=28.0), drum_room(), squeeze(-14.0, 3.0, 25.0, 180.0, 2.0), warm(0.3), ceiling(-1.5)]
+    return [equalise(low_cut=28.0), squeeze(-20.0, 2.5, 30.0, 250.0, 2.0), ceiling(-1.5)]
 
 
 def hall(seconds: float) -> str:
@@ -579,7 +731,7 @@ def hall(seconds: float) -> str:
     the room adds): a concert hall that rings `seconds`."""
     # Its "Large Bright Hall", with less ring in the bass and less wobble (its maker's advice for an orchestra).
     return desk.bare("hall", [desk.lv2("Dragonfly Hall Reverb", dry_level=0.0, early_level=0.0, late_level=100.0, size=min(24.0 + 7.5 * seconds, 58.0),
-                                       width=100.0, delay=20.0, diffuse=90.0, low_cut=80.0, low_xo=400.0, low_mult=1.2, high_cut=8200.0,
+                                       width=100.0, delay=20.0, diffuse=90.0, low_cut=80.0, low_xo=400.0, low_mult=1.2, high_cut=10000.0,
                                        high_xo=5800.0, high_mult=0.5, spin=1.0, wander=15.0, decay=seconds, early_send=20.0, modulation=10.0)])
 
 
@@ -592,16 +744,21 @@ def template_of(player: str) -> str:
         return _file("surge " + Path(player[6:]).stem)
     if player.startswith("zyn:"):
         return _file("zyn " + player[4:].replace(".xiz", "").replace(": ", " "))
+    if _kit_plug(player):
+        return _file("avl " + player[4:].replace("#", " as "))
     return _file(player)
 
 
 def wanted(names: list[str] | None = None) -> list[str]:
-    """Every player the given written instruments need (all of them, if none are given)."""
+    """Every player the given written instruments need (all of them and the kits' plug-ins,
+    if none are given)."""
     out: list[str] = []
     for name in names or list(SOUNDS):
         for player in SOUNDS[name].players:
             if player.name not in out:
                 out.append(player.name)
+    if not names:
+        out += [plug for plug, _ in KIT_PLUGS.values() if plug not in out]
     return out
 
 
@@ -609,11 +766,20 @@ def _synth(player: str) -> bool:
     return player.startswith(("surge:", "zyn:"))
 
 
-def track_of(player: str) -> str:
-    """The text of a player's track: the sampler with its instrument, or the synth with its patch."""
-    if _synth(player):
-        return desk.template(template_of(player))
-    return desk.bare(_file(player), [desk.sfizz(instrument(player))])
+_tracks: dict[tuple[str, bool], str] = {}
+
+
+def track_of(player: str, slurs: bool = False) -> str:
+    """The text of a player's track: the sampler with its instrument (the one that slurs, for
+    a line of single notes), a drum-kit plug-in, or a synth with its patch."""
+    if (player, slurs) not in _tracks:
+        if _synth(player):
+            _tracks[(player, slurs)] = desk.template(template_of(player))
+        elif _kit_plug(player):
+            _tracks[(player, slurs)] = desk.bare(template_of(player), [desk.lv2(player[4:].split("#")[0])])
+        else:
+            _tracks[(player, slurs)] = desk.bare(_file(player), [desk.sfizz(instrument(player, slurs))])
+    return _tracks[(player, slurs)]
 
 
 def build(players: list[str], kits: list[str], *, display: str) -> None:
@@ -643,25 +809,48 @@ def _trial(name: str) -> tuple[list[Note], list[tuple[float, int, int]]]:
         return [Note(beat, 0.5, strokes[stroke], 0.75) for beat, stroke in ((0, "boom"), (2, "snare"), (4, "boom"), (6, "snare"))], firm
     if _synth(name):
         return [Note(beat * 3.0, 2.6, pitch, 0.75) for beat, pitch in enumerate((48, 60, 72))], firm
+    if _kit_plug(name):
+        struck = {"war": (41, 45, 36, 41), "hands": (36, 38, 41, 45)}.get(_role(name), (36, 38, 41, 38))
+        return [Note(beat * 2.0, 0.5, pitch, 0.75) for beat, pitch in enumerate(struck)], firm
     if name in DRUMS:
-        low, high = DRUMS[name][1], DRUMS[name][2]
+        low, high = _range(name)
     else:
         read = patch(name)
         low, high = read.low, read.high
     return [Note(beat * 3.0, 2.6, low + int((high - low) * part), 0.75) for beat, part in enumerate((0.25, 0.5, 0.75))], firm
 
 
+# What a recorded instrument is held against among the recordings that were liked (studio.ear:
+# what the stem was asked for, and its strength), by the instrument's first word. Only where
+# the same instrument is there at the same strength: a bassoon held against a woodwind choir,
+# or a section played firmly against one played softly, is told to be something it is not.
+# With each: the most its top may be lifted, and the most it may be cut, in dB.
+HEARD_AS = {"violins": ("violins in", "hard", 5.0, 3.0), "violin": ("solo fiddle", "", 5.0, 3.0), "horn": ("french horns in unison", "", 5.0, 3.0),
+            "trumpet": ("trumpets in unison", "", 3.0, 6.0), "harp": ("solo harp", "", 0.0, 6.0)}
+
+
+def _heard_as(name: str) -> tuple[str, str, float, float] | None:
+    if _synth(name) or _kit_plug(name) or name not in RECORDED or name.endswith(("short", "pizz", "trem")):
+        return None
+    return HEARD_AS.get(name.split(" ")[0])
+
+
 def levels(names: list[str], *, display: str, bpm: float = 120.0) -> dict[str, dict[str, float]]:
-    """Plays each player alone and writes down two things for it (levels.json): how many dB
-    its bare sound has to be turned to come out at LEVEL ("before": this is done ahead of its
-    effects, so that every compressor and tape meets the level it is set for), and how many
-    more dB after its effects ("after": this is its fader)."""
+    """Plays each player alone, twice, and writes down three things for it. From its bare
+    sound: how many dB it has to be turned to come out at LEVEL ("before" in levels.json: this
+    is done ahead of its effects, so that every compressor and tape meets the level it is set
+    for), and what the equaliser has to do to its top for it to stand where the same
+    instrument stands in the recordings that were liked (voicing.json, see `voiced`). Then,
+    with its effects on: how many more dB ("after": this is its fader)."""
     from .. import analysis
+    from . import ear
     work = desk.TEMPLATES / "levels"
     work.mkdir(parents=True, exist_ok=True)
     each_s = 6.0
     had = json.loads(LEVELS.read_text(encoding="utf-8")) if LEVELS.is_file() else {}
     had = {name: value for name, value in had.items() if isinstance(value, dict)}
+    global _voicing
+    tones = json.loads(VOICING.read_text(encoding="utf-8")) if VOICING.is_file() else {}
     for stage in ("before", "after"):
         folders, stems = [], []
         for name in names:
@@ -680,6 +869,16 @@ def levels(names: list[str], *, display: str, bpm: float = 120.0) -> dict[str, d
             if loud < -70.0:
                 raise RuntimeError("The instrument %s made no sound when it was played alone (%s its effects)" % (name, stage))
             had.setdefault(name, {})[stage] = round(LEVEL - loud, 2)
+        if stage == "before":
+            for name in names:
+                against = _heard_as(name)
+                if against is None:
+                    tones.pop(template_of(name), None)
+                    continue
+                mine = ear.profile(heard[template_of(name)], desk.RATE)
+                tones[template_of(name)] = ear.top(mine, ear.reference(against[0], strength=against[1]), lift=against[2], cut=against[3])
+            VOICING.write_text(json.dumps(tones, indent=1, sort_keys=True), encoding="utf-8")
+            _voicing = tones
     LEVELS.write_text(json.dumps(had, indent=1, sort_keys=True), encoding="utf-8")
     global _levels
     _levels = had
@@ -717,7 +916,7 @@ DEPTHS = (("violin", 0.0), ("viola", 0.0), ("celli", 0.0), ("basses", 0.05), ("s
           ("recorder", 0.4), ("ocarina", 0.4), ("flute", 0.45), ("piccolo", 0.45), ("oboe", 0.45), ("clarinet", 0.45), ("bassoon", 0.45),
           ("small organ", 0.5), ("horn", 0.6), ("balafon", 0.6), ("frame drum", 0.6), ("trumpet", 0.65), ("trombone", 0.65), ("tuba", 0.65),
           ("surge", 0.7), ("marimba", 0.7), ("vibes", 0.7), ("glock", 0.75), ("tube glock", 0.75), ("xylophone", 0.75), ("anvil", 0.75),
-          ("hand chimes", 0.8), ("organ", 0.85), ("tubular bells", 0.85), ("war drum", 0.85), ("tom mallet", 0.85), ("kit", 0.85),
+          ("hand chimes", 0.8), ("organ", 0.85), ("tubular bells", 0.85), ("war drum", 0.85), ("tom mallet", 0.85), ("kit", 0.85), ("avl", 0.85),
           ("timpani", 0.9), ("great drum", 0.9), ("boom", 0.9), ("gong", 0.95), ("swell", 0.95))
 # How much of each kind of player goes to the hall, in dB (the hall gives back as much as it is sent).
 SENDS = {"strings": -10.0, "strings short": -11.0, "solo strings": -11.0, "solo strings short": -12.0, "woodwind": -13.0, "woodwind short": -13.0,
@@ -737,8 +936,12 @@ def _placed(player: str, room: float) -> tuple[float, list[str]]:
     """How much of a player goes to the hall, and the effect that seats it on the stage."""
     name = template_of(player)
     kind = "synth" if _synth(player) else family(player)
-    send = WAR_SEND if player in ("war drums", "boom", "gong") else SENDS[kind]
+    send = WAR_SEND if player in ("war drums", "boom", "gong") or _role(player) == "war" else SENDS[kind]
+    if kind == "drums":
+        return 10 ** (send / 20.0) * room, []           # the drums have their own room, on their bus
     depth = depth_of("surge" if _synth(player) else name)
+    if _dry(player):
+        return 10 ** ((send + 2.0) / 20.0) * room, [row(max(depth, 0.3), dry=True)]
     return 10 ** (send / 20.0) * room, [row(depth)] if depth >= 0.25 else []
 
 
@@ -754,15 +957,23 @@ def _dynamics(notes: list[Note], swells: list[tuple[float, float]], bpm: float) 
     count = int((last - first) / step) + 2
     curve = np.zeros(count)
     long = 1.0 * bpm / 60.0
-    for note in ordered:
+    for index, note in enumerate(ordered):
         begin, end = int((note.start - first) / step), min(int((note.start + note.length - first) / step) + 1, count)
         if end <= begin:
             continue
         strength = min(max((note.loud - 0.12) / 0.8, 0.05), 1.0)
         shape = np.full(end - begin, strength)
         if note.length >= long and not swells:
+            # A long note leans in, is fullest past its middle and eases off; how far and where differs from note to
+            # note (but is the same each time the piece is played), and the last note of a phrase falls away.
             along = np.linspace(0.0, 1.0, end - begin)
-            shape = strength * (0.86 + 0.14 * np.sin(np.pi * np.minimum(along / 0.8, 1.0) ** 0.8)) * np.where(along > 0.8, 1.0 - 0.5 * (along - 0.8), 1.0)
+            draw = (note.start * 7.31 + note.pitch * 0.37) % 1.0
+            peak, depth = 0.55 + 0.2 * draw, 0.2 + 0.12 * ((draw * 3.7) % 1.0)
+            climb = np.where(along < peak, along / peak, 1.0 - 0.6 * (along - peak) / (1.0 - peak))
+            after = ordered[index + 1] if index + 1 < len(ordered) else None
+            ends_phrase = after is None or (after.start - note.start - note.length) * 60.0 / bpm >= 0.4
+            fall = np.where(along > 0.75, 1.0 - (0.45 if ends_phrase else 0.12) * (along - 0.75) / 0.25, 1.0)
+            shape = strength * (1.0 - depth + depth * np.sin(0.5 * np.pi * np.clip(climb, 0.0, 1.0))) * fall
         curve[begin:end] = np.maximum(curve[begin:end], shape)
     # Between notes it stays where the last note left it, so a note's ringing-on does not jump.
     for index in range(1, count):
@@ -780,8 +991,10 @@ def _dynamics(notes: list[Note], swells: list[tuple[float, float]], bpm: float) 
 def _range(player: str) -> tuple[int, int]:
     if _synth(player):
         return 24, 108
+    if _kit_plug(player):
+        return 0, 127
     if player in DRUMS:
-        return DRUMS[player][1], DRUMS[player][2]
+        return min(part[3] for part in DRUMS[player][0]), max(part[4] for part in DRUMS[player][0])
     read = patch(player)
     return read.low, read.high
 
@@ -804,16 +1017,54 @@ def _swell(voice: Voice, title: str, bpm: float, taste: float, room: float) -> l
                       effects=[equalise(low_cut=300.0), row(0.9)])]
 
 
+def _slurred(notes: list[Note], beat: float) -> list[Note] | None:
+    """If these notes are one line (no two of them sound together), the line as a player
+    plays it: each note that is followed at once by a different one is held a moment into it,
+    which is what tells the instrument to slur the second to the first. None, if they are not
+    one line. A note followed by a gap, or by the same note again, is left as it is: the next
+    one starts afresh."""
+    ordered = sorted(notes, key=lambda note: (note.start, note.pitch))
+    out = []
+    for this, after in zip(ordered, ordered[1:] + [None]):
+        if after is None:
+            out.append(this)
+            break
+        gap = (after.start - this.start - this.length) * beat          # seconds of silence between them
+        if after.start - this.start < 1e-6 or gap < -0.05:
+            return None                                                 # together, or one over the other: chords
+        if gap <= 0.09 and after.pitch != this.pitch:
+            out.append(Note(this.start, after.start - this.start + 0.045 / beat, this.pitch, this.loud))
+        else:
+            out.append(this)
+    return out
+
+
 def lines(voice: Voice, title: str, bpm: float, *, taste: float = 1.0, room: float = 1.0) -> list[desk.Line]:
     """The REAPER tracks that play one written voice. `taste` turns it up or down as a whole;
     `room` is how much hall the piece has (1 is the usual)."""
     if voice.drums:
         if not voice.instrument.startswith("kit "):
             raise ValueError("The drum voice %s does not say which kit it is" % title)
-        name = _file(voice.instrument)
-        send, placed = _placed(name, room)
-        return [desk.Line(title, track_of(name), list(voice.notes), volume=_db(level(name)["after"]) * taste, pan=0.0, send=send,
-                          effects=[turned(level(name)["before"])] + chain(name, bpm) + placed)]
+        out, left = [], list(voice.notes)
+        kit = voice.instrument[4:]
+        if kit in KIT_PLUGS:
+            # The strokes a drum-kit plug-in has are played by it; the rest stay with the recordings in the sampler.
+            from .orchestra import KITS
+            plug, table = KIT_PLUGS[kit]
+            strokes = KITS[kit][1]
+            to = {strokes[stroke]: note for stroke, note in table.items() if stroke in strokes}
+            mine = [Note(note.start, note.length, to[note.pitch], note.loud) for note in left if note.pitch in to]
+            left = [note for note in left if note.pitch not in to]
+            if mine:
+                send, placed = _placed(plug, room)
+                out.append(desk.Line("%s: %s" % (title, template_of(plug)), track_of(plug), mine, volume=_db(level(plug)["after"]) * taste, pan=0.0,
+                                     send=send, effects=[turned(level(plug)["before"])] + chain(plug, bpm) + placed))
+        if left:
+            name = _file(voice.instrument)
+            send, placed = _placed(name, room)
+            out.append(desk.Line(title, track_of(name), left, volume=_db(level(name)["after"]) * taste, pan=0.0, send=send,
+                                 effects=[turned(level(name)["before"])] + chain(name, bpm) + placed))
+        return out
     if voice.instrument == "swell":
         return _swell(voice, title, bpm, taste, room)
     if voice.instrument not in SOUNDS:
@@ -824,7 +1075,7 @@ def lines(voice: Voice, title: str, bpm: float, *, taste: float = 1.0, room: flo
     for player in sound.players:
         low, high = _range(player.name)
         notes = []
-        for note in voice.notes:
+        for note in voice.notes if not player.takes else ():
             long = note.length * beat >= sound.short
             if (player.notes == "long" and not long) or (player.notes == "short" and long):
                 continue
@@ -838,6 +1089,10 @@ def lines(voice: Voice, title: str, bpm: float, *, taste: float = 1.0, room: flo
             if pitch < low:
                 raise ValueError("%s cannot play the note %d that %s asks of it" % (player.name, note.pitch, title))
             notes.append(Note(note.start, note.length, pitch, note.loud))
+        for written, struck, softer in player.takes:
+            # A kit: each written note strikes the kit's drums that are set down for it.
+            notes += [Note(note.start, note.length, struck, min(max(note.loud * _db(softer), 0.03), 1.0))
+                      for note in voice.notes if written in (-1, note.pitch)]
         if not notes:
             continue
         name = template_of(player.name)
@@ -848,10 +1103,46 @@ def lines(voice: Voice, title: str, bpm: float, *, taste: float = 1.0, room: flo
             held = read.held and any(zone.loop for zone in read.zones)
             if held:
                 early = max(early, read.attack / 2000.0)        # an instrument that speaks softly is played that much ahead
+        slurs = False
+        if held and not synth and family(player.name) in SLUR:
+            joined = _slurred(notes, beat)
+            if joined is not None:
+                notes, slurs = joined, True                     # a line of single notes: played under one bow, in one breath
         send, placed = _placed(player.name, room)
         effects = [turned(level(player.name)["before"])] + (synth_chain(player.name, bpm) if synth else chain(player.name, bpm)) + placed
-        out.append(desk.Line("%s: %s" % (title, name), track_of(player.name), notes, volume=_db(level(player.name)["after"] + player.gain) * taste,
+        out.append(desk.Line("%s: %s" % (title, name), track_of(player.name, slurs), notes, volume=_db(level(player.name)["after"] + player.gain) * taste,
                              pan=voice.pan if player.seat is None else player.seat,
                              controls=_dynamics(notes, voice.swells, bpm) if held else [], early=early, send=send,
                              effects=[each for each in effects if each]))
     return out
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Sets the instruments up: writes each one for the sampler, plays each alone in REAPER,
+    and keeps how loud it is and what its top needs (`levels`).
+
+        uv run --no-sync python -m freerock.studio.sounds                  every instrument
+        uv run --no-sync python -m freerock.studio.sounds --only horn      only those with "horn" in their name
+    """
+    import argparse
+    from .orchestra import KITS
+    parser = argparse.ArgumentParser(description="Write every instrument, and measure how loud and how bright each one is.")
+    parser.add_argument("--only", default="", help="only the players whose name contains this")
+    args = parser.parse_args(argv)
+    names = [name for name in wanted() + ["kit " + kit for kit in KITS] if args.only in name]
+    if not names:
+        print("No instrument has %r in its name" % args.only)
+        return 2
+    reaper.configure()
+    with reaper.Display() as display:
+        had = levels(names, display=display)
+    for name in names:
+        each, tone = had[template_of(name)], voiced(name)
+        told = "  top: %+.1f dB at 3.5 kHz, %+.1f dB from 7.5 kHz" % (tone["bands"][0][1], tone["high_shelf"][1]) if tone else ""
+        print("%-48s before %+6.1f dB  after %+6.1f dB%s" % (template_of(name), each["before"], each["after"], told))
+    return 0
+
+
+if __name__ == "__main__":
+    import sys
+    sys.exit(main())

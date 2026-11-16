@@ -35,6 +35,7 @@ MASTER = 20261115
 # is brought to the bucket's level): the tune on top, the pad and the accompaniment under it.
 PLACE = {"lead": -17.0, "texture": -21.0, "rhythm": -21.5, "bass": -20.0, "drums": -23.0}       # an orchestra's drums are a few great strokes: by loudness they sit low
 LIGHT = {"drums": -24.0, "bass": -21.5}        # a light track's drums and bass sit further back
+WAR_DRUMS = -17.5                              # where the drums sit in a track that has war drums: up with the tune, the loudest strokes in the piece
 BAND = {"lead": -17.0, "rhythm": -18.5, "drums": -18.0, "bass": -19.5, "texture": -24.0}       # a band: guitars and drums up front
 BAND_LIGHT = {"drums": -21.0, "bass": -21.0, "rhythm": -20.0}
 RIDE = 0.42                    # how far each part of the story is brought up towards the loudest part
@@ -124,6 +125,8 @@ def stage(fam: Family, take: int) -> dict:
         places = dict(BAND, **(BAND_LIGHT if character.weight < 0.7 else {}))
     else:
         places = dict(PLACE, **(LIGHT if character.weight < 0.7 else {}))
+        if any(voice.notes for name, voice in written.voices["drums"].items() if name.startswith("war drums")):
+            places["drums"] = WAR_DRUMS                 # war drums are meant to be heard, not only felt
     levels, gains = {}, {}
     for channel in list(parts):
         audio = parts[channel]
@@ -171,7 +174,9 @@ def stage(fam: Family, take: int) -> dict:
         "serves": list(character.serves), "light": character.light, "sections": sections, "floor": FLOOR,
         "follow": {"rhythm": ["lead"], "texture": ["lead"]}, "post_s": forever.POST_S,
         "credit": "Written by FreeRock's studio (%s, %s); played in REAPER by the sfizz sampler on the VSCO 2 Community "
-                  "Edition and VCSL recordings (Versilian Studios, CC0) and by the Surge XT synth" % (character.name, fam.metre),
+                  "Edition and VCSL recordings (Versilian Studios, CC0), the TinySOL recordings (Cella, Ghisi, Lostanlen, Levy, "
+                  "Fineberg and Maresz, IRCAM, CC BY 4.0) and Big Rusty Drums (Karoryfer, CC0), by the AVL drum kits (Glen "
+                  "MacArthur, CC BY-SA 3.0) and by the Surge XT and ZynAddSubFX synths" % (character.name, fam.metre),
         "seed": fam.seed, "measured": {"sections": loudness, "channels": levels, "gains": gains},
     }
     write_track(folder_of(fam, take), meta, parts)

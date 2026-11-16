@@ -85,8 +85,8 @@ def section(tmp_path, monkeypatch) -> Patch:
     return Patch(name="section", zones=zones, attack=70.0, release=330.0)
 
 
-def test_a_held_instrument_fades_between_its_soft_and_hard_recordings_on_the_controller(section):
-    text = sfz.held(section, players=1)
+def test_a_section_fades_between_its_soft_and_hard_recordings_on_the_controller(section):
+    text = sfz.held(section, players=1, blend=True)
     regions = [row for row in text.split("\n") if row.startswith("<region>")]
     assert len(regions) == 6
     soft, hard = (next(row for row in regions if "s_55_v%d" % layer in row) for layer in (1, 2))
@@ -94,6 +94,25 @@ def test_a_held_instrument_fades_between_its_soft_and_hard_recordings_on_the_con
     assert "loop_mode=loop_sustain" in text and "loop_start=61740" in soft             # 1.4 s into the recording
     assert "gain_cc1" in text and "cutoff_cc1" in text                                 # louder is also brighter
     assert "pitch_random" not in text and "pitch_oncc136" in text                      # one draw for all the layers of a note
+    assert "fil_keytrack" not in text                                                  # a low note's top is not cut lower than a high one's
+
+
+def test_one_player_plays_one_recording_which_the_notes_own_strength_picks(section):
+    text = sfz.held(section)
+    regions = [row for row in text.split("\n") if row.startswith("<region>")]
+    soft, hard = (next(row for row in regions if "s_55_v%d" % layer in row) for layer in (1, 2))
+    assert "lovel=1 hivel=64" in soft and "lovel=65 hivel=127" in hard
+    assert "xfin_" not in text and "xfout_" not in text                                # two recordings of one player at once are two players
+
+
+def test_a_note_begun_while_another_is_held_is_slurred_to_it(section):
+    text = sfz.held(section, slur=0.1)
+    groups = [row for row in text.split("\n") if row.startswith("<group>")]
+    assert len(groups) == 2 and "trigger=first" in groups[0] and "trigger=legato" in groups[1] and "ampeg_attack=0.100" in groups[1]
+    regions = [row for row in text.split("\n") if row.startswith("<region>")]
+    assert len(regions) == 12
+    slurred = regions[6:]
+    assert all("offset=%d" % round(0.1 * RATE) in row for row in slurred) and not any("offset=" in row for row in regions[:6])
 
 
 def test_a_section_is_three_players_and_the_others_are_the_neighbouring_recordings(section):
@@ -134,10 +153,11 @@ def test_a_kit_has_each_stroke_on_its_note_and_the_hats_stop_each_other(section)
 def test_a_war_drum_is_several_drums_struck_together_by_several_players(section):
     one = Patch(name="big", held=False, zones=[Zone(files=("s_55_v1.wav",), low=43, high=43, root=43, soft=1, hard=127)])
     two = Patch(name="deep", held=False, zones=[Zone(files=("s_58_v1.wav",), low=41, high=41, root=41, soft=1, hard=127)])
-    text = sfz.layered([(one, 0.0, 0.0), (two, 0.0, -2.0)], 28, 54, players=3)
+    text = sfz.layered([(one, 43, 0.0, 36, 40), (two, 41, -2.0, 38, 47)], players=3)
     regions = [row for row in text.split("\n") if row.startswith("<region>")]
-    assert len(regions) == 6 and all("lokey=28 hikey=54" in row for row in regions)
+    assert len(regions) == 6 and sum("lokey=36 hikey=40 pitch_keycenter=43" in row for row in regions) == 3      # each drum has its own notes
     assert len({row.split("delay=")[1].split()[0] for row in regions}) == 3                  # each player a little apart in time
+    assert "pitch_keytrack=35" in text and "cutoff" not in text                              # hardly moved from where it was recorded, and not filtered
 
 
 # --- writing a project ----------------------------------------------------------------------------
@@ -168,7 +188,8 @@ def test_a_track_is_its_template_with_its_name_level_notes_effects_and_what_it_i
     assert 'NAME "violins"' in rows and "VOLPAN 0.500000 -0.4000 -1 -1 1" in rows and "ISBUS 2 -1" in rows and "SEL 1" in rows
     assert "AUXRECV 3 0 0.250000 0 0 0 0 0 0 -1:U 0 -1 ''" in rows
     assert rows.index('<JS first ""') < rows.index('<JS second ""') < rows.index("<ITEM".rjust(9))     # its own effect, then the added one, inside the chain
-    assert '        FILE "/a/b.wav"' in rows and "      POSITION 1.500000" in rows
+    assert '        FILE "/a/b.wav"' in rows and "      POSITION 2.500000" in rows            # everything is a second later: the lead-in
+    assert "      POSITION 1.000000" in rows                                                # where the notes begin
     assert "{11111111-2222-3333-4444-555555555555}" not in text                       # every track gets identifiers of its own
 
 
@@ -180,7 +201,7 @@ def test_every_folder_gets_a_hall_that_its_tracks_send_to():
     names = [row.split('"')[1] for row in text.split("\n") if row.startswith("NAME ")]
     assert names == ["lead", "a", "b", "lead hall"]
     assert text.count("AUXRECV") == 1 and "AUXRECV 1 0 0.300000" in text               # only the one that sends; counted from 0 down the project
-    assert "RENDER_RANGE 0 0 16.000000 0 0" in text and "RENDER_STEMS 3" in text and text.count("SEL 1") == 1
+    assert "RENDER_RANGE 0 0 17.000000 0 0" in text and "RENDER_STEMS 3" in text and text.count("SEL 1") == 1     # the lead-in, the music, the tail
 
 
 def test_a_stack_of_samplers_is_cut_down_to_the_ones_a_part_strikes():
@@ -188,3 +209,29 @@ def test_a_stack_of_samplers_is_cut_down_to_the_ones_a_part_strikes():
     template = "\n".join(["<TRACK", "NAME x", "ISBUS 0 0", "<FXCHAIN", "SHOW 0"] + entry * 3 + ["BYPASS 0 0 0", '<JS keep ""', "1", ">", "WAK 0 0", ">", ">"])
     text = desk.pruned(template, {1})
     assert text.count("ReaSamplOmatic5000") == 1 and '<JS keep ""' in text and text.rstrip().endswith(">\n>")
+
+
+# --- the ear, and lines of single notes -----------------------------------------------------------
+def test_the_ear_tells_a_dull_recording_from_a_bright_one_and_says_what_its_top_needs():
+    from freerock.studio import ear
+    rng = np.random.default_rng(3)
+    noise = rng.standard_normal(RATE * 4)
+    from scipy import signal
+    bright = np.stack([noise, noise], axis=1)
+    dull = np.stack([signal.lfilter(*signal.butter(1, 1500.0, fs=RATE), noise)] * 2, axis=1)
+    one, other = ear.profile(dull, RATE), ear.profile(bright, RATE)
+    assert one.centre < other.centre and one.bands[8] < other.bands[8] - 3.0          # less of its power is between 5 and 10 kHz
+    needed = ear.top(one, other, lift=8.0)
+    assert needed["bands"][0][1] > 0.0 and needed["high_shelf"][1] > 3.0              # lift the top, the air most
+    assert ear.top(one, one) == {"bands": [[3500.0, 0.0, 1.6]], "high_shelf": [7500.0, 0.0]}
+    assert ear.profile(np.zeros((RATE, 2)), RATE) is None
+
+
+def test_a_line_of_single_notes_is_slurred_and_chords_are_not():
+    from freerock.studio import sounds
+    line = [Note(0.0, 0.98, 60, 0.5), Note(1.0, 0.98, 62, 0.5), Note(2.0, 0.5, 64, 0.5), Note(3.0, 1.0, 64, 0.5)]
+    joined = sounds._slurred(line, 1.0)
+    assert joined[0].length > 1.0 and joined[1].length > 1.0        # each reaches a little into the next
+    assert joined[2].length == 0.5                                  # a gap: the next note starts afresh
+    assert sounds._slurred([Note(0.0, 2.0, 60, 0.5), Note(0.0, 2.0, 64, 0.5)], 1.0) is None       # together: a chord
+    assert sounds._slurred([Note(0.0, 2.0, 60, 0.5), Note(1.0, 2.0, 64, 0.5)], 1.0) is None       # one over the other

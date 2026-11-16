@@ -1,5 +1,65 @@
 # Changelog
 
+## The instruments, one at a time (2026-11-16, afternoon)
+
+The second try in REAPER was heard and turned down: "sounds very low quality", "instruments
+still shitty", "drums are not good". The studio cannot hear, so it was given an ear of a kind
+and each instrument was gone through by itself.
+
+- **An ear (`studio/ear.py`).** A recording is measured the way an engineer holds a mix against
+  a record they trust: how its power is spread over the octaves, how far its peaks stand above
+  its body, how wide it is. The records it is held against are the stems that were listened
+  to and liked (`var/stems`), each by the instrument it was asked for. What it found in the
+  second try: every instrument ten to eighteen decibels short above 2.5 kHz (the sampler's
+  filter followed the note and stood half shut), war drums with nearly all their power under
+  160 Hz (the drums were tuned five to fifteen semitones down), and twelve decibels of rumble
+  under 40 Hz. It judges none of what makes an instrument sound played; ears do that.
+- **Every instrument is its recording.** The filter no longer follows the note and is past
+  9 kHz by the middle of an instrument's strength. A section that was recorded as a section
+  is played as it is: no second and third copies a few cents apart, and no chorus. The synth
+  pad under the strings is gone.
+- **Brass that can play loud.** The horn, trumpet, trombone and tuba are TinySOL's (IRCAM):
+  every semitone played soft, medium and loud, with no vibrato. A horn played loud is twenty
+  decibels louder than one played soft and has twenty-five more above 2.5 kHz, and the three
+  recordings fade into each other as the players swell. Three horns, two trumpets and two
+  trombones are made of the neighbouring semitones, each a different recording a little apart
+  in time and place. The clarinet and the bassoon are TinySOL's as well.
+- **Slurs.** In a line of single notes, a note that follows at once on a different one is
+  slurred to it: it comes in over the note before without a start of its own, as the next
+  note under one bow or in one breath does. A note after a gap, or the same note again,
+  starts afresh. Chords are left alone.
+- **A long note is not still.** It leans in, is fullest past its middle and eases off, by a
+  different amount each time, and the last note of a phrase falls away.
+- **War drums from drum-kit plug-ins.** Two drummers at two kits (the AVL kits Red Zeppelin
+  and Black Pearl: both floor toms, both toms, the 26-inch bass drum) and a third at the big
+  rusty drums, every drum at the pitch it was recorded at; the stroke brought out, the skin
+  and the room brought up under it by a compressor laid beside the sound. The deep stroke on
+  an arrival is both kits' bass drums, the deep floor tom, a concert bass drum and a sub at
+  65 Hz. The frame drums have a cajon with them (Buskman's Holiday). A band's kit, when the
+  band is next played, is the Red Zeppelin kit itself. Measured against the drums that were
+  liked, the drum channel of a whole piece is now within about two decibels in every octave.
+- **The bottom belongs to one thing.** Each channel loses what is under 28 Hz. Where the
+  double basses play out, a plain sub sits under them at their own pitch (a recorded double
+  bass has little of its bottom octave), in the middle.
+- **A second of silence before every project.** The kit plug-ins fetch their recordings when
+  the first stretch of sound is asked of them and play nothing in it. The second is cut from
+  what REAPER renders.
+- **Each instrument alone, to listen to.** `tools/audition.py` writes
+  `var/listen/instruments/`: every instrument playing a phrase by itself, as the bare
+  recording, as it was before, and as it is now, with the ear's numbers beside in
+  `measured.json`.
+- **A track on a mixing desk.** Asked for the same afternoon: "can the player show the multiple
+  channels like a mixer so i know its made up of multiple channels that are going to be signal
+  dependent". On the listening pages every track has a "channels" link (`tools/mixer.html`,
+  written out by `tools/listen.py`): its five channels side by side, each with a meter, a
+  fader, mute and solo; the story's parts along the top, to click on; and a slider that does
+  to the drums and the bass what the game does, down to the least each part of the story
+  will play them at. The channels are kept as twelve-second pieces and laid end to end on the
+  audio clock, all five at once, so they cannot drift apart.
+- A whole eight-minute piece now renders in under seven minutes (it took fifteen): the
+  equaliser on every channel is the studio's own (`studio/jsfx/channel_eq`), and there are
+  far fewer effects.
+
 ## Written pieces (2026-11-15, the night after the first evening)
 
 The phrases of the forever song share a key and nothing else: each is one instrument alone, and
