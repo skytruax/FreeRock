@@ -338,7 +338,11 @@ class Conductor:
     # --- the forever song --------------------------------------------------------------------
 
     def _bucket_message(self) -> dict[str, Any]:
-        return {"type": "bucket", "bucket": {**self.bucket.describe(), "rest": self._silences,
+        told = self.bucket.describe()
+        if self.settings.pieces == "off":
+            # Written pieces are switched off: the player is told of the loose phrases only.
+            told = {**told, "pieces": {}, "clips": [clip for clip in told["clips"] if "piece" not in clip]}
+        return {"type": "bucket", "bucket": {**told, "rest": self._silences,
                                              "style": composer.GENRES[self.bucket.genre]["label"]}}
 
     async def _forever_step(self, state: game.GameState, target: Target, now: float) -> None:
@@ -940,7 +944,7 @@ class Conductor:
         have = {}
         for asset in self.library.usable():
             have.setdefault(asset.genre, set()).add(asset.zone)
-        return {"genre": self.genre,
+        return {"genre": self.genre, "pieces": self.settings.pieces,
                 "genres": [{"key": key, "label": recipe["label"], "about": recipe["about"],
                             "places": len(have.get(key, ()))} for key, recipe in composer.GENRES.items()]}
 
@@ -949,15 +953,23 @@ class Conductor:
         (var/settings.json) and takes effect at once: what the library has in the new style is
         played, and the place the player is in gets music in it if it has none."""
         if request.method == "POST":
-            wanted = (await request.json()).get("genre")
+            asked = await request.json()
             try:
-                self.settings.change("genre", wanted)
+                for name in ("genre", "pieces"):
+                    if name in asked:
+                        self.settings.change(name, asked[name])
             except ValueError as error:
                 raise web.HTTPBadRequest(text=str(error))
             self.settings.save()
-            self._seen_in = self._seen_at = None      # the wait before making music starts again
-            self._arrivals = []
-            self.notes.append("The style is now %s." % composer.GENRES[self.genre]["label"])
+            if "genre" in asked:
+                self._seen_in = self._seen_at = None      # the wait before making music starts again
+                self._arrivals = []
+                self.notes.append("The style is now %s." % composer.GENRES[self.genre]["label"])
+            if "pieces" in asked:
+                # The players are told at once what there now is to play from.
+                self.notes.append("Written pieces are switched %s." % self.settings.pieces)
+                if self.bucket is not None:
+                    await self._broadcast(self._bucket_message())
         return web.json_response(self._styles())
 
     async def zones(self, request: web.Request) -> web.Response:

@@ -755,6 +755,17 @@ tests.pieceBan = async () => {
            quietest: quietest(run.data, 14, 28), typical: rms(run.data, 3, 8) };
 };
 
+// Pieces switched off in the middle of one: the music goes over to the loose phrases and stays there.
+tests.pieceOff = async () => {
+  const bucket = makePieces("off", [{ id: "song", windows: 6 }], 3);
+  const without = Object.assign({}, bucket, { pieces: {}, clips: bucket.clips.filter((clip) => !clip.piece) });
+  const run = await render(60, { bucket, script: [[9.2, (engine) => engine.setBucket(without)]] });
+  const loose = run.engine.log.find((entry) => !entry.clip.includes("-song-"));
+  const later = run.engine.log.filter((entry) => entry.at > 16).map((entry) => (entry.clip.includes("-song-") ? "piece" : "loose"));
+  return { looseAt: loose ? loose.at : null, later: [...new Set(later)], quietest: quietest(run.data, 12, 58),
+           typical: rms(run.data, 3, 8), late: run.engine.late };
+};
+
 // Loose phrases come between two tracks where the bucket has them, and a moment of silence when one is due.
 tests.pieceFree = async () => {
   const bucket = makePieces("free", [{ id: "song", windows: 2 }], 3);

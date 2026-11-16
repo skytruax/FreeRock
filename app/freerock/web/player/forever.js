@@ -843,9 +843,11 @@
     async _regroup(force) {
       const group = this.group;
       const index = this.bucket ? this._index() : null;
-      if (!group || !index || !index.size) return false;
+      if (!group || !index) return false;
       const ask = this._ask();
+      // (A piece that is no longer in the bucket: it was banned, or pieces were switched off.)
       const gone = Boolean(group.piece && !index.has(group.piece.id));
+      if (!index.size && !gone) return false;
       const here = group.piece ? group.piece.meta.serves : [0, 1, 2];
       if (!force && !gone) {
         if (group.piece ? here.includes(ask) : ask < 2) return false;

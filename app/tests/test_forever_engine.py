@@ -433,6 +433,14 @@ async def test_a_banned_piece_is_left_at_once(results):
     assert ban["quietest"] >= 0.5 * ban["typical"], "the music stopped when the piece was banned"
 
 
+async def test_pieces_can_be_switched_off_in_the_middle_of_one(results):
+    off = of(results, "pieceOff")
+    assert off["looseAt"] is not None and off["looseAt"] <= 9.2 + 2.2, "the piece went on after pieces were switched off"
+    assert off["later"] == ["loose"]
+    assert off["quietest"] >= 0.3 * off["typical"], "the music stopped when pieces were switched off"
+    assert off["late"] == 0
+
+
 async def test_loose_phrases_and_silences_come_between_tracks(results):
     free = of(results, "pieceFree")
     assert free["kinds"][:3] in (["piece", "loose", "piece"], ["loose", "piece", "loose"]), free["kinds"]

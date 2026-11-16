@@ -89,6 +89,10 @@ class Settings:
     # played. "songs": whole songs made a few minutes at a time and played start to finish.
     mode: str = "forever"
 
+    # Whether the written pieces in the buckets are played ("on") or only the loose phrases
+    # ("off"): a way back to how the forever song was before there were pieces.
+    pieces: str = "on"
+
     # Rests: about this many minutes of calm music, then about this many seconds without any, as
     # the game's own music has between pieces. rest_every_minutes of 0 means the music never rests.
     rest_every_minutes: float = 6.0
@@ -111,10 +115,10 @@ class Settings:
 
     # The settings that may be changed in var/settings.json or with `freerock settings`.
     CHANGEABLE = ("monthly_minutes", "daily_minutes", "hours_per_month", "rock",
-                  "rest_every_minutes", "rest_seconds", "genre", "mode")
+                  "rest_every_minutes", "rest_seconds", "genre", "mode", "pieces")
     GENRES = ("knight", "warcraft", "house")
     MODES = ("forever", "songs")
-    WORDS = ("genre", "mode")       # the settings that are a word, not a number
+    WORDS = ("genre", "mode", "pieces")       # the settings that are a word, not a number
 
     @property
     def file(self) -> Path:
@@ -149,6 +153,11 @@ class Settings:
             if value not in self.MODES:
                 raise ValueError("mode must be one of %s, not %r" % (", ".join(self.MODES), value))
             self.mode = str(value)
+            return
+        if name == "pieces":
+            if value not in ("on", "off"):
+                raise ValueError("pieces must be on or off, not %r" % (value,))
+            self.pieces = str(value)
             return
         if isinstance(value, bool) or not isinstance(value, (int, float)):
             raise ValueError("%s must be a number, not %r" % (name, value))

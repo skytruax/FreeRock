@@ -213,6 +213,7 @@
       button.addEventListener("click", () => chooseStyle(genre.key));
       return button;
     }));
+    $("pieces").checked = styles.pieces !== "off";
     const chosen = styles.genres.find((genre) => genre.key === styles.genre);
     $("styleAbout").textContent = chosen
       ? chosen.label + ": " + chosen.about + ". New music is made in this style; a place with none yet gets some within a minute or two."
@@ -229,6 +230,13 @@
     if (!response.ok) { problem("The style was not changed: " + await response.text()); return; }
     drawStyles(await response.json());
   }
+  // Written pieces on or off: the server tells every page at once what there now is to play from.
+  $("pieces").addEventListener("change", async () => {
+    const response = await fetch("/api/style", { method: "POST", headers: { "Content-Type": "application/json" },
+                                                 body: JSON.stringify({ pieces: $("pieces").checked ? "on" : "off" }) });
+    if (!response.ok) { problem("Written pieces were not switched: " + await response.text()); return; }
+    drawStyles(await response.json());
+  });
   loadStyles().catch((error) => problem(String(error)));
 
   // --- the pretend game ----------------------------------------------------------------------
