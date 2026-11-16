@@ -894,7 +894,9 @@ class Conductor:
         """One whole phrase from a bucket, as 16-bit stereo."""
         key = "%s/%s" % (request.match_info["genre"], request.match_info["zone"])
         try:
-            data = self.buckets.by_key(key).samples(request.match_info["clip"])
+            # Read to one side: a part of a piece is unpacked from FLAC, which takes a moment
+            # the game should not have to wait for.
+            data = await asyncio.to_thread(self.buckets.by_key(key).samples, request.match_info["clip"])
         except KeyError as error:
             raise web.HTTPNotFound(text="Cannot give that phrase: %s" % error)
         # A phrase never changes once it is made, so the browser may keep it for good.

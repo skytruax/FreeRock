@@ -34,6 +34,7 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+import soundfile
 
 from . import analysis, atlas, composer
 from .audio import PcmStream
@@ -103,7 +104,7 @@ CALM_PLACES = ("ember",)       # an inn, the moment after a fight, a death: ever
 PIECE_LEVEL = -13.0            # how loud a piece is with every part playing (LUFS): what five decks of phrases come to
 POST_S = 6.0                   # how much of what follows is kept after each stretch of a part, for fading out under what comes next
 WINDOW_S = 52.0                # a part is kept in stretches no longer than this, so that no one of them is slow to fetch
-FREE_SHARE = 0.25              # how often a stretch of loose phrases comes between two tracks, where there are enough of them
+FREE_SHARE = 0.12              # how often a stretch of loose phrases comes between two tracks, where there are enough of them
 STORY = ("open", "theme", "rise", "moment", "close")       # where in a story a piece belongs; "" for one that is a story in itself
 
 _ONLY = "nothing else"
@@ -795,8 +796,12 @@ class Bucket:
                             bars=max(int(round((last - first) / bar_frames)), 1), frames=last - first,
                             gain_db=round(float(gain_db), 2), created=time.time(), words=[title], source=source or "written",
                             piece=piece_id, order=order, post=len(stretch) - (last - first))
-                np.save(self.folder / "clips" / (clip.id + ".npy"),
-                        np.round(np.clip(stretch, -1.0, 32767 / 32768) * 32768).astype("<i2"))
+                # The parts of pieces are kept as FLAC: the same samples in half the room. (There
+                # are thousands of them; the loose phrases, which are few, are kept raw.)
+                scratch = self.folder / "clips" / (clip.id + ".part")
+                soundfile.write(str(scratch), np.round(np.clip(stretch, -1.0, 32767 / 32768) * 32768).astype("<i2"), RATE,
+                                format="FLAC", subtype="PCM_16")
+                scratch.replace(self.folder / "clips" / (clip.id + ".flac"))
                 self.clips.append(clip)
         self.pieces[piece_id] = {
             "title": title, "track": track, "next": "", "story": story, "moods": list(moods), "role": role,
@@ -814,7 +819,7 @@ class Bucket:
         if piece_id not in self.pieces:
             raise KeyError("No piece %r in the bucket for %s" % (piece_id, self.key))
         for clip in [clip for clip in self.clips if clip.piece == piece_id]:
-            (self.folder / "clips" / (clip.id + ".npy")).unlink()
+            self._file(clip.id).unlink()
             self.clips.remove(clip)
         del self.pieces[piece_id]
         for piece in self.pieces.values():
@@ -863,7 +868,24 @@ class Bucket:
         """A whole phrase as 16-bit little-endian stereo."""
         if not any(clip.id == clip_id for clip in self.clips):
             raise KeyError("No phrase %r in the bucket for %s" % (clip_id, self.key))
-        return np.load(self.folder / "clips" / (clip_id + ".npy")).tobytes()
+        return self.audio(clip_id).tobytes()
+
+    def _file(self, clip_id: str) -> Path:
+        """Where a recording is kept: raw samples for a loose phrase (and for the pieces put in
+        before pieces were kept as FLAC), FLAC for the part of a piece."""
+        raw = self.folder / "clips" / (clip_id + ".npy")
+        return raw if raw.is_file() else self.folder / "clips" / (clip_id + ".flac")
+
+    def audio(self, clip_id: str) -> np.ndarray:
+        """A recording as 16-bit stereo samples: for a part of a piece, the stretch and then
+        what the music went on to."""
+        path = self._file(clip_id)
+        if path.suffix == ".npy":
+            return np.load(path)
+        samples, rate = soundfile.read(str(path), dtype="int16", always_2d=True)
+        if rate != RATE:
+            raise ValueError("%s is at %d Hz, not %d" % (path, rate, RATE))
+        return np.ascontiguousarray(samples, dtype="<i2")
 
     def describe(self) -> dict[str, Any]:
         """What the player needs to know to play from this bucket."""

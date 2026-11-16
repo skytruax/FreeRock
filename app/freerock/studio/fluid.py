@@ -15,6 +15,7 @@ import numpy as np
 import soundfile
 
 RATE = 48000
+TRIES = 3
 HOME = Path(__file__).resolve().parents[3] / "var" / "tools" / "fluid"
 FONT = HOME / "usr" / "share" / "sounds" / "sf2" / "MuseScore_General_Full.sf2"
 
@@ -31,9 +32,17 @@ def render(midi: Path, wav: Path, *, gain: float = 2.0, font: Path = FONT, rever
     command = [str(binary), "-ni", "-q", "-F", str(wav), "-T", "wav", "-O", "float", "-r", str(RATE), "-g", "%.3f" % gain,
                "-o", "synth.polyphony=1024", "-o", "synth.reverb.active=%d" % (1 if reverb else 0),
                "-o", "synth.chorus.active=0", "-o", "synth.cpu-cores=1", str(font), str(midi)]
-    done = subprocess.run(command, env=env, capture_output=True, text=True)
-    if done.returncode != 0 or not Path(wav).is_file():
-        raise RuntimeError("FluidSynth could not play %s: %s" % (midi, (done.stderr or done.stdout).strip()[-600:]))
+    # On a machine that is busy with a dozen of these at once, a run now and then dies as it
+    # starts. It is tried again; a file that cannot be played at all fails every time, and that
+    # is said.
+    for attempt in range(TRIES):
+        Path(wav).unlink(missing_ok=True)
+        done = subprocess.run(command, env=env, capture_output=True, text=True)
+        if done.returncode == 0 and Path(wav).is_file() and Path(wav).stat().st_size > 1000:
+            break
+        if attempt == TRIES - 1:
+            raise RuntimeError("FluidSynth could not play %s in %d tries (exit code %s): %s" % (
+                midi, TRIES, done.returncode, (done.stderr or done.stdout).strip()[-600:]))
     audio, rate = soundfile.read(str(wav), dtype="float32", always_2d=True)
     if rate != RATE:
         raise RuntimeError("FluidSynth wrote %d Hz, not %d" % (rate, RATE))

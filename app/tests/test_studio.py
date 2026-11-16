@@ -206,7 +206,8 @@ def test_a_staged_track_becomes_the_pieces_of_its_story_each_going_into_the_next
     assert {clip.channel for clip in clips if clip.piece == ids[1]} == {"lead", "drums"}
     # Every recording is the piece and then what the music went on to.
     for clip in clips:
-        samples = np.load(bucket.folder / "clips" / (clip.id + ".npy"))
+        samples = bucket.audio(clip.id)
+        assert samples.dtype == np.dtype("<i2") and len(bucket.samples(clip.id)) == 4 * len(samples)
         assert len(samples) == clip.frames + clip.post
         assert clip.frames == 2 * RATE
         # ...up to six seconds of it, or as much as there is: the last piece has only the ringing-on.

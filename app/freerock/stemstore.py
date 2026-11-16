@@ -126,7 +126,7 @@ class StemStore:
         path = self.root / _name(bucket, clip)
         if path.is_file():
             return False
-        samples = np.load(bucket.folder / "clips" / (clip.id + ".npy"))
+        samples = bucket.audio(clip.id)
         path.parent.mkdir(parents=True, exist_ok=True)
         scratch = path.with_suffix(".part")
         soundfile.write(str(scratch), samples, forever.RATE, format="FLAC", subtype="PCM_16")
