@@ -1,0 +1,262 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>FreeRock: a track's channels</title>
+<!-- A track on a mixing desk: its five channels side by side, each with a meter, a fader, mute
+     and solo, and the game's hand on the drums and the bass. Written out by tools/listen.py to
+     var/listen/mixer.html; opened as mixer.html?track=<style>/<the track's folder>.
+
+     The channels are kept as short pieces (track.json says how many and how long) and laid end
+     to end on the audio clock, all five at the same instant, so they cannot drift apart. -->
+<style>
+body{font:15px sans-serif;margin:24px;background:#16181c;color:#e8e8e8}
+a{color:#ffd76a} small{color:#aaa} h1{margin:0 0 4px 0;font-size:24px}
+button{font:15px sans-serif;background:#2a2e36;color:#e8e8e8;border:1px solid #555;border-radius:6px;padding:6px 14px;cursor:pointer}
+button.on{background:#ffd76a;color:#16181c;border-color:#ffd76a}
+#desk{display:flex;gap:14px;margin:18px 0}
+.strip{background:#20242b;border:1px solid #3a3f49;border-radius:10px;padding:12px 10px;width:150px;text-align:center}
+.strip h2{margin:0 0 2px 0;font-size:17px;text-transform:capitalize}
+.strip .who{height:52px;font-size:12px;color:#aaa}
+.well{display:flex;justify-content:center;gap:14px;height:210px;margin:8px 0}
+.meter{width:16px;height:210px;background:#101216;border:1px solid #3a3f49;border-radius:4px;position:relative;overflow:hidden}
+.meter i{position:absolute;left:0;right:0;bottom:0;height:0;background:linear-gradient(#ff6a4d,#ffd76a 25%,#58c46c 60%)}
+.game{width:8px;height:210px;background:#101216;border:1px solid #3a3f49;border-radius:4px;position:relative;overflow:hidden}
+.game i{position:absolute;left:0;right:0;bottom:0;height:100%;background:#6aa9ff}
+input[type=range].fader{writing-mode:vertical-lr;direction:rtl;width:26px;height:210px}
+.keys{display:flex;gap:6px;justify-content:center}
+.keys button{padding:3px 9px;font-size:13px}
+#story{display:flex;height:34px;border-radius:6px;overflow:hidden;border:1px solid #3a3f49;cursor:pointer;position:relative;margin:10px 0 2px 0}
+#story div{display:flex;align-items:center;justify-content:center;font-size:12px;color:#16181c;border-right:1px solid #16181c;box-sizing:border-box}
+#hand{position:absolute;top:0;bottom:0;width:2px;background:#fff;left:0;pointer-events:none}
+#gamebox{background:#20242b;border:1px solid #3a3f49;border-radius:10px;padding:12px 16px;max-width:820px}
+#push{width:420px;vertical-align:middle}
+#said{color:#ff8a70}
+</style></head><body>
+<p><a id="back" href="index.html">&larr; all tracks</a></p>
+<h1 id="title">...</h1>
+<small id="about"></small>
+<div id="story"><span id="hand"></span></div>
+<small id="clock">0:00</small> <small id="part"></small>
+<p><button id="play">Play</button> <span id="said"></span></p>
+<div id="desk"></div>
+<div id="gamebox">
+  <b>The game's hand.</b> In the game nobody touches these faders: the game does.
+  The tune, the accompaniment and the pad always play, so a piece's story is whole. The <b>drums</b> and the <b>bass</b> are what the
+  game leans on: each part of the story has a least it will play them at, and a fight pushes them to full.<br><br>
+  quiet <input type="range" id="push" min="0" max="100" value="100"> a fight
+  &nbsp; <small id="pushed"></small><br>
+  <small>The blue bar beside each meter is how far up the game has that channel right now.</small>
+</div>
+<script>
+"use strict";
+const WHO = {
+  texture: "the pad: held strings, tremolo, woodwind chords",
+  lead: "the tune and whoever doubles it",
+  rhythm: "the accompaniment: plucked strings, short bows, brass chords",
+  drums: "all percussion: war drums, timpani, the kit, cymbals",
+  bass: "double basses, low brass, the sub under them",
+};
+const COLOURS = { open: "#8fb8de", theme: "#9ad1a3", rise: "#f0c36a", moment: "#f08a6a", close: "#b7a6e0" };
+const said = (text) => { document.getElementById("said").textContent = text; };
+const path = (text) => text.split("/").map(encodeURIComponent).join("/");
+const track = new URLSearchParams(location.search).get("track");
+let meta = null, ctx = null, master = null, timer = null;
+let playing = false, begun = 0, next = 0, ready = false;      // begun: the audio clock's time at which the track's start falls
+const strips = {}, kept = new Map(), sounding = [];
+
+function clock(seconds) {
+  const whole = Math.max(0, Math.floor(seconds));
+  return Math.floor(whole / 60) + ":" + String(whole % 60).padStart(2, "0");
+}
+function position() {
+  if (!ctx) return 0;
+  return Math.min(Math.max(ctx.currentTime - begun, 0), meta.seconds);
+}
+function partAt(seconds) {
+  return meta.sections.find((section) => seconds < section.end) || meta.sections[meta.sections.length - 1];
+}
+
+// One piece of one channel, fetched and decoded once.
+function piece(channel, index) {
+  const key = channel + "-" + index;
+  if (!kept.has(key)) {
+    kept.set(key, fetch(path(track) + "/" + channel + "-" + String(index).padStart(3, "0") + ".flac")
+      .then((answer) => { if (!answer.ok) throw new Error(key + ": " + answer.status); return answer.arrayBuffer(); })
+      .then((bytes) => ctx.decodeAudioData(bytes)));
+  }
+  return kept.get(key);
+}
+function pieces(index) {
+  return Promise.all(meta.channels.map((channel) => piece(channel, index)));
+}
+function forget(before) {
+  for (const key of [...kept.keys()]) if (Number(key.split("-").pop()) < before) kept.delete(key);
+}
+
+// Lays the pieces numbered `next` on the clock, every channel at the same instant.
+async function lay() {
+  if (!playing || next >= meta.pieces) return;
+  const index = next, at = begun + index * meta.piece;
+  if (at > ctx.currentTime + 2 * meta.piece) return;                 // far enough ahead
+  const buffers = await pieces(index);
+  if (!playing || next !== index) return;                            // moved elsewhere while they were fetched
+  let start = begun + index * meta.piece, from = 0;
+  if (start < ctx.currentTime + 0.05) {                              // fetched too late to begin on time: begin where the track is by now
+    from = ctx.currentTime + 0.05 - start;
+    start = ctx.currentTime + 0.05;
+  }
+  meta.channels.forEach((channel, order) => {
+    if (from >= buffers[order].duration) return;
+    const source = ctx.createBufferSource();
+    source.buffer = buffers[order];
+    source.connect(strips[channel].gain);
+    source.start(start, from);
+    source.onended = () => { const place = sounding.indexOf(source); if (place >= 0) sounding.splice(place, 1); source.disconnect(); };
+    sounding.push(source);
+  });
+  next = index + 1;
+  forget(index - 1);
+  if (next < meta.pieces) pieces(next).catch((error) => said(String(error)));
+  lay().catch((error) => said(String(error)));
+}
+function hush() {
+  for (const source of sounding.splice(0)) { try { source.stop(); } catch (error) { /* it had ended already */ } source.disconnect(); }
+}
+async function seek(seconds) {
+  hush();
+  const to = Math.min(Math.max(seconds, 0), meta.seconds - 0.5);
+  next = Math.floor(to / meta.piece);
+  begun = ctx.currentTime + 0.25 - to;
+  if (playing) await lay();
+}
+async function play() {
+  if (!ctx) await setUp();
+  if (playing) {
+    playing = false;
+    await ctx.suspend();
+  } else {
+    const at = ready ? position() : 0;
+    await ctx.resume();
+    playing = true;
+    if (!ready || at >= meta.seconds - 0.6) { ready = true; await seek(0); } else if (!sounding.length) { await seek(at); }
+  }
+  document.getElementById("play").textContent = playing ? "Pause" : "Play";
+  document.getElementById("play").classList.toggle("on", playing);
+}
+
+// How far up the game has a channel: the pad, the tune and the accompaniment always; the drums
+// and the bass as far as the game pushes, and never under what this part of the story needs.
+function game(channel, seconds) {
+  if (channel !== "drums" && channel !== "bass") return 1;
+  const pushed = Number(document.getElementById("push").value) / 100;
+  const least = ((meta.floor || {})[partAt(seconds).story] || {})[channel] || 0;
+  return Math.max(pushed, least);
+}
+function levels() {
+  const at = position(), solo = Object.values(strips).some((strip) => strip.solo);
+  for (const [channel, strip] of Object.entries(strips)) {
+    const heard = strip.mute || (solo && !strip.solo) ? 0 : 1;
+    const level = heard * Number(strip.fader.value) / 100 * game(channel, at);
+    strip.gain.gain.setTargetAtTime(level, ctx.currentTime, 0.05);
+    strip.hand.style.height = Math.round(game(channel, at) * 100) + "%";
+  }
+}
+
+async function setUp() {
+  ctx = new AudioContext({ sampleRate: meta.rate });
+  master = ctx.createGain();
+  master.gain.value = meta.gain;
+  master.connect(ctx.destination);
+  for (const channel of meta.channels) {
+    const strip = strips[channel];
+    strip.gain = ctx.createGain();
+    strip.listen = ctx.createAnalyser();
+    strip.listen.fftSize = 2048;
+    strip.heard = new Float32Array(strip.listen.fftSize);
+    strip.gain.connect(strip.listen);          // through the meter, which passes it on untouched
+    strip.listen.connect(master);
+  }
+  timer = setInterval(() => { if (playing) { levels(); lay().catch((error) => said(String(error))); } }, 200);
+  await ctx.suspend();
+}
+
+function draw() {
+  if (meta && ctx) {
+    const at = position();
+    document.getElementById("clock").textContent = clock(at) + " / " + clock(meta.seconds);
+    document.getElementById("part").textContent = "  " + partAt(at).story;
+    document.getElementById("hand").style.left = (100 * at / meta.seconds) + "%";
+    for (const strip of Object.values(strips)) {
+      strip.listen.getFloatTimeDomainData(strip.heard);
+      let sum = 0;
+      for (const value of strip.heard) sum += value * value;
+      const db = 10 * Math.log10(sum / strip.heard.length + 1e-12);
+      strip.bar.style.height = Math.min(Math.max((db + 60) / 54, 0), 1) * 100 + "%";       // -60 dB at the foot, -6 at the top
+    }
+    if (playing && at >= meta.seconds - 0.05) { playing = false; ctx.suspend(); document.getElementById("play").textContent = "Play";
+                                                document.getElementById("play").classList.remove("on"); }
+  }
+  requestAnimationFrame(draw);
+}
+
+function build() {
+  document.title = "FreeRock: " + meta.title;
+  document.getElementById("title").textContent = meta.title;
+  document.getElementById("about").textContent = meta.about;
+  document.getElementById("back").href = path(track.split("/")[0]) + "/index.html";
+  const story = document.getElementById("story");
+  for (const section of meta.sections) {
+    const part = document.createElement("div");
+    part.style.width = (100 * (section.end - section.start) / meta.seconds) + "%";
+    part.style.background = COLOURS[section.story] || "#999";
+    part.textContent = section.story;
+    story.insertBefore(part, document.getElementById("hand"));
+  }
+  story.addEventListener("click", async (event) => {
+    const box = story.getBoundingClientRect();
+    const to = (event.clientX - box.left) / box.width * meta.seconds;
+    if (!ctx) await setUp();
+    ready = true;
+    await seek(to);
+  });
+  const desk = document.getElementById("desk");
+  for (const channel of meta.channels) {
+    const strip = document.createElement("div");
+    strip.className = "strip";
+    strip.innerHTML = "<h2></h2><div class='who'></div><div class='well'><div class='game' title='how far up the game has it'><i></i></div>" +
+      "<div class='meter'><i></i></div><input class='fader' type='range' orient='vertical' min='0' max='125' value='100'></div>" +
+      "<div class='keys'><button class='mute'>Mute</button><button class='solo'>Solo</button></div>";
+    strip.querySelector("h2").textContent = channel;
+    strip.querySelector(".who").textContent = WHO[channel] || "";
+    desk.appendChild(strip);
+    const state = { fader: strip.querySelector(".fader"), bar: strip.querySelector(".meter i"), hand: strip.querySelector(".game i"),
+                    mute: false, solo: false };
+    strips[channel] = state;
+    const key = (name) => strip.querySelector("." + name).addEventListener("click", (event) => {
+      state[name] = !state[name];
+      event.target.classList.toggle("on", state[name]);
+      if (ctx) levels();
+    });
+    key("mute"); key("solo");
+    state.fader.addEventListener("input", () => { if (ctx) levels(); });
+  }
+  const push = document.getElementById("push");
+  const tell = () => {
+    document.getElementById("pushed").textContent = Number(push.value) >= 100 ? "everything at full, as a whole track is written"
+      : "the drums and the bass at " + push.value + "%, or at what the story needs if that is more";
+    if (ctx) levels();
+  };
+  push.addEventListener("input", tell);
+  tell();
+  document.getElementById("play").addEventListener("click", () => play().catch((error) => said(String(error))));
+  requestAnimationFrame(draw);
+}
+
+if (!track) {
+  said("No track was named: open this page from a track's row on the list.");
+} else {
+  fetch(path(track) + "/track.json")
+    .then((answer) => { if (!answer.ok) throw new Error("This track's channels are not here (" + answer.status + ")"); return answer.json(); })
+    .then((read) => { meta = read; build(); })
+    .catch((error) => said(String(error)));
+}
+</script>
+</body></html>
