@@ -113,8 +113,8 @@ def test_a_place_has_a_shade_from_grim_to_radiant_and_the_hour_the_rain_and_a_ca
     assert atlas.shade_for("Duskwood", "Scarlet Raven Tavern") > atlas.shade_for("Duskwood"), "an inn is a warm room whatever it is called"
     assert atlas.shade_for(None) == 0.0 and atlas.shade_for("Somewhere Nobody Has Been") == 0.0
     from freerock.conductor import Conductor
-    from freerock.library import Library
-    music = Conductor(game.Hub(), Library(tmp_path / "library"))
+    from freerock.settings import Settings
+    music = Conductor(game.Hub(), settings=Settings(var_dir=tmp_path / "var"))
     day = game.GameState(zone_name="Elwynn Forest", daytime=True)
     here = music.shade_here(day)
     assert here == 1.5

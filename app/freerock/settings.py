@@ -68,26 +68,14 @@ class Settings:
     # 300 sits under the lower of the two monthly caps ElevenLabs publishes for the Pro plan.
     monthly_minutes: float = 300.0
     daily_minutes: float = 30.0
-    # How many hours a month the game is played with FreeRock on. The minutes that go on growing
-    # a place's music are paced against this, so the month's allowance lasts the month.
-    hours_per_month: float = 100.0
-    # Held back from the monthly allowance for re-rolls when a track fails its checks.
+    # Held back from the monthly allowance for re-rolls when a phrase fails its checks.
     reroll_reserve: float = 0.10
-
-    # How much of the rock the calm parts of new music carry, from 0 (hardly any) to 1 (a lot).
-    # Battle and Boss are always the full band.
-    rock: float = 0.5
 
     # The kind of music: "knight" (riff rock with lute and hurdy-gurdy), "warcraft" (an orchestral
     # fantasy score in the old style) or "house" (uplifting progressive house, happy and chill).
-    # New music is made in it, and what the library
-    # already has in it is what is played. See composer.GENRES.
+    # Each has a bucket of its own, a song that never ends; the one named here is played. See
+    # composer.GENRES.
     genre: str = "knight"
-
-    # How the music is put together. "forever": one song that never ends, built as it goes from a
-    # bucket of single-instrument phrases, with new phrases asked for the whole time the game is
-    # played. "songs": whole songs made a few minutes at a time and played start to finish.
-    mode: str = "forever"
 
     # Whether the written pieces in the buckets are played ("on") or only the loose phrases
     # ("off"): a way back to how the forever song was before there were pieces.
@@ -109,16 +97,14 @@ class Settings:
     def ledger_path(self) -> Path:
         return self.var_dir / "ledger.sqlite3"
 
-    @property
-    def library_dir(self) -> Path:
-        return self.var_dir / "library"
-
     # The settings that may be changed in var/settings.json or with `freerock settings`.
-    CHANGEABLE = ("monthly_minutes", "daily_minutes", "hours_per_month", "rock",
-                  "rest_every_minutes", "rest_seconds", "genre", "mode", "pieces")
+    CHANGEABLE = ("monthly_minutes", "daily_minutes", "rest_every_minutes", "rest_seconds", "genre", "pieces")
     GENRES = ("knight", "warcraft", "house")
-    MODES = ("forever", "songs")
-    WORDS = ("genre", "mode", "pieces")       # the settings that are a word, not a number
+    WORDS = ("genre", "pieces")               # the settings that are a word, not a number
+    # Settings an older var/settings.json may still hold, for the songs FreeRock played before
+    # the forever song: they are passed over when the file is read, and left out when it is next
+    # written.
+    FORMER = ("mode", "rock", "hours_per_month")
 
     @property
     def file(self) -> Path:
@@ -134,7 +120,8 @@ class Settings:
             return settings
         changes = json.loads(settings.file.read_text(encoding="utf-8"))
         for name, value in changes.items():
-            settings.change(name, value)
+            if name not in cls.FORMER:
+                settings.change(name, value)
         return settings
 
     def change(self, name: str, value: float | str) -> None:
@@ -149,11 +136,6 @@ class Settings:
                 raise ValueError("genre must be one of %s, not %r" % (", ".join(self.GENRES), value))
             self.genre = str(value)
             return
-        if name == "mode":
-            if value not in self.MODES:
-                raise ValueError("mode must be one of %s, not %r" % (", ".join(self.MODES), value))
-            self.mode = str(value)
-            return
         if name == "pieces":
             if value not in ("on", "off"):
                 raise ValueError("pieces must be on or off, not %r" % (value,))
@@ -161,12 +143,8 @@ class Settings:
             return
         if isinstance(value, bool) or not isinstance(value, (int, float)):
             raise ValueError("%s must be a number, not %r" % (name, value))
-        if name == "rock" and not 0.0 <= value <= 1.0:
-            raise ValueError("rock must be between 0 and 1, not %r" % (value,))
-        if name != "rock" and value < 0:
+        if value < 0:
             raise ValueError("%s cannot be less than nothing" % name)
-        if name == "hours_per_month" and value <= 0:
-            raise ValueError("hours_per_month must be more than nothing")
         setattr(self, name, float(value))
 
     def save(self) -> None:

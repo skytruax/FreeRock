@@ -1,9 +1,9 @@
 """The written pieces a style has: putting staged tracks in its bucket, and saying what is there.
 
 A style has one bucket, and its written music lives in it beside its loose phrases (see
-forever.Bucket.add_piece). Pieces come from two places: the songs on disk, cut up by songstems,
-and tracks written and played in the studio, which are staged under var/studio and put in the
-bucket from there. `freerock pieces` does both, and lists what a style has.
+forever.Bucket.add_piece). Pieces are tracks written and played in the studio, which are staged
+under var/studio and put in the bucket from there. `freerock pieces` puts them in, lists what a
+style has, and takes pieces out again.
 
 A bucket is written here while the server is stopped: the server keeps each bucket's list in
 memory and writes it back as phrases are played, so two programs writing one bucket would lose
@@ -60,9 +60,9 @@ def add_staged(bucket: forever.Bucket, var_dir: Path, style: str) -> list[tuple[
 
 def drop_from(bucket: forever.Bucket, source: str) -> int:
     """Takes out of a bucket, for good, every piece whose source begins with `source` (the
-    studio's tracks are "<style>/<family>/<take>", the songs "song/<asset>/<bar>"). The staged
-    tracks and the songs themselves are left where they are, so the pieces can be put back.
-    Returns how many pieces went."""
+    studio's tracks are "<style>/<family>/<take>"; pieces cut from the first design's songs,
+    where a bucket still has them, "song/<asset>/<bar>"). The staged tracks are left where they
+    are, so the studio's pieces can be put back. Returns how many pieces went."""
     if not source:
         raise ValueError("Say which pieces: an empty source would take every one")
     mine = [piece_id for piece_id, piece in bucket.pieces.items() if str(piece.get("source", "")).startswith(source)]

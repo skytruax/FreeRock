@@ -1,8 +1,8 @@
-// The FreeRock player page: connects the audio engine (engine.js) to the FreeRock server.
+// The FreeRock player page: connects the forever song's engine (forever.js) to the FreeRock server.
 //
-// The server says which music to play and what the target is; this page fetches the audio the
-// engine asks for and shows what is going on. If the server cannot be reached the music that is
-// playing carries on, and after a minute it fades out under a notice.
+// The server says which bucket to play from and what the target is; this page fetches the
+// phrases the engine asks for and shows what is going on. If the server cannot be reached the
+// music that is playing carries on, and after a minute it fades out under a notice.
 (function () {
   "use strict";
 
@@ -12,7 +12,7 @@
   let retry = 500;              // milliseconds until the next attempt to reconnect
   let lostAt = null;            // when the server was last lost, if it is lost now
   let gameVolume = null;        // the volume last set from inside the game
-  let playing = null;           // the music the server last sent
+  let playing = null;           // the bucket the server last sent
   let version = null;           // the version of this page, as the server named it when it loaded
   let outdated = false;         // the server has been updated since
   const problems = [];
@@ -41,13 +41,7 @@
     $("banner").textContent = text || "";
   }
 
-  async function loader(assetId, layer, start, end) {
-    const response = await fetch("/audio/" + assetId + "/" + layer + "?start=" + start + "&end=" + end);
-    if (!response.ok) throw new Error("The server would not give audio (" + response.status + "): " + await response.text());
-    return response.arrayBuffer();
-  }
-
-  // One whole phrase from a bucket (the forever song).
+  // One whole phrase from a bucket, or one stretch of a part of a piece.
   async function phraseLoader(key, clipId) {
     const response = await fetch("/phrase/" + key + "/" + clipId);
     if (!response.ok) throw new Error("The server would not give the phrase " + clipId + " (" + response.status + "): " + await response.text());
@@ -79,11 +73,9 @@
     },
   };
 
-  // The forever song: the server sends the bucket of phrases for the place, and the five decks
-  // play from it. If this page was playing songs until now, it changes over.
+  // The server sends the bucket the style plays from, and the five decks play from it.
   async function useBucket(message) {
     const bucket = message.bucket;
-    if (engine && !(engine instanceof FreeRockForever)) { await engine.stop(); engine = null; }
     if (!ctx) ctx = new AudioContext({ sampleRate: bucket.rate, latencyHint: "interactive" });
     if (!engine) {
       engine = new FreeRockForever(ctx, phraseLoader, { report: problem, memory: heard });
@@ -92,27 +84,7 @@
     }
     await engine.setBucket(bucket);
     playing = bucket;
-    musicLine(false);
-    await begin();
-  }
-
-  async function useAsset(message) {
-    const asset = message.asset;
-    if (engine && engine instanceof FreeRockForever) { await engine.stop(); engine = null; }
-    if (!ctx) {
-      // The player runs at the music's own sample rate, so nothing is resampled and the three
-      // layers stay locked.
-      // A short path to the speakers, so that a change is heard as soon as it is made.
-      ctx = new AudioContext({ sampleRate: asset.rate, latencyHint: "interactive" });
-    }
-    if (!engine) {
-      engine = new FreeRockEngine(ctx, loader);
-      engine.setVolume(volume());
-      if (target) await engine.setTarget(target);
-    }
-    await engine.setAsset(asset);
-    playing = asset;
-    musicLine(message.borrowed);
+    musicLine();
     await begin();
   }
 
@@ -125,33 +97,26 @@
     await engine.start();
   }
 
-  // Whose music is playing, and whether this place is only borrowing it.
-  function musicLine(borrowed) {
+  // What the bucket holds: written pieces (each kept as its parts) and loose phrases.
+  function musicLine() {
     if (!playing) return;
-    if (playing.clips) {
-      // What the bucket holds: written pieces (each kept as its parts) and loose phrases.
-      const clips = engine && engine.bucket ? Array.from(engine.bucket.clips.values()) : playing.clips;
-      const loose = clips.filter((clip) => !clip.piece).length;
-      const pieces = new Set(clips.filter((clip) => clip.piece).map((clip) => clip.piece)).size;
-      const style = playing.style || playing.genre;
-      if (pieces) {
-        $("music").textContent = "A song that never ends (" + style + "): " + pieces + " written pieces, strung together"
-          + " for the kind of place you are in and what is happening there"
-          + (loose ? ", with " + loose + " loose phrases (" + playing.bpm + " BPM, " + playing.tonic + ") to play between them." : ".");
-        return;
-      }
-      $("music").textContent = "A song that never ends (" + style + ", " + playing.bpm + " BPM, "
-        + playing.tonic + "), put together as it goes from " + loose + " phrases, each a verse, a build-up and a chorus"
-        + " for one instrument. The bucket keeps growing while you play, in the colours of wherever you are.";
+    const clips = engine && engine.bucket ? Array.from(engine.bucket.clips.values()) : playing.clips;
+    const loose = clips.filter((clip) => !clip.piece).length;
+    const pieces = new Set(clips.filter((clip) => clip.piece).map((clip) => clip.piece)).size;
+    const style = playing.style || playing.genre;
+    if (pieces) {
+      $("music").textContent = "A song that never ends (" + style + "): " + pieces + " written pieces, strung together"
+        + " for the kind of place you are in and what is happening there"
+        + (loose ? ", with " + loose + " loose phrases (" + playing.bpm + " BPM, " + playing.tonic + ") to play between them." : ".");
       return;
     }
-    $("music").textContent = (borrowed ? "This place has no music of its own yet. Playing music made for " : "Music for ")
-      + playing.zone + " (" + playing.set + " set, " + playing.bpm + " BPM, " + playing.tonic + ").";
+    $("music").textContent = "A song that never ends (" + style + ", " + playing.bpm + " BPM, "
+      + playing.tonic + "), put together as it goes from " + loose + " phrases, each a verse, a build-up and a chorus"
+      + " for one instrument. The bucket keeps growing while you play, in the colours of wherever you are.";
   }
 
   function show(message) {
     const t = message.target, where = message.where || {};
-    if (message.music) musicLine(message.music.borrowed);
     $("where").textContent = [where.instance || where.zone, where.subzone].filter(Boolean).join(", ") || "Waiting for the game";
     $("place").textContent = t.silent ? "silence"
       : t.rest ? "a rest: no music for a little while, as in the game"
@@ -176,10 +141,9 @@
       else if (message.version !== version) outdated = true;
       if (outdated) banner("FreeRock has been updated. Reload this page (F5) to use the new version. The music carries on until you do.");
     }
-    if (message.type === "asset") await useAsset(message);
-    else if (message.type === "bucket") await useBucket(message);
-    else if (message.type === "phrase" && engine && engine.addClip) { engine.addClip(message.key, message.clip); musicLine(false); }
-    else if (message.type === "retired" && engine && engine.dropClips) { engine.dropClips(message.key, message.ids); musicLine(false); }
+    if (message.type === "bucket") await useBucket(message);
+    else if (message.type === "phrase" && engine) { engine.addClip(message.key, message.clip); musicLine(); }
+    else if (message.type === "retired" && engine) { engine.dropClips(message.key, message.ids); musicLine(); }
     else if (message.type === "target") {
       target = message.target;
       if (engine) await engine.setTarget(target);
@@ -226,14 +190,13 @@
   });
 
   // --- the style ---------------------------------------------------------------------------------
-  // Three kinds of music. The one in force is what is played and what new music is made in; a
-  // place that has nothing in it yet gets some, and plays what it has meanwhile.
+  // Three kinds of music, each with a bucket of its own: the one in force is what is played.
   function drawStyles(styles) {
     $("styles").replaceChildren(...styles.genres.map((genre) => {
       const button = document.createElement("button");
       button.type = "button";
       button.textContent = genre.label;
-      button.title = genre.about + (genre.places ? " (music for " + genre.places + " places so far)" : " (no music made yet)");
+      button.title = genre.about;
       button.className = genre.key === styles.genre ? "chosen" : "quiet";
       button.setAttribute("aria-pressed", genre.key === styles.genre ? "true" : "false");
       button.addEventListener("click", () => chooseStyle(genre.key));
@@ -241,9 +204,7 @@
     }));
     $("pieces").checked = styles.pieces !== "off";
     const chosen = styles.genres.find((genre) => genre.key === styles.genre);
-    $("styleAbout").textContent = chosen
-      ? chosen.label + ": " + chosen.about + ". New music is made in this style; a place with none yet gets some within a minute or two."
-      : "";
+    $("styleAbout").textContent = chosen ? chosen.label + ": " + chosen.about + "." : "";
   }
   async function loadStyles() {
     const response = await fetch("/api/style");
@@ -292,11 +253,11 @@
     const response = await fetch("/api/zones");
     if (!response.ok) throw new Error("The list of zones could not be fetched (" + response.status + ")");
     const chosen = $("p-zone").value;
-    $("p-zone").replaceChildren(...(await response.json()).map((zone) => {
+    $("p-zone").replaceChildren(...(await response.json()).map((name) => {
       const option = document.createElement("option");
-      option.value = zone.name;
-      option.textContent = zone.name + (zone.has_music ? "" : "  (no music yet)");
-      option.selected = zone.name === (chosen || "Elwynn Forest");
+      option.value = name;
+      option.textContent = name;
+      option.selected = name === (chosen || "Elwynn Forest");
       return option;
     }));
   }
@@ -307,7 +268,6 @@
   $("p-strength").addEventListener("input", () => { $("p-strengthValue").textContent = $("p-strength").value; });
 
   setInterval(() => {
-    if ($("pretend").open && Date.now() % 15000 < 1000) fillZones().catch((error) => problem(String(error)));
     if (!engine) return;
     engine.tick().catch((error) => problem(describe(error)));
     const status = engine.status();
@@ -317,28 +277,21 @@
       $("speakers").textContent = status.speakers === 6 ? "5.1: the front pair, the centre, the sub and the rear pair"
                                                         : "two (the browser offers no more)";
     }
-    if (status.forever) {
-      // The five decks: which channels can be heard, and how hard each is playing.
-      const strength = ["calm", "steady", "hard"];
-      const up = Object.entries(status.playing).map(([channel, clip]) => channel + " (" + strength[clip.tier] + ")");
-      // The song also rises and falls of its own accord, a turn of its form at a time.
-      const wave = status.wave < 0 ? ", easing off for a turn" : status.wave > 0 ? ", leaning in for a turn" : "";
-      $("section").textContent = status.resting ? "a moment of silence" : up.length ? up.length + " of 5 channels" + wave : "nothing yet";
-      $("decksRow").hidden = false;
-      $("decks").textContent = up.join(", ") || "none";
-      // A written piece: what it is called and how far through it the music is.
-      const piece = status.resting ? null : status.piece;
-      $("pieceRow").hidden = !piece;
-      if (piece) {
-        const clock = (seconds) => Math.floor(seconds / 60) + ":" + String(Math.floor(seconds % 60)).padStart(2, "0");
-        const kind = piece.role && piece.role !== "wander" ? ", for " + piece.role : "";
-        $("piece").textContent = piece.title + kind + " (" + clock(piece.of > 0 ? piece.at % piece.of : piece.at)
-          + " of " + clock(piece.of) + ")";
-      }
-    } else {
-      $("decksRow").hidden = true;
-      $("pieceRow").hidden = true;
-      $("section").textContent = status.section ? status.section + ", cell " + (status.cell + 1) : "nothing";
+    // The five decks: which channels can be heard, and how hard each is playing.
+    const strength = ["calm", "steady", "hard"];
+    const up = Object.entries(status.playing).map(([channel, clip]) => channel + " (" + strength[clip.tier] + ")");
+    // The song also rises and falls of its own accord, a turn of its form at a time.
+    const wave = status.wave < 0 ? ", easing off for a turn" : status.wave > 0 ? ", leaning in for a turn" : "";
+    $("section").textContent = status.resting ? "a moment of silence" : up.length ? up.length + " of 5 channels" + wave : "nothing yet";
+    $("decks").textContent = up.join(", ") || "none";
+    // A written piece: what it is called and how far through it the music is.
+    const piece = status.resting ? null : status.piece;
+    $("pieceRow").hidden = !piece;
+    if (piece) {
+      const clock = (seconds) => Math.floor(seconds / 60) + ":" + String(Math.floor(seconds % 60)).padStart(2, "0");
+      const kind = piece.role && piece.role !== "wander" ? ", for " + piece.role : "";
+      $("piece").textContent = piece.title + kind + " (" + clock(piece.of > 0 ? piece.at % piece.of : piece.at)
+        + " of " + clock(piece.of) + ")";
     }
     if (lostAt !== null && Date.now() - lostAt > 60000 && !engine.target.silent) {
       banner("The FreeRock server has been out of reach for a minute. The music has faded out and returns when the server does.");

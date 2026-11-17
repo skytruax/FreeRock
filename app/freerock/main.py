@@ -11,10 +11,7 @@ import socket
 from aiohttp import web
 
 from . import conductor, forever, server
-from .director import Director, Rules
 from .eleven import Gateway
-from .ingest import Ingest
-from .library import Library
 from .settings import MissingKey, Settings, find_key
 
 log = logging.getLogger("freerock")
@@ -33,29 +30,24 @@ def build_app(config: server.ServerConfig | None = None, *, music: bool = True, 
     if not music:
         return app
     settings = settings or Settings.load()
-    library = Library(settings.library_dir)
-    ingest, filler, note = None, None, None
+    filler, note = None, None
     if not new_music:
         note = "Nothing is bought from ElevenLabs; playing what is in the buckets."
     else:
         try:
             find_key()
         except MissingKey as missing:
-            note = "%s Playing only what is in the library." % missing
+            note = "%s Playing only what is in the buckets." % missing
             log.warning(note)
         else:
             gateway = Gateway(settings)
-            ingest = Ingest(gateway, library)
             filler = forever.Filler(gateway)
 
             async def close_gateway(app: web.Application) -> None:
                 await gateway.aclose()
 
             app.on_cleanup.append(close_gateway)
-    # The rests come from the settings: about so many minutes of music, then so many seconds without.
-    rules = Rules(rest_every_s=settings.rest_every_minutes * 60.0, rest_for_s=settings.rest_seconds)
-    music_side = conductor.attach(app, library=library, ingest=ingest, director=Director(rules),
-                                  settings=settings, filler=filler)
+    music_side = conductor.attach(app, settings=settings, filler=filler)
     if note:
         music_side.notes.append(note)
     return app

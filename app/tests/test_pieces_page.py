@@ -13,7 +13,6 @@ from aiohttp.test_utils import TestServer
 
 from freerock import conductor as music
 from freerock import forever
-from freerock.library import Library
 from freerock.server import ServerConfig, create_app
 from freerock.settings import Settings
 from test_player_page import say, until
@@ -35,7 +34,7 @@ def tone(hz, bars, post_s=4.0):
 
 async def test_the_page_plays_a_piece_a_fight_cuts_in_and_the_piece_is_picked_up_again(tmp_path):
     app = create_app(ServerConfig(var_dir=tmp_path / "var", keep_log=False))
-    conductor = music.attach(app, library=Library(tmp_path / "library"), settings=Settings(var_dir=tmp_path / "var"))
+    conductor = music.attach(app, settings=Settings(var_dir=tmp_path / "var"))
     bucket = conductor.buckets.get("Duskwood", "knight")
     # A long walk of five stretches, and a fight of one; the band stands in for the tune and the drone.
     walk = bucket.add_piece({("rhythm", 1): tone(220.0, 40), ("drums", 1): tone(110.0, 40), ("bass", 1): tone(55.0, 40)},

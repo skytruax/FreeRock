@@ -27,7 +27,7 @@
     <dl>
       <div><dt>Playing</dt><dd id="section">nothing</dd></div>
       <div id="pieceRow" hidden><dt>Piece</dt><dd id="piece">none</dd></div>
-      <div id="decksRow" hidden><dt>Channels</dt><dd id="decks">none yet</dd></div>
+      <div><dt>Channels</dt><dd id="decks">none yet</dd></div>
       <div><dt>Asked for</dt><dd id="place">nothing</dd></div>
       <div><dt>Intensity</dt><dd><div class="meter"><span id="intensity"></span></div></dd></div>
       <div><dt>Bed</dt><dd><div class="meter"><span id="bed"></span></div></dd></div>
@@ -42,7 +42,7 @@
 
   <section class="card">
     <h2>Style</h2>
-    <p class="soft" id="styleAbout">The kind of music that is played, and that new music is made in.</p>
+    <p class="soft" id="styleAbout">The kind of music that is played.</p>
     <div class="styles" id="styles"></div>
     <p><label><input type="checkbox" id="pieces" checked> Play the written pieces</label>
        <span class="soft">Tracks with a story, chosen for the kind of place you are in. Untick to hear only the loose phrases, as it was before.</span></p>
@@ -57,7 +57,7 @@
   <details class="card" id="pretend">
     <summary>Pretend game: try the music without the game</summary>
     <p class="soft">These controls stand in for the game. Use them only while the real game is not
-      connected. A zone that has no music yet borrows another zone's, unless you tick the box below.</p>
+      connected.</p>
     <label for="p-zone">Zone</label>
     <select id="p-zone"></select>
     <div class="checks">
@@ -94,7 +94,6 @@
 
   <p id="problems" class="problems" hidden></p>
 </main>
-<script src="/player/engine.js"></script>
 <script src="/player/forever.js"></script>
 <script src="/player/player.js"></script>
 </body>

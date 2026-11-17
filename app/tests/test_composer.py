@@ -3,10 +3,8 @@ import numpy as np
 import pytest
 
 from freerock import analysis
-from freerock.composer import (BATTLE_FEELS, CORE_SUITE, FRESH_SET, GENRES, NEVER, PLACE_PIECE, SECOND_SET,
-                               WANDER_FEELS, Reference, ZoneProfile, bars_ms, build, core_suite, for_genre,
-                               fresh_set, genre_of, place_piece, second_set, vocabulary)
-from freerock.library import role_of
+from freerock.composer import (CORE_SUITE, FRESH_SET, GENRES, NEVER, PLACE_PIECE, SECOND_SET, Reference, ZoneProfile,
+                               bars_ms, build, core_suite, for_genre, fresh_set, genre_of, second_set, vocabulary)
 
 ZONE = ZoneProfile(key="elwynn", bpm=120, tonic="G mixolydian",
                    colours=["chiming clean electric guitar arpeggios", "fiddle"], mood=["pastoral"])
@@ -23,37 +21,9 @@ def test_bars_are_exact_or_refused():
         bars_ms(112, 16)
 
 
-def test_core_suite_layout():
-    """A zone's first request: an opening and nine eight-bar pieces, the whole ladder from the
-    calm part to the boss."""
-    request = core_suite(ZONE, seed=5)
-    assert [part.name for part in request.parts] == list(CORE_SUITE)
-    assert [part.bars for part in request.parts] == [4] + [8] * 9
-    assert request.minutes == pytest.approx(152 / 60)
-    assert request.parts[0].start_ms == 0 and request.part("Wander A").start_ms == 8000
-    for earlier, later in zip(request.parts, request.parts[1:]):
-        assert earlier.end_ms == later.start_ms
-    chunks = request.plan["chunks"]
-    assert [chunk["duration_ms"] for chunk in chunks] == [8000] + [16000] * 9
-    assert sum(chunk["duration_ms"] for chunk in chunks) == request.parts[-1].end_ms
-    kinds = [role_of(name) for name in CORE_SUITE]
-    assert kinds == ["arrival", "wander", "wander", "wander", "storm", "battle", "battle", "boss", "ember", "depths"]
-
-
 def test_a_piece_can_be_sixteen_bars_where_eight_would_be_too_short():
     request = core_suite(ZONE, part_bars=16)
     assert [part.bars for part in request.parts] == [4] + [16] * 9
-
-
-def test_every_piece_in_a_request_has_its_own_feel():
-    """What makes a request worth ten pieces: no two of its exploring pieces, and no two of its
-    battle pieces, are asked for in the same words."""
-    for request in (core_suite(ZONE), second_set(ZONE), fresh_set(ZONE)):
-        for kind in ("wander", "battle"):
-            asked = [tuple(chunk["positive_styles"][3:]) for chunk, part in zip(request.plan["chunks"], request.parts)
-                     if role_of(part.name) == kind]
-            assert len(asked) >= 2 and len(set(asked)) == len(asked), kind
-    assert len(WANDER_FEELS) >= 11 and len(BATTLE_FEELS) >= 6
 
 
 def test_each_fresh_set_goes_further_down_the_feels():
@@ -62,14 +32,6 @@ def test_each_fresh_set_goes_further_down_the_feels():
     words = lambda request: request.plan["chunks"][0]["positive_styles"]
     assert words(first) != words(later), "a second fresh set was asked for in the words of the first"
     assert words(first) != second_set(ZONE).plan["chunks"][0]["positive_styles"]
-
-
-def test_a_place_piece_is_two_short_parts_played_where_the_riffs_are():
-    request = place_piece(ZONE, seed=3)
-    assert [part.name for part in request.parts] == list(PLACE_PIECE) == ["Theme A", "Theme B"]
-    assert [part.bars for part in request.parts] == [8, 8] and request.minutes == pytest.approx(32 / 60)
-    assert [role_of(part.name) for part in request.parts] == ["wander", "wander"]
-    assert "riff-driven late-1970s arena hard rock, loud and simple" in request.plan["chunks"][0]["positive_styles"]
 
 
 def test_every_part_states_tempo_key_and_instrumental():

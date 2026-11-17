@@ -277,11 +277,3 @@ def _names(word: str, key: str) -> bool:
     "Stronghold"), so a word that ends in a keyword counts, as long as the keyword is long enough
     not to turn up by chance ("garden" does not mean "den")."""
     return word == key or (len(key) >= 4 and word.endswith(key))
-
-
-def part_bars(bpm: int) -> int:
-    """How many bars a piece gets at this tempo. Eight for most: the player gives a piece the
-    floor for eight bars at a time, and a request of ten eight-bar pieces carries ten ideas where
-    one of five sixteen-bar pieces carried five. At the two fastest tempos eight bars is under
-    thirteen seconds, so they use sixteen."""
-    return 16 if bpm >= 150 else 8

@@ -13,8 +13,6 @@ from freerock import conductor as music
 from freerock import state as game
 from freerock.director import Target
 from freerock.eleven import ElevenError
-from freerock.library import Library
-from freerock.playtime import Playtime
 from freerock.server import ServerConfig, create_app
 from freerock.settings import Settings
 
@@ -527,11 +525,8 @@ def shallow_pools(monkeypatch):
 async def running(tmp_path, filler=None, clock=None, with_filler=True):
     app = create_app(ServerConfig(var_dir=tmp_path / "var", keep_log=False))
     settings = Settings(var_dir=tmp_path / "var")
-    assert settings.mode == "forever"
     filler = filler or (StandInFiller() if with_filler else None)
-    conductor = music.attach(app, library=Library(tmp_path / "library"), settings=settings, filler=filler,
-                             playtime=Playtime(tmp_path / "var" / "playtime.json"),
-                             **({"clock": clock} if clock else {}))
+    conductor = music.attach(app, settings=settings, filler=filler, **({"clock": clock} if clock else {}))
     client = TestClient(TestServer(app))
     await client.start_server()
     return client, app, conductor, filler
@@ -585,7 +580,7 @@ async def test_a_new_place_gets_its_first_phrases_at_once_and_the_player_its_buc
         assert (await client.get("/phrase/knight/elwynn-forest/nothing")).status == 404
         assert (await client.get("/phrase/knight/nowhere/nothing")).status == 404
         status = await (await client.get("/api/music")).json()
-        assert status["mode"] == "forever" and status["forever"]["bucket"] == "knight/elwynn-forest"
+        assert status["forever"]["bucket"] == "knight/elwynn-forest"
         assert status["forever"]["pools"]["drums hard"] >= 1
     finally:
         await client.close()
@@ -778,9 +773,9 @@ async def test_a_new_style_takes_over_as_soon_as_it_has_anything(tmp_path):
 
 
 def test_the_mix_is_what_the_player_is_sent():
-    conductor = types.SimpleNamespace(forever=True, mix=None, target=Target(intensity=0.8, drums=1.0, bass=1.0),
-                                      hub=types.SimpleNamespace(state=None, link=game.Link.LIVE), bucket=None,
-                                      borrowed=False, scene_tag=lambda state: None, shade_here=lambda state: 0.0,
+    conductor = types.SimpleNamespace(mix=None, target=Target(intensity=0.8, drums=1.0, bass=1.0),
+                                      hub=types.SimpleNamespace(state=None, link=game.Link.LIVE),
+                                      kinds_here=lambda state: ([], False), shade_here=lambda state: 0.0,
                                       setting_here=lambda state: "")
     message = music.Conductor._target_message(conductor)
     assert message["target"]["channels"]["drums"] == {"level": 1.0, "tier": 2}
