@@ -7,7 +7,7 @@ import pytest
 
 from freerock import forever, kinds, studio
 from freerock.studio import build, fluid, orchestra, score
-from freerock.studio.theory import Key, Line, tones, voiced
+from freerock.studio.theory import Key, tones, voiced
 
 RATE = forever.RATE
 

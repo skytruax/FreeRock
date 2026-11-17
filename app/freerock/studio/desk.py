@@ -314,42 +314,6 @@ def bare(name: str, effects: list[str]) -> str:
                       "<FXCHAIN", "BYPASS 0 0 0"] + effects + [">", ">"]) + "\n"
 
 
-def pruned(text: str, keep: set[int]) -> str:
-    """A sampled instrument's template with only the samplers numbered in `keep` (counted from
-    0 in the order they stand). An instrument has a sampler for every recording; a line that
-    stays in one octave at one strength needs a handful of them, and a project with a tenth of
-    the samplers loads and renders several times faster."""
-    rows = text.rstrip().split("\n")
-    try:
-        first = rows.index("<FXCHAIN")
-    except ValueError:
-        return text
-    depth, last = 0, None
-    for at in range(first, len(rows)):
-        if rows[at].startswith("<"):
-            depth += 1
-        elif rows[at] == ">":
-            depth -= 1
-            if depth == 0:
-                last = at
-                break
-    if last is None:
-        raise ValueError("The template's effects do not end")
-    chain = rows[first + 1:last]
-    starts = [index for index, row in enumerate(chain) if row.startswith("BYPASS ")]
-    if not starts:
-        return text
-    out, number = chain[:starts[0]], -1
-    for begin, end in zip(starts, starts[1:] + [len(chain)]):
-        entry = chain[begin:end]
-        if any("ReaSamplOmatic" in row for row in entry[:3]):
-            number += 1
-            if number not in keep:
-                continue
-        out += entry
-    return "\n".join(rows[:first + 1] + out + rows[last:]) + "\n"
-
-
 # ---------------------------------------------------------------------------------------------
 # Writing a project
 # ---------------------------------------------------------------------------------------------

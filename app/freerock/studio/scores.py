@@ -31,13 +31,10 @@ var/scores and is only ever read, never run.
 from __future__ import annotations
 
 import argparse
-import io
 import json
-import math
 import random
 import struct
 import sys
-import tempfile
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
@@ -45,7 +42,7 @@ import zipfile
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 import numpy as np
 
@@ -56,7 +53,6 @@ RATE = forever.RATE
 APP = Path(__file__).resolve().parents[2]
 VAR = APP.parent / "var"
 STYLE = "warcraft"
-GRID = 24000                   # the grid a real score is cut on: half a second, since its own bars come and go with its tempo
 POST_S = 6.0                   # how long each recording rings on after the last note
 AGENT = "FreeRockStudio/1.0 (music for personal listening; generic client)"
 OPENSCORE = "https://raw.githubusercontent.com/MarkGotham/Hauptstimme/main/data/"

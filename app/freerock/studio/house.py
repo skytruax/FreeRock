@@ -1210,7 +1210,6 @@ class Take:
 
     def texture(self, air: bool = True) -> np.ndarray:
         """The pad, and (with `air`) the writer's own making of the air (`airs`)."""
-        fam, rng = self.family, self.rng("texture")
         pad, effects = self.blank(), self.blank()
         sound = PADS[self.pick("pad", self.palette["pad"])]
         spread = self.palette["voicing"]

@@ -33,7 +33,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 import numpy as np
-import soundfile
 
 from .. import analysis, forever
 from . import RATE, desk, house, muse, reaper, sfz, sounds, stage_root, write_track
@@ -191,7 +190,6 @@ def lines(heard: Heard, track: house.Take, work: Path) -> tuple[dict[str, list[d
     seed = track.seed
     out: dict[str, list[desk.Line]] = defaultdict(list)
     # ----- drums: the kick by itself, the rest of the machine, and what is struck in the room
-    fam = track.family
     used = sorted({name for name, *_ in heard.hits})
     strokes: list[tuple[float, float]] = []
     if used:
@@ -301,7 +299,7 @@ def air_lines(airs: list) -> list[desk.Line]:
                 controls += [(at, 1, int(round(127 * min(max(sweep, 0.0), 1.0)))), (at, 11, int(round(127 * min(max(swell, 0.0), 1.0))))]
         name = "air %s%s" % (kind, " %d-%d Hz" % (low, high) if kind == "sweep" else "")
         effect = desk.js("freerock/air", number, low or 20.0, high or 20000.0, resonance, 24, 0.6, 0.0)
-        lines.append(desk.Line(name, desk.bare(name, [effect]), notes, volume=0.5, controls=controls, send=0.25,
+        lines.append(desk.Line(name, desk.bare(name, [effect]), notes, volume=0.3, controls=controls, send=0.25,
                                effects=[sounds.equalise(low_cut=150.0, high_cut=7000.0, high_shelf=(2500.0, -9.0))]))
     return lines
 

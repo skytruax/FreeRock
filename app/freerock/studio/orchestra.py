@@ -42,7 +42,7 @@ import random
 from dataclasses import dataclass, field
 
 from .score import Voice
-from .theory import BRIGHT, Chord, Key, Line, tones, voiced
+from .theory import Chord, Key, Line, tones, voiced
 
 # ---------------------------------------------------------------------------------------------
 # The instruments (MuseScore General: bank, program) and where each one sounds well
@@ -2465,7 +2465,6 @@ class Take:
                 level, along = self.level(section, bar), bar / bars
                 second = part in ("second", "valley") or (part == "climb" and along < 0.5)
                 name, figure = (self.pluck_b, self.figure_b) if second else (self.pluck, self.figure)
-                inst = INSTRUMENTS[name]
                 density = {"open": 0.15, "first": 0.5, "second": 0.45, "build": 0.5 + 0.5 * along, "arrival": 0.9,
                            "valley": 0.5 if self.fight else 0.2, "climb": 0.35 + 0.65 * along, "summit": 1.0,
                            "close": 0.4 * (1.0 - along)}[part]

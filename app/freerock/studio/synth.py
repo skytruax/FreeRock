@@ -689,10 +689,6 @@ def drum(name: str, machine: str = "909") -> np.ndarray:
     return _loaded[(name, machine)]
 
 
-def have_recordings() -> bool:
-    return (TR8 / "BD" / "004_909_Bass_Drum_1.wav").is_file()
-
-
 def hit(out: np.ndarray, sound: np.ndarray, at: float, level: float = 0.8, pan: float = 0.0, speed: float = 1.0) -> None:
     """Lays a drum down at `at` seconds. `speed` plays it faster and higher, or slower and lower."""
     angle = (min(max(pan, -1.0), 1.0) + 1.0) * math.pi / 4.0

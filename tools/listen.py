@@ -23,7 +23,6 @@ from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
 import numpy as np
-import soundfile
 
 from freerock import studio
 from freerock.audio import write_mp3

@@ -652,12 +652,6 @@ def wide(side: float) -> str:
     return desk.lv2("Calf Stereo Tools", slev=side)
 
 
-def flipped() -> str:
-    """Left and right changed over (Calf's stereo tools): a second kit of the same make has its
-    drums where the first has them, and two drummers do not sit on each other's lap."""
-    return desk.lv2("Calf Stereo Tools", mode=6)
-
-
 def warm(amount: float) -> str:
     """Tape (Calf's tape simulator with its hiss and wobble off, and its own top cut out of
     the way): rounds the peaks and thickens what is under them."""

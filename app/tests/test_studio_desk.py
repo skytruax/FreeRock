@@ -204,29 +204,6 @@ def test_every_folder_gets_a_hall_that_its_tracks_send_to():
     assert "RENDER_RANGE 0 0 17.000000 0 0" in text and "RENDER_STEMS 3" in text and text.count("SEL 1") == 1     # the lead-in, the music, the tail
 
 
-def test_a_stack_of_samplers_is_cut_down_to_the_ones_a_part_strikes():
-    entry = ["BYPASS 0 0 0", '<VST "VSTi: ReaSamplOmatic5000 (Cockos)" x', "AAAA", ">", "WAK 0 0"]
-    template = "\n".join(["<TRACK", "NAME x", "ISBUS 0 0", "<FXCHAIN", "SHOW 0"] + entry * 3 + ["BYPASS 0 0 0", '<JS keep ""', "1", ">", "WAK 0 0", ">", ">"])
-    text = desk.pruned(template, {1})
-    assert text.count("ReaSamplOmatic5000") == 1 and '<JS keep ""' in text and text.rstrip().endswith(">\n>")
-
-
-# --- the ear, and lines of single notes -----------------------------------------------------------
-def test_the_ear_tells_a_dull_recording_from_a_bright_one_and_says_what_its_top_needs():
-    from freerock.studio import ear
-    rng = np.random.default_rng(3)
-    noise = rng.standard_normal(RATE * 4)
-    from scipy import signal
-    bright = np.stack([noise, noise], axis=1)
-    dull = np.stack([signal.lfilter(*signal.butter(1, 1500.0, fs=RATE), noise)] * 2, axis=1)
-    one, other = ear.profile(dull, RATE), ear.profile(bright, RATE)
-    assert one.centre < other.centre and one.bands[8] < other.bands[8] - 3.0          # less of its power is between 5 and 10 kHz
-    needed = ear.top(one, other, lift=8.0)
-    assert needed["bands"][0][1] > 0.0 and needed["high_shelf"][1] > 3.0              # lift the top, the air most
-    assert ear.top(one, one) == {"bands": [[3500.0, 0.0, 1.6]], "high_shelf": [7500.0, 0.0]}
-    assert ear.profile(np.zeros((RATE, 2)), RATE) is None
-
-
 def test_a_line_of_single_notes_is_slurred_and_chords_are_not():
     from freerock.studio import sounds
     line = [Note(0.0, 0.98, 60, 0.5), Note(1.0, 0.98, 62, 0.5), Note(2.0, 0.5, 64, 0.5), Note(3.0, 1.0, 64, 0.5)]

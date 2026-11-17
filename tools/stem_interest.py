@@ -24,7 +24,6 @@ def interest(name: str, take: int) -> dict:
     total_bars = sum(section.bars for section in fam.sections)
     out = {}
     roots = {}
-    at = 0.0
     for section, first, key, chords in w.spans:
         for bar, chord in enumerate(chords):
             roots[int(round((first + bar * beats) / beats))] = key.pitch(chord.root, 0) % 12
@@ -55,6 +54,8 @@ def interest(name: str, take: int) -> dict:
 
 def main(argv: list[str]) -> int:
     style, tracks = argv[0], argv[1:]
+    if style not in ("warcraft", "knight"):
+        raise SystemExit("The stems of %r are not written by the orchestra's writer: warcraft or knight" % style)
     sums = collections.defaultdict(list)
     for track in tracks:
         name, take = track.rsplit("/", 1)
