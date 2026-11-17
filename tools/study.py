@@ -28,7 +28,7 @@ def stems(style: str, name: str, take: str) -> tuple[dict, dict[str, np.ndarray]
     meta = json.loads((folder / "track.json").read_text(encoding="utf-8"))
     parts, rate = {}, 48000
     for channel in CHANNELS:
-        for suffix in (".mp3", ".flac"):
+        for suffix in (".flac", ".mp3"):
             if (folder / (channel + suffix)).is_file():
                 parts[channel], rate = soundfile.read(str(folder / (channel + suffix)), dtype="float32", always_2d=True)
                 break

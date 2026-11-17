@@ -11,7 +11,8 @@ style's bucket, where the player strings them together (see forever.Bucket.add_p
 A staged track is a folder:
 
     var/studio/<style>/<family>/<take>/track.json
-    var/studio/<style>/<family>/<take>/<channel>.mp3       48 kHz stereo, one for each channel that plays
+    var/studio/<style>/<family>/<take>/<channel>.flac      48 kHz stereo, 24 bits, one for each channel that plays
+                                                           (a track staged on the night of 2026-11-17 may have MP3)
 
 `family` names the changes: the tempo, the key, the chords bar by bar and the lengths of the five
 parts of the story. Every take of a family is a whole track of its own (its own tune, its own
@@ -52,7 +53,6 @@ import numpy as np
 import soundfile
 
 from .. import analysis, forever
-from ..audio import write_mp3
 
 RATE = forever.RATE
 ROLES = ("wander", "night", "ember", "depths", "storm", "battle", "boss", "town", "battleground")
@@ -81,9 +81,14 @@ def write_track(folder: Path, meta: dict[str, Any], parts: dict[str, np.ndarray]
         raise ValueError("%r is not a kind of moment" % meta["role"])
     folder.mkdir(parents=True, exist_ok=True)
     for channel, audio in parts.items():
-        scratch = folder / (channel + ".part.mp3")
-        write_mp3(scratch, audio, RATE)
-        scratch.replace(folder / (channel + ".mp3"))
+        # Lossless, as FLAC (2026-11-17, morning: "Is it too late to go back to flac"; the night's tracks were MP3, and
+        # everything made from them a second encoding). Where an earlier take of this track left an MP3, it goes.
+        scratch = folder / (channel + ".part.flac")
+        soundfile.write(str(scratch), np.clip(audio, -1.0, 1.0), RATE, format="FLAC", subtype="PCM_24")
+        scratch.replace(folder / (channel + ".flac"))
+        older = folder / (channel + ".mp3")
+        if older.is_file():
+            older.unlink()
     scratch = folder / "track.json.new"
     scratch.write_text(json.dumps(meta, indent=1) + "\n", encoding="utf-8")
     scratch.replace(folder / "track.json")
@@ -98,9 +103,9 @@ def read_track(folder: Path) -> tuple[dict[str, Any], dict[str, np.ndarray]]:
     meta = described(folder)
     parts = {}
     for channel in forever.CHANNELS:
-        path = Path(folder) / (channel + ".mp3")
+        path = Path(folder) / (channel + ".flac")
         if not path.is_file():
-            path = Path(folder) / (channel + ".flac")          # a track staged before tracks were kept as MP3
+            path = Path(folder) / (channel + ".mp3")           # a track staged on the night of 2026-11-17, when they were MP3
         if path.is_file():
             audio, rate = soundfile.read(str(path), dtype="float32", always_2d=True)
             if rate != RATE:

@@ -119,8 +119,8 @@ def test_a_staged_track_that_is_not_fit_is_named_and_the_rest_go_in(var, capsys)
     staged_track(var, "haunted-01", 1)
     staged_track(var, "haunted-02", 1)
     folder = studio.stage_root(var, "warcraft") / "haunted-01" / "1"
-    audio, _ = soundfile.read(str(folder / "lead.mp3"), dtype="float32", always_2d=True)
-    soundfile.write(str(folder / "lead.mp3"), audio, 44100, format="MP3", subtype="MPEG_LAYER_III")      # the wrong rate
+    audio, _ = soundfile.read(str(folder / "lead.flac"), dtype="float32", always_2d=True)
+    soundfile.write(str(folder / "lead.flac"), audio, 44100, format="FLAC", subtype="PCM_24")      # the wrong rate
     assert cli.main(["pieces", "add", "warcraft", "--zone", "Duskwood"]) == 1
     said = capsys.readouterr()
     assert "NOT PUT IN haunted-01/1" in said.err and "44100" in said.err
