@@ -288,6 +288,11 @@ def stage(fam: Family, take: int) -> dict:
                                    % (channel, fam.name, take, written_notes, loud))
             del parts[channel]                       # it plays nothing to speak of in this take
             continue
+        # ...but never so far up that another part of the story goes more than 3 dB over the channel's place (2026-11-17,
+        # night: a frost night's tune was a glockenspiel and slow violins at its moments, and a flute and handbells,
+        # which carry far more when played as softly, in its rises; brought up by its moments, the rises blared).
+        parts_of = [analysis.loudness_lufs(audio[first:last], RATE) for first, last in zip(edges, edges[1:])]
+        loud = max(loud, max(parts_of) - 3.0)
         gain = min(max(places[channel] - loud, -18.0), 18.0)
         if channel == "drums":
             # A light piece's percussion is a few taps of a triangle or a shaker: measured by loudness they are next to
