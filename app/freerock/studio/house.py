@@ -122,7 +122,7 @@ ARCS = {
     "battle": {"open": (0.8, 0.88), "theme": (0.86, 0.9), "rise": (0.6, 1.0), "moment": (1.0, 1.0), "close": (0.9, 0.7)},
 }
 ARC_OF = {"wander": "wander", "night": "wander", "depths": "wander", "ember": "ember", "storm": "storm",
-          "battle": "battle", "boss": "battle"}
+          "battle": "battle", "boss": "battle", "town": "wander", "battleground": "battle"}
 
 # ---------------------------------------------------------------------------------------------
 # Sounds
@@ -350,11 +350,21 @@ class Family:
 
     @property
     def hard(self) -> bool:
-        return self.role in ("battle", "boss")
+        return self.role in ("battle", "boss", "battleground")
+
+    @property
+    def story(self) -> tuple[tuple[str, int], ...]:
+        """The track's story in two waves, as a house track is built (2026-11-17, night: the tracks were one wave of
+        about three minutes; the night's tracks are about eight): the intro, the theme at twice its length, the rise,
+        a first drop; then a breakdown on the theme, the rise again, and the last drop at twice its length; the outro.
+        Every part a whole number of eight-bar phrases, as the family's shape has them."""
+        opening, theme, rise, moment, close = self.sections
+        return (("open", opening), ("theme", 2 * theme), ("rise", rise), ("moment", moment), ("theme", theme), ("rise", rise),
+                ("moment", 2 * moment), ("close", close))
 
 
 ANY = ()
-W, S01, S0, S2 = "wander", (0, 1), (0,), (2,)
+W, S01, S0, S2, S012 = "wander", (0, 1), (0,), (2,), (0, 1, 2)
 E5, T8 = (16, 16, 16, 16, 16), (8, 24, 16, 24, 8)          # two of the shapes a story takes, in bars
 PLAN: tuple[Family, ...] = (
     # name, title, kinds of place, kind of moment, strengths, light, key, changes, shape, kick, swing, machine, sounds
@@ -411,6 +421,12 @@ PLAN: tuple[Family, ...] = (
     Family("battle-04", "Stand Fast", ("mystic", "highland", "regal"), "battle", S2, False, 11, "N1", (4, 16, 8, 24, 8), "four", 0.0, "909", "battle"),
     Family("boss-01", "The Dark Hall", ("haunted", "infernal", "desert", "jungle"), "boss", S2, False, 1, "P2", (8, 16, 8, 24, 8), "four", 0.0, "909", "battle"),
     Family("boss-02", "Last Stand", ("pastoral", "regal", "highland", "mystic"), "boss", S2, False, 2, "N4", (8, 16, 8, 24, 8), "four", 0.0, "909", "battle"),
+    # Towns and battlegrounds have music of their own in every style (2026-11-17, night: "Dont forget caves inns pvp ect").
+    # A town is light and busy, a market at evening; a battleground is a fight that goes on and on, its own family.
+    Family("town-01", "Lanterns on the Square", ("regal", "pastoral", "highland"), "town", S01, True, 5, "M2", (8, 16, 8, 16, 8), "four", 0.06, "707", "regal"),
+    Family("town-02", "Harbour Lights", ("desert", "jungle", "mystic", "haunted", "infernal"), "town", S01, True, 9, "X3", (8, 16, 8, 16, 8), "broken2", 0.1, "606", "desert"),
+    Family("battleground-01", "Hold the Line", ANY, "battleground", S012, False, 7, "N1", (4, 16, 8, 16, 8), "four", 0.0, "909", "battle"),
+    Family("battleground-02", "Capture the Flag", ANY, "battleground", S012, False, 0, "P2", (4, 16, 8, 24, 8), "broken2", 0.0, "808", "battle"),
 )
 TAKES = (1, 2, 3)
 NUMERALS = {1: "I", 2: "II", 3: "III", 4: "IV", 5: "V"}
@@ -700,10 +716,16 @@ class Take:
         self.changes = Changes(fam)
         self.palette = PALETTES[fam.palette]
         self.seed = fam.seed * 7 + take
-        lengths = bars or fam.sections
+        # The story in two waves (Family.story); a track staged before that, read back with its own lengths, in one.
+        if bars is None:
+            told = list(fam.story)
+        elif len(bars) == len(fam.story):
+            told = [(story, count) for (story, _), count in zip(fam.story, bars)]
+        else:
+            told = list(zip(forever.STORY, bars))
         self.sections: list[tuple[str, int, int]] = []
         first = 0
-        for story, count in zip(forever.STORY, lengths):
+        for story, count in told:
             self.sections.append((story, first, count))
             first += count
         self.bars = first
@@ -1203,7 +1225,7 @@ class Take:
         parts = {"drums": synth.tame(self.drums(), 15.0), "bass": self.bass(), "rhythm": synth.tame(self.rhythm()),
                  "lead": synth.tame(self.lead()), "texture": synth.tame(self.texture())}
         # Each part is brought to its place in the mix by how loud it is where the track is fullest.
-        story, first, count = next(section for section in self.sections if section[0] == "moment")
+        story, first, count = next(section for section in reversed(self.sections) if section[0] == "moment")     # the last drop
         a, b = int(round(first * BAR_FRAMES)), int(round((first + count) * BAR_FRAMES))
         want = {"drums": -14.0, "bass": -16.5, "rhythm": -20.0, "lead": -19.0, "texture": -22.0}
         if self.family.role in ("ember", "night"):
@@ -1376,7 +1398,7 @@ def remaster(name: str, take: int, root: Path | None = None) -> dict[str, Any]:
     was, parts = read_track(folder)
     track = Take(family(name), take, tuple(section["bars"] for section in was["sections"]))
     meta = track.meta()
-    story, first, count = next(section for section in track.sections if section[0] == "moment")
+    story, first, count = next(section for section in reversed(track.sections) if section[0] == "moment")     # the last drop
     parts = master(parts, int(round(first * BAR_FRAMES)), int(round((first + count) * BAR_FRAMES)))
     found = measure(meta, parts)
     write_track(folder, meta, parts)

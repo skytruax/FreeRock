@@ -284,7 +284,7 @@ def stage(name: str, take: int) -> dict:
     for bus, _ in folders:
         (work / (bus.name + ".wav")).unlink()
     # Each channel to its place by how loud it is where the track is fullest, as the writer's own mix did it.
-    story, first, count = next(section for section in track.sections if section[0] == "moment")
+    story, first, count = next(section for section in reversed(track.sections) if section[0] == "moment")     # the last drop
     a, b = int(round(first * house.BAR_FRAMES)), int(round((first + count) * house.BAR_FRAMES))
     want = dict(PLACE, **(CALM if fam.role in ("ember", "night") else {}))
     if not track.kick:

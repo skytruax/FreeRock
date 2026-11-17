@@ -140,8 +140,10 @@ def test_the_plan_covers_every_kind_of_place_and_moment():
     for fam in house.PLAN:
         assert fam.loop in house.LOOPS and fam.groove in house.KICKS and fam.palette in house.PALETTES
         assert all(mood in kinds.KINDS for mood in fam.moods)
-        assert 100.0 <= fam.bars * house.BAR <= 200.0, "%s is not a track of two or three minutes" % fam.name
+        # (Two waves since 2026-11-17: four and a half to seven minutes.)
+        assert 240.0 <= sum(count for _, count in fam.story) * house.BAR <= 480.0, "%s is not a track of four to eight minutes" % fam.name
         assert (fam.serves == (2,)) == (fam.role in ("battle", "boss"))
+        assert (fam.serves == (0, 1, 2)) == (fam.role == "battleground")      # a battleground's music, through its fights too
         palette = house.PALETTES[fam.palette]
         assert all(name in house.BASS for name in palette["bass"]) and all(name in house.BASSES for name in palette["bass_style"])
         assert all(name in house.KEYS for name in palette["keys"]) and all(name in house.LEADS for name in palette["lead"])
@@ -240,14 +242,20 @@ def test_a_staged_track_can_be_brought_to_its_level_again_without_being_made_aga
     assert again["sections"]["moment"] == pytest.approx(found["sections"]["moment"], abs=0.3)
     meta, parts = studio.read_track(copy)
     assert meta["level_db"] == 0.0 and [section["bars"] for section in meta["sections"]] == list(SHORT)
-    assert np.abs(sum(parts.values())).max() <= house.CEILING + 1e-3
+    # Read back from MP3 (tracks are kept as MP3 since 2026-11-16, night): the encoder's overshoot, summed over five
+    # channels, can take the mix a fraction of a decibel over the ceiling it was mastered to (measured: 0.15 dB). Half
+    # a decibel is allowed, and nothing near full scale.
+    peak = float(np.abs(sum(parts.values())).max())
+    assert peak <= house.CEILING * 10 ** (0.5 / 20) and peak < 0.98, "the remastered track peaks at %.4f" % peak
 
 
 def test_nothing_clips_and_the_parts_die_away_in_the_time_left_for_them(staged):
     folder, found = staged
     _, parts = studio.read_track(folder)
     mix = sum(parts.values())
-    assert np.abs(mix).max() <= 0.9 and all(np.abs(audio).max() <= 0.98 for audio in parts.values())
+    # (Read back from MP3: half a decibel is allowed for the encoder's overshoot, as above; what was measured before
+    # the track was written is held to the ceiling itself.)
+    assert np.abs(mix).max() <= 0.9 * 10 ** (0.5 / 20) and all(np.abs(audio).max() <= 0.98 for audio in parts.values())
     assert found["peak"] <= 0.9
     for channel, audio in parts.items():
         assert np.abs(audio[-RATE // 4:]).max() < 0.004, "the %s is still ringing where the recording ends" % channel

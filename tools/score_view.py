@@ -57,8 +57,8 @@ def orchestra_lines(style: str, name: str, take: int, part: str, bars: int) -> t
     lines = []
     for channel in orchestra.CHANNELS:
         for tag, voice in written.voices[channel].items():
-            if voice.drums or voice.instrument not in muse.PARTS:
-                continue
+            if voice.drums or voice.instrument not in muse.PARTS or any(part in muse.PERCUSSION for part, *_ in muse.PARTS[voice.instrument]):
+                continue                                       # the drums, and the drum staves of Muse Percussion, are left out
             notes = window(voice.notes, *span)
             if not notes:
                 continue
@@ -101,7 +101,8 @@ def joined(lines: list[tuple[str, str, list[Note], str | None, str]], bpm: float
     heads, bodies = [], []
     for number, (part, way, notes, _, label) in enumerate(lines, start=1):
         text = muse.score(part, notes, bpm=bpm, way=way)
-        text = text.replace('id="P1-I1"', 'id="P%d-I1"' % number).replace('id="P1"', 'id="P%d"' % number)
+        # Every id of the part made its own (a drum staff has an instrument for each of its drums: "P1-I52" and so on).
+        text = text.replace('"P1-I', '"P%d-I' % number).replace('id="P1"', 'id="P%d"' % number)
         text = text.replace("<midi-channel>1</midi-channel>", "<midi-channel>%d</midi-channel>" % min(number, 16))
         head = re.search(r"<score-part .*?</score-part>", text, re.S).group(0)
         head = re.sub(r"<part-name>.*?</part-name>", "<part-name>%s</part-name>" % _escape(label), head, count=1)
