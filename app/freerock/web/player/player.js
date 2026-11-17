@@ -56,6 +56,29 @@
 
   function volume() { return Number($("volume").value) / 100; }
 
+  // What the player began lately, kept in this browser between visits to the page, so that a reload does not bring
+  // back what was just heard. A browser that keeps nothing (a private window) is said on the page, and the music
+  // goes on without it.
+  const HEARD = "freerock.heard.v1";
+  const heard = {
+    load() {
+      try {
+        const text = window.localStorage.getItem(HEARD);
+        return text ? JSON.parse(text) : {};
+      } catch (error) {
+        problem("This browser does not keep what was played between visits (" + error.message + "): a reload may bring back what was just heard.");
+        return {};
+      }
+    },
+    save(kept) {
+      try {
+        window.localStorage.setItem(HEARD, JSON.stringify(kept));
+      } catch (error) {
+        problem("This browser could not keep what was played (" + error.message + ").");
+      }
+    },
+  };
+
   // The forever song: the server sends the bucket of phrases for the place, and the five decks
   // play from it. If this page was playing songs until now, it changes over.
   async function useBucket(message) {
@@ -63,7 +86,7 @@
     if (engine && !(engine instanceof FreeRockForever)) { await engine.stop(); engine = null; }
     if (!ctx) ctx = new AudioContext({ sampleRate: bucket.rate, latencyHint: "interactive" });
     if (!engine) {
-      engine = new FreeRockForever(ctx, phraseLoader, { report: problem });
+      engine = new FreeRockForever(ctx, phraseLoader, { report: problem, memory: heard });
       engine.setVolume(volume());
       if (target) await engine.setTarget(target);
     }

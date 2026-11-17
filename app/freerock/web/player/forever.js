@@ -108,8 +108,9 @@
   // Where the player goes, the music follows ("make sure our location changes CHANGE SONGS", 2026-11-16).
   // ("feels like its playing the same songs over and over", the same evening: the best-suited track was chosen
   // every time, and a place of one kind with three tracks written for it heard those three all night.)
-  const WORN_FOR = 2700;       // seconds a track counts as lately heard
+  const WORN_FOR = 5400;       // seconds a track counts as lately heard (an hour and a half: "been hearing the same thing over and over")
   const WORN = 0.45;           // ...and how much each time it began in that while counts against choosing it again
+  const SISTER = 0.8;          // ...and how much a sister family's beginning counts (see _worn)
   // The kinds of place whose music sits well in each other's: what is reached for before a track is heard a third time.
   const NEAR = { pastoral: ["highland", "regal", "mystic"], highland: ["pastoral", "regal"], regal: ["pastoral", "highland", "infernal"],
                  haunted: ["mystic", "jungle"], mystic: ["haunted", "jungle", "pastoral"], jungle: ["mystic", "haunted", "desert"],
@@ -157,7 +158,17 @@
       // next fight, so that a fight's music gets past its opening over an evening).
       this.left = { walk: null, fight: null };
       this.standby = null;       // the piece a fight would bring in, chosen ahead so that it can be fetched ahead
-      this.begun = new Map();    // track -> the moments it began to play here (see _worn)
+      // Family -> the moments a track of it began to play here, in the context's time (see _worn). The page keeps
+      // them between visits (`memory`: load() -> {family: [seconds since 1970]}, save(that)), so that a reload does
+      // not forget what was just heard (2026-11-16, played: "i feel like im hearing alot the same shit again").
+      this.memory = options.memory || null;
+      this.begun = new Map();
+      if (this.memory) {
+        const offset = ctx.currentTime - Date.now() / 1000;
+        for (const [family, times] of Object.entries(this.memory.load() || {})) {
+          this.begun.set(family, times.map((wall) => wall + offset));
+        }
+      }
       this.followDue = null;     // when to look whether the music should follow the player somewhere new
       this.movedAt = -Infinity;  // when it last did
       this.restDue = null;       // when the next moment of silence is due, where pieces are strung together
@@ -713,10 +724,37 @@
 
     // How often a track has begun in the last while: a track that has just been heard gives way
     // to others, even ones that suit the place a little less, so that an evening in one kind
-    // of place is not the same three tracks round and round.
-    _worn(track) {
-      const now = this.ctx.currentTime;
-      return (this.begun.get(track) || []).filter((at) => now - at < WORN_FOR).length;
+    // of place is not the same three tracks round and round. It is counted by the track's
+    // family: the takes of a family are one song in other hands (the same key, pace and
+    // changes; a track plays each channel from one take or another), so hearing one is hearing
+    // them all. The other families written for the same kind of place, with the same
+    // instruments and grooves, count nearly as much: to an ear they are the same kind of tune
+    // ("been hearing the same thing over and over", 2026-11-16: two jigs of one palette were
+    // the most played tracks of the evening).
+    _worn(meta) {
+      const now = this.ctx.currentTime, family = Forever.family(meta), kind = Forever.kind(family);
+      let count = 0;
+      for (const [key, times] of this.begun) {
+        const recent = times.filter((at) => now - at < WORN_FOR).length;
+        if (!recent) continue;
+        if (key === family) count += recent;
+        else if (Forever.kind(key) === kind) count += SISTER * recent;
+      }
+      return count;
+    }
+
+    static family(meta) { return meta.family || meta.track; }
+
+    static kind(family) { return family.replace(/-\d+$/, ""); }
+
+    // What has begun lately, kept by the page for its next visit (in seconds since 1970).
+    _remember() {
+      const now = this.ctx.currentTime, offset = Date.now() / 1000 - now, kept = {};
+      for (const [family, times] of this.begun) {
+        const recent = times.filter((at) => now - at < WORN_FOR);
+        if (recent.length) kept[family] = recent.map((at) => at + offset);
+      }
+      this.memory.save(kept);
     }
 
     // Whether the loose phrases of a bucket are enough to make music of on their own.
@@ -893,7 +931,7 @@
       // a neighbouring kind of place if need be, and light and heavy go on taking their turns.
       const wear = new Map(), freshest = { light: Infinity, heavy: Infinity };
       for (const piece of index.values()) {
-        const count = this._worn(piece.meta.track), sort = piece.meta.light ? "light" : "heavy";
+        const count = this._worn(piece.meta), sort = piece.meta.light ? "light" : "heavy";
         wear.set(piece.id, count);
         if (serves(piece)) freshest[sort] = Math.min(freshest[sort], count);
       }
@@ -1267,9 +1305,11 @@
         this.pieceTurn += 1;
         this.pieceAt.set(piece.id, this.pieceTurn);
         if (group.entry !== "continue") {
-          const times = (this.begun.get(piece.meta.track) || []).filter((at) => start - at < WORN_FOR);
+          const family = Forever.family(piece.meta);
+          const times = (this.begun.get(family) || []).filter((at) => start - at < WORN_FOR);
           times.push(start);
-          this.begun.set(piece.meta.track, times);
+          this.begun.set(family, times);
+          if (this.memory) this._remember();
         }
         // A track beginning: light and heavy are counted, so that they take turns.
         if (group.entry === "start" && piece.meta.serves.includes(0)) {

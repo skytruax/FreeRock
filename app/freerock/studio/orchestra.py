@@ -2033,7 +2033,8 @@ class Take:
                 raised = 5 if second and (self.pluck_b, self.figure_b) == (self.pluck, self.figure) else 0
                 bar_at = first + bar * beats
                 layer(name, figure, second, raised, 1.0, key, chord, bar, bar_at, level, density)
-                if not ch.band and fuller(part, bar, along):
+                # (A band's riff guitars are the band's whole accompaniment; the unplugged band takes the second figure too.)
+                if not (ch.band and self.heavy) and fuller(part, bar, along):
                     # The other figure, on its own instrument (another of the palette's, where both themes have the
                     # same one), an octave up where the two would sit on each other, a little under the first.
                     with_name, with_figure = (self.pluck, self.figure) if second else (self.pluck_b, self.figure_b)
@@ -2194,13 +2195,13 @@ class Take:
                             lay(main["theme"], bar, bar_at, level, 0.8, chord, key)
                 elif part == "first":
                     lay(main["theme"], bar, bar_at, level, 1.0, chord, key)
-                    if bar >= self.fam.period and not ch.band:
+                    if bar >= self.fam.period and not (ch.band and self.heavy):
                         # The second time round a theme, the moment's small percussion joins softly (2026-11-16,
                         # played: "not enough instruments in each track").
                         lay([each for each in main["moment"] if each[0] in SMALL and each not in main["theme"]], bar, bar_at, level, 0.55, chord, key)
                 elif part == "second":
                     lay(second, bar, bar_at, level, 1.0 if other is not main else 0.85, chord, key)
-                    if bar >= self.fam.period and not ch.band:
+                    if bar >= self.fam.period and not (ch.band and self.heavy):
                         lay([each for each in other["moment"] if each[0] in SMALL and each not in second], bar, bar_at, level, 0.55, chord, key)
                 elif part in ("build", "climb"):
                     # A rise begins on a theme's groove (the climb on the second theme's) and

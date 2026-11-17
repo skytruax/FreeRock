@@ -205,7 +205,7 @@ def stage(fam: Family, take: int) -> dict:
         if rung and crown_of(character)[1] and not any(voice.instrument in ("bells", "church bell") for voice in written.voices["rhythm"].values()):
             written.voices["rhythm"]["bell at the moments"] = Voice(0, notes=rung, instrument="bells")
     crown = crown_of(character)[0]
-    if muse.available() and crown and not character.band:
+    if muse.available() and crown and not (character.band and not character.light):
         # A layer on top, where the story comes to its moments: a choir sings the pad's chords with the strings (the
         # horns, in the open country and the hills). Light music has it too, softly (2026-11-16, played: "not enough
         # instruments in each track").

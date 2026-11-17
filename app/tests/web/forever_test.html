@@ -935,6 +935,17 @@ tests.pieceVariety = async () => {
   return { order };
 };
 
+// Two takes of one family are one song: hearing one wears both; another family for the same kind of place wears half.
+tests.pieceFamilies = async () => {
+  const bucket = makePieces("families", [{ id: "a1", family: "fields-1", moods: ["pastoral"] }, { id: "a2", family: "fields-1", moods: ["pastoral"] },
+                                         { id: "b1", family: "dance-1", moods: ["pastoral"] }, { id: "b2", family: "dance-2", moods: ["pastoral"] },
+                                         { id: "d1", family: "river-1", moods: ["pastoral"] }]);
+  const run = await render(260, { bucket, tickEvery: 2.0, target: Object.assign(mix(1), { kinds: ["pastoral"] }) });
+  const order = [];
+  for (const entry of [...run.engine.log].sort((a, b) => a.at - b.at)) if (order[order.length - 1] !== pieceOf(entry)) order.push(pieceOf(entry));
+  return { order };
+};
+
 // One track ends and another comes in under its last bar: a crossfade, nothing at full strength at once.
 tests.pieceHandover = async () => {
   const bucket = makePieces("hand", [{ id: "first", windows: 2 }, { id: "other", windows: 2 }]);

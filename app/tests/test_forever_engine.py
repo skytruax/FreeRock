@@ -460,6 +460,23 @@ async def test_tracks_heard_lately_give_way_to_others_and_a_neighbouring_kind_of
     assert "far" in order and order.index("near") < order.index("far"), "the track for somewhere else came before the neighbour's: %s" % order
 
 
+async def test_the_takes_of_one_family_count_as_one_song_and_its_sister_families_as_half_of_one(results):
+    """("i feel like im hearing alot the same shit again", 2026-11-16: the takes of one family were counted as songs of
+    their own, so a take could follow another take of the same song.)"""
+    order = of(results, "pieceFamilies")["order"]
+    # A track plays each channel from one take of its family or another (they share a key and a pace), so what is
+    # heard is counted by family.
+    family = {"a1": "fields-1", "a2": "fields-1", "b1": "dance-1", "b2": "dance-2", "d1": "river-1"}
+    heard = []
+    for each in order:
+        if not heard or heard[-1] != family[each]:
+            heard.append(family[each])
+    assert len(heard) >= 4, order
+    kinds = [name.rsplit("-", 1)[0] for name in heard]
+    assert len(set(kinds[:3])) == 3, "a family or its sister came round again before the others: %s" % heard
+    assert heard[3] == "dance-2", "the sister family did not come before a second hearing of the others: %s" % heard
+
+
 async def test_with_six_loudspeakers_the_music_is_laid_over_all_of_them_and_each_can_be_sounded_alone(results):
     six = of(results, "sixSpeakers")
     assert six["speakers"] == 6 and six["status"] == 6
