@@ -299,7 +299,7 @@ def lines(heard: Heard, track: house.Take, work: Path) -> tuple[dict[str, list[d
             # 6 to 19 dB too much from 900 Hz to 3.5 kHz in the leads and keys, the pads 16 dB over at 3.5 kHz; MuseScore's
             # instruments had measured dull the night before. So each line is toned by what plays it.)
             synth_played = not (written in muse.PARTS and muse.available())
-            for line in sounds.lines(Voice(0, notes=mine, instrument=written), title, house.BPM, taste=taste, room=1.0, seed=seed,
+            for line in sounds.lines(Voice(notes=mine, instrument=written), title, house.BPM, taste=taste, room=1.0, seed=seed,
                                      muse_level=sounds.LEVEL):
                 if ride:
                     line.moves = list(ride)

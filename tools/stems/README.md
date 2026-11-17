@@ -5,30 +5,12 @@ Nothing here is installed in the usual way, because that needs the administrator
 everything is fetched and unpacked under `var/tools/`, which git does not keep. This is how to
 put it back on a new machine.
 
-## FluidSynth and its SoundFonts (the orchestra)
+## What played the first orchestra (not used now)
 
-FluidSynth plays a MIDI file through sampled instruments. From Ubuntu's own archive, unpacked
-into a folder instead of installed:
-
-    mkdir -p var/tools/debs var/tools/fluid && cd var/tools/debs
-    apt download fluidsynth=2.4.8+dfsg-1 libfluidsynth3=2.4.8+dfsg-1 \
-        musescore-general-soundfont-lossless fluid-soundfont-gm
-    for deb in *.deb; do dpkg -x "$deb" ../fluid; done
-
-The version is named because without it apt chooses the Ubuntu Pro build, which this machine
-may not fetch. `studio/fluid.py` runs `var/tools/fluid/usr/bin/fluidsynth` with
-`LD_LIBRARY_PATH` set to the unpacked libraries, and plays
-`usr/share/sounds/sf2/MuseScore_General_Full.sf2`.
-
-| What | Licence |
-|---|---|
-| FluidSynth 2.4.8 | LGPL 2.1: run as a program beside FreeRock, not built into it |
-| MuseScore General SoundFont (S. Christian Collins) | MIT |
-| FluidR3 GM SoundFont (Frank Wen) | MIT |
-
-How loud each instrument of the SoundFont is, and which strokes each drum kit has, was measured
-on 2026-11-15 by playing each alone; the numbers are in `studio/orchestra.py` (`LOUD`, `KITS`).
-The marching kit has only a handful of strokes and is not used.
+On 2026-11-15 and 16 the orchestra was played by FluidSynth 2.4.8 (LGPL 2.1) through the MuseScore
+General and FluidR3 General MIDI SoundFonts (both MIT), unpacked from Ubuntu's archive into
+`var/tools/fluid`. Its renders were turned down by ear on 2026-11-16, and the code that drove it
+went on 2026-11-17. The unpacked copy is kept with the other tools.
 
 ## REAPER (the studio's desk)
 
@@ -125,13 +107,16 @@ Under `var/samples` (on the assets drive), each fetched from GitHub as a tarball
 
 ## The dance music's drums
 
-The house writer (`studio/house.py`) plays our own synthesiser (`studio/synth.py`, which needs
-numba: run it with `uv run --no-sync --with numba ...`) and takes its drums from recordings of
-a TR-8 drum machine: `var/tools/drums/mck/`, from github.com/MckAudio/MckSamplePacks, CC0.
+The House tracks (`studio/club.py`) take their drums from recordings of a TR-8 drum machine,
+played by sfizz: `var/tools/drums/mck/`, from github.com/MckAudio/MckSamplePacks, CC0.
 (`var/tools/drums/fischer808/`, from github.com/tidalcycles/sounds-tr808-fischer, CC0, was
-fetched too and is not used.)
+fetched too and is not used.) The house writer (`studio/house.py`) still runs the studio's own
+synthesiser (`studio/synth.py`) while it writes, which is why House needs numba:
+`uv run --no-sync --with numba ...`.
 
 ## The real scores
 
-`studio/scores.py` fetches public-domain scores into `var/scores/` and says for each where it
-came from and under what licence; every track made from one carries that in its credit.
+Public-domain orchestral scores were fetched into `var/scores/` and arranged for the General MIDI
+orchestra; with that orchestra the arranging went too (2026-11-17). The scores are still read by
+`tools/orchestra_study.py`, which measures how real orchestral music moves (how often the bass
+repeats, how many instruments play at once) for the writers to be held against.

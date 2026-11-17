@@ -1,12 +1,11 @@
 """The studio: keys and chords, the orchestra's writer, staging a track and putting it in a bucket."""
 import random
-import struct
 
 import numpy as np
 import pytest
 
 from freerock import forever, kinds, studio
-from freerock.studio import build, fluid, orchestra, score
+from freerock.studio import build, orchestra, score
 from freerock.studio.theory import Key, tones, voiced
 
 RATE = forever.RATE
@@ -47,7 +46,7 @@ def test_every_character_names_instruments_and_grooves_that_exist():
     for character in orchestra.CHARACTERS:
         for name in character.leads + character.strong + character.under + character.pads + character.plucks \
                 + character.basses + character.drums:
-            assert name in orchestra.INSTRUMENTS and name in orchestra.LOUD, "%s: %s" % (character.name, name)
+            assert name in orchestra.INSTRUMENTS, "%s: %s" % (character.name, name)
         assert all(groove in orchestra.GROOVES for groove in character.grooves), character.name
         assert all(kind in kinds.KINDS for kind in character.kinds), character.name
         assert character.role in studio.ROLES
@@ -218,7 +217,7 @@ def test_a_bands_fight_breaks_down_in_its_valley_and_comes_back_before_the_climb
         assert riff and all(note.start >= middle - 1e-6 for note in riff), "%s: the riff plays through the breakdown" % name
         held = [note for _, note in played(take, "bass", "valley") if note.start < middle - 1e-6]
         assert held and all(note.length >= fam.beats - 1e-6 for note in held), "%s: the bass does not hold its roots" % name
-        snare = orchestra.KITS[character.kit][1]["snare"]
+        snare = orchestra.KITS[character.kit]["snare"]
         kit = [note for player, note in played(take, "drums", "valley") if player == "kit"]
         assert not any(note.pitch == snare for note in kit if note.start < middle - 1e-6), "%s: the backbeat goes on" % name
         assert any(note.pitch == snare for note in kit if note.start >= middle - 1e-6), "%s: the groove does not come back" % name
@@ -326,7 +325,7 @@ def character_called(name):
 def test_the_big_drums_are_where_they_should_be_and_nowhere_else():
     for name, (low, high) in NEW.items():
         inst = orchestra.INSTRUMENTS[name]
-        assert (inst.low, inst.high) == (low, high) and not inst.held and name in orchestra.LOUD
+        assert (inst.low, inst.high) == (low, high) and not inst.held
     hand_places = {"desert", "jungle", "highland"}
     for index, character in enumerate(orchestra.CHARACTERS):
         take = orchestra.Take(orchestra.family(character, 60 + index, "f", "F"), 1 + index % 2)
@@ -421,13 +420,13 @@ def test_lighter_music_of_the_desert_has_frame_drums_and_a_village_dance_has_nei
     dance = orchestra.Take(orchestra.family(character_called("village dance"), 5, "f", "F"), 1)
     assert set(drums_of(dance)) == {"swell"}
     # The kit's own bass drum is still the kit's: the deep stroke of the same name is another thing.
-    boom = orchestra.KITS[dance.ch.kit][1]["boom"]
+    boom = orchestra.KITS[dance.ch.kit]["boom"]
     assert any(note.pitch == boom for note in dance.voices["drums"]["kit"].notes) and "boom" not in dance.voices["drums"]
 
 
 def test_where_the_war_drums_play_the_orchestras_low_drums_make_room():
     take = orchestra.Take(orchestra.family(character_called("skirmish"), 5, "f", "F"), 1)
-    kit, boom = take.voices["drums"]["kit"].notes, orchestra.KITS[take.ch.kit][1]["boom"]
+    kit, boom = take.voices["drums"]["kit"].notes, orchestra.KITS[take.ch.kit]["boom"]
     war = {int(note.start / take.beats + 1e-6) for note in take.voices["drums"]["war drums"].notes}       # the bars they play in
     assert len(war) > 0.9 * take.fam.bars
     assert not [note for note in kit if note.pitch == boom and int(note.start / take.beats + 1e-6) in war], \
@@ -439,7 +438,7 @@ def test_where_the_war_drums_play_the_orchestras_low_drums_make_room():
     assert timpani and all(abs((note.start - first) % take.beats) < 1e-6 for note in timpani)
     # A band keeps its kit as it is: its bass drum goes on under its war drums.
     band = orchestra.Take(orchestra.family(character_called("war machine"), 5, "f", "F"), 1)
-    kick = orchestra.KITS[band.ch.kit][1]["boom"]
+    kick = orchestra.KITS[band.ch.kit]["boom"]
     assert any(name == "war drums" for name, _ in played(band, "drums", "build"))
     assert any(name == "kit" and note.pitch == kick for name, note in played(band, "drums", "build"))
 
@@ -520,7 +519,7 @@ def test_a_deep_stroke_lands_on_each_arrival_and_a_gong_at_the_summit_of_the_hea
 def test_an_anvil_is_struck_in_a_forge_and_in_music_of_the_fire():
     forge = orchestra.Take(orchestra.family(character_called("the forge"), 5, "f", "F"), 1)
     anvil = forge.voices["drums"]["anvil"].notes
-    ting = orchestra.KITS[forge.ch.kit][1]["ting"]
+    ting = orchestra.KITS[forge.ch.kit]["ting"]
     assert len(anvil) > 50 and not any(note.pitch == ting for note in forge.voices["drums"]["kit"].notes)
     # On the back beats of the bar: a slow ostinato.
     first, _ = spans_of(forge)["first"]
@@ -533,37 +532,6 @@ def test_an_anvil_is_struck_in_a_forge_and_in_music_of_the_fire():
     # And nowhere else is there an anvil.
     assert "anvil" not in orchestra.Take(orchestra.family(character_called("coronation"), 5, "f", "F"), 1).voices["drums"]
     assert "anvil" not in orchestra.Take(orchestra.family(character_called("deep mine"), 5, "f", "F"), 1).voices["drums"]
-
-
-# --- the MIDI file -------------------------------------------------------------------------------
-
-def test_a_midi_file_holds_every_voice_and_ends_a_note_before_striking_it_again(tmp_path):
-    voice = score.Voice(48)
-    voice.add(0.0, 4.0, 60, 0.8)
-    voice.add(2.0, 4.0, 60, 0.8)                           # the same note again while the first still sounds
-    kit = score.Voice(0, drums=True)
-    kit.add(0.0, 0.5, 36, 0.9)
-    path = tmp_path / "t.mid"
-    score.write_midi(path, [voice, kit], 120, 8)
-    data = path.read_bytes()
-    assert data[:4] == b"MThd"
-    assert struct.unpack(">HHH", data[8:14]) == (1, 3, score.TICKS)         # the tempo track and the two voices
-    track = data.split(b"MTrk")[2]
-    ons = [index for index in range(len(track) - 2) if track[index] == 0x90 and track[index + 1] == 60]
-    offs = [index for index in range(len(track) - 2) if track[index] == 0x80 and track[index + 1] == 60]
-    assert len(ons) == 2 and len(offs) == 2 and offs[0] < ons[1], "the first note was not ended before the second began"
-    assert b"\x99\x24" in data, "the drums are not on the drum channel"
-
-
-@pytest.mark.skipif(not (fluid.HOME / "usr" / "bin" / "fluidsynth").is_file(), reason="FluidSynth is not unpacked on this machine")
-def test_the_sampled_orchestra_plays_a_part(tmp_path):
-    voice = score.Voice(48)
-    for beat in range(4):
-        voice.add(beat, 0.9, 60 + beat, 0.7)
-    score.write_midi(tmp_path / "t.mid", [voice], 120, 6)
-    audio = fluid.render(tmp_path / "t.mid", tmp_path / "t.wav")
-    assert audio.shape[1] == 2 and len(audio) / RATE >= 2.9          # it plays on until the last note has died away
-    assert float(np.abs(audio[:RATE]).max()) > 0.01, "nothing came out"
 
 
 # --- staging a track and putting it in a bucket --------------------------------------------------
@@ -711,13 +679,17 @@ def test_a_band_plays_riffs_on_wired_guitars_and_the_bass_in_eighths():
     fam = orchestra.family(character, 5, "f", "F")
     take = orchestra.Take(fam, 1)
     riffs = take.voices["rhythm"]
-    assert "rhythm guitar" in riffs and riffs["rhythm guitar"].wired and riffs["rhythm guitar"].notes
+
+    def wired(voice):
+        return voice.instrument in orchestra.INSTRUMENTS and orchestra.INSTRUMENTS[voice.instrument].wired
+
+    assert "rhythm guitar" in riffs and wired(riffs["rhythm guitar"]) and riffs["rhythm guitar"].notes
     # The band's first theme is the lead guitar's; its second is sung by the organ.
-    assert take.solo == "lead guitar" and take.voices["lead"]["lead guitar"].wired
-    assert take.other == "rock organ" and not take.voices["lead"]["rock organ"].wired
-    # (...and the valley's tune is the clean guitar's, played straight, not through the amplifier.)
-    assert {name for name, voice in take.voices["lead"].items() if not voice.wired} == {"rock organ", "rock organ under", "guitar"}
-    assert not any(voice.wired for channel in ("texture", "bass", "drums") for voice in take.voices[channel].values())
+    assert take.solo == "lead guitar" and wired(take.voices["lead"]["lead guitar"])
+    assert take.other == "rock organ" and not wired(take.voices["lead"]["rock organ"])
+    # (...and the valley's tune is the clean guitar's, played straight.)
+    assert {name for name, voice in take.voices["lead"].items() if not wired(voice)} == {"rock organ", "rock organ under", "guitar"}
+    assert not any(wired(voice) for channel in ("texture", "bass", "drums") for voice in take.voices[channel].values())
     # The summit has the tune twice: twin guitars a third apart.
     assert "lead guitar twin" in take.voices["lead"]
     assert {name for name, _ in played(take, "lead", "summit")} >= {"lead guitar", "lead guitar twin", "rock organ under"}

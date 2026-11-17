@@ -163,7 +163,7 @@ def stage(fam: Family, take: int) -> dict:
     strokes: list[tuple[float, float]] = []
     for name, voice in written.voices["drums"].items():
         if voice.drums and voice.instrument[4:] in sounds.KICKED:
-            boom = KITS[voice.instrument[4:]][1]["boom"]
+            boom = KITS[voice.instrument[4:]]["boom"]
             strokes += [(note.start, note.loud) for note in voice.notes if note.pitch == boom]
         elif voice.instrument in ("war drums", "boom", "kick"):
             strokes += [(note.start, note.loud) for note in voice.notes if note.pitch == 36]
@@ -180,7 +180,7 @@ def stage(fam: Family, take: int) -> dict:
     pads = [voice for voice in written.voices["texture"].values() if voice.instrument in ("tremolo", "strings", "strings slow") and voice.notes]
     if pads:
         # Depth: a wide synth pad far under the string pad, all the way through.
-        written.voices["texture"]["pad under"] = Voice(0, notes=[Note(note.start, note.length, note.pitch, 0.5) for voice in pads for note in voice.notes
+        written.voices["texture"]["pad under"] = Voice(notes=[Note(note.start, note.length, note.pitch, 0.5) for voice in pads for note in voice.notes
                                                                   if 48 <= note.pitch <= 84], instrument="pad")
     low = sorted((note for voice in written.voices["bass"].values() if not voice.drums for note in voice.notes), key=lambda note: note.start)
     if character.role != "night":
@@ -202,13 +202,13 @@ def stage(fam: Family, take: int) -> dict:
                         strength = (0.6 if character.light else 0.9 if on == 0.0 else 0.75) * (0.8 if story == "rise" else 1.0)
                         kicks.append(Note(at, 0.5, 36, strength))
         if kicks:
-            written.voices["drums"]["kick at the moments"] = Voice(0, notes=kicks, instrument="kick")
+            written.voices["drums"]["kick at the moments"] = Voice(notes=kicks, instrument="kick")
             strokes += [(note.start, note.loud) for note in kicks]         # the other channels give way under these as well
     if low and spans and not character.light:
         # More bass where it is intense: a deep sub and low brass double the bass line through each moment, and a bell
         # is struck on the moment's first beat, on the note the bass has there.
         deep = [note for note in low if any(first <= note.start < last for first, last in spans)]
-        written.voices["bass"]["sub at the moments"] = Voice(0, notes=[Note(note.start, note.length, note.pitch, 0.8) for note in deep], instrument="deep")
+        written.voices["bass"]["sub at the moments"] = Voice(notes=[Note(note.start, note.length, note.pitch, 0.8) for note in deep], instrument="deep")
         if not any(voice.instrument in ("tuba", "trombone") and voice.notes for voice in written.voices["bass"].values()):
             written.voices["bass"]["low brass at the moments"] = Voice(
                 0, notes=[Note(note.start, note.length, note.pitch if note.pitch >= 29 else note.pitch + 12, 0.75) for note in deep if note.length >= 0.45],
@@ -219,7 +219,7 @@ def stage(fam: Family, take: int) -> dict:
             if under:
                 rung.append(Note(first, 4.0, 60 + under[0].pitch % 12, 0.8))
         if rung and crown_of(character)[1] and not any(voice.instrument in ("bells", "church bell") for voice in written.voices["rhythm"].values()):
-            written.voices["rhythm"]["bell at the moments"] = Voice(0, notes=rung, instrument="bells")
+            written.voices["rhythm"]["bell at the moments"] = Voice(notes=rung, instrument="bells")
     crown = crown_of(character)[0]
     if muse.available() and crown and not (character.band and not character.light):
         # A layer on top, where the story comes to its moments: a choir sings the pad's chords with the strings (the
@@ -230,7 +230,7 @@ def stage(fam: Family, take: int) -> dict:
                 for note in voice.notes if any(first <= note.start < last for first, last in spans) and low <= note.pitch <= high]
         if sung and crown not in {voice.instrument for voice in written.voices["texture"].values()}:
             soft = 0.55 if character.light else 0.72
-            written.voices["texture"]["%s at the moments" % crown] = Voice(0, notes=[type(note)(note.start, note.length, note.pitch, soft) for note in sung],
+            written.voices["texture"]["%s at the moments" % crown] = Voice(notes=[type(note)(note.start, note.length, note.pitch, soft) for note in sung],
                                                                            instrument=crown)
     if muse.available() and character.band:
         # A band's plain guitar is an electric one played clean (its steel-strung ones stay acoustic).

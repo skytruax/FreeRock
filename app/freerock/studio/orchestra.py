@@ -46,126 +46,96 @@ from .score import Voice
 from .theory import Chord, Key, Line, tones, voiced
 
 # ---------------------------------------------------------------------------------------------
-# The instruments (MuseScore General: bank, program) and where each one sounds well
+# The instruments the writers name, and where each one sounds well (what plays each: sounds.py)
 # ---------------------------------------------------------------------------------------------
 @dataclass(frozen=True)
 class Instrument:
-    bank: int
-    program: int
     low: int
     high: int
     home: int                  # the middle of where its tunes sit
     held: bool = True          # it sustains for as long as the note is written (a bow, a breath); a plucked one does not
-    level: float = 1.0         # a taste: this one a little under the others whatever it measures
     early: float = 0.0         # seconds it is played ahead, for instruments that speak slowly
-    wired: bool = False        # an electric guitar (Muse Guitars plays it through its own amplifier)
+    wired: bool = False        # an electric guitar: a twin tune a third above is written for it in a band
 
 
 I = Instrument
 INSTRUMENTS = {
-    "flute": I(0, 73, 60, 96, 79), "piccolo": I(0, 72, 74, 103, 90, level=0.8), "oboe": I(0, 68, 58, 89, 72),
-    "english horn": I(0, 69, 52, 81, 65), "clarinet": I(0, 71, 50, 89, 67), "bassoon": I(0, 70, 34, 70, 50),
-    "recorder": I(0, 74, 60, 93, 77), "pan flute": I(0, 75, 60, 93, 76), "shakuhachi": I(0, 77, 55, 86, 70),
-    "whistle": I(0, 78, 72, 98, 84, level=0.8), "ocarina": I(0, 79, 60, 91, 76),
-    "trumpet": I(0, 56, 55, 82, 70), "trombone": I(0, 57, 40, 70, 55), "tuba": I(0, 58, 28, 55, 40),
-    "horns": I(0, 60, 41, 74, 58), "brass": I(0, 61, 48, 82, 62, level=0.9),
-    "violin": I(0, 40, 55, 96, 74), "viola": I(0, 41, 48, 84, 62), "cello": I(0, 42, 36, 74, 52),
-    "violins": I(20, 48, 55, 96, 74, early=0.02), "violins slow": I(20, 49, 55, 96, 74, early=0.08),
-    "violas": I(30, 48, 48, 84, 62, early=0.02), "celli": I(40, 48, 36, 72, 50, early=0.02),
-    "celli slow": I(40, 49, 36, 72, 50, early=0.08), "basses": I(50, 48, 28, 52, 38, early=0.03),
-    "basses slow": I(50, 49, 28, 52, 38, early=0.08),
-    "strings": I(0, 48, 36, 96, 64, early=0.02), "strings slow": I(0, 49, 36, 96, 64, early=0.08),
-    "tremolo": I(0, 44, 36, 96, 64, early=0.03), "pizzicato": I(0, 45, 36, 91, 62, held=False),
-    "celli pizz": I(40, 45, 36, 72, 50, held=False), "basses pizz": I(50, 45, 28, 52, 38, held=False),
-    "harp": I(0, 46, 31, 96, 64, held=False), "celesta": I(0, 8, 60, 105, 84, held=False),
-    "glock": I(0, 9, 72, 105, 88, held=False, level=0.7), "music box": I(0, 10, 60, 96, 79, held=False),
-    "vibes": I(0, 11, 53, 89, 70, held=False), "marimba": I(0, 12, 45, 96, 65, held=False),
-    "xylophone": I(0, 13, 65, 105, 84, held=False, level=0.8), "bells": I(0, 14, 55, 84, 69, held=False),
-    "church bell": I(8, 14, 48, 72, 60, held=False), "dulcimer": I(0, 15, 55, 91, 70, held=False),
-    "organ": I(0, 19, 36, 91, 60, level=0.8), "harpsichord": I(0, 6, 36, 89, 65, held=False),
-    "accordion": I(0, 21, 53, 89, 69, level=0.8), "guitar": I(0, 24, 40, 84, 60, held=False),
-    "steel guitar": I(0, 25, 40, 84, 62, held=False), "mandolin": I(16, 25, 55, 91, 72, held=False),
-    "twelve string": I(8, 25, 40, 84, 62, held=False), "sitar": I(0, 104, 48, 84, 64, held=False),
-    "koto": I(0, 107, 48, 91, 67, held=False), "kalimba": I(0, 108, 60, 96, 76, held=False),
-    "banjo": I(0, 105, 48, 84, 64, held=False), "bagpipe": I(0, 109, 58, 82, 70, level=0.7),
-    "fiddle": I(0, 110, 55, 96, 74), "shenai": I(0, 111, 58, 86, 70, level=0.8),
-    "choir": I(0, 52, 48, 81, 64, early=0.05), "oohs": I(0, 53, 48, 84, 65, early=0.05),
-    "timpani": I(0, 47, 36, 57, 45, held=False), "taiko": I(0, 116, 36, 60, 45, held=False),
-    "great drum": I(8, 116, 36, 60, 43, held=False), "melodic tom": I(0, 117, 36, 72, 48, held=False),
-    "acoustic bass": I(0, 32, 28, 60, 40, held=False),
-    # The band. The guitars are the SoundFont's clean and muted ones, driven by our own amplifier.
-    "rhythm guitar": I(0, 27, 40, 76, 50, held=False, wired=True), "muted guitar": I(0, 28, 40, 72, 47, held=False, wired=True),
-    "single guitar": I(0, 27, 40, 76, 50, held=False, wired=True),     # one of the two riff guitars, alone: a heavy band's opening riff
-    "lead guitar": I(0, 27, 52, 86, 67, wired=True), "picked bass": I(0, 34, 28, 55, 38, held=False),
-    "rock organ": I(0, 18, 36, 84, 60, level=0.8), "harmonica": I(0, 22, 60, 84, 72),
-    "fretless": I(0, 35, 28, 60, 40),
+    "flute": I(60, 96, 79), "piccolo": I(74, 103, 90), "oboe": I(58, 89, 72),
+    "english horn": I(52, 81, 65), "clarinet": I(50, 89, 67), "bassoon": I(34, 70, 50),
+    "recorder": I(60, 93, 77), "pan flute": I(60, 93, 76), "shakuhachi": I(55, 86, 70),
+    "whistle": I(72, 98, 84), "ocarina": I(60, 91, 76),
+    "trumpet": I(55, 82, 70), "trombone": I(40, 70, 55), "tuba": I(28, 55, 40),
+    "horns": I(41, 74, 58), "brass": I(48, 82, 62),
+    "violin": I(55, 96, 74), "viola": I(48, 84, 62), "cello": I(36, 74, 52),
+    "violins": I(55, 96, 74, early=0.02), "violins slow": I(55, 96, 74, early=0.08),
+    "violas": I(48, 84, 62, early=0.02), "celli": I(36, 72, 50, early=0.02),
+    "celli slow": I(36, 72, 50, early=0.08), "basses": I(28, 52, 38, early=0.03),
+    "basses slow": I(28, 52, 38, early=0.08),
+    "strings": I(36, 96, 64, early=0.02), "strings slow": I(36, 96, 64, early=0.08),
+    "tremolo": I(36, 96, 64, early=0.03), "pizzicato": I(36, 91, 62, held=False),
+    "celli pizz": I(36, 72, 50, held=False), "basses pizz": I(28, 52, 38, held=False),
+    "harp": I(31, 96, 64, held=False), "celesta": I(60, 105, 84, held=False),
+    "glock": I(72, 105, 88, held=False), "music box": I(60, 96, 79, held=False),
+    "vibes": I(53, 89, 70, held=False), "marimba": I(45, 96, 65, held=False),
+    "xylophone": I(65, 105, 84, held=False), "bells": I(55, 84, 69, held=False),
+    "church bell": I(48, 72, 60, held=False), "dulcimer": I(55, 91, 70, held=False),
+    "organ": I(36, 91, 60), "harpsichord": I(36, 89, 65, held=False),
+    "accordion": I(53, 89, 69), "guitar": I(40, 84, 60, held=False),
+    "steel guitar": I(40, 84, 62, held=False), "mandolin": I(55, 91, 72, held=False),
+    "twelve string": I(40, 84, 62, held=False), "sitar": I(48, 84, 64, held=False),
+    "koto": I(48, 91, 67, held=False), "kalimba": I(60, 96, 76, held=False),
+    "banjo": I(48, 84, 64, held=False), "bagpipe": I(58, 82, 70),
+    "fiddle": I(55, 96, 74), "shenai": I(58, 86, 70),
+    "choir": I(48, 81, 64, early=0.05), "oohs": I(48, 84, 65, early=0.05),
+    "timpani": I(36, 57, 45, held=False), "taiko": I(36, 60, 45, held=False),
+    "great drum": I(36, 60, 43, held=False), "melodic tom": I(36, 72, 48, held=False),
+    "acoustic bass": I(28, 60, 40, held=False),
+    # The band: Muse Guitars' electric guitars (heavy, lead and clean), its bass, an organ.
+    "rhythm guitar": I(40, 76, 50, held=False, wired=True), "muted guitar": I(40, 72, 47, held=False, wired=True),
+    "single guitar": I(40, 76, 50, held=False, wired=True),     # one of the two riff guitars, alone: a heavy band's opening riff
+    "lead guitar": I(52, 86, 67, wired=True), "picked bass": I(28, 55, 38, held=False),
+    "rock organ": I(36, 84, 60), "harmonica": I(60, 84, 72),
+    "fretless": I(28, 60, 40),
     # Colours added for variety (2026-11-16, played: "need more variety in warcraft"). Muse Sounds plays all of these.
-    "piano": I(0, 0, 33, 100, 64, held=False), "bass flute": I(0, 73, 48, 84, 62), "bass clarinet": I(0, 71, 38, 77, 55),
+    "piano": I(33, 100, 64, held=False), "bass flute": I(48, 84, 62), "bass clarinet": I(38, 77, 55),
     # (Handbells carry far more than the glockenspiel at the same written strength: at 0.85 a frost night's rise, its
     # tune on handbells, came out louder than its moment on the glockenspiel, 2026-11-17, night.)
-    "handbells": I(0, 14, 60, 93, 74, held=False, level=0.6),
+    "handbells": I(60, 93, 74, held=False),
     # (Muse's euphonium under C3 was found to sound an octave up and 18 dB soft, played alone: it is kept above it.)
-    "euphonium": I(0, 58, 48, 72, 58),
+    "euphonium": I(48, 72, 58),
     # The rest of what Muse Sounds has (2026-11-17, night: "revisit it see if you left good ones out"), each heard played
     # alone first: the two low winds at the written pitch, every note.
-    "contrabassoon": I(0, 70, 22, 50, 34, level=1.6), "contrabass flute": I(0, 73, 36, 62, 48, level=1.6),
-    "eb clarinet": I(0, 71, 62, 91, 76), "full choir": I(0, 52, 43, 81, 62, early=0.05),
-    "handchimes": I(0, 14, 60, 96, 74, held=False), "dream piano": I(0, 0, 36, 96, 64, held=False),
-    # The big drums and what marks an arrival. These are found by name alone (their bank and
-    # program stand for nothing). A war drum's or a frame drum's pitch is its size: 36 is the
+    "contrabassoon": I(22, 50, 34), "contrabass flute": I(36, 62, 48),
+    "eb clarinet": I(62, 91, 76), "full choir": I(43, 81, 62, early=0.05),
+    "handchimes": I(60, 96, 74, held=False), "dream piano": I(36, 96, 64, held=False),
+    # The big drums and what marks an arrival, found by name alone. A war drum's or a frame
+    # drum's pitch is its size: 36 is the
     # biggest war drum, 45 the lowest frame drum. The others have one note each.
-    "war drums": I(0, 116, 36, 47, 41, held=False), "frame drums": I(0, 117, 45, 57, 50, held=False),
-    "boom": I(0, 116, 36, 36, 36, held=False), "gong": I(0, 14, 48, 48, 48, held=False),
-    "swell": I(0, 119, 49, 49, 49, held=False), "anvil": I(0, 113, 60, 60, 60, held=False),
+    "war drums": I(36, 47, 41, held=False), "frame drums": I(45, 57, 50, held=False),
+    "boom": I(36, 36, 36, held=False), "gong": I(48, 48, 48, held=False),
+    "swell": I(49, 49, 49, held=False), "anvil": I(60, 60, 60, held=False),
     # Played by Muse Percussion on drum staves (studio.muse.PERCUSSION): the pitch is the drum. The level is what each
     # needed beside the rest, measured played alone at one strength (2026-11-17, night): the taikos are by far the loudest.
-    "taikos": I(0, 116, 86, 87, 87, held=False, level=0.4), "tam-tam": I(0, 0, 52, 52, 52, held=False, level=1.2),
+    "taikos": I(86, 87, 87, held=False), "tam-tam": I(52, 52, 52, held=False),
     # (The mark tree was at 2.0 at first: a night piece's drums, nearly all mark tree, came out 14 dB bright.)
-    "mark tree": I(0, 0, 84, 84, 84, held=False, level=1.0), "field drum": I(0, 0, 37, 38, 38, held=False),
-    "field drum roll": I(0, 0, 38, 38, 38, held=False, level=1.3), "cymbal roll": I(0, 0, 57, 57, 57, held=False, level=1.5),
-    "piatti": I(0, 0, 57, 57, 57, held=False, level=0.5), "concert drum roll": I(0, 0, 36, 36, 36, held=False, level=1.3),
+    "mark tree": I(84, 84, 84, held=False), "field drum": I(37, 38, 38, held=False),
+    "field drum roll": I(38, 38, 38, held=False), "cymbal roll": I(57, 57, 57, held=False),
+    "piatti": I(57, 57, 57, held=False), "concert drum roll": I(36, 36, 36, held=False),
 }
 
-# Percussion: a kit (its program on the drum channel) and its strokes by name.
+# Percussion: a kit's strokes by name, as the note each is written on.
 _STROKES = {"shake": 82, "jingle": 83, "castanet": 85, "tick": 75, "high": 60, "low": 61, "deep": 87, "mute": 86,
             "conga": 63, "conga low": 64, "block": 76, "block low": 77, "guiro": 73, "bell": 53,
             "hat": 42, "hat open": 46, "ride": 51, "tom": 45, "tom low": 41, "tom high": 48, "cowbell": 56}
 KITS = {
-    "orchestra": (48, dict(_STROKES, boom=36, snare=38, crash=59, crash2=57, tamb=54, ting=81, clack=39)),
-    "march": (48, dict(_STROKES, boom=36, snare=40, crash=57, crash2=59, tamb=54, ting=81, clack=37)),
-    "folk": (0, dict(_STROKES, boom=36, snare=37, crash=55, crash2=49, tamb=54, ting=81, clack=39)),
-    "hands": (0, dict(_STROKES, boom=64, snare=63, crash=55, crash2=49, tamb=54, ting=80, clack=62, shake=70, jingle=69)),
-    "wood": (0, dict(_STROKES, boom=87, snare=77, crash=55, crash2=49, tamb=69, ting=76, clack=75)),
-    "rock": (16, dict(_STROKES, boom=36, snare=38, crash=49, crash2=57, tamb=54, ting=81, clack=37)),
-    "room": (8, dict(_STROKES, boom=36, snare=38, crash=49, crash2=57, tamb=54, ting=81, clack=37)),
+    "orchestra": dict(_STROKES, boom=36, snare=38, crash=59, crash2=57, tamb=54, ting=81, clack=39),
+    "march": dict(_STROKES, boom=36, snare=40, crash=57, crash2=59, tamb=54, ting=81, clack=37),
+    "folk": dict(_STROKES, boom=36, snare=37, crash=55, crash2=49, tamb=54, ting=81, clack=39),
+    "hands": dict(_STROKES, boom=64, snare=63, crash=55, crash2=49, tamb=54, ting=80, clack=62, shake=70, jingle=69),
+    "wood": dict(_STROKES, boom=87, snare=77, crash=55, crash2=49, tamb=69, ting=76, clack=75),
+    "rock": dict(_STROKES, boom=36, snare=38, crash=49, crash2=57, tamb=54, ting=81, clack=37),
+    "room": dict(_STROKES, boom=36, snare=38, crash=49, crash2=57, tamb=54, ting=81, clack=37),
 }
-# How loud each instrument's samples are, played alone at a middling strength (LUFS, measured
-# 2026-11-15 with tools/stems notes): the quietest is eighteen decibels under the loudest. Every
-# instrument is turned down to the level of the quietest ones, so that what is written loud is
-# loud and what is written soft is soft whoever plays it.
-LOUD = {
-    "music box": -37.3, "dulcimer": -36.1, "harpsichord": -35.0, "xylophone": -34.2, "steel guitar": -32.4,
-    "melodic tom": -31.6, "sitar": -31.3, "timpani": -31.2, "celesta": -31.0, "great drum": -30.8, "guitar": -30.6,
-    "english horn": -30.5, "taiko": -30.1, "kalimba": -30.1, "basses": -30.0, "glock": -29.6, "koto": -29.5,
-    "accordion": -29.4, "marimba": -29.3, "strings slow": -28.9, "vibes": -28.9, "pizzicato": -28.9, "tremolo": -28.5,
-    "fiddle": -27.6, "mandolin": -27.5, "harp": -27.5, "bells": -27.3, "choir": -26.8, "banjo": -26.1, "oohs": -26.0,
-    "organ": -25.6, "celli": -25.5, "strings": -25.4, "viola": -25.3, "brass": -25.0, "clarinet": -24.4, "fretless": -24.2,
-    "acoustic bass": -24.2, "violin": -24.2, "shakuhachi": -23.7, "church bell": -23.6, "pan flute": -23.5, "horns": -23.5,
-    "violins": -23.3, "bassoon": -22.6, "shenai": -22.2, "cello": -22.1, "tuba": -21.4, "trumpet": -21.4, "oboe": -21.3,
-    "flute": -21.2, "recorder": -21.1, "whistle": -20.5, "piccolo": -20.5, "ocarina": -19.5, "trombone": -18.9,
-    "bagpipe": -18.7,
-    "rhythm guitar": -22.1, "muted guitar": -29.9, "lead guitar": -22.1, "picked bass": -23.5, "rock organ": -24.7, "single guitar": -22.1,
-    "harmonica": -26.0,
-    # Not measured one by one: taken as their nearest relation.
-    "violins slow": -26.5, "violas": -25.3, "celli slow": -28.0, "basses slow": -31.0, "celli pizz": -28.9,
-    "basses pizz": -29.5, "twelve string": -32.4,
-    "piano": -28.0, "bass flute": -26.0, "bass clarinet": -24.4, "handbells": -27.0, "euphonium": -21.4,
-    "contrabassoon": -22.6, "contrabass flute": -26.0, "eb clarinet": -24.4, "full choir": -26.8, "handchimes": -27.0, "dream piano": -28.0,
-    "war drums": -30.0, "frame drums": -30.0, "boom": -30.0, "gong": -30.0, "swell": -30.0, "anvil": -30.0,
-    "taikos": -30.0, "tam-tam": -30.0, "mark tree": -30.0, "field drum": -30.0, "field drum roll": -30.0, "cymbal roll": -30.0,
-    "piatti": -30.0, "concert drum roll": -30.0,
-}
-LEVEL = -34.0                  # every instrument is brought to this, at the same setting of the player
 
 
 # ---------------------------------------------------------------------------------------------
@@ -525,7 +495,7 @@ CHARACTERS = (
       kit="orchestra", drums=("timpani", "great drum"), grooves=("thunder", "sleigh"), lift=0.35,
       titles=(("White", "Blinding", "North", "Howling", "Driving"), ("Blizzard", "Squall", "Wall", "Gale", "Whiteout"))),
     # --- Knight Rock: a band, not an orchestra ------------------------------------------------------
-    # Riff guitars through the amplifier, a lead guitar (two of them in thirds at the moment), the
+    # Heavy riff guitars, a lead guitar (two of them in thirds at the moment), the
     # bass on the root in steady eighths, a plain hard-hitting kit, and under it a drone as of a
     # hurdy-gurdy. The light ones are the same band unplugged: strummed strings, fiddle and whistle.
     C("open road", ("pastoral", "highland"), light=True, style="knight", band=True, modes=("mixolydian", "major"), bpm=(112, 126),
@@ -1880,16 +1850,13 @@ class Take:
     def voice(self, channel: str, name: str, tag: str = "") -> Voice:
         have = self.voices[channel]
         if name + tag not in have:
-            inst = INSTRUMENTS[name]
-            volume = min(10 ** ((LEVEL - LOUD[name]) / 40.0) * inst.level, 1.0)
-            have[name + tag] = Voice(inst.program, bank=inst.bank, volume=volume, shift=inst.early,
-                                     pan=self.rng.uniform(-0.35, 0.35), wired=inst.wired, instrument=name)
+            have[name + tag] = Voice(shift=INSTRUMENTS[name].early, pan=self.rng.uniform(-0.35, 0.35), instrument=name)
         return have[name + tag]
 
     def kit(self) -> Voice:
         have = self.voices["drums"]
         if "kit" not in have:
-            have["kit"] = Voice(KITS[self.ch.kit][0], drums=True, instrument="kit " + self.ch.kit)
+            have["kit"] = Voice(drums=True, instrument="kit " + self.ch.kit)
         return have["kit"]
 
     def put(self, channel: str, name: str, start: float, length: float, pitch: int, loud: float, tag: str = "",
@@ -2735,10 +2702,10 @@ class Take:
     def strike(self, sound: str, at: float, loud: float, chord: Chord, key: Key) -> None:
         if sound == "ting" and self.forge:
             self.put("drums", "anvil", at, 0.5, 60, loud)        # in a forge the bright stroke is an anvil
-        elif sound in KITS[self.ch.kit][1]:
+        elif sound in KITS[self.ch.kit]:
             # A stroke of the kit. (The kit's "boom" is its bass drum; the deep stroke that marks
             # an arrival is an instrument of the same name, and is written by `marks`.)
-            self.kit().add(at, 0.25, KITS[self.ch.kit][1][sound], loud)
+            self.kit().add(at, 0.25, KITS[self.ch.kit][sound], loud)
         elif sound == "timpani":
             # A pair of kettledrums is tuned to the key note and the fourth below it. They play
             # whichever of the two is in the chord, and the chord's own root only where neither is.

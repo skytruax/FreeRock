@@ -141,7 +141,7 @@ def split(long: str, short: str, notes: list[Note]) -> dict[str, list[Note]]:
 
 
 def now(instrument: str, notes: list[Note], drums: bool = False) -> list[desk.Line]:
-    return sounds.lines(Voice(0, notes=list(notes), drums=drums, instrument=instrument), instrument, BPM)
+    return sounds.lines(Voice(notes=list(notes), drums=drums, instrument=instrument), instrument, BPM)
 
 
 def rows() -> list[tuple[str, str, list[desk.Line] | None, list[desk.Line], str | None]]:
@@ -161,7 +161,7 @@ def rows() -> list[tuple[str, str, list[desk.Line] | None, list[desk.Line], str 
     pad = chords(57)
     spread = {"violins long": [note for note in pad if note.pitch >= 67], "violas long": [note for note in pad if 60 <= note.pitch < 67],
               "celli long": [note for note in pad if note.pitch < 60]}
-    kit = KITS["orchestra"][1]
+    kit = KITS["orchestra"]
     return [
         bowed("violins", "violins", "violins", 69, "violins in"), bowed("violas", "violas", "violas", 62, "violas and second violins"),
         bowed("celli", "celli", "celli", 45, "solo cello"), bowed("basses", "basses", "basses", 33, "double basses"),

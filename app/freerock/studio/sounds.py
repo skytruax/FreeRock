@@ -568,7 +568,7 @@ def instrument(name: str, slurs: bool = False) -> Path:
     slur = SLUR.get(kind, 0.0) if slurs else 0.0
     if name.startswith("kit "):
         from .orchestra import KITS
-        strokes = KITS[name[4:]][1]
+        strokes = KITS[name[4:]]
         hats = {strokes[each]: 1 for each in ("hat", "hat open") if each in strokes}
         text = sfz.kit(kit_patches(name[4:], strokes), chokes=hats)
     elif name in DRUMS:
@@ -956,7 +956,7 @@ def _trial(name: str) -> tuple[list[Note], list[tuple[float, int, int]]]:
     firm = [(0.0, sfz.DYNAMICS, 100)]
     if name.startswith("kit "):
         from .orchestra import KITS
-        strokes = KITS[name[4:]][1]
+        strokes = KITS[name[4:]]
         return [Note(beat, 0.5, strokes[stroke], 0.75) for beat, stroke in ((0, "boom"), (2, "snare"), (4, "boom"), (6, "snare"))], firm
     if _synth(name):
         return [Note(beat * 3.0, 2.6, pitch, 0.75) for beat, pitch in enumerate((48, 60, 72))], firm
@@ -1289,7 +1289,7 @@ def _muse(voice: Voice, title: str, bpm: float, taste: float, room: float, seed:
                              effects=effects))
     if voice.instrument in ("basses", "basses slow"):
         # Stacked under the basses where they play out: a synth's plain sub at their pitch, felt more than heard.
-        out += lines(Voice(0, notes=list(voice.notes), instrument="sub"), title + " sub", bpm, taste=taste, room=room, seed=seed)
+        out += lines(Voice(notes=list(voice.notes), instrument="sub"), title + " sub", bpm, taste=taste, room=room, seed=seed)
     return out
 
 
@@ -1331,7 +1331,7 @@ def lines(voice: Voice, title: str, bpm: float, *, taste: float = 1.0, room: flo
             struck = [Note(note.start, note.length, 36, note.loud) for note in voice.notes if note.pitch == boom]
             if struck:
                 own = "boom" in KIT_PLUGS.get(kit, ("", {}))[1]          # the kit's plug-in has a bass drum of its own
-                out += lines(Voice(0, notes=struck, instrument="kick"), title + " kick", bpm, taste=taste * (_db(-6.0) if own else 1.0), room=room, seed=seed)
+                out += lines(Voice(notes=struck, instrument="kick"), title + " kick", bpm, taste=taste * (_db(-6.0) if own else 1.0), room=room, seed=seed)
         return out
     if voice.instrument == "swell":
         return _swell(voice, title, bpm, taste, room)
