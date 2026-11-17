@@ -118,6 +118,7 @@ PARTS: dict[str, tuple[tuple, ...]] = {
     "muted guitar": (("Muted Guitar", 0, 127, "", "Muse Guitars Vol 1/Electric LP - Heavy"),
                      ("Muted Guitar", 0, 127, "", "Muse Guitars Vol 1/Electric SC - Heavy")),
     "lead guitar": (("Electric Guitar", 0, 127, "", "Muse Guitars Vol 1/Electric LP - Lead"),),
+    "single guitar": (("Rhythm Guitar", 0, 127, "", "Muse Guitars Vol 1/Electric LP - Heavy"),),      # the Les Paul alone: a heavy band's opening riff
     "clean guitar": (("Clean Guitar", 0, 127, "", "Muse Guitars Vol 1/Electric SC - Clean"),),
     "picked bass": (("Bass Guitar", 0, 127, "", "Muse Guitars Vol 1/Electric Bass"),),
     "rock organ": (("Hammond Organ", 0, 127, "", "Muse Keys/Hammond Organ"),),

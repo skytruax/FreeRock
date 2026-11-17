@@ -94,6 +94,7 @@ INSTRUMENTS = {
     "acoustic bass": I(0, 32, 28, 60, 40, held=False),
     # The band. The guitars are the SoundFont's clean and muted ones, driven by our own amplifier.
     "rhythm guitar": I(0, 27, 40, 76, 50, held=False, wired=True), "muted guitar": I(0, 28, 40, 72, 47, held=False, wired=True),
+    "single guitar": I(0, 27, 40, 76, 50, held=False, wired=True),     # one of the two riff guitars, alone: a heavy band's opening riff
     "lead guitar": I(0, 27, 52, 86, 67, wired=True), "picked bass": I(0, 34, 28, 55, 38, held=False),
     "rock organ": I(0, 18, 36, 84, 60, level=0.8), "harmonica": I(0, 22, 60, 84, 72),
     "fretless": I(0, 35, 28, 60, 40),
@@ -150,7 +151,7 @@ LOUD = {
     "violins": -23.3, "bassoon": -22.6, "shenai": -22.2, "cello": -22.1, "tuba": -21.4, "trumpet": -21.4, "oboe": -21.3,
     "flute": -21.2, "recorder": -21.1, "whistle": -20.5, "piccolo": -20.5, "ocarina": -19.5, "trombone": -18.9,
     "bagpipe": -18.7,
-    "rhythm guitar": -22.1, "muted guitar": -29.9, "lead guitar": -22.1, "picked bass": -23.5, "rock organ": -24.7,
+    "rhythm guitar": -22.1, "muted guitar": -29.9, "lead guitar": -22.1, "picked bass": -23.5, "rock organ": -24.7, "single guitar": -22.1,
     "harmonica": -26.0,
     # Not measured one by one: taken as their nearest relation.
     "violins slow": -26.5, "violas": -25.3, "celli slow": -28.0, "basses slow": -31.0, "celli pizz": -28.9,
@@ -2103,6 +2104,10 @@ class Take:
                 # where there is time, again from another.
                 sung, sung_again = (tune, again) if fam.valley == "first" else (tune_b, again_b)
                 echo = next((name for name in (mate, third, other, solo) if name != hush), hush)
+                if ch.band and self.heavy:
+                    # (A heavy band's valley is quiet only if its tune is: a distorted guitar is as loud played softly. The
+                    # clean guitar has it, and answers itself.)
+                    hush = echo = "guitar"
                 for index, (bar, full) in enumerate(turns(bars)):
                     loud = self.hard(self.level(section, bar + period // 2), 0.9)
                     if not full:
@@ -2306,6 +2311,8 @@ class Take:
                 out.append(walk if slot == 0 or rng.random() < 0.68 else None)
             return out
 
+        # Where a heavy band comes in behind its opening guitar: at the end of the opening.
+        self.band_in = next(first + section.bars * beats for section, first, _, _ in self.spans if section.part == "open")
         # One riff and one pattern for the first theme and what is made of it, and another for
         # the second: a take that has only one figure to its name still plays two things.
         self.riff, riff_b = riff(), riff()
@@ -2416,21 +2423,27 @@ class Take:
                     lick = lick[-count:] if count < len(lick) else lick
                     begin = beats - len(lick) * step
                     hits = [(on, None if length is None else min(length, begin - on)) for on, length in hits if on < begin - 1e-6]
+                    lick_guitar = "single guitar" if ch.band and self.heavy and bar_at < self.band_in else "rhythm guitar"
                     for index, above in enumerate(lick):
                         at = bar_at + begin + index * step
                         if not self.breathing(at):
-                            self.put("rhythm", "rhythm guitar", at, step * 0.9, root + above, loud * (0.95 if index == 0 else 0.85))
+                            self.put("rhythm", lick_guitar, at, step * 0.9, root + above, loud * (0.95 if index == 0 else 0.85))
+                # (2026-11-17, night: the heavy band's pieces swung 8 dB from their quietest to their loudest, the orchestra's
+                # 18; distorted guitars hardly grow softer when played softly. A riff band opens on one guitar alone, and the
+                # second guitar, the chugs and the band come in together with the first theme.)
+                alone = ch.band and self.heavy and bar_at < self.band_in
+                guitar = "single guitar" if alone else "rhythm guitar"
                 for on, length in sorted(hits, key=lambda hit: hit[0]):
                     if self.breathing(bar_at + on):
                         continue
                     if length is None:
-                        if thin:
+                        if thin or alone:
                             continue
                         self.put("rhythm", "muted guitar", bar_at + on, 0.2, root, loud * (0.75 if on in starts else 0.6))
                         self.put("rhythm", "muted guitar", bar_at + on, 0.2, root + 7, loud * 0.5)
                     else:
                         for pitch in power:
-                            self.put("rhythm", "rhythm guitar", bar_at + on, length * 0.92, pitch, loud * (1.0 if on in starts else 0.9))
+                            self.put("rhythm", guitar, bar_at + on, length * 0.92, pitch, loud * (1.0 if on in starts else 0.9))
             elif figure == "pattern":
                 for slot, which in enumerate(pattern_b if second else pattern_a):
                     if which is None or (thin and slot % 2):

@@ -196,7 +196,9 @@ def test_a_take_has_two_themes_that_can_be_told_apart():
         # In the valley one of the themes is sung by one player at a time, who has not stated it.
         stated = take.solo if fam.valley == "first" else take.other
         valley = played(take, "lead", "valley")
-        assert min(valley, key=lambda each: each[1].start)[0] == take.hush != stated
+        # (A heavy band's valley is the clean guitar's: a distorted one is as loud played softly. 2026-11-17, night.)
+        singer = "guitar" if character.band and character.weight >= 0.8 else take.hush
+        assert min(valley, key=lambda each: each[1].start)[0] == singer != stated
         ordered = sorted(valley, key=lambda each: each[1].start)
         assert all(later[1].start >= earlier[1].start + earlier[1].length * 0.5 for earlier, later in zip(ordered, ordered[1:])), \
             "%s: more than one line is sung in the valley" % character.name
@@ -694,7 +696,8 @@ def test_a_band_plays_riffs_on_wired_guitars_and_the_bass_in_eighths():
     # The band's first theme is the lead guitar's; its second is sung by the organ.
     assert take.solo == "lead guitar" and take.voices["lead"]["lead guitar"].wired
     assert take.other == "rock organ" and not take.voices["lead"]["rock organ"].wired
-    assert {name for name, voice in take.voices["lead"].items() if not voice.wired} == {"rock organ", "rock organ under"}
+    # (...and the valley's tune is the clean guitar's, played straight, not through the amplifier.)
+    assert {name for name, voice in take.voices["lead"].items() if not voice.wired} == {"rock organ", "rock organ under", "guitar"}
     assert not any(voice.wired for channel in ("texture", "bass", "drums") for voice in take.voices[channel].values())
     # The summit has the tune twice: twin guitars a third apart.
     assert "lead guitar twin" in take.voices["lead"]
