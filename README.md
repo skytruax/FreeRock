@@ -293,7 +293,6 @@ the bucket.
 `orchestra.py` (run by `build.py`) writes Warcraft and Knight Rock: themes, counter-melodies,
 ostinati and riffs, voiced for the instruments that will play them, with levels drawn through
 each section. `house.py` writes the House tracks: grooves, chords, plucks, risers and drops.
-`scores.py` arranges real public-domain scores.
 
 **2. Play.** Every part is performed by recorded instruments. The orchestra is MuseScore Studio
 with Muse Sounds: 117 recorded instruments covering strings, brass, woodwinds, choir, harp,
@@ -351,7 +350,7 @@ while the game is off.
 | `freerock sim <scenario>` | Plays a scripted session against a running server, drawing and reading the real strip |
 | `freerock read <picture>` | Reads the strip out of a saved screenshot |
 | `uv run --no-sync python -m freerock.studio.build` | Writes and plays the orchestra's and the band's tracks (`--list` shows what there would be, `--style knight` the band only) |
-| `uv run --no-sync --with numba python -m freerock.studio.club <family/take> ...` | Writes and plays House tracks |
+| `uv run --no-sync --with numba python -m freerock.studio.club <family/take> ...` | Writes and plays House tracks (`--list` shows the House plan) |
 | `uv run --no-sync python ../tools/render_some.py <family/take> ...` | Writes and plays a chosen list of tracks, several at a time |
 | `uv run --no-sync python ../tools/fresh_bucket.py <style>` | Rebuilds a style's bucket from everything staged now. Stop the server first |
 | `uv run --no-sync python ../tools/listen.py [style]` | A listening page and a mixer for every staged track, at `/listen/` |
@@ -391,7 +390,7 @@ protocol/          the strip's format and its test vectors
 app/freerock/      the program: the game link (beacon, state, server, web/sensor.py), places
                    (atlas, kinds), what plays (director, conductor, forever, web/player), and
                    the commands (cli, musiccli)
-app/freerock/studio/   the studio: writers (orchestra, build, house, scores), players (muse,
+app/freerock/studio/   the studio: writers (orchestra, build, house), players (muse,
                    sounds, sfz, reaper, club), the desk, the ear
 app/tests/         the Python tests
 tools/             the listening pages, render tools, the Lua tests, the simulator, these pictures
