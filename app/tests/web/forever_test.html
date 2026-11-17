@@ -867,6 +867,41 @@ tests.pieceCarriesOn = async () => {
   return { order };
 };
 
+// Six loudspeakers: the music is laid over all of them (the front pair as it is, some in the
+// centre, the low end to the sub, the rear pair late and soft), and the page's test sounds each
+// of them in turn and no other.
+tests.sixSpeakers = async () => {
+  const seconds = 12;
+  const ctx = new OfflineAudioContext(6, seconds * RATE, RATE);
+  const engine = new FreeRockForever(ctx, makeLoader("tones"), { limiter: false, random: seeded(7) });
+  await engine.setTarget(mix(1));
+  await engine.setBucket(makeBucket("home", BAR, 3));
+  await engine.start();
+  await engine.tick();
+  const failures = [];
+  let names = null;
+  for (let t = 0.5; t < seconds; t += 0.5) {
+    ctx.suspend(t).then(async () => {
+      try {
+        if (Math.abs(t - 6) < 1e-6) names = engine.testSpeakers();
+        await engine.tick();
+      } catch (error) { failures.push(String(error && error.stack || error)); } finally { ctx.resume(); }
+    });
+  }
+  const buffer = await ctx.startRendering();
+  if (failures.length) throw new Error(failures.join("\n"));
+  const channels = [0, 1, 2, 3, 4, 5].map((index) => buffer.getChannelData(index));
+  // The music, before the test: how loud each loudspeaker is.
+  const music = channels.map((data) => rms(data, 4, 5.9));
+  // The test: each loudspeaker's own tone in its own slot (the first begins a tenth of a second after it is asked for).
+  const slots = channels.map((data, index) => {
+    const from = 6.1 + index * 0.9 + 0.1, hz = index === 3 ? 55 : 660;
+    return { own: strength(data, from, from + 0.35, hz),
+             others: Math.max(...channels.map((other, which) => which === index ? 0 : strength(other, from, from + 0.35, hz))) };
+  });
+  return { speakers: engine.speakers, status: engine.status().speakers, names, music, slots };
+};
+
 // A place with two tracks written for its kind: they are not heard round and round. When both
 // have been heard, a track for a neighbouring kind of place gets a turn before either is heard
 // a third time, and one for a place that has nothing to do with this one comes last of all.

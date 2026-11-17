@@ -266,6 +266,7 @@
         last.connect(split);
         six.connect(out);
         made.push(split, six);
+        this.six = six;
         this.speakers = 6;
       } catch (error) {
         // Six were promised and could not be had: back to two, and the page is told.
@@ -276,6 +277,35 @@
         if (!options.report) throw error;
         options.report("5.1 could not be set up, so the music plays on two loudspeakers: " + error);
       }
+    }
+
+    // Sounds each loudspeaker in turn, so that whoever is listening can tell which of them the
+    // music is reaching: a short tone on each (a low one on the sub), not quite a second apart.
+    // `say` is told the name of each as it sounds, and "" when the last has sounded.
+    testSpeakers(say) {
+      const ctx = this.ctx;
+      const names = this.speakers === 6 ? ["front left", "front right", "centre", "sub", "rear left", "rear right"] : ["left", "right"];
+      const start = ctx.currentTime + 0.1;
+      names.forEach((name, index) => {
+        const tone = ctx.createOscillator(), gain = ctx.createGain(), at = start + index * 0.9;
+        tone.frequency.value = name === "sub" ? 55 : 660;
+        gain.gain.setValueAtTime(0, at);
+        gain.gain.linearRampToValueAtTime(0.25, at + 0.03);
+        gain.gain.setValueAtTime(0.25, at + 0.5);
+        gain.gain.linearRampToValueAtTime(0, at + 0.6);
+        tone.connect(gain);
+        if (this.speakers === 6) gain.connect(this.six, 0, index);
+        else {
+          const pair = ctx.createChannelMerger(2);
+          gain.connect(pair, 0, index);
+          pair.connect(ctx.destination);
+        }
+        tone.start(at);
+        tone.stop(at + 0.65);
+        if (say) setTimeout(() => say(name), Math.max(0, (at - ctx.currentTime) * 1000));
+      });
+      if (say) setTimeout(() => say(""), (names.length * 0.9 + 0.3) * 1000);
+      return names;
     }
 
     _ceiling(hz) { return Math.min(hz, this.ctx.sampleRate * 0.45); }

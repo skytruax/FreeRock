@@ -195,6 +195,9 @@
     $("volumeValue").textContent = $("volume").value;
     if (engine) engine.setVolume(volume());
   });
+  $("speakerTest").addEventListener("click", () => {
+    if (engine && engine.testSpeakers) engine.testSpeakers((name) => { $("speakerNow").textContent = name ? "now: " + name : ""; });
+  });
   $("skip").addEventListener("click", () => {
     if (engine) engine.skip().catch((error) => problem(String(error)));
   });
@@ -285,6 +288,12 @@
     if (!engine) return;
     engine.tick().catch((error) => problem(describe(error)));
     const status = engine.status();
+    if (status.speakers) {
+      // Where the music is going: said on the page, since nothing else shows it.
+      $("speakersRow").hidden = false;
+      $("speakers").textContent = status.speakers === 6 ? "5.1: the front pair, the centre, the sub and the rear pair"
+                                                        : "two (the browser offers no more)";
+    }
     if (status.forever) {
       // The five decks: which channels can be heard, and how hard each is playing.
       const strength = ["calm", "steady", "hard"];

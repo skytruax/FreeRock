@@ -460,6 +460,20 @@ async def test_tracks_heard_lately_give_way_to_others_and_a_neighbouring_kind_of
     assert "far" in order and order.index("near") < order.index("far"), "the track for somewhere else came before the neighbour's: %s" % order
 
 
+async def test_with_six_loudspeakers_the_music_is_laid_over_all_of_them_and_each_can_be_sounded_alone(results):
+    six = of(results, "sixSpeakers")
+    assert six["speakers"] == 6 and six["status"] == 6
+    assert six["names"] == ["front left", "front right", "centre", "sub", "rear left", "rear right"]
+    left, right, centre, sub, rear_left, rear_right = six["music"]
+    assert left > 0.02 and right > 0.02, "nothing in the front pair: %s" % six["music"]
+    assert 0.1 * left < centre < 0.6 * left, "the centre is not a little of the front: %s" % six["music"]
+    assert 0.2 * left < rear_left < 0.8 * left and 0.2 * right < rear_right < 0.8 * right, "the rear pair is not the front, softer: %s" % six["music"]
+    assert sub > 0.0, "nothing reaches the sub: %s" % six["music"]
+    for name, slot in zip(six["names"], six["slots"]):
+        assert slot["own"] > 0.05, "the %s loudspeaker did not sound in its turn: %s" % (name, slot)
+        assert slot["others"] < 0.2 * slot["own"], "another loudspeaker sounded with the %s: %s" % (name, slot)
+
+
 async def test_light_and_heavy_take_turns(results):
     shade = of(results, "pieceShade")
     assert len(shade["order"]) >= 12
