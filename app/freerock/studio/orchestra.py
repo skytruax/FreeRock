@@ -2104,10 +2104,14 @@ class Take:
                 # where there is time, again from another.
                 sung, sung_again = (tune, again) if fam.valley == "first" else (tune_b, again_b)
                 echo = next((name for name in (mate, third, other, solo) if name != hush), hush)
+                # (A band's valley is quiet only if its tune is: a distorted guitar is as loud played softly. In a heavy
+                # band's the clean guitar has it and answers itself; in a lighter band's it stands in for the distorted
+                # lead only. Measured on the night of 2026-11-17: the heavy band's pieces went from 8 dB between their
+                # quietest and loudest parts to 17 to 20.)
                 if ch.band and self.heavy:
-                    # (A heavy band's valley is quiet only if its tune is: a distorted guitar is as loud played softly. The
-                    # clean guitar has it, and answers itself.)
                     hush = echo = "guitar"
+                elif ch.band:
+                    hush, echo = ("guitar" if name == "lead guitar" else name for name in (hush, echo))
                 for index, (bar, full) in enumerate(turns(bars)):
                     loud = self.hard(self.level(section, bar + period // 2), 0.9)
                     if not full:

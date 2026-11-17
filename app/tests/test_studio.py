@@ -197,7 +197,7 @@ def test_a_take_has_two_themes_that_can_be_told_apart():
         stated = take.solo if fam.valley == "first" else take.other
         valley = played(take, "lead", "valley")
         # (A heavy band's valley is the clean guitar's: a distorted one is as loud played softly. 2026-11-17, night.)
-        singer = "guitar" if character.band and character.weight >= 0.8 else take.hush
+        singer = "guitar" if character.band and (character.weight >= 0.8 or take.hush == "lead guitar") else take.hush
         assert min(valley, key=lambda each: each[1].start)[0] == singer != stated
         ordered = sorted(valley, key=lambda each: each[1].start)
         assert all(later[1].start >= earlier[1].start + earlier[1].length * 0.5 for earlier, later in zip(ordered, ordered[1:])), \
