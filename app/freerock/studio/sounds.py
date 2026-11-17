@@ -852,7 +852,8 @@ def bus(channel: str, style: str = "") -> list[str]:
             return [equalise(low_cut=28.0, bands=((500.0, -3.0, 1.5),), high_shelf=(3000.0, -6.0)), wide(1.25), squeeze(-14.0, 2.0, 30.0, 250.0, 1.0),
                     warm(0.15), ceiling(-1.5, push=0.5)]
         if channel == "lead":
-            return [equalise(low_cut=28.0, bands=((900.0, 5.0, 1.6),), high_shelf=(4000.0, -4.0)), squeeze(-14.0, 2.0, 30.0, 250.0, 1.0),
+            # (+3.5 dB, not 5: the heavy pieces' lead guitars were not short there, only the light pieces' fiddles and harmonicas.)
+            return [equalise(low_cut=28.0, bands=((900.0, 3.5, 1.6),), high_shelf=(4000.0, -4.0)), squeeze(-14.0, 2.0, 30.0, 250.0, 1.0),
                     warm(0.2), ceiling(-1.5, push=0.5)]
         return [equalise(low_cut=28.0, high_shelf=(4000.0, -2.0)), squeeze(-14.0, 2.0, 30.0, 250.0, 1.0), warm(0.2), ceiling(-1.5, push=0.5)]
     # (2026-11-17, night: the first pieces of the night held against the stems that were liked, studio/ear.py: the pads
