@@ -88,11 +88,14 @@ def plan() -> list[tuple[Family, int]]:
             shapes = [2, 2]
         else:
             shapes = [2]
+            if character.role == "depths":
+                later.append((index, character))
         for number, takes in enumerate(shapes):
             add(index, character, number, takes)
     # (2026-11-16, played: "need more variety in warcraft".) The heavy music for walking about has a second family too:
-    # its own key, pace, changes and tunes. These are named after all the others, so that no family made before is
-    # given another title.
+    # its own key, pace, changes and tunes; and so has the music for caves ("been hearing the same thing over and
+    # over": a cave had two pieces). These are named after all the others, so that no family made before is given
+    # another title.
     for index, character in later:
         add(index, character, 1, 2)
     return out
