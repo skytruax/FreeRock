@@ -116,7 +116,8 @@ INSTRUMENTS = {
     # Played by Muse Percussion on drum staves (studio.muse.PERCUSSION): the pitch is the drum. The level is what each
     # needed beside the rest, measured played alone at one strength (2026-11-17, night): the taikos are by far the loudest.
     "taikos": I(0, 116, 86, 87, 87, held=False, level=0.4), "tam-tam": I(0, 0, 52, 52, 52, held=False, level=1.2),
-    "mark tree": I(0, 0, 84, 84, 84, held=False, level=1.0),        # (2.0 at first: a night piece's drums, nearly all mark tree, came out 14 dB bright) "field drum": I(0, 0, 37, 38, 38, held=False),
+    # (The mark tree was at 2.0 at first: a night piece's drums, nearly all mark tree, came out 14 dB bright.)
+    "mark tree": I(0, 0, 84, 84, 84, held=False, level=1.0), "field drum": I(0, 0, 37, 38, 38, held=False),
     "field drum roll": I(0, 0, 38, 38, 38, held=False, level=1.3), "cymbal roll": I(0, 0, 57, 57, 57, held=False, level=1.5),
     "piatti": I(0, 0, 57, 57, 57, held=False, level=0.5), "concert drum roll": I(0, 0, 36, 36, 36, held=False, level=1.3),
 }
