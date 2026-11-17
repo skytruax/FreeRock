@@ -1,12 +1,15 @@
 """The music side of the server: from game state on the hub to messages and phrases for the player."""
 import asyncio
 import json
+import types
 
+import pytest
 from aiohttp.test_utils import TestClient, TestServer
 
 from freerock import conductor as music
 from freerock import forever
 from freerock import state as game
+from freerock.director import Target
 from freerock.server import ServerConfig, create_app
 from freerock.settings import Settings
 from test_forever import fill
@@ -271,3 +274,84 @@ async def test_the_player_is_told_how_often_the_song_falls_silent_and_for_how_lo
         await socket.close()
     finally:
         await client.close()
+
+
+async def test_the_player_says_what_it_has_heard_and_it_is_counted(tmp_path):
+    client, app, conductor = await running(tmp_path)
+    try:
+        fill(conductor.buckets.get("Elwynn Forest", "knight"), STARTING)
+        socket = await client.ws_connect("/ws/player")
+        publish(app, zone_name="Elwynn Forest")
+        described = (await next_of(socket, "bucket"))["bucket"]
+        clip = described["clips"][0]["id"]
+        await socket.send_str(json.dumps({"type": "status", "forever": True, "started": True, "context": "running",
+                                          "bucket": described["key"], "heard": [clip],
+                                          "playing": {"texture": {"id": clip, "tier": 0}}}))
+        bucket = conductor.buckets.by_key(described["key"])
+        await until(lambda: next(kept for kept in bucket.clips if kept.id == clip).plays == 1)
+        assert conductor.heard() == {"connected": 1, "playing": 1}
+        # /rock ban is about what is playing at this moment.
+        app["hub"].publish(game.CommandReceived(name="ban", count=1))
+        gone = await next_of(socket, "retired")
+        assert gone == {"type": "retired", "key": described["key"], "ids": [clip]}
+        assert clip not in [kept.id for kept in bucket.live()]
+        assert "The 1 phrases playing are banned." in conductor.notes
+    finally:
+        await client.close()
+
+
+async def test_the_bucket_goes_with_the_player_across_a_border(tmp_path):
+    client, app, conductor = await running(tmp_path)
+    try:
+        bucket = conductor.buckets.get("Elwynn Forest", "knight")
+        fill(bucket, STARTING)
+        socket = await client.ws_connect("/ws/player")
+        publish(app, zone_name="Elwynn Forest", speed=7.0)
+        assert (await next_of(socket, "bucket"))["bucket"]["key"] == "knight/elwynn-forest"
+        publish(app, zone_name="Westfall", speed=7.0)
+        while True:
+            target = await next_of(socket, "target")
+            if target["where"]["zone"] == "Westfall":
+                break
+        assert target["target"]["kinds"] == ["pastoral"]
+        assert conductor.bucket is bucket and not (tmp_path / "var" / "buckets" / "knight" / "westfall").exists()
+        status = await (await client.get("/api/music")).json()
+        assert status["genre"] == "knight" and status["forever"]["bucket"] == "knight/elwynn-forest"
+        assert status["forever"]["phrases"] == 5 and status["forever"]["pools"]["drums steady"] == 1
+        await socket.close()
+    finally:
+        await client.close()
+
+
+async def test_a_new_style_takes_over_as_soon_as_it_has_anything(tmp_path):
+    client, app, conductor = await running(tmp_path)
+    try:
+        fill(conductor.buckets.get("Elwynn Forest", "knight"), STARTING)
+        fill(conductor.buckets.get("Elwynn Forest", "house"), [("texture", 0)])
+        socket = await client.ws_connect("/ws/player")
+        publish(app, zone_name="Elwynn Forest")
+        assert (await next_of(socket, "bucket"))["bucket"]["genre"] == "knight"
+        response = await client.post("/api/style", json={"genre": "house"})
+        assert response.status == 200
+        styles = await response.json()
+        assert styles["genre"] == "house" and [style["key"] for style in styles["genres"]] == ["knight", "warcraft", "house"]
+        described = (await next_of(socket, "bucket"))["bucket"]
+        assert (described["genre"], described["bpm"], described["style"]) == ("house", 110, "Progressive House")
+        assert described["bar_frames"] == pytest.approx(48000 * 240 / 110)
+        assert Settings.load(tmp_path / "var").genre == "house", "the style asked for is kept"
+        # Written pieces switched off: the page is told again, of the loose phrases only.
+        assert (await client.post("/api/style", json={"pieces": "off"})).status == 200
+        assert (await next_of(socket, "bucket"))["bucket"]["pieces"] == {}
+        assert (await client.post("/api/style", json={"genre": "polka"})).status == 400
+        await socket.close()
+    finally:
+        await client.close()
+
+
+def test_the_mix_is_what_the_player_is_sent():
+    conductor = types.SimpleNamespace(mix=None, target=Target(intensity=0.8, drums=1.0, bass=1.0),
+                                      hub=types.SimpleNamespace(state=None, link=game.Link.LIVE),
+                                      kinds_here=lambda state: ([], False), shade_here=lambda state: 0.0,
+                                      setting_here=lambda state: "")
+    message = music.Conductor._target_message(conductor)
+    assert message["target"]["channels"]["drums"] == {"level": 1.0, "tier": 2}

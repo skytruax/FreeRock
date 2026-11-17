@@ -11,10 +11,10 @@ import pytest
 from aiohttp.test_utils import TestServer
 
 from freerock import conductor as music
-from freerock import forever
 from freerock import state as game
 from freerock.server import ServerConfig, create_app
 from freerock.settings import Settings
+from test_conductor import STARTING
 from test_forever import fill
 
 CHROME = next((path for path in (shutil.which(name) for name in
@@ -50,7 +50,7 @@ async def test_the_page_plays_the_forever_song_from_a_bucket(tmp_path):
     conductor = music.attach(app, settings=Settings(var_dir=tmp_path / "var"))
     bucket = conductor.buckets.get("Duskwood", "knight")
     hard = [("drums", 2), ("bass", 2), ("rhythm", 2), ("lead", 2)]
-    fill(bucket, list(forever.FIRST[:5]) + hard)
+    fill(bucket, STARTING + hard)
     server = TestServer(app)
     await server.start_server()
     say(app, zone_name="Duskwood", speed=7.0)
@@ -76,7 +76,7 @@ async def test_the_page_plays_the_forever_song_from_a_bucket(tmp_path):
 
         fight = await until(fighting, "the decks to change to their hard phrases")
         assert fight["late"] == 0
-        # What it has played has been counted: for the feed, and for the rotation.
+        # What it has played has been counted, for choosing what comes next.
         await until(lambda: sum(clip.plays for clip in bucket.clips) >= 5, "the phrases heard to be counted")
         before = fight["time"]
         later = await until(lambda: next((s for s in conductor.statuses.values() if s.get("time", 0) > before + 3), None),

@@ -1,7 +1,6 @@
-"""The music commands of `freerock`: the settings, the stems, the written pieces, the spend.
+"""The music commands of `freerock`: the settings, the stems and the written pieces.
 
     freerock settings [name value] show the settings, or change one
-    freerock ledger                what has been spent this month and what is left
     freerock stems                 keep every phrase as an audio file, with a table of what each is
     freerock pieces add [style]    put every track staged by the studio in the style's bucket
     freerock pieces list [style]   what written pieces a style has
@@ -12,15 +11,11 @@
 from __future__ import annotations
 
 import argparse
-import asyncio
 import sys
-import time
 
 from . import composer, forever, pieces
 from .cli import add_command
-from .eleven import ElevenError, Gateway
-from .ledger import day_start, month_start
-from .settings import MissingKey, Settings
+from .settings import Settings
 from .stemstore import StemStore
 
 
@@ -53,42 +48,10 @@ def _show_settings(arguments: argparse.Namespace) -> int:
             return 1
         settings.save()
         print("Saved in %s. A running server uses it from its next start." % settings.file)
-    print("monthly_minutes     %g   new music FreeRock may buy in a calendar month" % settings.monthly_minutes)
-    print("daily_minutes       %g   and in one day" % settings.daily_minutes)
     print("rest_every_minutes  %g   about this much music between moments of silence (0: none)" % settings.rest_every_minutes)
     print("rest_seconds        %g   about this long a moment of silence lasts" % settings.rest_seconds)
     print("genre               %s   the style played: %s" % (settings.genre, ", ".join(Settings.GENRES)))
     print("pieces              %s   whether the written pieces are played (off: only the loose phrases)" % settings.pieces)
-    return 0
-
-
-# -- ledger -------------------------------------------------------------------------------------
-def _ledger(arguments: argparse.Namespace) -> int:
-    settings = _settings()
-    gateway = Gateway(settings)
-    ledger = gateway.ledger
-    now = time.time()
-    month, today = ledger.month_minutes(), ledger.day_minutes()
-    print("This month: %.2f of %.0f minutes (about $%.2f). Today: %.2f of %.0f minutes."
-          % (month, settings.monthly_minutes, month * settings.usd_per_minute, today, settings.daily_minutes))
-    for purpose, minutes, calls in ledger.by_purpose(month_start(now)):
-        print("  %-46s %6.2f min  %d call%s" % (purpose, minutes, calls, "" if calls == 1 else "s"))
-    spent_today = ledger.by_purpose(day_start(now))
-    if spent_today:
-        print("Today: " + ", ".join("%s %.2f" % (purpose, minutes) for purpose, minutes, _ in spent_today))
-
-    async def account() -> None:
-        try:
-            found = await gateway.subscription()
-        except (ElevenError, MissingKey) as problem:
-            print("The account's own balance could not be read: %s" % problem)
-            return
-        finally:
-            await gateway.aclose()
-        used, limit = found.get("character_count"), found.get("character_limit")
-        print("ElevenLabs account: %s plan, %s of %s credits used." % (found.get("tier"), used, limit))
-
-    asyncio.run(account())
     return 0
 
 
@@ -184,4 +147,3 @@ def _pieces(arguments: argparse.Namespace) -> int:
 
 add_command("pieces", "written pieces: add the studio's tracks, list them, or take some out",
             _pieces_arguments, _pieces)
-add_command("ledger", "what has been spent this month and what is left", lambda parser: None, _ledger)

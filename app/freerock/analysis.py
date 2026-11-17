@@ -1,8 +1,8 @@
 """Measuring a track without ears: tempo and beat grid, key and tuning, loudness, band energy.
 
-FreeRock asks ElevenLabs for a stated tempo and key, so nothing here has to guess a tempo from
-nothing. Each function checks how well the audio matches what was asked for, and reports numbers
-that tests and the experiment reports can hold against a pass line.
+Everything FreeRock measures was made at a stated tempo and key, so nothing here has to guess a
+tempo from nothing. Each function checks how well the audio matches what it was meant to be, and
+reports numbers that tests and the studio can hold against a pass line.
 """
 from __future__ import annotations
 

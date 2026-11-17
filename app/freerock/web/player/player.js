@@ -112,7 +112,7 @@
     }
     $("music").textContent = "A song that never ends (" + style + ", " + playing.bpm + " BPM, "
       + playing.tonic + "), put together as it goes from " + loose + " phrases, each a verse, a build-up and a chorus"
-      + " for one instrument. The bucket keeps growing while you play, in the colours of wherever you are.";
+      + " for one instrument.";
   }
 
   function show(message) {
@@ -142,7 +142,6 @@
       if (outdated) banner("FreeRock has been updated. Reload this page (F5) to use the new version. The music carries on until you do.");
     }
     if (message.type === "bucket") await useBucket(message);
-    else if (message.type === "phrase" && engine) { engine.addClip(message.key, message.clip); musicLine(); }
     else if (message.type === "retired" && engine) { engine.dropClips(message.key, message.ids); musicLine(); }
     else if (message.type === "target") {
       target = message.target;
@@ -233,7 +232,6 @@
     const on = (field) => document.querySelector('#pretend [data-field="' + field + '"]').checked;
     const targetClass = $("p-target").value, weather = $("p-weather").value;
     return {
-      make_new_music: $("p-make").checked,
       zone_name: $("p-zone").value, indoors: on("indoors"), resting: on("resting"),
       swimming: on("submerged"), submerged: on("submerged"), mounted: on("mounted"),
       on_taxi: on("on_taxi"), flying: on("on_taxi"), stealthed: on("stealthed"),

@@ -2,7 +2,9 @@
 
 zones.json holds a hand-written profile per zone, keyed by the name the game reports. A place
 that is not in it (a dungeon, a battleground, a zone added later) gets a profile worked out from
-the words in its name, so there is always something to ask ElevenLabs for.
+the words in its name, so there is always something to go on. A profile gives a new bucket its
+tempo and key, and its words say what kind of place it is (kinds_for), what sort of ground
+(setting_for) and how dark or bright (shade_for).
 """
 from __future__ import annotations
 
@@ -16,8 +18,8 @@ from ..composer import ZoneProfile
 
 ZONES_FILE = Path(__file__).resolve().parent / "zones.json"
 
-# The tempos FreeRock uses: at these a bar is a whole number of milliseconds (which ElevenLabs
-# needs) and of samples at 48 kHz (which keeps the layers and the bar lines exact).
+# The tempos a profile may have: at these a bar is a whole number of milliseconds and of samples
+# at 48 kHz, which keeps the bar lines exact.
 TEMPOS = (80, 96, 100, 120, 125, 128, 150, 160)
 
 # For a place with no profile: words in its name that say what kind of place it is.
@@ -36,8 +38,7 @@ ELSEWHERE = {"bpm": 120, "tonic": "A minor", "colours": ["twelve-string guitar",
 
 
 # For a named place inside a zone (the Hall of Thanes, Goldshire, Crystal Lake): words in its name
-# and what they bring to the zone's music. A place keeps the zone's tempo and key; these only
-# colour its own short piece.
+# and the colours and mood they bring, which say what kind of place it is.
 PLACE_WORDS = (
     (("hall", "throne", "seat", "court", "palace", "chamber", "council", "thane", "king", "royal"),
      ["stately twin guitars in harmony", "slow proud drum march", "low horn-like swells"], ["a great stone hall", "proud and echoing"]),
@@ -91,19 +92,6 @@ def place_flavour(name: str | None) -> tuple[list[str], list[str]] | None:
         if any(_names(word, key) for word in words for key in keys):
             return list(colours), list(mood)
     return None
-
-
-def place_profile(zone_name: str | None, place_name: str | None) -> ZoneProfile:
-    """The profile for a named place inside a zone: the zone's own tempo and key, so the place's
-    piece sits among the zone's other music, coloured by what the place's name says about it."""
-    zone = profile_for(zone_name)
-    flavour = place_flavour(place_name)
-    if flavour is None:
-        return ZoneProfile(key=zone.key, bpm=zone.bpm, tonic=zone.tonic, colours=list(zone.colours),
-                           mood=["a new corner of the same country"] + list(zone.mood[:1]))
-    colours, mood = flavour
-    return ZoneProfile(key=zone.key, bpm=zone.bpm, tonic=zone.tonic,
-                       colours=colours + zone.colours[:1], mood=mood)
 
 
 # A named place of one of these kinds is not a light one, whatever the country round it is.
@@ -221,7 +209,7 @@ def shade_for(zone_name: str | None, place_name: str | None = None) -> float:
 
 
 def slug(name: str) -> str:
-    """A place's name as the library and the ledger file it: "Un'Goro Crater" -> "un-goro-crater"."""
+    """A place's name as FreeRock files it: "Un'Goro Crater" -> "un-goro-crater"."""
     return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
 
 

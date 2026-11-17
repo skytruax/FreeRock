@@ -651,9 +651,8 @@ def test_the_player_is_told_of_pieces_and_a_ban_is_on_the_whole_piece(tmp_path):
     assert told["pieces"][ids[3]]["story"] == "moment" and told["pieces"][ids[3]]["serves"] == [0, 1]
     parts = [clip for clip in told["clips"] if clip.get("piece")]
     assert parts and all({"piece", "order", "post", "plays"} <= set(clip) for clip in parts)
-    # Parts of pieces are in no pool: the feed asks for loose phrases as if they were not there.
-    assert all(not bucket.pool(channel, tier) for channel, tier in forever.FIRST)
-    assert bucket.wanted() is not None
+    # Parts of pieces are in no pool of loose phrases: they are played as the piece they belong to.
+    assert all(not bucket.pool(channel, tier) for channel, tier in forever.POOLS)
     # Banning one part bans the piece, and the bucket remembers after it is read again.
     one = next(clip for clip in bucket.clips if clip.piece == ids[1])
     marked = bucket.mark([one.id], banned=True)

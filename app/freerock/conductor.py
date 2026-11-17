@@ -21,10 +21,9 @@ from typing import Any
 
 from aiohttp import WSMsgType, web
 
-from . import atlas, composer, forever, stemstore
+from . import atlas, composer, forever
 from . import state as game
 from .director import Director, Target
-from .eleven import AllowanceExceeded, ElevenError
 from .server import close_sockets
 from .settings import Settings
 
@@ -35,15 +34,7 @@ PLAYER_FILES = {"player.html": "text/html", "player.js": "application/javascript
                 "forever.js": "application/javascript", "player.css": "text/css"}
 STEP_S = 0.25          # how often the director is asked again while nothing changes
 TICK_S = 1.0           # how often the players are nudged, so their queue never depends on a timer
-PAUSE_S = 600.0        # no new phrases for this long after ElevenLabs reports a problem
-# Phrases for the bucket of the place the player is in.
-FILL_AT_ONCE = 2         # ElevenLabs makes two things at a time for this account
-POOL_REST_S = 90.0       # a pool whose phrase failed its checks three times running is left alone this long
-BUSY_S = 20.0            # how long to hold off when ElevenLabs is busy or stumbles
-SPENT_S = 3600.0         # how long to hold off when the account has nothing left to make music with
-SETTLE_S = 20.0          # how long the player has been in a new place before phrases are asked for in its colours
 RESTART_GRACE_S = 30.0   # after a start, how long a page that was playing is left to play while the game's sensor finds its way back
-ARRIVAL_EVERY_S = 600.0  # and how long before the same place is greeted that way again
 
 
 def page_version() -> str:
@@ -51,45 +42,25 @@ def page_version() -> str:
     return str(max(int((PLAYER_DIR / name).stat().st_mtime) for name in PLAYER_FILES))
 
 
-def slug(name: str | None) -> str | None:
-    """A place's name as FreeRock files it: "Elwynn Forest" -> "elwynn-forest". None if there is
-    no name to go on."""
-    return (atlas.slug(name) or None) if name else None
-
-
 class Conductor:
     def __init__(self, hub: game.Hub, director: Director | None = None, clock=time.monotonic,
-                 settings: Settings | None = None, filler: forever.Filler | None = None):
+                 settings: Settings | None = None):
         self.hub = hub
         self.director = director or Director()
         self.clock = clock
         self.settings = settings or Settings()
         self._began = clock()
         self._zone_of_map: dict[int, str] = {}           # the zone each of the game's maps belongs to
-        self._paused_until = 0.0
         self.players: set[web.WebSocketResponse] = set()
         self.target: Target | None = None
         self.statuses: dict[int, dict[str, Any]] = {}   # what each player page last reported
         self.notes: list[str] = []       # things worth showing on the control page
         self._task: asyncio.Task | None = None
-        self._volume: int | None = None  # the volume last passed on from the game
-        self._pretend_state: game.GameState | None = None   # the last state the pretend game set
         self._told: tuple | None = None      # what the players were last told
-        self._pretend_may_make = False
-        self.filler = filler             # None: play what the buckets hold, ask for nothing new
         self.buckets = forever.Buckets(self.settings.var_dir / "buckets")
         self.bucket: forever.Bucket | None = None    # the bucket the players are playing from
         self.mix: dict[str, dict[str, Any]] | None = None    # which channels are up and how hard
         self._sent_bucket: str | None = None
-        self._here: tuple[str, float] | None = None  # (the place the player is in, since when)
-        self._filling: dict[asyncio.Task, tuple[str, tuple[str, int]]] = {}   # phrases on their way
-        self._pool_rested: dict[tuple[str, tuple[str, int]], float] = {}      # pools left alone, until when
-        self._last_ask = -1e9
-        self.phrases_made = 0
-        # Every phrase is also kept as an audio file anyone can open, with a table of what it is.
-        self.stems = stemstore.StemStore(self.settings.var_dir / "stems")
-        self._arrivals: list[tuple[str, int]] = []   # pools to add to at once: the player is somewhere new
-        self._greeted: dict[str, float] = {}         # when each place was last greeted with new phrases
         # The forever song has its own moments of silence, which begin where its form comes
         # round: the player is told about how much music there is between two and about how long
         # one lasts (the settings say), and the director's own rests, which cut in wherever they
@@ -193,7 +164,8 @@ class Conductor:
                           "instance": state.instance_name if state else None}}
 
     async def step(self) -> None:
-        """Looks at the game once and tells the players whatever has changed."""
+        """Looks at the game once and tells the players whatever has changed: which bucket to play
+        from, what the game asks for, and how the five channels are mixed for it."""
         state = self.hub.state
         if state is None:
             # Nothing has been heard from the game since the program started. For the first half
@@ -213,30 +185,14 @@ class Conductor:
             target = Target(silent=True, fade_s=2.0, why=("the game cannot be seen",))
         else:
             target = self.director.update(state, now)
-        await self._forever_step(state, target, now)
-
-    # --- the forever song --------------------------------------------------------------------
-
-    def _bucket_message(self) -> dict[str, Any]:
-        told = self.bucket.describe()
-        if self.settings.pieces == "off":
-            # Written pieces are switched off: the player is told of the loose phrases only.
-            told = {**told, "pieces": {}, "clips": [clip for clip in told["clips"] if "piece" not in clip]}
-        return {"type": "bucket", "bucket": {**told, "rest": self._silences,
-                                             "style": composer.GENRES[self.bucket.genre]["label"]}}
-
-    async def _forever_step(self, state: game.GameState, target: Target, now: float) -> None:
-        """One look at the game with the forever song playing: which place's bucket the players
-        play from, how the five channels are mixed, and whether another phrase should be asked for."""
-        name = self.place_name(state)
-        # A style has one bucket, which goes on growing wherever the player goes: the song does
-        # not start again at a zone's border. Another style's bucket takes over as soon as it
-        # has anything to play, since the style was asked for.
-        here = self.buckets.home(self.genre, name)
+        # A style has one bucket, which goes wherever the player goes: the song does not start
+        # again at a zone's border. Another style's bucket takes over as soon as it has anything
+        # to play, since the style was asked for.
+        here = self.buckets.home(self.genre, self.place_name(state))
         if here is not None and here is not self.bucket and here.live():
             self.bucket = here
             loose = sum(1 for clip in here.live() if not clip.piece)
-            self.notes.append("Playing the %s song: %d written pieces and %d loose phrases in its bucket so far "
+            self.notes.append("Playing the %s song: %d written pieces and %d loose phrases in its bucket "
                               "(%d BPM, %s)." % (composer.GENRES[here.genre]["label"], len(here.live_pieces()),
                                                  loose, here.bpm, here.tonic))
         if self.bucket is not None and self._sent_bucket != self.bucket.key:
@@ -247,157 +203,18 @@ class Conductor:
         told = (target, state.volume, self._sent_bucket, json.dumps(mixed, sort_keys=True), tuple(found), light, self.shade_here(state),
                 self.setting_here(state))
         if told != self._told:
-            self.target, self.mix, self._volume, self._told = target, mixed, state.volume, told
+            self.target, self.mix, self._told = target, mixed, told
             await self._broadcast(self._target_message())
-        # Somewhere new: once the player has stayed a moment, a phrase is asked for at once for
-        # every channel that is up, in the new place's colours, so that the song takes the
-        # place on within a turn or two of its form.
-        place = slug(name)
-        if place:
-            if self._here is None or self._here[0] != place:
-                first = self._here is None
-                self._here = (place, now)
-                if first:
-                    self._greeted[place] = now       # where the music began needs no greeting
-            elif (now - self._here[1] >= SETTLE_S and now - self._greeted.get(place, -1e9) >= ARRIVAL_EVERY_S
-                  and here is not None and here.started()):
-                self._greeted[place] = now
-                self._arrivals = list(forever.in_use(self.mix))
-                self.notes.append("Now in %s: asking for phrases in its colours." % name)
-        self._consider_filling(state, name, now)
 
-    def phrase_words(self, state: game.GameState) -> list[str]:
-        """What is true in the game as a phrase is about to be asked for, in a word or two for the
-        tune and the drone: the hour and the weather. A phrase is made for the moment it is asked
-        for in."""
-        words = []
-        if state.daytime is False:
-            words.append("nocturnal")
-        strength = state.weather_intensity or 0.0
-        if state.weather == "rain" and strength >= 0.3:
-            words.append("rain-soaked")
-        elif state.weather == "snow" and strength >= 0.3:
-            words.append("hushed and wintry")
-        elif state.weather == "sandstorm" and strength >= 0.3:
-            words.append("dry desert wind")
-        return words
+    # --- the forever song --------------------------------------------------------------------
 
-    def _consider_filling(self, state: game.GameState, name: str | None, now: float) -> None:
-        """Asks for the next phrase for the bucket of the place the player is in, if one is wanted.
-
-        A place gets phrases as fast as they can be made, two at a time, until every channel has
-        some depth at every strength: the hard phrases a fight will want as much as the calm
-        ones playing now. After that it goes on being fed one at a time for as long as the game
-        is played: first wherever the music is about to run out of phrases nobody has heard, so
-        that every change is to something new, then wherever the bucket is shallowest. See
-        forever.Bucket.wanted.
-
-        It goes on while the game is out of sight for a moment (the player has looked away from
-        it) and through the music's own silences. It stops when the game is gone, on a flight
-        path, and when no player page is open."""
-        if self.filler is None or not name:
-            return
-        if state is self._pretend_state and not self._pretend_may_make:
-            return                       # a pretend game that has not asked for new music
-        if (self.hub.link not in (game.Link.LIVE, game.Link.STALE) or not state.enabled or state.on_taxi
-                or state.loading or state.cinematic or not self.players or now < self._paused_until):
-            return
-        bucket = self.buckets.home(self.genre, name)
-        if bucket is None:
-            return
-        spot = self.spot_name(state)
-        profile = atlas.place_profile(name, spot) if spot and slug(spot) != slug(name) else atlas.profile_for(name)
-        while len(self._filling) < FILL_AT_ONCE:
-            coming: dict[tuple[str, int], int] = {}
-            for key, pool in self._filling.values():
-                if key == bucket.key:
-                    coming[pool] = coming.get(pool, 0) + 1
-            resting = {pool for (key, pool), until in self._pool_rested.items() if key == bucket.key and until > now}
-            self._arrivals = [pool for pool in self._arrivals if pool not in resting]
-            if self._arrivals:
-                pool, hurry = self._arrivals.pop(0), True          # the player is somewhere new
-            else:
-                choice = bucket.wanted(forever.in_use(self.mix), coming, resting)
-                if choice is None:
-                    return
-                pool, hurry = choice
-            if not hurry and self._filling:
-                return                   # one at a time once every pool has some depth
-            self._last_ask = now
-            task = asyncio.create_task(self._fill(bucket, profile, pool, self.phrase_words(state)),
-                                       name="freerock-phrase-%s-%s-%d" % (bucket.key, pool[0], pool[1]))
-            self._filling[task] = (bucket.key, pool)
-            task.add_done_callback(self._fill_ended)
-
-    async def _fill(self, bucket: forever.Bucket, profile: composer.ZoneProfile, pool: tuple[str, int],
-                    words: list[str]) -> None:
-        """Asks for one phrase and, when it has passed its checks, tells the players about it."""
-        channel, tier = pool
-        what = "%s (%s) for %s" % (channel, forever.TIER_WORDS[tier], bucket.zone)
-        try:
-            clip = await self.filler.phrase(bucket, profile, channel, tier, context=words)
-        except forever.PhraseFailed as failed:
-            self._pool_rested[(bucket.key, pool)] = self.clock() + POOL_REST_S
-            self.notes.append("%s Leaving that one for a minute and a half." % failed)
-            return
-        except AllowanceExceeded as over:
-            self._paused_until = self.clock() + PAUSE_S
-            self.notes.append(str(over))
-            return
-        except ElevenError as error:
-            if error.status == "quota_exceeded":
-                # Nothing left to make music with. The song goes on from what the buckets hold,
-                # and the phrases that had been set aside as worn come back into play.
-                self._paused_until = self.clock() + SPENT_S
-                self.notes.append("ElevenLabs has no credits left for new phrases: %s The song carries on from "
-                                  "the bucket, with every phrase made so far back in play." % error)
-                await self._play_everything()
-            elif error.http_status == 429 or error.http_status >= 500:
-                self._paused_until = self.clock() + BUSY_S
-                self.notes.append("ElevenLabs is busy (%s); asking again in a few seconds." % error)
-            else:
-                self._pool_rested[(bucket.key, pool)] = self.clock() + POOL_REST_S
-                self.notes.append("ElevenLabs would not make a phrase of %s: %s" % (what, error))
-            return
-        self.phrases_made += 1
-        try:
-            await asyncio.to_thread(self.stems.add, bucket, clip)
-        except OSError as error:
-            # The phrase is in the bucket and plays; only its copy for study could not be
-            # written (a full disk, say). Said once on the control page each time, and logged.
-            note = "The copy of a phrase for the stems folder could not be written: %s" % error
-            log.error(note)
-            self.notes.append(note)
-        gone = bucket.make_room(channel, tier)
-        await self._broadcast({"type": "phrase", "key": bucket.key, "clip": bucket.brief(clip)})
-        if gone:
-            await self._broadcast({"type": "retired", "key": bucket.key, "ids": [worn.id for worn in gone]})
-
-    def _fill_ended(self, task: asyncio.Task) -> None:
-        """A phrase has arrived or been turned away. Anything `_fill` did not expect is logged
-        and shown on the control page, and nothing more is asked for for a minute."""
-        self._filling.pop(task, None)
-        if task.cancelled():
-            return
-        error = task.exception()
-        if error is not None:
-            self._paused_until = self.clock() + 60.0
-            note = "Making a phrase failed: %r. No new phrases for a minute." % (error,)
-            log.error(note, exc_info=error)
-            self.notes.append(note)
-            return
-        # The next one is asked for at once, not at the conductor's next look at the game.
-        state = self.hub.state
-        if state is not None and self._task is not None and not self._task.done():
-            self._consider_filling(state, self.place_name(state), self.clock())
-
-    async def _play_everything(self) -> None:
-        """Brings the phrases that were set aside as worn back into play, in every bucket in use."""
-        for bucket in {self.bucket, *(self.buckets.by_key(key) for key, _ in self._filling.values())}:
-            if bucket is not None and not bucket.everything:
-                bucket.everything = True
-                if bucket is self.bucket:
-                    await self._broadcast(self._bucket_message())
+    def _bucket_message(self) -> dict[str, Any]:
+        told = self.bucket.describe()
+        if self.settings.pieces == "off":
+            # Written pieces are switched off: the player is told of the loose phrases only.
+            told = {**told, "pieces": {}, "clips": [clip for clip in told["clips"] if "piece" not in clip]}
+        return {"type": "bucket", "bucket": {**told, "rest": self._silences,
+                                             "style": composer.GENRES[self.bucket.genre]["label"]}}
 
     def _count_phrases(self, report: dict[str, Any]) -> None:
         """Notes the phrases a player says have come in since it last said."""
@@ -426,9 +243,9 @@ class Conductor:
             if event.name == "skip":
                 await self._broadcast({"type": "skip"})
             elif event.name in ("love", "ban"):
-                # Love and ban are about the phrases playing at this moment. Loved ones are never
-                # set aside as worn; banned ones are not played again, and the decks playing them
-                # move on. A piece of written music is loved or banned whole, every part of it.
+                # Love and ban are about the phrases playing at this moment. Banned ones are not
+                # played again, and the decks playing them move on. A piece of written music is
+                # loved or banned whole, every part of it.
                 found = self._playing_phrases()
                 if found:
                     bucket, ids = found
@@ -520,7 +337,7 @@ class Conductor:
         """One whole phrase from a bucket, as 16-bit stereo."""
         key = "%s/%s" % (request.match_info["genre"], request.match_info["zone"])
         try:
-            # Read to one side: a part of a piece is unpacked from FLAC, which takes a moment
+            # Read to one side: a part of a piece is decoded from its MP3, which takes a moment
             # the game should not have to wait for.
             data = await asyncio.to_thread(self.buckets.by_key(key).samples, request.match_info["clip"])
         except KeyError as error:
@@ -540,9 +357,6 @@ class Conductor:
         """Says the game is in the state given, as if the strip had been read. For trying the
         music without the game; with the real game connected the two would talk over each other."""
         fields = await request.json()
-        # The server has no login, so a page must not be able to spend money by accident: new
-        # phrases are asked for a pretend game only when the request says so outright.
-        self._pretend_may_make = bool(fields.pop("make_new_music", False))
         allowed = {field.name for field in dataclasses.fields(game.GameState)}
         unknown = sorted(set(fields) - allowed)
         if unknown:
@@ -558,7 +372,6 @@ class Conductor:
         previous = self.hub.state
         changed = frozenset(name for name in allowed
                             if previous is None or getattr(previous, name) != getattr(state, name))
-        self._pretend_state = state
         self.hub.publish(game.StateChanged(state=state, previous=previous, changed=changed))
         return web.json_response({"ok": True})
 
@@ -581,7 +394,6 @@ class Conductor:
                 raise web.HTTPBadRequest(text=str(error))
             self.settings.save()
             if "genre" in asked:
-                self._arrivals = []
                 self.notes.append("The style is now %s." % composer.GENRES[self.genre]["label"])
             if "pieces" in asked:
                 # The players are told at once what there now is to play from.
@@ -601,8 +413,8 @@ class Conductor:
             "genre": self.genre, "forever": self._forever_status(), "notes": self.notes[-20:]})
 
     def _forever_status(self) -> dict[str, Any]:
-        """The forever song for the control page: the bucket in play, what each pool holds, what
-        is on its way, and how many phrases have been made since the server started."""
+        """The forever song for the control page: the bucket in play, what it holds, the piece a
+        player is in the middle of, and where the player is."""
         bucket = self.bucket
         live = bucket.live() if bucket else []
         # The written piece a player is in the middle of, as that player's page last said.
@@ -619,11 +431,7 @@ class Conductor:
                 "kinds": found, "light": light, "shade": self.shade_here(self.hub.state), "setting": self.setting_here(self.hub.state),
                 "kept": len(bucket.clips) if bucket else 0,
                 "pools": bucket.counts() if bucket else {},
-                "mix": self.mix,
-                "coming": ["%s %s" % (pool[0], forever.TIER_WORDS[pool[1]]) for _, pool in self._filling.values()],
-                "made": self.phrases_made,
-                "turned_away": self.filler.turned_away if self.filler else 0,
-                "new_phrases": self.filler is not None}
+                "mix": self.mix}
 
 
 def _ended(conductor: Conductor, task: asyncio.Task) -> None:
@@ -649,13 +457,6 @@ async def _stop(app: web.Application) -> None:
     conductor: Conductor = app["conductor"]
     for socket in list(conductor.players):
         await socket.close()
-    if conductor._filling:
-        # A phrase that is on its way has been paid for; it takes a few seconds to arrive.
-        log.warning("%d phrases are on their way; waiting for them before stopping", len(conductor._filling))
-        _, late = await asyncio.wait(list(conductor._filling), timeout=30.0)
-        for task in late:
-            log.error("a phrase was not finished in half a minute and is given up")
-            task.cancel()
     if conductor._task is not None and not conductor._task.done():
         conductor._task.cancel()
         # Being cancelled is how this loop is meant to end; any other error was already reported
@@ -665,11 +466,10 @@ async def _stop(app: web.Application) -> None:
 
 
 def attach(app: web.Application, director: Director | None = None, clock=time.monotonic,
-           settings: Settings | None = None, filler: forever.Filler | None = None) -> Conductor:
-    """Adds the music side to a server made by server.create_app(). With a `filler`, phrases are
-    bought for the bucket while the game is played; without one, what the buckets hold is played."""
+           settings: Settings | None = None) -> Conductor:
+    """Adds the music side to a server made by server.create_app()."""
     settings = settings or Settings()
-    conductor = Conductor(app["hub"], director, clock, settings=settings, filler=filler)
+    conductor = Conductor(app["hub"], director, clock, settings=settings)
     app["conductor"] = conductor
     if "link" in app:
         app["link"].music = conductor.heard   # so the game link can say when nothing can be heard

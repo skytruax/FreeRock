@@ -323,24 +323,7 @@ tests.newPlace = async () => {
            key: run.engine.status().bucket };
 };
 
-// Phrases arriving while the music plays: a channel with nothing comes in when its first phrase
-// arrives, a strength that was missing is taken up when it arrives, and a new phrase is played first.
-tests.arrivals = async () => {
-  const bucket = makeBucket("thin", BAR, 3, (channel, tier, i) => channel === "texture" && i === 0);
-  const full = makeBucket("thin", BAR, 3);
-  const drum = (tier, i) => full.clips.find((clip) => clip.id === "thin-drums" + tier + "-" + i);
-  const run = await render(30, { bucket, target: mix(2), script: [
-    [3, (engine) => engine.addClip("test/thin", drum(1, 0))],
-    [9.1, (engine) => engine.addClip("test/thin", Object.assign({ new: true }, drum(2, 1)))],
-  ] });
-  const drums = of(run.engine.log, "drums");
-  return { first: drums[0] ? { at: drums[0].at, tier: drums[0].tier, offset: drums[0].offset } : null,
-           hard: drums.find((entry) => entry.tier === 2) || null,
-           hardExpected: ORIGIN + Math.ceil((9.1 + 0.08 - ORIGIN) / 0.25) * 0.25,
-           channels: Array.from(new Set(run.engine.log.map((entry) => entry.channel))).sort() };
-};
-
-// A phrase that has been set aside finishes its pass and is not chosen again.
+// A phrase that has been banned finishes its pass and is not chosen again.
 tests.setAside = async () => {
   let dropped = null;
   const run = await render(60, { target: mix(1, { texture: 0, lead: 0, drums: 0, bass: 0 }), script: [

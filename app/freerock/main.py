@@ -10,46 +10,19 @@ import socket
 
 from aiohttp import web
 
-from . import conductor, forever, server
-from .eleven import Gateway
-from .settings import MissingKey, Settings, find_key
+from . import conductor, server
+from .settings import Settings
 
 log = logging.getLogger("freerock")
 
 
-def build_app(config: server.ServerConfig | None = None, *, music: bool = True, new_music: bool = False,
+def build_app(config: server.ServerConfig | None = None, *, music: bool = True,
               settings: Settings | None = None) -> web.Application:
-    """The server with everything attached.
-
-    music=False gives the game link alone. new_music=True also buys new phrases from ElevenLabs
-    while the game is played; as a rule it is off, and what is in the buckets is played.
-    Without a key, new music is off whatever is asked and the control page says why.
-    """
+    """The server with everything attached; music=False gives the game link alone."""
     config = config or server.ServerConfig(front_page="/player" if music else "/")
     app = server.create_app(config)
-    if not music:
-        return app
-    settings = settings or Settings.load()
-    filler, note = None, None
-    if not new_music:
-        note = "Nothing is bought from ElevenLabs; playing what is in the buckets."
-    else:
-        try:
-            find_key()
-        except MissingKey as missing:
-            note = "%s Playing only what is in the buckets." % missing
-            log.warning(note)
-        else:
-            gateway = Gateway(settings)
-            filler = forever.Filler(gateway)
-
-            async def close_gateway(app: web.Application) -> None:
-                await gateway.aclose()
-
-            app.on_cleanup.append(close_gateway)
-    music_side = conductor.attach(app, settings=settings, filler=filler)
-    if note:
-        music_side.notes.append(note)
+    if music:
+        conductor.attach(app, settings=settings or Settings.load())
     return app
 
 
@@ -68,10 +41,10 @@ def addresses() -> list[str]:
     return found
 
 
-def serve(host: str = "0.0.0.0", port: int = 8765, *, music: bool = True, new_music: bool = False) -> None:
+def serve(host: str = "0.0.0.0", port: int = 8765, *, music: bool = True) -> None:
     """Runs FreeRock until it is stopped."""
     config = server.ServerConfig(host=host, port=port, front_page="/player" if music else "/")
-    app = build_app(config, music=music, new_music=new_music)
+    app = build_app(config, music=music)
     here = addresses() or ["<this machine>"]
     print("FreeRock is running on port %d." % port)
     for address in here:

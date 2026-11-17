@@ -1,4 +1,4 @@
-"""The music commands: the settings, the ledger, and the written pieces in a style's bucket."""
+"""The music commands: the settings, and the written pieces in a style's bucket."""
 import json
 
 import numpy as np
@@ -6,8 +6,6 @@ import pytest
 import soundfile
 
 from freerock import cli, forever, musiccli, pieces, studio
-from freerock.eleven import Gateway
-from freerock.ledger import Ledger
 from freerock.settings import Settings
 
 RATE = forever.RATE
@@ -26,23 +24,22 @@ def var(tmp_path, monkeypatch):
 def test_settings_can_be_shown_and_changed(var, capsys):
     assert cli.main(["settings"]) == 0
     out = capsys.readouterr().out
-    for line in ("monthly_minutes     300", "daily_minutes       30", "rest_every_minutes  6", "rest_seconds        60",
-                 "genre               knight", "pieces              on"):
+    for line in ("rest_every_minutes  6", "rest_seconds        60", "genre               knight", "pieces              on"):
         assert line in out
-    assert cli.main(["settings", "daily_minutes", "40"]) == 0
-    assert "daily_minutes       40" in capsys.readouterr().out
-    assert Settings.load(var).daily_minutes == 40 and Settings.load(var).monthly_minutes == 300
+    assert cli.main(["settings", "rest_seconds", "40"]) == 0
+    assert "rest_seconds        40" in capsys.readouterr().out
+    assert Settings.load(var).rest_seconds == 40 and Settings.load(var).rest_every_minutes == 6
     assert cli.main(["settings", "rest_every_minutes", "0"]) == 0          # no moments of silence
     assert cli.main(["settings", "genre", "warcraft"]) == 0
     assert cli.main(["settings", "pieces", "off"]) == 0
     again = Settings.load(var)
-    assert (again.rest_every_minutes, again.rest_seconds, again.genre, again.pieces) == (0, 60, "warcraft", "off")
+    assert (again.rest_every_minutes, again.rest_seconds, again.genre, again.pieces) == (0, 40, "warcraft", "off")
     capsys.readouterr()
     assert cli.main(["settings", "rest_seconds", "-3"]) == 1 and "less than nothing" in capsys.readouterr().err
     assert cli.main(["settings", "genre", "polka"]) == 1 and "genre must be one of" in capsys.readouterr().err
-    assert cli.main(["settings", "model_id", "1"]) == 1 and "is not a setting" in capsys.readouterr().err
+    assert cli.main(["settings", "daily_minutes", "40"]) == 1 and "is not a setting" in capsys.readouterr().err
     assert cli.main(["settings", "rest_seconds"]) == 1 and "Give a value" in capsys.readouterr().err
-    assert Settings.load(var).rest_seconds == 60
+    assert Settings.load(var).rest_seconds == 40
 
 
 def test_a_settings_file_with_something_wrong_in_it_is_an_error(tmp_path):
@@ -54,29 +51,13 @@ def test_a_settings_file_with_something_wrong_in_it_is_an_error(tmp_path):
     assert loaded.rest_seconds == 20 and loaded.genre == "house" and loaded.rest_every_minutes == 6
 
 
-def test_a_settings_file_written_for_the_songs_is_read_without_them(tmp_path):
-    (tmp_path / "settings.json").write_text('{"mode": "songs", "rock": 0.2, "hours_per_month": 60, "genre": "warcraft"}')
+def test_a_settings_file_written_for_buying_and_for_the_songs_is_read_without_them(tmp_path):
+    (tmp_path / "settings.json").write_text('{"monthly_minutes": 100000.0, "daily_minutes": 100000.0, "mode": "songs", '
+                                            '"rock": 0.2, "hours_per_month": 60, "genre": "warcraft"}')
     loaded = Settings.load(tmp_path)
     assert loaded.genre == "warcraft"
     loaded.save()
     assert json.loads((tmp_path / "settings.json").read_text()) == {"genre": "warcraft"}
-
-
-# --- the ledger -------------------------------------------------------------------------------------
-
-def test_ledger_shows_the_spend_and_the_account(var, capsys, monkeypatch):
-    ledger = Ledger(Settings(var_dir=var).ledger_path)
-    done = ledger.start(kind="music", purpose="phrase: drums steady", minutes=2.8, zone="duskwood")
-    ledger.finish(done, http_status=200)
-
-    async def subscription(self):
-        return {"tier": "pro", "character_count": 5220, "character_limit": 781495}
-
-    monkeypatch.setattr(Gateway, "subscription", subscription)
-    assert cli.main(["ledger"]) == 0
-    out = capsys.readouterr().out
-    assert "This month: 2.80 of 300 minutes (about $0.42). Today: 2.80 of 30 minutes." in out
-    assert "phrase: drums steady" in out and "ElevenLabs account: pro plan, 5220 of 781495 credits used." in out
 
 
 # --- the written pieces -----------------------------------------------------------------------------
