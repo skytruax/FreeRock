@@ -55,7 +55,7 @@ async def render_once(tmp_path_factory):
     # Chrome is left running until the page hands its results back: rendering audio offline
     # happens outside the page's own clock, so there is no "page finished loading" to wait for.
     process = await asyncio.create_subprocess_exec(
-        CHROME, "--headless=new", "--disable-gpu", "--no-first-run", "--user-data-dir=%s" % profile,
+        CHROME, "--headless=new", "--mute-audio", "--disable-gpu", "--no-first-run", "--user-data-dir=%s" % profile,
         str(server.make_url("/test.html")),
         stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.PIPE)
     try:

@@ -48,7 +48,7 @@ async def test_the_page_plays_a_piece_a_boss_cuts_in_and_the_piece_is_picked_up_
     await server.start_server()
     say(app, zone_name="Duskwood", speed=7.0)
     chrome = await asyncio.create_subprocess_exec(
-        CHROME, "--headless=new", "--disable-gpu", "--no-first-run", "--user-data-dir=%s" % (tmp_path / "chrome"),
+        CHROME, "--headless=new", "--mute-audio", "--disable-gpu", "--no-first-run", "--user-data-dir=%s" % (tmp_path / "chrome"),
         "--autoplay-policy=no-user-gesture-required", str(server.make_url("/player")),
         stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL)
     try:

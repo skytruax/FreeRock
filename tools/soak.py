@@ -119,7 +119,7 @@ async def evening(http: aiohttp.ClientSession, style: str, script: list | None =
     await post("/api/pretend", script[0][2])
     profile = tempfile.mkdtemp(prefix="freerock-soak-")
     chrome = await asyncio.create_subprocess_exec(
-        CHROME, "--headless=new", "--disable-gpu", "--no-first-run", "--user-data-dir=" + profile,
+        CHROME, "--headless=new", "--mute-audio", "--disable-gpu", "--no-first-run", "--user-data-dir=" + profile,
         "--autoplay-policy=no-user-gesture-required", BASE + "/player",
         stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL)
     heard, late, steps, said, silent = [], 0, list(script), None, 0
