@@ -4,7 +4,9 @@
     cd app && uv run --no-sync --with numba python ../tools/render_some.py --workers 4 pastoral-01/1 night-01/1 ...     (house)
 
 Each name is a family and a take. Tracks are begun in the order given, `--workers` at a time;
-none is begun after `--until` (so an evening's music is ready by a known time). A track that
+none is begun after `--until` (so an evening's music is ready by a known time), nor once the
+`--stop-file` is there (to change the writer under a running queue without losing the tracks it
+is in the middle of: they are finished and saved, and a new queue takes up the rest). A track that
 fails is reported with its error when it fails and again at the end, the others go on, and the
 command ends with 1 if any failed.
 """
@@ -14,6 +16,7 @@ import argparse
 import sys
 import time
 import traceback
+from pathlib import Path
 from datetime import datetime, timedelta
 from multiprocessing import Pool
 
@@ -33,10 +36,12 @@ def deadline_of(until: str) -> float | None:
     return at.timestamp()
 
 
-def one(job: tuple[str, int, str, float | None]) -> tuple[str, int, str, str]:
-    name, take, until, deadline = job
+def one(job: tuple[str, int, str, float | None, str]) -> tuple[str, int, str, str]:
+    name, take, until, deadline, stop = job
     if deadline is not None and time.time() >= deadline:
         return name, take, "not begun", "it was past %s" % until
+    if stop and Path(stop).exists():
+        return name, take, "not begun", "%s was there" % stop
     try:
         began = time.time()
         fam = next((fam for fam, _ in build.plan() if fam.name == name), None)
@@ -56,9 +61,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("tracks", nargs="+", help="family/take, in the order they are to be begun")
     parser.add_argument("--workers", type=int, default=3)
     parser.add_argument("--until", default="", help="begin none after this time of day (HH:MM)")
+    parser.add_argument("--stop-file", default="", help="begin none once this file is there (those begun are finished and saved)")
     args = parser.parse_args(argv)
     deadline = deadline_of(args.until)
-    jobs = [(name.rsplit("/", 1)[0], int(name.rsplit("/", 1)[1]), args.until, deadline) for name in args.tracks]
+    jobs = [(name.rsplit("/", 1)[0], int(name.rsplit("/", 1)[1]), args.until, deadline, args.stop_file) for name in args.tracks]
     known = {fam.name for fam, _ in build.plan()}
     if any(name not in known for name, *_ in jobs):
         from freerock.studio import house
