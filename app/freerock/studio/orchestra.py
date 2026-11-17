@@ -108,6 +108,12 @@ INSTRUMENTS = {
     "war drums": I(0, 116, 36, 47, 41, held=False), "frame drums": I(0, 117, 45, 57, 50, held=False),
     "boom": I(0, 116, 36, 36, 36, held=False), "gong": I(0, 14, 48, 48, 48, held=False),
     "swell": I(0, 119, 49, 49, 49, held=False), "anvil": I(0, 113, 60, 60, 60, held=False),
+    # Played by Muse Percussion on drum staves (studio.muse.PERCUSSION): the pitch is the drum. The level is what each
+    # needed beside the rest, measured played alone at one strength (2026-11-17, night): the taikos are by far the loudest.
+    "taikos": I(0, 116, 86, 87, 87, held=False, level=0.4), "tam-tam": I(0, 0, 52, 52, 52, held=False, level=1.2),
+    "mark tree": I(0, 0, 84, 84, 84, held=False, level=2.0), "field drum": I(0, 0, 37, 38, 38, held=False),
+    "field drum roll": I(0, 0, 38, 38, 38, held=False, level=1.3), "cymbal roll": I(0, 0, 57, 57, 57, held=False, level=1.5),
+    "piatti": I(0, 0, 57, 57, 57, held=False, level=0.5), "concert drum roll": I(0, 0, 36, 36, 36, held=False, level=1.3),
 }
 
 # Percussion: a kit (its program on the drum channel) and its strokes by name.
@@ -145,6 +151,8 @@ LOUD = {
     "basses pizz": -29.5, "twelve string": -32.4,
     "piano": -28.0, "bass flute": -26.0, "bass clarinet": -24.4, "handbells": -27.0, "euphonium": -21.4,
     "war drums": -30.0, "frame drums": -30.0, "boom": -30.0, "gong": -30.0, "swell": -30.0, "anvil": -30.0,
+    "taikos": -30.0, "tam-tam": -30.0, "mark tree": -30.0, "field drum": -30.0, "field drum roll": -30.0, "cymbal roll": -30.0,
+    "piatti": -30.0, "concert drum roll": -30.0,
 }
 LEVEL = -34.0                  # every instrument is brought to this, at the same setting of the player
 
@@ -1687,6 +1695,8 @@ SMALL = ("tamb", "shake", "jingle", "ting", "tick", "high", "clack", "conga", "c
 # Who doubles the bass line an octave away, by who has it: the neighbour in the orchestra, played the same way.
 PARTNERS = {"basses": "celli", "basses slow": "celli slow", "basses pizz": "celli pizz", "celli": "basses", "celli slow": "basses slow",
             "celli pizz": "basses pizz", "acoustic bass": "celli pizz", "fretless": "celli pizz", "tuba": "basses", "bassoon": "basses pizz"}
+# How the bass plays the second time round a theme, by how it played the first.
+BUSIER = {"long": "two", "two": "walk", "walk": "two"}
 # Who doubles a tune an octave above it rather than where the tune is: high woodwinds and bells.
 HIGH = ("flute", "piccolo", "whistle", "recorder", "ocarina", "pan flute", "glock", "celesta", "xylophone")
 # The orchestra's own low drums: what the war drums stand in for while they play.
@@ -1795,6 +1805,17 @@ class Take:
         self.embers = self.has_war and not ch.band and not self.forge and len(ch.kinds) < len(KINDS_ALL) and "infernal" in ch.kinds
         self.has_swell = self.fight or (walk and ch.weight >= 0.6)
         self.has_gong = self.has_war and not ch.band and ch.weight >= 0.9
+        # The colours of Muse Percussion (2026-11-17, night: "Use more instruments get everything out of muse"): what an
+        # orchestra's percussion section adds where the music is grim, light, regal, fiery or a storm.
+        kinds = set(ch.kinds) if len(ch.kinds) < len(KINDS_ALL) else set()
+        self.tam_tam = not ch.band and ((self.heavy and (bool(kinds & {"haunted", "infernal"}) or ch.role == "boss"))
+                                        or (ch.role == "depths" and not ch.light))
+        self.tree = not ch.band and (ch.light or "mystic" in kinds) and ch.role not in FIGHTS
+        self.soft_roll = not ch.band and not self.has_swell and ch.role in ("wander", "night", "town", "ember") and ch.weight >= 0.4
+        self.field = not ch.band and ch.role in ("wander", "town", "battleground", "battle", "boss") and \
+            ("regal" in kinds or ch.role == "battleground" or "march" in ch.grooves)
+        self.taikos = not ch.band and self.heavy and (bool(kinds & {"jungle", "infernal", "desert"}) or ch.role in ("battle", "boss", "battleground"))
+        self.rumble = not ch.band and ch.role == "storm"
 
     def voice(self, channel: str, name: str, tag: str = "") -> Voice:
         have = self.voices[channel]
@@ -2163,6 +2184,11 @@ class Take:
             arp = way == "arp" and part in ("open", "first", "second", "valley", "close")
             drone = way == "drone" and part not in ("arrival", "summit")
             held: dict[int, tuple[float, int]] = {}                # which player: (since when, what pitch)
+            inner = random.Random(self.fam.seed * 11 + self.take * 101 + PARTS.index(part) * 7)
+            moving = {"open": 0.5, "first": 0.6, "second": 0.6, "build": 0.4, "arrival": 0.3, "valley": 0.7, "climb": 0.4,
+                      "summit": 0.25, "close": 0.7}[part]
+            hold_over = self.starts[1] if len(self.starts) > 1 else beats / 2
+            fill = beats - self.starts[-1] if len(self.starts) > 1 else beats / 2
             # (For the strings a player is a section: each of them has one line of the chord.)
             who = [self.desk(name, player, count) for player in range(count)]
             swells = [self.voice("texture", player, tag) for player, tag in dict.fromkeys(who)]
@@ -2185,13 +2211,43 @@ class Take:
                         self.put("texture", "harp", at + index * step, step * 2, ladder[index % len(ladder)],
                                  self.hard(level, 0.75 if index else 0.9))
                     continue
+                # (2026-11-17, night: in the scores studied an inner voice holds one note through a bar one time in
+                # fourteen; this pad held every note until the chord took it away.) One of the players that has to move
+                # does it as an orchestra's inner voice does: a step down is held over into the bar and let fall (a
+                # suspension), a third is filled with the note between at the end of the bar (a passing note).
+                movers = [player for player, pitch in enumerate(notes) if player in held and held[player][1] != pitch
+                          and (1 <= held[player][1] - pitch <= 2 or 3 <= abs(held[player][1] - pitch) <= 4)]
+                mover = movers[int(inner.random() * len(movers))] if movers and inner.random() < moving else None
+                if not drone and len(notes) > 2 and all(player in held and held[player][1] == pitch for player, pitch in enumerate(notes)) \
+                        and inner.random() < moving * 0.6:
+                    # The same chord again: one of the upper players goes over to another of its notes halfway through the bar.
+                    player = 1 + int(inner.random() * (len(notes) - 1))
+                    others = [p for p in tones(key, chord, notes[player] - 5, notes[player] + 5) if p != notes[player] and p not in notes]
+                    if others:
+                        since, was = held[player]
+                        moved = min(others, key=lambda p: abs(p - was))
+                        self.put("texture", who[player][0], since, at + hold_over - since, was, self.hard(0.55, 1.0), tag=who[player][1], tied=True)
+                        held[player] = (at + hold_over, moved)
+                        notes = notes[:player] + [moved] + notes[player + 1:]
+                        before = notes
                 for player, pitch in enumerate(notes):
                     if player in held and held[player][1] == pitch:
                         continue                                    # the same note again: it is held over the bar line
+                    begins = at
                     if player in held:
                         since, was = held[player]
-                        self.put("texture", who[player][0], since, at - since, was, self.hard(0.55, 1.0), tag=who[player][1], tied=True)
-                    held[player] = (at, pitch)
+                        ends = at
+                        if player == mover and 1 <= was - pitch <= 2:
+                            ends = begins = at + hold_over          # held into the new chord, then down a step
+                        elif player == mover:
+                            passing = [p for p in sorted({key.pitch(step, was, chord) + octave for step in range(7) for octave in (-12, 0, 12)})
+                                       if min(was, pitch) < p < max(was, pitch)]
+                            if passing:
+                                ends = at - fill
+                                self.put("texture", who[player][0], ends, fill, passing[len(passing) // 2], self.hard(0.5, 1.0),
+                                         tag=who[player][1], tied=True)
+                        self.put("texture", who[player][0], since, ends - since, was, self.hard(0.55, 1.0), tag=who[player][1], tied=True)
+                    held[player] = (begins, pitch)
             end = first + bars * beats
             for player, (since, was) in held.items():
                 self.put("texture", who[player][0], since, end - since, was, self.hard(0.55, 1.0), tag=who[player][1], tied=True)
@@ -2414,6 +2470,58 @@ class Take:
                             self.put("rhythm", player, bar_at + on, pulse * 0.8, pitch, self.hard(level, 0.85), tag=" stabs")
 
     # --- the bass ----------------------------------------------------------------------------
+    def line(self, part: str, key: Key, chords: list[Chord], home: int) -> list[int]:
+        """The bass's note for each bar of a part of the story: the chord's root or, between the
+        bars that open and close a phrase, its third (and now and then its fifth), whichever
+        makes the line move by step. (2026-11-17, night: measured against 72 movements of
+        Beethoven, Brahms, Bruckner, Schubert, Haydn and Bach, a real bass repeats its note one
+        time in four and moves by step two times in five; this bass repeated its note one time
+        in two and sat on the root nine times in ten.) At the big moments of heavy music the
+        root, where the whole low end is together."""
+        period = self.fam.period
+        rng = random.Random(self.fam.seed * 7 + self.take * 131 + PARTS.index(part) * 17 + len(chords))
+        rooted = part in ("open",) or (self.heavy and part in ("arrival", "summit"))
+        out: list[int] = []
+        for bar, chord in enumerate(chords):
+            root = key.pitch(chord.root, home)
+            if rooted or not out or bar % period in (0, period - 1) or bar == len(chords) - 1:
+                pitch = root if not out else min((root - 12, root, root + 12), key=lambda p: abs(p - out[-1]) + (0.5 if p < home - 9 or p > home + 8 else 0))
+                out.append(pitch)
+                continue
+            candidates = [(chord.root, 0.0), (chord.steps[1] if len(chord.steps) > 1 else chord.root, 0.8)]
+            if len(chord.steps) > 2:
+                candidates.append((chord.steps[2], 2.2))
+            best, cost = None, 1e9
+            for step, penalty in candidates:
+                tone = key.pitch(step % 7, home, chord)
+                for pitch in (tone - 12, tone, tone + 12):
+                    if pitch < home - 9 or pitch > home + 8:
+                        continue
+                    move = abs(pitch - out[-1])
+                    mine = penalty + {0: 1.6, 1: 0.0, 2: 0.0, 3: 0.7, 4: 0.7, 5: 1.0, 6: 3.0, 7: 1.5}.get(move, 2.5) + 0.3 * rng.random()
+                    if mine < cost:
+                        best, cost = pitch, mine
+            out.append(best if best is not None else root)
+        return out
+
+    def between(self, key: Key, chord: Chord, here: int, there: int) -> int:
+        """A note to go from one bass note to the next on the way: the note of the scale between
+        them if they are a third apart; the chord's other note a third or a fourth off if they
+        are a step apart or the same; a note of the chord between them if they are further."""
+        scale = sorted({key.pitch(step, here, chord) + octave for step in range(7) for octave in (-12, 0, 12)})
+        gap = there - here
+        if 3 <= abs(gap) <= 4:
+            inside = [p for p in scale if min(here, there) < p < max(here, there)]
+            if inside:
+                return inside[len(inside) // 2]
+        if abs(gap) >= 5:
+            inside = [p for p in tones(key, chord, min(here, there) + 1, max(here, there) - 1)]
+            if inside:
+                return inside[len(inside) // 2]
+        # A step or the same note: away by a third, on the side the line is not going, then back by step.
+        away = [p for p in tones(key, chord, here - 5, here + 5) if 3 <= abs(p - here) <= 5 and (gap == 0 or (p - here) * gap < 0)]
+        return away[0] if away else here
+
     def bass(self) -> None:
         ch, beats, pulse, starts = self.ch, self.beats, self.pulse, self.starts
         name = ch.basses[self.take % len(ch.basses)]
@@ -2434,13 +2542,17 @@ class Take:
                              tag=" doubled")
         for section, first, key, chords in self.spans:
             part, bars = section.part, section.bars
+            # A band's bass keeps to the root, as the riff bands do; an orchestra's moves through the chords.
+            line = [key.pitch(chord.root, inst.home - 5) for chord in chords] if ch.band else self.line(part, key, chords, inst.home - 5)
             for bar, chord in enumerate(chords):
                 level, bar_at, along = self.level(section, bar), first + bar * beats, bar / bars
                 doubled = (part in ("first", "second") and bar >= self.fam.period) or (part in ("build", "climb") and along >= 0.5) \
                     or (part in ("arrival", "summit") and not self.heavy)
                 root = key.pitch(chord.root, inst.home - 5)
+                here = line[bar]
                 loud = self.hard(level, 0.9)
                 after = chords[bar + 1] if bar + 1 < bars else chord
+                there = line[bar + 1] if bar + 1 < bars else key.pitch(after.root, inst.home - 5)
                 if ch.band and self.heavy and part in ("arrival", "summit") and bar == 0:
                     low(bar_at, beats * 0.95, root, loud)                 # the stop: one note with the chord, left to ring
                     continue
@@ -2453,21 +2565,29 @@ class Take:
                 # root over and over, driving at the summit.
                 way = {"first": one, "second": two, "build": one, "arrival": one, "valley": two if self.fight else "long",
                        "climb": two if along < 0.5 else drive, "summit": one, "close": "long"}[part]
+                if part in ("first", "second") and bar >= self.fam.period and not ch.band:
+                    way = BUSIER.get(way, way)          # the second time round a theme the bass moves more, as it does in the scores
                 if way == "long":
-                    low(bar_at, beats, root, loud)
+                    low(bar_at, beats, here, loud)
                 elif way == "two":
+                    # The bar's note, and on the way to the next: a passing note, or the chord's other note.
                     for index, on in enumerate(starts):
                         length = (starts[index + 1] if index + 1 < len(starts) else beats) - on
-                        low(bar_at + on, length, root + (7 if index % 2 and bar % 2 else 0), loud * (1.0 if index == 0 else 0.85))
+                        pitch = here if index == 0 else self.between(key, chord, here, there) if index == len(starts) - 1 else self.between(key, chord, here, here)
+                        low(bar_at + on, length, pitch, loud * (1.0 if index == 0 else 0.85))
                 elif way == "walk":
+                    # The bar's note, then notes of the chord or the scale on the way, and the last
+                    # note of the bar a step of the scale from the next bar's note.
+                    toward = there
+                    scale = sorted({key.pitch(step, toward, chord) + octave for step in range(7) for octave in (-12, 0, 12)})
+                    side = [p for p in scale if 1 <= abs(p - toward) <= 2]
+                    near = min(side, key=lambda p: (abs(p - here) if p != here else 99)) if side else toward
+                    walked = here
                     for index, on in enumerate(starts):
                         length = (starts[index + 1] if index + 1 < len(starts) else beats) - on
-                        low(bar_at + on, length - (pulse if index == len(starts) - 1 else 0.0), root, loud)
-                    # The last note of the bar leads to the next bar's root by a step of the scale.
-                    toward = key.pitch(after.root, inst.home - 5)
-                    lead_in = after.root + 4 if toward == root else after.root + (1 if toward < root else -1)
-                    near = key.pitch(lead_in, inst.home - 5)
-                    near += 12 if near < toward - 6 else -12 if near > toward + 6 else 0
+                        if index:
+                            walked = self.between(key, chord, walked, near)
+                        low(bar_at + on, length - (pulse if index == len(starts) - 1 else 0.0), walked, loud if index == 0 else loud * 0.9)
                     low(bar_at + beats - pulse, pulse, near, loud * 0.8)
                 elif way == "eight":
                     step = 0.5
@@ -2479,9 +2599,9 @@ class Take:
                         on = index * pulse
                         low(bar_at + on, pulse * 0.85, root, loud * (1.0 if on in starts else 0.8))
                 else:
-                    step = pulse if pulse == 1.0 else pulse * 1.0
+                    step = pulse
                     for index in range(int(round(beats / step))):
-                        low(bar_at + index * step, step * 0.8, root + (12 if index % 2 else 0), loud * (1.0 if index % 2 == 0 else 0.75))
+                        low(bar_at + index * step, step * 0.8, here + (12 if index % 2 else 0), loud * (1.0 if index % 2 == 0 else 0.75))
                 if part in ("arrival", "summit") and self.heavy and not ch.band:
                     # The low end at the big moments: the celli and the basses an octave apart,
                     # whichever of them has the bass line; and at the summit the low brass with
@@ -2568,6 +2688,20 @@ class Take:
                     lay(second, bar, bar_at, level, 1.0 if other is not main else 0.85, chord, key)
                     if bar >= self.fam.period and not (ch.band and self.heavy):
                         lay([each for each in other["moment"] if each[0] in SMALL and each not in second], bar, bar_at, level, 0.55, chord, key)
+                if part in ("first", "second") and not (ch.band and self.heavy):
+                    # Phrasing (2026-11-17, night: "make sure the individual stem tracks are interesting enough"; the drums
+                    # played the same bar through a whole theme). The last bar of each phrase ends on a pickup of the
+                    # groove's roll into the next, getting louder; the next phrase opens with its light stroke.
+                    period = self.fam.period
+                    groove = main if part == "first" else other
+                    if bar % period == period - 1 and bar < bars - 1 and groove["roll"] and not (crowded and groove["roll"] in LOW):
+                        count = 3 if self.pulse == 1.0 else 2
+                        step = 0.25 if self.pulse == 1.0 else 0.5
+                        for index in range(count):
+                            self.strike(groove["roll"], bar_at + beats - (count - index) * step, (0.3 + 0.12 * index) * (0.6 + 0.6 * level), chord, key)
+                    if bar % period == 0 and bar > 0 and groove["hit"]:
+                        light = "ting" if groove["hit"] == "crash" and not self.heavy else groove["hit"]
+                        self.strike(light, bar_at, 0.35 + 0.25 * level, chord, key)
                 elif part in ("build", "climb"):
                     # A rise begins on a theme's groove (the climb on the second theme's) and
                     # goes over to the moment's; its last bars are a roll, longer before the summit.
@@ -2807,7 +2941,7 @@ class Take:
             if self.has_war:
                 for bar in rounds:
                     self.put("drums", "boom", first + bar * beats, 1.0, 36, (1.0 if summit else 0.85) if bar == 0 else (0.75 if summit else 0.65))
-            if self.has_gong and summit:
+            if self.has_gong and summit and not self.tam_tam:          # grim music has the tam-tam there (`colours`)
                 self.put("drums", "gong", first, 2.0, 48, 0.85)
                 if ch.weight >= 1.0 and len(rounds) > 1:
                     self.put("drums", "gong", first + rounds[-1] * beats, 2.0, 48, 0.7)
@@ -2815,3 +2949,62 @@ class Take:
                 on = self.starts[1] if len(self.starts) > 1 else beats / 2
                 for bar in range(0, bars, 2 if summit else 4):
                     self.put("drums", "anvil", first + bar * beats + on, 0.5, 60, 0.75 if summit else 0.6)
+        self.colours()
+
+    def colours(self) -> None:
+        """What Muse Percussion adds (see `cast`). The tam-tam: struck at the summit of grim
+        heavy music (in place of the gong) and at the arrival of a boss, and touched softly as a
+        dark cave's music opens. The mark tree: brushed into each moment of light and mystic
+        music, and into the second time round its first theme. A soft roll on the suspended
+        cymbal into the moments of light music, which has no swell of its own. The field drum:
+        a roll into each moment of regal music and of the battlegrounds, and at the summit its
+        march on the off-beats. The taikos: with the big drums at the summits of jungle, fire
+        and desert music and of the fights, and their pickup into each moment. The bass drum's
+        rumble under a storm's rise."""
+        ch, beats, period = self.ch, self.beats, self.fam.period
+        beat_s = 60.0 / self.fam.bpm
+
+        def roll(name: str, end: float, seconds: float, low: float, high: float, pitch: int, before: float) -> None:
+            length = min(max(seconds / beat_s, 1.0), before)
+            voice = self.voice("drums", name)
+            voice.add(end - length, length, pitch, high)
+            voice.swells += [(end - length, low), (end - 0.01, high), (end + 0.01, low)]
+
+        for index, (section, first, _, _) in enumerate(self.spans):
+            part, bars = section.part, section.bars
+            before = self.spans[index - 1][0].bars * beats if index else 0.0
+            moment = part in ("arrival", "summit")
+            summit = part == "summit"
+            if self.tam_tam:
+                if summit:
+                    self.put("drums", "tam-tam", first, 4.0, 52, 0.85)
+                elif part == "arrival" and ch.role == "boss":
+                    self.put("drums", "tam-tam", first, 4.0, 52, 0.7)
+                elif part == "open" and ch.role == "depths":
+                    self.put("drums", "tam-tam", first, 4.0, 52, 0.3)
+            if self.tree and before:
+                if moment:
+                    self.put("drums", "mark tree", first - min(1.0, before), 2.0, 84, 0.55 if summit else 0.45)
+                elif part == "first" and bars > period and "mystic" in ch.kinds:
+                    self.put("drums", "mark tree", first + period * beats - 1.0, 2.0, 84, 0.35)
+            if self.soft_roll and moment and before:
+                roll("cymbal roll", first, 3.0 if summit else 2.0, 0.08, 0.5 if summit else 0.4, 57, before)
+            if self.field and before:
+                if moment:
+                    roll("field drum roll", first, 2.0 if summit else 1.5, 0.2, 0.75 if summit else 0.6, 38, before)
+                if summit:
+                    offs = [start + self.pulse / 2 for start in self.starts] if self.pulse == 1.0 else self.starts[1:]
+                    for bar in range(0, bars, 2):
+                        for on in offs:
+                            self.put("drums", "field drum", first + bar * beats + on, 0.25, 38, 0.45)
+            if self.taikos and moment:
+                if before:
+                    for count in range(4):                         # the pickup: four strokes, rising, into the moment
+                        self.put("drums", "taikos", first - (4 - count) * self.pulse / 2, 0.25, 86, 0.4 + 0.12 * count)
+                if summit:
+                    for bar in range(bars):
+                        for number, on in enumerate(self.starts):
+                            self.put("drums", "taikos", first + bar * beats + on, 0.5, 87, 0.85 if number == 0 else 0.65)
+            if self.rumble and part in ("build", "climb"):
+                end = first + bars * beats
+                roll("concert drum roll", end, 4.0 if part == "climb" else 3.0, 0.1, 0.8, 36, bars * beats)

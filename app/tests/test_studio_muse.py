@@ -121,3 +121,16 @@ def test_a_whole_string_orchestra_is_shared_out_by_register_and_a_piece_keeps_it
     assert muse.voiced("Timpani", 7) is None                                                 # there is one set of kettledrums
     with pytest.raises(ValueError):
         muse.score("Harp", [], bpm=80.0)
+
+
+def test_percussion_is_written_on_a_drum_staff_each_note_naming_its_drum_and_a_roll_swells():
+    taikos = muse.score("Taiko", [Note(0.0, 1.0, 87, 0.8), Note(1.0, 0.5, 86, 0.5), Note(2.0, 1.0, 87, 0.9)], bpm=90.0)
+    assert "<sign>percussion</sign>" in taikos and "<pitch>" not in taikos
+    assert '<score-instrument id="P1-I86">' in taikos and '<midi-unpitched>88</midi-unpitched>' in taikos
+    sounding = [note for note in notes_of(taikos) if "<unpitched>" in note]
+    assert [re.search(r'<instrument id="P1-I(\d+)"/>', note).group(1) for note in sounding] == ["87", "86", "87"]
+    assert "<staccato/>" not in taikos and "<slur" not in taikos          # struck: each stroke rings
+    roll = muse.score("Suspended Cymbal", [Note(0.0, 8.0, 57, 0.8)], bpm=60.0, way="trem", swells=[(0.0, 0.1), (7.99, 1.0)])
+    assert '<tremolo type="single">3</tremolo>' in roll and 'type="crescendo"' in roll      # a roll, growing to the moment
+    with pytest.raises(ValueError):
+        muse.score("Tam-tam", [Note(0.0, 4.0, 60, 0.8)], bpm=60.0)       # a tam-tam has one drum, and 60 is not it

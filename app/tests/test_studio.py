@@ -318,7 +318,10 @@ def test_the_big_drums_are_where_they_should_be_and_nowhere_else():
             want |= {"war drums", "boom"}
         if not character.band and (fight or heavy or (character.weight >= 0.6 and hand)):
             want.add("frame drums")
-        if not character.band and (fight or heavy) and character.weight >= 0.9:
+        # (Grim heavy music has the tam-tam at its summit in the gong's place, and so has a boss: see `colours`.)
+        kinds = set(character.kinds) if len(character.kinds) < len(orchestra.KINDS_ALL) else set()
+        grim = heavy and (bool(kinds & {"haunted", "infernal"}) or character.role == "boss")
+        if not character.band and (fight or heavy) and character.weight >= 0.9 and not grim:
             want.add("gong")
         if forge or (not character.band and (fight or heavy) and len(character.kinds) < len(orchestra.KINDS_ALL)
                      and "infernal" in character.kinds):
@@ -731,3 +734,28 @@ def test_the_pieces_from_one_source_can_be_taken_out_again(tmp_path):
     assert len(list((bucket.folder / "clips").iterdir())) == len(bucket.clips), "a recording was left behind"
     with pytest.raises(ValueError):
         pieces.drop_from(bucket, "")
+
+
+def test_the_bass_moves_through_the_chords_as_a_real_bass_does():
+    # Measured against 72 movements of the orchestral repertoire, a bass line repeats its note about one time in four
+    # and moves by step two times in five (tools/orchestra_study.py). The written bass of the orchestra's walking music
+    # keeps near that, and is on something other than the chord's root a good part of the time.
+    repeats, moves, off = 0, 0, 0
+    notes_seen = 0
+    for index, character in enumerate(orchestra.CHARACTERS):
+        if character.band or character.role != "wander" or index % 5:
+            continue
+        fam = orchestra.family(character, 70 + index, "f", "F")
+        take = orchestra.Take(fam, 1)
+        line = sorted(max(take.voices["bass"].values(), key=lambda voice: len(voice.notes)).notes, key=lambda note: note.start)
+        steps = [abs(b.pitch - a.pitch) for a, b in zip(line, line[1:])]
+        repeats += sum(1 for step in steps if step == 0)
+        moves += len(steps)
+        roots = {}
+        for section, first, key, chords in take.spans:
+            for bar, chord in enumerate(chords):
+                roots[int(round(first / fam.beats)) + bar] = key.pitch(chord.root, 0) % 12
+        off += sum(1 for note in line if note.pitch % 12 != roots.get(int(note.start // fam.beats), note.pitch % 12))
+        notes_seen += len(line)
+    assert repeats / moves < 0.4, "the bass repeats its note %.0f%% of the time" % (100 * repeats / moves)
+    assert off / notes_seen > 0.15, "the bass is on the root %.0f%% of the time" % (100 - 100 * off / notes_seen)

@@ -115,6 +115,24 @@ PARTS: dict[str, tuple[tuple, ...]] = {
     "clean guitar": (("Clean Guitar", 0, 127, "", "Muse Guitars Vol 1/Electric SC - Clean"),),
     "picked bass": (("Bass Guitar", 0, 127, "", "Muse Guitars Vol 1/Electric Bass"),),
     "rock organ": (("Hammond Organ", 0, 127, "", "Muse Keys/Hammond Organ"),),
+    # The orchestra's percussion that Muse Percussion plays (2026-11-17, night: "get everything out of muse"). Written
+    # on a drum staff: each note's pitch is the drum it strikes (see PERCUSSION). A "trem" part is a roll.
+    "taikos": (("Taiko", 0, 127, ""),), "tam-tam": (("Tam-tam", 0, 127, ""),), "mark tree": (("Mark Tree", 0, 127, ""),),
+    "field drum": (("Field Drum", 0, 127, ""),), "field drum roll": (("Field Drum", 0, 127, "trem"),),
+    "cymbal roll": (("Suspended Cymbal", 0, 127, "trem"),), "piatti": (("Crash Cymbals", 0, 127, ""),),
+    "concert drum": (("Concert Bass Drum", 0, 127, ""),), "concert drum roll": (("Concert Bass Drum", 0, 127, "trem"),),
+}
+# The drum staves: for each, the sound MusicXML names it by (or nothing, where MuseScore knows it by its name alone) and
+# its drums, by the pitch MuseScore files each under. Found by asking MuseScore 4.7 what it makes of each name
+# (2026-11-17, night); every one was heard played by Muse Percussion, rolls and dynamics too.
+PERCUSSION: dict[str, tuple[str, tuple[tuple[int, str], ...]]] = {
+    "Taiko": ("drum.taiko", ((86, "Taiko Mute"), (87, "Taiko"))),
+    "Tam-tam": ("", ((52, "Tam-tam"),)),
+    "Mark Tree": ("", ((84, "Glissando Down"),)),
+    "Field Drum": ("drum.snare-drum", ((37, "Side Stick"), (38, "Snare"))),
+    "Suspended Cymbal": ("", ((57, "Suspended Cymbal"),)),
+    "Crash Cymbals": ("metal.cymbal.crash", ((57, "Hand Cymbals"),)),
+    "Concert Bass Drum": ("drum.bass-drum", ((36, "Concert Bass Drum"),)),
 }
 # What MuseScore has to be told about a part beside its name, for the part to be that instrument and not a
 # nameless staff played by its plain built-in sounds: the instrument's sound in MusicXML's list, and a program.
@@ -151,7 +169,7 @@ CHOICES: dict[str, tuple[str, ...]] = {
     "Men": ("Muse Choir/Men", "Muse Choir/Tenors", "Muse Choir/Basses"),
 }
 STRUCK = ("Harp", "Celesta", "Glockenspiel", "Vibraphone", "Marimba", "Xylophone", "Tubular Bells", "Piano", "Timpani", "Classical Guitar", "Bass Guitar",
-          "Harpsichord", "Rhythm Guitar", "Muted Guitar", "Clean Guitar")      # no dots, no slurs: each note rings (a lead guitar's line is slurred: hammered on and pulled off)
+          "Harpsichord", "Rhythm Guitar", "Muted Guitar", "Clean Guitar") + tuple(PERCUSSION)      # no dots, no slurs: each note rings (a lead guitar's line is slurred: hammered on and pulled off)
 
 
 def program() -> Path:
@@ -225,7 +243,8 @@ def score(part: str, notes: list[Note], *, bpm: float, way: str = "", swells: li
     voices = _events(notes)
     if not voices:
         raise ValueError("There are no notes to write for %s" % part)
-    struck = part in STRUCK
+    struck = part in STRUCK and not (part in PERCUSSION and way == "trem")      # a roll is shaped like a held note
+    drum = part in PERCUSSION
     beat_s = 60.0 / bpm
     if swells:
         drawn = sorted(swells)
@@ -313,11 +332,24 @@ def score(part: str, notes: list[Note], *, bpm: float, way: str = "", swells: li
             told[(0, len(voice) - 1)]["slur"] = "stop"
     end = max(event[0] + event[1] for voice in voices for event in voice)
     bars = -(-end // BAR)
-    kind, patch = KINDS[part]
-    rows = ['<?xml version="1.0" encoding="UTF-8"?>', '<score-partwise version="4.0">', "<part-list>",
-            '<score-part id="P1"><part-name>%s</part-name><score-instrument id="P1-I1"><instrument-name>%s</instrument-name>'
-            '<instrument-sound>%s</instrument-sound></score-instrument><midi-instrument id="P1-I1"><midi-channel>1</midi-channel>'
-            '<midi-program>%d</midi-program></midi-instrument></score-part>' % (escape(part), escape(part), kind, patch), "</part-list>", '<part id="P1">']
+    if drum:
+        sound_name, drums = PERCUSSION[part]
+        named = {pitch for voice in voices for event in voice for pitch in event[2]}
+        unknown = named - {pitch for pitch, _ in drums}
+        if unknown:
+            raise ValueError("%s has no drum at %s: it has %s" % (part, sorted(unknown), ", ".join("%d %s" % each for each in drums)))
+        heads = "".join('<score-instrument id="P1-I%d"><instrument-name>%s</instrument-name>%s</score-instrument>'
+                        % (pitch, escape(name), "<instrument-sound>%s</instrument-sound>" % sound_name if sound_name else "") for pitch, name in drums)
+        heads += "".join('<midi-instrument id="P1-I%d"><midi-channel>10</midi-channel><midi-unpitched>%d</midi-unpitched></midi-instrument>'
+                         % (pitch, pitch + 1) for pitch, _ in drums)
+        rows = ['<?xml version="1.0" encoding="UTF-8"?>', '<score-partwise version="4.0">', "<part-list>",
+                '<score-part id="P1"><part-name>%s</part-name>%s</score-part>' % (escape(part), heads), "</part-list>", '<part id="P1">']
+    else:
+        kind, patch = KINDS[part]
+        rows = ['<?xml version="1.0" encoding="UTF-8"?>', '<score-partwise version="4.0">', "<part-list>",
+                '<score-part id="P1"><part-name>%s</part-name><score-instrument id="P1-I1"><instrument-name>%s</instrument-name>'
+                '<instrument-sound>%s</instrument-sound></score-instrument><midi-instrument id="P1-I1"><midi-channel>1</midi-channel>'
+                '<midi-program>%d</midi-program></midi-instrument></score-part>' % (escape(part), escape(part), kind, patch), "</part-list>", '<part id="P1">']
 
     def lengths(span: int) -> list[tuple[int, str, bool]]:
         out = []
@@ -345,8 +377,12 @@ def score(part: str, notes: list[Note], *, bpm: float, way: str = "", swells: li
     for bar in range(bars):
         rows.append('<measure number="%d">' % (bar + 1))
         if bar == 0:
-            rows.append("<attributes><divisions>%d</divisions><time><beats>4</beats><beat-type>4</beat-type></time>"
-                        "<clef><sign>%s</sign><line>%d</line></clef></attributes>" % ((DIVISIONS,) + (("F", 4) if min(min(event[2]) for event in voices[0]) < 52 else ("G", 2))))
+            if drum:
+                rows.append("<attributes><divisions>%d</divisions><time><beats>4</beats><beat-type>4</beat-type></time>"
+                            "<clef><sign>percussion</sign></clef></attributes>" % DIVISIONS)
+            else:
+                rows.append("<attributes><divisions>%d</divisions><time><beats>4</beats><beat-type>4</beat-type></time>"
+                            "<clef><sign>%s</sign><line>%d</line></clef></attributes>" % ((DIVISIONS,) + (("F", 4) if min(min(event[2]) for event in voices[0]) < 52 else ("G", 2))))
             rows.append('<direction placement="above"><direction-type><metronome><beat-unit>quarter</beat-unit><per-minute>%.2f</per-minute></metronome>'
                         '</direction-type><sound tempo="%.2f"/></direction>' % (bpm, bpm))
             if way == "pizz":
@@ -359,7 +395,7 @@ def score(part: str, notes: list[Note], *, bpm: float, way: str = "", swells: li
                 left, pitches = held[index]
                 span = min(left, BAR)
                 rows += due(index, bar_at, span)
-                rows += _sounding(pitches, span, index, lengths, tied_in=True, tied_out=left > BAR, how={}, way=way)
+                rows += _sounding(pitches, span, index, lengths, tied_in=True, tied_out=left > BAR, how={}, way=way, drum=drum)
                 held[index] = [left - span, pitches] if left > span else None
                 place = span
             while at_event[index] < len(voice) and voice[at_event[index]][0] < bar_at + BAR:
@@ -376,7 +412,7 @@ def score(part: str, notes: list[Note], *, bpm: float, way: str = "", swells: li
                 if "wedge" in how:
                     rows.append(_WEDGE % how["wedge"])
                 rows += due(index, bar_at + place, span)
-                rows += _sounding(event[2], span, index, lengths, tied_in=False, tied_out=event[1] > span, how=how, way=way)
+                rows += _sounding(event[2], span, index, lengths, tied_in=False, tied_out=event[1] > span, how=how, way=way, drum=drum)
                 if event[1] > span:
                     held[index] = [event[1] - span, event[2]]
                 place += span
@@ -392,8 +428,10 @@ def score(part: str, notes: list[Note], *, bpm: float, way: str = "", swells: li
     return "\n".join(rows) + "\n"
 
 
-def _sounding(pitches: list[int], span: int, voice: int, lengths, *, tied_in: bool, tied_out: bool, how: dict, way: str) -> list[str]:
-    """A note or a chord of `span` divisions as MusicXML: as many tied note values as it takes."""
+def _sounding(pitches: list[int], span: int, voice: int, lengths, *, tied_in: bool, tied_out: bool, how: dict, way: str,
+              drum: bool = False) -> list[str]:
+    """A note or a chord of `span` divisions as MusicXML: as many tied note values as it takes.
+    On a drum staff (`drum`) a pitch is the drum struck, written on the staff's one line."""
     rows = []
     values = lengths(span)
     for order, (size, kind, dotted) in enumerate(values):
@@ -403,11 +441,16 @@ def _sounding(pitches: list[int], span: int, voice: int, lengths, *, tied_in: bo
             words = ["<note>"]
             if which:
                 words.append("<chord/>")
-            alter = ALTERS[pitch % 12]
-            words.append("<pitch><step>%s</step>%s<octave>%d</octave></pitch><duration>%d</duration>" % (
-                STEPS[pitch % 12], "<alter>%d</alter>" % alter if alter else "", pitch // 12 - 1, size))
+            if drum:
+                words.append("<unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>%d</duration>" % size)
+            else:
+                alter = ALTERS[pitch % 12]
+                words.append("<pitch><step>%s</step>%s<octave>%d</octave></pitch><duration>%d</duration>" % (
+                    STEPS[pitch % 12], "<alter>%d</alter>" % alter if alter else "", pitch // 12 - 1, size))
             words.append('<tie type="stop"/>' if tie_from else "")
             words.append('<tie type="start"/>' if tie_to else "")
+            if drum:
+                words.append('<instrument id="P1-I%d"/>' % pitch)
             words.append("<voice>%d</voice><type>%s</type>%s" % (voice + 1, kind, "<dot/>" if dotted else ""))
             marks = []
             if tie_from:

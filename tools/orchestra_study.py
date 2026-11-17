@@ -1,11 +1,18 @@
-"""Studies real orchestral scores (the public-domain ones in var/scores: Beethoven, Brahms,
-Dvorak, Bruckner, Bach, Beach and others) for how an orchestra is used, so that the studio's
-writing can be held against them: how many instruments sound at once and how that moves; how
-often the texture changes (which instruments are playing); what share of the bars each family
-plays in; how often the tune is doubled, and by what; how wide the gap is between the bass and
-the voice above it, against the gap at the top of the chord; how often the dynamics change.
+"""Studies real orchestral scores (the public-domain OpenScore orchestra in var/scores:
+Beethoven, Brahms, Bruckner, Schubert, Haydn, Bach, Beach and others) for how the parts that the
+studio's channels stand for move, so that the writer can be held against them:
 
-    cd app && uv run --no-sync --with music21 python ../tools/orchestra_study.py [how many scores]
+- the bass (the lowest strings): notes to the bar, how often it repeats a note, moves by a step,
+  or leaps, and how often a bar of it is like one heard before;
+- the inner voices (violas, second violins): the same, and how often they hold a note through
+  the bar;
+- the texture: how many of the orchestra's parts play at once, how much that moves, and how
+  many bars the same parts go on playing before the scoring changes;
+- the percussion (timpani and the rest): in how many bars it plays.
+
+Reads MusicXML directly (a plain reader, many times faster than music21 on a symphony).
+
+    cd app && uv run --no-sync python ../tools/orchestra_study.py [how many scores]
 
 Writes var/passes/orchestra-study.json and prints the figures.
 """
@@ -15,113 +22,160 @@ import collections
 import json
 import statistics
 import sys
+import zipfile
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 VAR = Path(__file__).resolve().parents[1] / "var"
-FAMILIES = (("woodwinds", ("flute", "piccolo", "oboe", "english horn", "cor anglais", "clarinet", "bassoon", "contrabassoon")),
-            ("brass", ("horn", "trumpet", "trombone", "tuba", "cornet")),
-            ("percussion", ("timpani", "drum", "cymbal", "triangle", "percussion", "glockenspiel", "bells")),
-            ("harp and keys", ("harp", "piano", "celesta", "organ", "harpsichord")),
-            ("voices", ("soprano", "alto", "tenor", "bass voice", "choir", "chorus", "voice")),
-            ("strings", ("violin", "viola", "violoncello", "cello", "contrabass", "double bass", "bass")))
+STEPS = {"C": 0, "D": 2, "E": 4, "F": 5, "G": 7, "A": 9, "B": 11}
 
 
-def family_of(name: str) -> str:
+def role_of(name: str) -> str:
     name = name.lower()
-    for family, words in FAMILIES:
-        if any(word in name for word in words):
-            return family
+    if any(word in name for word in ("contrabass", "double bass", "kontrabass", "basso", "bässe", "basses")) or name.strip() in ("bass", "b.", "cb."):
+        return "bass"
+    if any(word in name for word in ("violoncell", "cello", "vc.")):
+        return "cello"
+    if any(word in name for word in ("viola", "bratsche", "vla")):
+        return "viola"
+    if "violin" in name or "violino" in name or name.startswith("vn") or "violine" in name:
+        return "violin"
+    if any(word in name for word in ("timpan", "pauke", "drum", "cymbal", "triangle", "percussion", "becken", "tamb")):
+        return "percussion"
     return "other"
 
 
-def study(path: Path) -> dict | None:
-    from music21 import converter, dynamics, note, chord as m21chord
-    score = converter.parse(str(path))
-    parts = list(score.parts)
-    if len(parts) < 6:
-        return None                                    # a solo or a small group: not an orchestra
-    bars = max(len(part.getElementsByClass("Measure")) for part in parts)
-    sounding = [set() for _ in range(bars)]           # which parts play in each bar
-    pitches = [collections.defaultdict(list) for _ in range(bars)]       # bar -> part -> pitches
-    dynamic_marks = 0
-    for index, part in enumerate(parts):
-        name = (part.partName or part.instrumentName or "") if hasattr(part, "partName") else ""
-        for number, measure in enumerate(part.getElementsByClass("Measure")):
-            if number >= bars:
-                break
-            for element in measure.recurse().notes:
-                sounding[number].add(index)
-                if isinstance(element, note.Note):
-                    pitches[number][index].append(element.pitch.midi)
-                elif isinstance(element, m21chord.Chord):
-                    pitches[number][index].extend(p.midi for p in element.pitches)
-            dynamic_marks += len(list(measure.recurse().getElementsByClass(dynamics.Dynamic)))
-    names = [(part.partName or "") for part in parts]
-    families = [family_of(name) for name in names]
-    at_once = [len(each) for each in sounding]
-    changes = sum(1 for a, b in zip(sounding, sounding[1:]) if a != b)
-    share = collections.defaultdict(list)
-    for index, family in enumerate(families):
-        share[family].append(sum(1 for each in sounding if index in each) / max(bars, 1))
-    doubled, gaps_low, gaps_high = [], [], []
-    for bar in pitches:
-        tops = {part: max(found) for part, found in bar.items() if found}
-        if len(tops) < 2:
+def read(path: Path) -> list[tuple[str, list[list[tuple[float, int | None, float]]]]]:
+    """Every part of a score: its name and its bars, each bar its notes (onset in quarters, MIDI pitch, length)."""
+    with zipfile.ZipFile(path) as packed:
+        inner = next(name for name in packed.namelist() if name.endswith((".xml", ".musicxml")) and not name.startswith("META-INF"))
+        root = ET.fromstring(packed.read(inner))
+    names = {part.get("id"): (part.findtext("part-name") or "") for part in root.iter("score-part")}
+    out = []
+    for part in root.iter("part"):
+        divisions, bars = 1, []
+        for measure in part.iter("measure"):
+            found, at, last_start = [], 0.0, 0.0
+            for element in measure:
+                if element.tag == "attributes" and element.findtext("divisions"):
+                    divisions = int(float(element.findtext("divisions")))
+                elif element.tag == "backup":
+                    at -= float(element.findtext("duration") or 0) / divisions
+                elif element.tag == "forward":
+                    at += float(element.findtext("duration") or 0) / divisions
+                elif element.tag == "note":
+                    length = float(element.findtext("duration") or 0) / divisions
+                    chord = element.find("chord") is not None
+                    start = last_start if chord else at
+                    if element.find("rest") is None:
+                        pitch = element.find("pitch")
+                        midi = None
+                        if pitch is not None:
+                            midi = 12 * (int(pitch.findtext("octave")) + 1) + STEPS[pitch.findtext("step")] + int(float(pitch.findtext("alter") or 0))
+                        tied_in = any(tie.get("type") == "stop" for tie in element.findall("tie"))
+                        if not tied_in:
+                            found.append((start, midi, length))
+                    if not chord:
+                        last_start = at
+                        at += length
+            bars.append(found)
+        out.append((names.get(part.get("id"), ""), bars))
+    return out
+
+
+def line_figures(bars: list[list[tuple[float, int | None, float]]]) -> dict | None:
+    """How a single line moves: its lowest note at each onset."""
+    notes, held, heard = [], 0, 0
+    patterns = collections.Counter()
+    for bar in bars:
+        pitched = [(on, p, length) for on, p, length in bar if p is not None]
+        if not pitched:
             continue
-        melody = max(tops.values())
-        doubled.append(sum(1 for value in tops.values() if value != melody and (melody - value) % 12 == 0 and melody - value <= 24))
-        lows = sorted(min(found) for found in bar.values() if found)
-        everything = sorted({p for found in bar.values() for p in found})
-        if len(lows) >= 2:
-            gaps_low.append(lows[1] - lows[0])
-        if len(everything) >= 3:
-            gaps_high.append(everything[-1] - everything[-2])
-    return {"score": path.stem, "parts": len(parts), "bars": bars, "at_once": statistics.mean(at_once) / len(parts),
-            "at_once_spread": (statistics.pstdev(at_once) / len(parts)) if len(at_once) > 1 else 0.0,
-            "texture_change_every": bars / max(changes, 1),
-            "share": {family: statistics.mean(values) for family, values in share.items()},
-            "octave_doublings": statistics.mean(doubled) if doubled else 0.0,
-            "gap_at_bottom": statistics.mean(gaps_low) if gaps_low else 0.0, "gap_at_top": statistics.mean(gaps_high) if gaps_high else 0.0,
-            "dynamics_per_100_bars": 100.0 * dynamic_marks / max(bars, 1) / len(parts)}
+        heard += 1
+        lowest = {}
+        for on, p, length in pitched:
+            lowest[on] = min(lowest.get(on, 999), p)
+        notes += [lowest[on] for on in sorted(lowest)]
+        if len(lowest) == 1 and max(length for _, _, length in pitched) >= 2.0:
+            held += 1
+        patterns[tuple(sorted((round(on, 2), p) for on, p, _ in pitched))] += 1
+    if heard < 8 or len(notes) < 16:
+        return None
+    moves = [abs(b - a) for a, b in zip(notes, notes[1:])]
+    return {"per_bar": len(notes) / heard, "repeat": sum(1 for m in moves if m == 0) / len(moves),
+            "step": sum(1 for m in moves if 1 <= m <= 2) / len(moves), "skip": sum(1 for m in moves if 3 <= m <= 5) / len(moves),
+            "leap": sum(1 for m in moves if m >= 6) / len(moves), "held": held / heard, "different_bars": len(patterns) / heard}
+
+
+def study(path: Path) -> dict | None:
+    parts = read(path)
+    if len(parts) < 8:
+        return None                                           # chamber music, not an orchestra
+    bars = max(len(b) for _, b in parts)
+    roles = [role_of(name) for name, _ in parts]
+    playing = [frozenset(index for index, (_, b) in enumerate(parts) if bar < len(b) and any(p is not None for _, p, _ in b[bar]))
+               for bar in range(bars)]
+    counts = [len(each) / len(parts) for each in playing]
+    runs, run = [], 1
+    for before, now in zip(playing, playing[1:]):
+        if now == before:
+            run += 1
+        else:
+            runs.append(run)
+            run = 1
+    runs.append(run)
+    figures = {}
+    for role in ("bass", "cello", "viola", "violin"):
+        lines = [line_figures(b) for (name, b), r in zip(parts, roles) if r == role]
+        lines = [each for each in lines if each]
+        if lines:
+            figures[role] = {key: statistics.mean(each[key] for each in lines) for key in lines[0]}
+    percussion = [index for index, r in enumerate(roles) if r == "percussion"]
+    beating = sum(1 for each in playing if any(index in each for index in percussion)) / bars if percussion else None
+    return {"score": path.parent.name, "parts": len(parts), "bars": bars, "at_once": statistics.mean(counts),
+            "at_once_spread": statistics.pstdev(counts), "same_scoring_bars": statistics.mean(runs), "lines": figures,
+            "percussion_bars": beating}
 
 
 def main(argv: list[str]) -> int:
-    limit = int(argv[0]) if argv else 40
-    sources = sorted((VAR / "scores").rglob("*.mxl"))[:limit]
+    limit = int(argv[0]) if argv else 80
+    sources = sorted((VAR / "scores" / "openscore").glob("*/score.mxl"))[:limit]
     found = []
     for path in sources:
         try:
             result = study(path)
-        except Exception as error:                  # a score music21 cannot read is said and passed over
-            print("could not read %s: %s" % (path.name, str(error)[:120]))
+        except (ET.ParseError, KeyError, ValueError, StopIteration, zipfile.BadZipFile) as error:
+            print("could not read %s: %s" % (path.parent.name, error))     # said, and passed over
             continue
-        if result:
-            found.append(result)
-            print("%-34s %2d parts %4d bars | at once %3.0f%% (spread %2.0f%%) | texture changes every %.1f bars | octave doublings %.1f | gaps bottom %4.1f top %4.1f" % (
-                result["score"][:34], result["parts"], result["bars"], 100 * result["at_once"], 100 * result["at_once_spread"],
-                result["texture_change_every"], result["octave_doublings"], result["gap_at_bottom"], result["gap_at_top"]))
+        if not result:
+            continue
+        found.append(result)
+        bass = result["lines"].get("bass") or result["lines"].get("cello") or {}
+        print("%-30s %2d parts %4d bars | at once %3.0f%% (+-%2.0f) | same scoring %4.1f bars | bass %.1f/bar rep %2.0f%% step %2.0f%% leap %2.0f%% diff %2.0f%% | perc %s" % (
+            result["score"][:30], result["parts"], result["bars"], 100 * result["at_once"], 100 * result["at_once_spread"],
+            result["same_scoring_bars"], bass.get("per_bar", 0), 100 * bass.get("repeat", 0), 100 * bass.get("step", 0), 100 * bass.get("leap", 0),
+            100 * bass.get("different_bars", 0), "%.0f%%" % (100 * result["percussion_bars"]) if result["percussion_bars"] is not None else "-"))
     if not found:
         return 1
-    families = collections.defaultdict(list)
-    for result in found:
-        for family, value in result["share"].items():
-            families[family].append(value)
-    summary = {"scores": len(found),
-               "at_once": statistics.mean(r["at_once"] for r in found), "at_once_spread": statistics.mean(r["at_once_spread"] for r in found),
-               "texture_change_every": statistics.median(r["texture_change_every"] for r in found),
-               "octave_doublings": statistics.mean(r["octave_doublings"] for r in found),
-               "gap_at_bottom": statistics.mean(r["gap_at_bottom"] for r in found), "gap_at_top": statistics.mean(r["gap_at_top"] for r in found),
-               "dynamics_per_100_bars": statistics.mean(r["dynamics_per_100_bars"] for r in found),
-               "share_of_bars": {family: statistics.mean(values) for family, values in families.items()}}
+    summary = {"scores": len(found), "at_once": statistics.mean(r["at_once"] for r in found),
+               "at_once_spread": statistics.mean(r["at_once_spread"] for r in found),
+               "same_scoring_bars": statistics.median(r["same_scoring_bars"] for r in found),
+               "percussion_bars": statistics.mean(r["percussion_bars"] for r in found if r["percussion_bars"] is not None)}
+    for role in ("bass", "cello", "viola", "violin"):
+        rows = [r["lines"][role] for r in found if role in r["lines"]]
+        if rows:
+            summary[role] = {key: round(statistics.mean(row[key] for row in rows), 3) for key in rows[0]}
     (VAR / "passes").mkdir(parents=True, exist_ok=True)
     (VAR / "passes" / "orchestra-study.json").write_text(json.dumps({"summary": summary, "scores": found}, indent=1), encoding="utf-8")
-    print("\nacross %d orchestral scores:" % len(found))
-    print("  part of the orchestra playing at once: %.0f%% on average, moving by %.0f%% from bar to bar" % (100 * summary["at_once"], 100 * summary["at_once_spread"]))
-    print("  the texture (who plays) changes every %.1f bars (median)" % summary["texture_change_every"])
-    print("  the top line doubled at the octave or two by %.1f other parts on average" % summary["octave_doublings"])
-    print("  gap between the two lowest parts %.1f semitones; between the two highest notes %.1f" % (summary["gap_at_bottom"], summary["gap_at_top"]))
-    print("  dynamic marks per part per 100 bars: %.1f" % summary["dynamics_per_100_bars"])
-    print("  share of bars each family plays in: %s" % ", ".join("%s %.0f%%" % (f, 100 * v) for f, v in sorted(summary["share_of_bars"].items(), key=lambda kv: -kv[1])))
+    print("\nacross %d orchestral movements:" % len(found))
+    print("  share of the orchestra playing in a bar: %.0f%%, moving by %.0f%% about that" % (100 * summary["at_once"], 100 * summary["at_once_spread"]))
+    print("  the same instruments go on playing for %.1f bars (median) before the scoring changes" % summary["same_scoring_bars"])
+    print("  the percussion plays in %.0f%% of the bars" % (100 * summary["percussion_bars"]))
+    for role in ("bass", "cello", "viola", "violin"):
+        if role in summary:
+            s = summary[role]
+            print("  %-6s %.1f notes/bar; repeats %.0f%%, steps %.0f%%, skips %.0f%%, leaps %.0f%%; holds a bar %.0f%%; different bars %.0f%%" % (
+                role, s["per_bar"], 100 * s["repeat"], 100 * s["step"], 100 * s["skip"], 100 * s["leap"], 100 * s["held"], 100 * s["different_bars"]))
     return 0
 
 
