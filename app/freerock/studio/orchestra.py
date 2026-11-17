@@ -1834,7 +1834,7 @@ class Take:
         return line.moved(steps=min(moves, key=lambda move: abs(move - aim)))
 
     def sing(self, channel: str, name: str, line: Line, at: float, key: Key, chords: list[Chord], first: float,
-             loud: float = 1.0, octave: int = 0, tag: str = "") -> None:
+             loud: float = 1.0, octave: int = 0, tag: str = "", even: float = 0.0) -> None:
         """Gives a line to an instrument, in its register. `chords` are the bars of the part of
         the story the line is in, which begins at `first`."""
         inst = INSTRUMENTS[name]
@@ -1854,6 +1854,9 @@ class Take:
                 pitch -= 12
             while pitch < inst.low:
                 pitch += 12
+            # `even`: how far the line keeps its strength from note to note (at the big moments the tune does not dip
+            # to mezzo-forte between its accents).
+            weight = weight + (1.0 - weight) * even
             self.voice(channel, name, tag).add(at + start, length * (0.96 if inst.held else 1.0), pitch, min(weight * loud, 1.0))
 
     def spots(self, where: str) -> list[tuple[float, float]]:
@@ -1942,7 +1945,8 @@ class Take:
             bars, part = section.bars, section.part
 
             def sing(name: str, line: Line, bar: float, loud: float, octave: int = 0, tag: str = "") -> None:
-                self.sing("lead", name, line, first + bar * beats, key, chords, first, loud=loud, octave=octave, tag=tag)
+                even = 0.55 if part in ("arrival", "summit") and tag != " under" else 0.0
+                self.sing("lead", name, line, first + bar * beats, key, chords, first, loud=loud, octave=octave, tag=tag, even=even)
 
             def run_up(players: list[str]) -> None:
                 """The last bar of a rise runs up the scale to where the tune will begin, and
@@ -2455,9 +2459,10 @@ class Take:
                     weight = self.hard(level, 0.8)
                     upper = key.pitch(chord.root, INSTRUMENTS["celli"].home - 5)        # where the celli have the bass
                     lower = upper - 12                                                  # and the basses under them
-                    if not name.startswith("celli"):
+                    # (Bowed, whatever plays the bass line: a summit with only plucked basses under it has no floor.)
+                    if name not in ("celli", "celli slow"):
                         self.put("bass", "celli", bar_at, beats, upper, weight, tag=" tutti")
-                    if not name.startswith("basses"):
+                    if name not in ("basses", "basses slow"):
                         self.put("bass", "basses", bar_at, beats, lower, weight, tag=" tutti")
                     if part == "summit":
                         if "tuba" in ch.basses + ch.under and name != "tuba":

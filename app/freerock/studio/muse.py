@@ -176,7 +176,8 @@ def _mark(loud: float) -> int:
 # A held note is never still. MuseScore's players follow a hairpin under a held note, smoothly (measured
 # 2026-11-16: a crescendo from p to f under one note of the violins rises 18 dB over its length, a horn's 30 dB),
 # and written without one they hold every long note at one level, which is what made the orchestra sound flat.
-LONG_S = 1.5                   # seconds: a note held this long is leaned into and let fall away
+LONG_S = 2.5                   # seconds: a note held this long is leaned into and let fall away (at 1.5 nearly every
+                               # note of a slow piece swelled, which read as pumping, not phrasing: 2026-11-16, night)
 UNSHAPED = ("Electric Guitar",)        # held, but left as it is: a guitar's note can only die away
 _DYNAMIC = '<direction placement="below"><direction-type><dynamics><%s/></dynamics></direction-type></direction>'
 _WEDGE = '<direction placement="below"><direction-type><wedge type="%s" number="1"/></direction-type></direction>'
