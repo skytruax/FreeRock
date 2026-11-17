@@ -54,7 +54,7 @@ def main(argv: list[str] | None = None) -> int:
     deadline = deadline_of(args.until)
     jobs = [(name.rsplit("/", 1)[0], int(name.rsplit("/", 1)[1]), args.until, deadline) for name in args.tracks]
     known = {fam.name for fam, _ in build.plan()}
-    unknown = [name for name, _, _ in jobs if name not in known]
+    unknown = [name for name, *_ in jobs if name not in known]
     if unknown:
         raise SystemExit("There are no such families: %s" % ", ".join(unknown))
     reaper.configure()
