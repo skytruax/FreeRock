@@ -29,7 +29,7 @@ from freerock import studio
 from freerock.audio import write_mp3
 
 VAR = Path(__file__).resolve().parents[1] / "var"
-STYLES = ("warcraft", "house")
+STYLES = ("warcraft", "knight", "house")
 # Older renders kept beside the newest, for comparing: folder under var/listen -> what it is.
 ABOUT = {"instruments": "every instrument alone: the bare recording, how it was, how it is now",
          "second-reaper-try": "the second try in REAPER (16 November, midday): every instrument filtered dull, a chorus on the strings, war drums tuned an octave down",
