@@ -1028,7 +1028,7 @@ class Conductor:
                 "pieces": len(bucket.live_pieces()) if bucket else 0,
                 "parts": sum(1 for clip in live if clip.piece),
                 "playing_piece": piece,
-                "kinds": found, "light": light,
+                "kinds": found, "light": light, "shade": self.shade_here(self.hub.state),
                 "kept": len(bucket.clips) if bucket else 0,
                 "pools": bucket.counts() if bucket else {},
                 "mix": self.mix,

@@ -88,10 +88,10 @@ def named(name: str | None) -> list[str]:
 # garden are both haunted; a meadow at noon and the same meadow in the rain at night are both pastoral. The words
 # of a profile that brighten a place and the ones that darken it, each worth three quarters of a step:
 _BRIGHT = ("sunny", "hopeful", "peaceful", "cheerful", "easy-going", "bright", "serene", "gentle", "merry", "breezy", "warm", "golden",
-           "calm pride", "friendly", "sunlit", "homely", "sparkling")
+           "calm pride", "friendly", "sunlit", "homely", "sparkling", "far views", "open air")
 _DARK = ("gothic", "haunted", "blighted", "sorrowful", "dread", "mournful", "misty", "fog", "menace", "cursed", "desolate", "crypt",
          "sinister", "corrupted", "sickly", "grey wasteland", "tolling", "dark", "plague", "murky", "prowling", "scorched", "harsh",
-         "volcanic", "under siege", "battlefield", "melancholy", "hushed", "close")
+         "volcanic", "under siege", "battlefield", "melancholy", "hushed", "close", "faded grandeur", "under the trees")
 # ...and the beginnings of words in a place's own name: these darken it outright, these dim it, these brighten it.
 _NAME_DARK = _IN_NAMES["haunted"] + _IN_NAMES["infernal"]
 _NAME_DIM = ("mist", "fog", "moon", "twilight", "night", "swamp", "marsh", "bog", "mire", "whisper", "veil", "frozen", "winter")
