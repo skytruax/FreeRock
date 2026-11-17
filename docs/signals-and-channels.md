@@ -67,6 +67,7 @@ Everything hangs on one number between 0 and 1. Without a fight it sits on a **f
 |---|---|
 | lingering (still for 15 s or more) | 0.10 |
 | standing (still for 1.5 s or more) | 0.25 |
+| on a flight path (a journey, not a wait: it never lingers) | 0.25 |
 | on foot | 0.40, growing to 0.57 over 20 s of going |
 | riding | 0.60, growing to 0.75 over 25 s |
 | in a dungeon | 0.15 more than the above |
@@ -80,17 +81,17 @@ When there is no word on movement at all, the floor is 0.25 (0.40 in a dungeon),
 
 - intensity jumps to 0.80 and then climbs 0.006 a second, up to 0.90;
 - at least 0.85 with 2 foes fighting you, 0.90 with 3, 0.93 with 4, 0.96 with 5 or more;
-- at least 0.92 against an elite;
+- at least 0.92 against an elite or a rare;
 - 1.0 against a boss or a world boss.
 
 **After a fight:** the music holds for 3 s, or up to 13 s when fights come one after another (the "roll"). Then the intensity falls 0.12 a second back to the floor. Fights in a row also raise the floor itself, by up to 0.32.
 
 **Moments and weather:**
 
-- A level gained holds the intensity at 1.0 for 10 s, a boss beaten at 0.9 for 10 s, a quest handed in at 0.7 for 5 s, an achievement at 0.8 for 6 s.
+- A level gained holds the intensity at 1.0 for 10 s, a boss beaten at 0.9 for 10 s, a quest handed in at 0.7 for 5 s, an achievement at 0.8 for 6 s. A smaller moment while a bigger one is being answered is part of it; one as big or bigger takes over, for the longer of the two.
 - Rain at storm strength (0.6 and over) lifts the intensity to between 0.6 and 0.8.
 
-**Full tilt** (place "storm"): the intensity's floor plus the roll reaches 0.70, out of a fight. A 17-second ride gets there, and so does a 17-second walk in a dungeon (see P12).
+**Full tilt** (place "storm"): the intensity's floor plus the roll reaches 0.70, out of a fight. A 17-second ride gets there, and so do fights close together. A dungeon's extra 0.15 is left out of it (P12).
 
 ## Which kind of music: the place
 
@@ -107,7 +108,7 @@ The first match wins (`director.py:465-526`). Ordinary fights do not change the 
 | 7 | in a cave or building for 1 s (released 2 s after leaving) | depths | wander |
 | 8 | in an inn (resting, indoors) | ember | wander |
 | 9 | in a town (resting, out of doors) | town | wander |
-| 10 | a rain storm for 4 s, out of doors | storm | wander |
+| 10 | a rain storm for 4 s, out of doors (it ends once the rain has been under 0.4, or turned to other weather, for 20 s together) | storm | wander |
 | 11 | full tilt | storm | wander |
 | 11a | camping: still for 45 s out of doors, not on a flight path, in a dungeon or a fight (added 2026-11-17) | camp | wander, ember; night at night |
 | 12 | night, out of doors and not in a dungeon | night | wander; ember when lingering |
@@ -150,19 +151,19 @@ The lowest low-pass, the highest high-pass and the largest reverb win; volumes m
 
 | When | Low-pass | High-pass | Reverb | Volume | Channels |
 |---|---|---|---|---|---|
-| cave (and, by accident, inns: P7) | 2500 Hz | | 0.40 | | |
+| cave, and inns (P7) | 2500 Hz | | 0.40 | | |
 | under water | 500 Hz | | | | everything moves in 0.15 s |
 | rain, out of doors, strength s | | | 0.08 + 0.12 s | | drums at least 0.6 from strength 0.3 |
-| snow | 6000 Hz | | 0.20 + 0.25 s | | drums × (1 − 0.3 s) |
-| sandstorm | 3000 + 5000 (1 − s) Hz | 300 s Hz | | | |
-| night (not in a storm) | 3800 Hz | | 0.15 | 0.89 (1 dB down) | drums × 0.7; the drums' and bass's floors × 0.75 |
+| snow, out of doors | 6000 Hz | | 0.20 + 0.25 s | | drums × (1 − 0.3 s) |
+| sandstorm, out of doors | 3000 + 5000 (1 − s) Hz | 300 s Hz | | | |
+| night, out of doors and not in a dungeon (nor in a storm) | 3800 Hz | | 0.15 | 0.89 (1 dB down) | drums × 0.7; the drums' and bass's floors × 0.75 |
 | inn | | | | 0.63 (4 dB down) | bass 0 |
 | flight path | | 150 Hz | 0.30 | | bass 0 |
 | loading screen | 800 Hz | | | 0.5 | |
 | stealth, out of a fight | | | | | bed 0, drums 0.35, bass 0.7 (the bass line alone), in 0.25 s |
 | dead | at most 1200 Hz | | at least 0.6 | × 0.4 | bed 1.0, drums 0, bass 0 |
 
-Standing still (not in a fight, a storm or an inn): the bed is 0.85 after 1.5 s, and 0.65 once you have lingered 15 s. The drums and bass are not turned down by this rule. They fall away because the intensity drops to 0.25.
+Standing still (not in a fight, a storm, an inn or on a flight path): the bed is 0.85 after 1.5 s, and 0.65 once you have lingered 15 s. The drums and bass are not turned down by this rule. They fall away because the intensity drops to 0.25.
 
 When the bass is 0, the bed (texture, lead, rhythm) is also cut below 110 Hz.
 
@@ -240,7 +241,7 @@ P1. **Floors beat the director's silences.** For Warcraft and Knight pieces in a
 - dead: drums 0.55, bass 0.85, where the rule says none;
 - standing still: drums 0.47, bass 0.72.
 
-And with the bass 0 in the director's numbers, the bed is cut below 110 Hz while the floor keeps the bass playing, which thins the sound. Only stealth removes the floors. A way through: the director says when it means silence (inn, dead, flight path), and floors give way then. Elsewhere they stay, for the subtle difference you asked for.
+And with the bass 0 in the director's numbers, the bed is cut below 110 Hz while the floor keeps the bass playing, which thins the sound. Only stealth removes the floors. A way through: the director says when it means silence (inn, dead, flight path), and floors give way then. Elsewhere they stay, for the subtle difference you asked for. The bed's cut should follow what is really heard from the bass, not the director's number. Left as it is on 2026-11-17 until it has been heard: whether an inn's or a ghost's own piece should keep its bass and drums is for the ear.
 
 P2. **A fight only turns things up.** A piece has one strength, so one foe, five foes, an elite and a world boss sound the same once the intensity reaches 0.80. The strengths (calm, steady, hard) only reach the old loose phrases. A way through: hard versions of the moment pieces' drums and rhythm (a busier groove, the doubled riff), or extra layers that come in above 0.85.
 
@@ -248,13 +249,13 @@ P3. **Standing still is only half quieter.** The bed drops to 0.85 and then 0.65
 
 P4. **Cinematics can't be seen.** The game hides the whole interface for a cinematic, so the strip vanishes; the music plays on and only fades when the link is lost, 120 s later. A way through: a strip gone for more than 3 s while the game is still the window in front means "duck".
 
-P5. **Every death in a battleground winds the music down and starts it again.**
+P5. ~~Every death in a battleground winds the music down and starts it again.~~ Fixed 2026-11-17: in a battleground the death is not passed on to the player, and its music plays on, far off, until the spirit healer.
 
 P6. **The texture's dip in fights (0.6) happens only in House:** in Warcraft and Knight Rock the texture follows the lead and stays at 1.0.
 
-P7. **Inns get the cave's muffle** (low-pass 2500 Hz, reverb 0.40), because "cave" doesn't look at resting. Inns are meant to be warm, not muffled.
+P7. **Inns get the cave's muffle** (low-pass 2500 Hz, reverb 0.40), and so do caves' own pieces. A test keeps the inn's on purpose: a building sounded like inside when a zone had one loop. Now the inn's and the cave's pieces are written for them, and the muffle takes their top off. For the ear: keep it, soften it, or drop it for a place's own music.
 
-P8. **Snow, sandstorm and night tints apply indoors and in dungeons.**
+P8. ~~Snow, sandstorm and night tints apply indoors and in dungeons.~~ Fixed 2026-11-17: out of doors only (a sandstorm's 300 Hz cut took the bass out of a cave), and no night pieces in dungeons either.
 
 P9. **Under water and in stealth every change is fast**, including a fight starting under water (0.15 s).
 
@@ -262,17 +263,17 @@ P10. **The player takes intensity 0.74 and over as a fight.** A 25 s ride (0.75)
 
 P11. **A silence after every track.** With 8-minute tracks and a silence due every 3 minutes, one always follows a track: 24 to 56 s of nothing after each.
 
-P12. **Full tilt is easy to reach.** 17 s of walking in a dungeon gets there (the dungeon's +0.15 plus walking). Full tilt plays storm music.
+P12. ~~Full tilt is easy to reach.~~ Fixed 2026-11-17: 17 s of walking in a dungeon got there (the dungeon's +0.15 plus walking) and played storm music. Full tilt is now judged without the dungeon's 0.15.
 
-P13. **A flight path counts as standing still**, and ember music joins after 15 s on it.
+P13. ~~A flight path counts as standing still~~, and ember music joined after 15 s on it. Fixed 2026-11-17: a flight path stays at 0.25, at full level, with no lingering.
 
 P14. **"Boss" is any encounter in progress**, with no check that you are in a dungeon.
 
-P15. **A plain rare counts as big game in your sights but not as an elite in the fight.**
+P15. ~~A plain rare counts as big game in your sights but not as an elite in the fight.~~ Fixed 2026-11-17: a rare is an elite in the fight too (0.92).
 
-P16. **A smaller moment can cut a bigger one short:** a quest handed in 6 s after a level gained drops the swell from 1.0 to 0.7.
+P16. ~~A smaller moment can cut a bigger one short~~: a quest handed in 6 s after a level gained dropped the swell from 1.0 to 0.7. Fixed 2026-11-17.
 
-P17. **A storm ends only after rain under 0.4 for 20 s;** rain between 0.4 and 0.6 neither keeps it nor ends it.
+P17. ~~A storm ends only after rain under 0.4 for 20 s; rain between 0.4 and 0.6 neither keeps it nor ends it.~~ Fixed 2026-11-17: rain between the two keeps the storm and starts the 20 s again, and snow or a sandstorm after rain counts as no rain.
 
 P18. **Signals not used yet:** swimming on the surface, flying, a boss unit present, being in a group, the zone's PvP kind (world PvP), instance difficulty, the game clock. Each could become a rule: open water, a raid's weight, a contested zone's edge, dawn and dusk.
 

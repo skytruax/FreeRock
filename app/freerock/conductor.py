@@ -261,6 +261,10 @@ class Conductor:
             # band in for a few seconds, and the next step tells the players.
             if self.director.moment(event.name, self.clock()):
                 self.notes.append("A moment in the game: %s." % event.name.replace("_", " "))
+            if event.name == "died" and self.target is not None and self.target.place == "battleground":
+                # One dies often in a battleground, and its music plays on through a death (far off, until the spirit
+                # healer): run down like a record stopping, it would start again every time.
+                return
             await self._broadcast({"type": "moment", "name": event.name})
 
     async def run(self) -> None:

@@ -217,11 +217,6 @@ class Director:
         self.rules = rules or Rules()
         self._m = _Memory()
 
-    @property
-    def heat(self) -> float:
-        """How much fighting there has been lately, 0 to 1."""
-        return self._m.heat
-
     def moment(self, name: str, now: float) -> bool:
         """Something happened in the game that the band answers at once: a level gained, a quest
         handed in, a boss beaten. Returns whether this is a moment the rules know."""
@@ -229,8 +224,13 @@ class Director:
             return False
         level, seconds = self.rules.moments[name]
         m = self._m
-        if now + seconds >= m.swell_until or level > m.swell_level:
+        if now >= m.swell_until:
             m.swell_until, m.swell_level, m.swell_name = now + seconds, level, name
+        elif level >= m.swell_level:
+            # As big or bigger than the one being answered: it takes over, for as long as the longer of the two.
+            m.swell_until, m.swell_level, m.swell_name = max(m.swell_until, now + seconds), level, name
+        # A smaller one while a bigger one is being answered is in it already (a quest handed in seconds after a level
+        # gained once dropped the whole band from 1.0 to 0.7).
         return True
 
     def _movement(self, state: GameState, now: float) -> tuple[bool | None, bool, bool, float]:
@@ -265,7 +265,8 @@ class Director:
             if now - m.still_since >= rules.still_after_s:
                 m.on_the_move = False
                 m.moving_since = None        # a real stop: the next run builds from the beginning
-        lingering = not moving and now - m.still_since >= rules.linger_after_s
+        # A flight path is a journey, not a wait: nothing on one is lingering or camping.
+        lingering = not moving and not state.on_taxi and now - m.still_since >= rules.linger_after_s
         camping = not moving and not state.on_taxi and now - m.still_since >= rules.camp_after_s
         going = now - m.moving_since if m.on_the_move and m.moving_since is not None else 0.0
         return m.on_the_move, lingering, camping, going
@@ -287,7 +288,7 @@ class Director:
         # drums and bass brought up ("in normal fights dont play a separate battle piece dungeon bosses ONLY",
         # 2026-11-16: a piece of its own for every pull was a different song every half minute, cut in on the beat).
         boss = state.encounter
-        elite = state.in_combat and state.target_class in ("elite", "rareelite", "worldboss")
+        elite = state.in_combat and state.target_class in ("elite", "rare", "rareelite", "worldboss")
         dungeon = state.in_instance and state.instance_kind in ("party", "raid", "scenario")
         fallen = state.dead or state.ghost
         inn = state.resting and state.indoors      # a city's streets are not an inn
@@ -322,12 +323,17 @@ class Director:
             build = min(going / rules.on_foot_build_s, 1.0)
             floor = rules.on_foot + rules.on_foot_build * build
             why.append("on the move" if build < 0.9 else "on the move for a while: the band has filled out")
+        elif state.on_taxi:
+            floor = rules.still            # carried along: calm, and not quieter as the time goes ("flight path" says why)
         elif lingering:
             floor = rules.idle
             why.append("standing still for a while")
         else:
             floor = rules.still
             why.append("standing still")
+        # A dungeon is tenser. What full tilt is judged by (`pace`) leaves that out: it is for what the player is doing,
+        # and the tension alone once took seventeen seconds of walking in a dungeon to the hard-rock part.
+        pace = floor
         if dungeon and on_the_move is not None:
             floor += rules.base_dungeon - rules.base_world
         # Something to fight is targeted and the fight has not started: the music leans in.
@@ -337,7 +343,7 @@ class Director:
             m.sizing_since = m.sizing_since if m.sizing_since is not None else now
             if now - m.sizing_since >= rules.sizing_after_s:
                 big = state.target_class in ("elite", "rare", "rareelite", "worldboss")
-                floor = max(floor, rules.big_game if big else rules.sizing)
+                floor, pace = max(floor, rules.big_game if big else rules.sizing), max(pace, rules.big_game if big else rules.sizing)
                 why.append("something big in your sights" if big else "a target in your sights")
         else:
             m.sizing_since = None
@@ -345,10 +351,11 @@ class Director:
         company = state.enemies or 0
         if (company >= rules.company_from and not state.in_combat and not fallen and not state.resting
                 and not state.on_taxi):
-            floor = max(floor, min(rules.company + rules.company_step * company, rules.company_ceiling))
+            held_up = min(rules.company + rules.company_step * company, rules.company_ceiling)
+            floor, pace = max(floor, held_up), max(pace, held_up)
             why.append("enemies close by")
         if inn:
-            floor = min(floor, rules.inn_ceiling)
+            floor, pace = min(floor, rules.inn_ceiling), min(pace, rules.inn_ceiling)
 
         # --- intensity ---------------------------------------------------------------------------
         if state.in_combat and not fallen:
@@ -416,7 +423,7 @@ class Director:
         # Standing still: quieter, a little at once and more after a while, every channel (the player brings them down
         # over its slow fades, and back up the moment the player moves). Not in a fight, nor in a storm, nor in an inn,
         # which is quiet already.
-        if not state.in_combat and m.combat_since is None and not fallen and not storming and not inn:
+        if not state.in_combat and m.combat_since is None and not fallen and not storming and not inn and not state.on_taxi:
             if lingering:
                 bed *= rules.linger_bed
                 why.append("stood a while: quieter")
@@ -442,22 +449,27 @@ class Director:
             if now - m.outdoors_since >= rules.depths_release_s:
                 m.in_depths = False
 
-        if state.weather == "rain" and strength >= rules.storm_at:
+        # A storm sets in after rain this heavy for a few seconds, and ends after it has been light (or snow, or dry) for
+        # twenty seconds together: rain between the two keeps it, and starts that count again.
+        rain = strength if state.weather == "rain" else 0.0
+        if rain >= rules.storm_at:
             m.calm_weather_since = None
             m.stormy_since = m.stormy_since if m.stormy_since is not None else now
             if now - m.stormy_since >= rules.storm_after_s:
                 m.in_storm = True
         else:
             m.stormy_since = None
-            if strength < rules.storm_release_at:
+            if rain < rules.storm_release_at:
                 m.calm_weather_since = m.calm_weather_since if m.calm_weather_since is not None else now
                 if now - m.calm_weather_since >= rules.storm_release_s:
                     m.in_storm = False
+            else:
+                m.calm_weather_since = None
 
         # Out of a fight, with this much going on (a long ride, a roll between pulls), the music
         # moves up to the zone's hard-rock part. It is what is going on now that counts, not the
         # intensity still coming down from a fight that is over.
-        drive = floor + rules.roll_lift * roll()
+        drive = pace + rules.roll_lift * roll()
         if m.combat_since is None and not fallen and not inn and drive >= rules.charge_at:
             m.charging = True
         elif drive < rules.charge_off or fallen or inn:
@@ -530,10 +542,7 @@ class Director:
         else:
             place = "wander"
             if dungeon:
-                also.append("depths")
-            if state.daytime is False:
-                also.append("night")
-                why.append("night")
+                also.append("depths")      # (and no night: the sky cannot be seen in there)
             if lingering:
                 also.append("ember")
         if m.combat_since is not None and not m.reached_battle:
@@ -562,14 +571,15 @@ class Director:
             tint("a rain storm: the whole band" if storming else "rain", wet=0.08 + 0.12 * strength)
             if strength >= rules.rain_drums_at and not fallen and not inn:
                 drums = max(drums, 0.6)
-        elif state.weather == "snow" and strength > 0:
+        elif state.weather == "snow" and strength > 0 and not state.indoors:
             tint("snow", low=6000.0, wet=0.20 + 0.25 * strength)
             drums *= 1.0 - 0.3 * strength
-        elif state.weather == "sandstorm" and strength > 0:
+        elif state.weather == "sandstorm" and strength > 0 and not state.indoors:
             tint("sandstorm", low=3000.0 + 5000.0 * (1.0 - strength), high=300.0 * strength)
         hush = 1.0
-        if state.daytime is False and not storming:
-            # Night: darker, further off and softer, the drums and the bass well back ("night should feel like night").
+        if state.daytime is False and not storming and not state.indoors and not dungeon:
+            # Night out of doors: darker, further off and softer, the drums and the bass well back ("night should feel like
+            # night"). Not in a cave, an inn or a dungeon, where the sky cannot be seen.
             tint("darker at night", low=NIGHT_TOP, wet=0.15, gain=NIGHT_GAIN)
             drums *= 0.7
             hush = NIGHT_HUSH

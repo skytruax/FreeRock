@@ -234,6 +234,28 @@ async def test_a_moment_in_the_game_brings_the_whole_band_in(tmp_path):
         await client.close()
 
 
+async def test_a_death_in_a_battleground_does_not_run_the_music_down(tmp_path):
+    """One dies often in a battleground, and its music plays on through a death. Anywhere else a death runs the
+    music down like a record stopping, so the player pages are told of it."""
+    client, app, conductor = await running(tmp_path)
+    try:
+        socket = await client.ws_connect("/ws/player")
+        publish(app, zone_name="Warsong Gulch", in_instance=True, instance_kind="battleground")
+        while (await next_of(socket, "target"))["target"]["place"] != "battleground":
+            pass
+        app["hub"].publish(game.MomentReceived("died", 1))
+        app["hub"].publish(game.MomentReceived("level_up", 2))
+        assert (await next_of(socket, "moment"))["name"] == "level_up", "the death there was not passed on"
+        publish(app, zone_name="Elwynn Forest")
+        while (await next_of(socket, "target"))["target"]["place"] == "battleground":
+            pass
+        app["hub"].publish(game.MomentReceived("died", 3))
+        assert (await next_of(socket, "moment"))["name"] == "died"
+        await socket.close()
+    finally:
+        await client.close()
+
+
 async def test_a_page_left_playing_over_a_restart_plays_on_for_half_a_minute_and_is_then_told_to_be_quiet(tmp_path):
     """After a restart the program has not seen the game yet. A player page that reconnects (it
     may still be playing what it had) is left to it while the game's sensor finds the new

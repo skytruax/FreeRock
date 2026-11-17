@@ -104,6 +104,13 @@ def test_a_mount_that_is_standing_still_is_not_riding_and_a_flight_path_is_not_m
     assert flight.drums == 0.0 and flight.bass == 0.0 and flight.highpass_hz == 150.0 and flight.reverb == 0.30
 
 
+def test_a_flight_path_is_a_journey_not_a_wait():
+    at = play([(0, {"on_taxi": True, "flying": True, "speed": 30.0})], 60, start=STANDING)
+    flight = at(60)
+    assert flight.bed == 1.0 and flight.also == () and flight.intensity == pytest.approx(0.25)
+    assert "standing still for a while" not in flight.why and "standing still" not in flight.why and "flight path" in flight.why
+
+
 def test_standing_still_for_a_while_lets_the_calm_part_in():
     at = play([(40, {"speed": 7.0})], 50, start=STANDING)
     assert at(14).also == () and at(15.25).also == ("ember",) and "standing still for a while" in at(16).why
@@ -318,6 +325,13 @@ def test_a_moment_gets_the_whole_band():
     assert Director().moment("died", 1.0) is False and Director().moment("level_up", 1.0) is True
 
 
+def test_a_smaller_moment_does_not_cut_a_bigger_one_short():
+    at = play([], 20, start=STANDING, moments=[(0, "level_up"), (6, "quest_turned_in")])
+    assert at(8).intensity == 1.0 and "a level gained" in at(8).why, "the level's whole band plays its ten seconds"
+    bigger = play([], 20, start=STANDING, moments=[(0, "quest_turned_in"), (2, "level_up")])
+    assert bigger(3).intensity == 1.0 and bigger(11.5).intensity == 1.0 and "a level gained" in bigger(11.5).why
+
+
 def test_a_moment_does_not_wake_the_dead():
     dead = play([(1, {"dead": True})], 12, moments=[(5, "level_up")])
     assert dead(6).bass == 0.0 and dead(6).intensity == 0.0
@@ -340,6 +354,21 @@ def test_walking_indoors_muffles_at_once_and_moves_to_depths_if_you_stay():
 def test_ducking_into_a_doorway_does_not_change_the_section():
     at = play([(5, {"indoors": True}), (5.75, {"indoors": False})], 12)
     assert all(at(moment).place == "wander" for moment in (5, 5.5, 6, 7, 9, 12))
+
+
+def test_a_plain_rare_in_the_fight_is_big_game_as_in_your_sights():
+    at = play([(1, {**FIGHT, "target_class": "rare"})], 4, start=STANDING)
+    assert at(2).intensity >= 0.92
+
+
+def test_walking_in_a_dungeon_is_tense_but_not_full_tilt():
+    """Full tilt (the hard-rock part out of a fight) is for what the player does: a long ride, fights close together.
+    The dungeon's tension alone once got there after seventeen seconds of walking."""
+    inside = GameState(daytime=True, in_instance=True, instance_kind="party", indoors=True, speed=7.0)
+    walk = play([], 60, start=inside)(60)
+    assert walk.place == "wander" and "at full tilt" not in walk.why and walk.intensity == pytest.approx(0.72)
+    ride = play([], 40, start=dataclasses.replace(STANDING, speed=14.0, mounted=True))(40)
+    assert ride.place == "storm" and "at full tilt" in ride.why, "a long ride out in the world still gets there"
 
 
 def test_an_inn_is_calm_and_quieter_and_a_citys_streets_are_not():
@@ -423,6 +452,28 @@ def test_a_storm_at_night_still_rocks_and_a_storm_outside_a_cave_does_not_reach_
     assert cave.bass == 0.0 and cave.place == "depths"
 
 
+def test_a_storm_ends_only_after_the_rain_has_been_light_for_twenty_seconds_together():
+    at = play([(1, {"weather": "rain", "weather_intensity": 0.9}), (10, {"weather_intensity": 0.3}),
+               (25, {"weather_intensity": 0.5}), (55, {"weather_intensity": 0.3})], 90)
+    assert at(9).place == "storm" and at(54).place == "storm"
+    assert at(70).place == "storm", "the light rain before the steadier spell does not count towards its end"
+    assert at(76).place == "wander"
+    snow = play([(1, {"weather": "rain", "weather_intensity": 0.9}), (10, {"weather": "snow", "weather_intensity": 0.9})], 40)
+    assert snow(9).place == "storm" and snow(31).place == "wander", "snow, however heavy, is not a rain storm"
+
+
+def test_snow_sandstorm_and_night_are_for_out_of_doors():
+    sand_cave = play([(1, {"indoors": True, "weather": "sandstorm", "weather_intensity": 1.0})], 3)(3)
+    assert sand_cave.highpass_hz == 20.0 and "sandstorm" not in sand_cave.why
+    snow_cave = play([(1, {"indoors": True, "weather": "snow", "weather_intensity": 1.0})], 3)(3)
+    assert "snow" not in snow_cave.why
+    dungeon = GameState(daytime=False, in_instance=True, instance_kind="party", indoors=True)
+    night_in = play([], 5, start=dungeon)(5)
+    assert night_in.also == ("depths",) and night_in.lowpass_hz == 20000.0 and night_in.hush == 1.0 and night_in.volume == 1.0
+    cave = play([(1, {"indoors": True})], 5, start=GameState(daytime=False))(5)
+    assert cave.place == "depths" and cave.hush == 1.0 and "darker at night" not in cave.why
+
+
 def test_snow_sandstorm_and_weather_the_game_does_not_report():
     snow = play([(1, {"weather": "snow", "weather_intensity": 1.0})], 3)(3)
     assert snow.lowpass_hz == 6000.0 and snow.reverb == pytest.approx(0.45)
@@ -450,13 +501,16 @@ def test_night_cinematic_and_switched_off():
 
 
 def test_each_reason_is_given_once_and_tints_combine():
+    town_at_night = play([(1, {"resting": True, "daytime": False, "weather": "rain", "weather_intensity": 0.2})], 6)(6)
+    assert len(town_at_night.why) == len(set(town_at_night.why))
+    assert "rain" in town_at_night.why and "darker at night" in town_at_night.why and town_at_night.reverb == pytest.approx(0.15)
     inn_at_night = play([(1, {"indoors": True, "resting": True, "daytime": False})], 6)(6)
     assert len(inn_at_night.why) == len(set(inn_at_night.why))
-    assert "quieter in an inn" in inn_at_night.why and "darker at night" in inn_at_night.why
+    assert "quieter in an inn" in inn_at_night.why and "darker at night" not in inn_at_night.why
     cave = play([(1, {"indoors": True})], 6)(6)
     assert cave.why == ("indoors for a while", "indoors: muffled and echoing")
-    both = play([(1, {"indoors": True, "weather": "snow", "weather_intensity": 1.0, "daytime": False})], 2)(2)
-    assert both.lowpass_hz == 2500.0 and both.reverb == pytest.approx(0.45)
+    both = play([(1, {"weather": "snow", "weather_intensity": 1.0, "daytime": False})], 2)(2)
+    assert both.lowpass_hz == 3800.0 and both.reverb == pytest.approx(0.45)
     drowned = play([(1, {"indoors": True, "submerged": True, "dead": True})], 2)(2)
     assert drowned.lowpass_hz == 500.0 and drowned.reverb == 0.6
 

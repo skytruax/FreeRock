@@ -1924,7 +1924,6 @@
           }
           // A fight beginning or ending changes how the turn that is playing is shaped.
           const edge = (level) => (before.intensity >= level) !== (this.target.intensity >= level);
-          if (this.target.intensity >= WAVE_OFF) this._unrest(this.group);
           if (edge(0.8) || edge(WAVE_OFF)) this._reshape(this.group);
           if (this.group.piece) await this._gearPiece(this.group); else await this._gear();
         }
