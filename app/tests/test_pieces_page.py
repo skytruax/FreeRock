@@ -2,7 +2,8 @@
 
 The whole path short of the speakers: the bucket and its pieces go to the page, the page fetches
 the parts, plays them together, says which piece it is in, changes to a fight's own piece when a
-fight begins and picks the first one up again afterwards. Skipped where Chrome is not installed.
+dungeon's boss is fought and picks the first one up again afterwards. Skipped where Chrome is not
+installed.
 """
 import asyncio
 import shutil
@@ -32,7 +33,7 @@ def tone(hz, bars, post_s=4.0):
     return np.stack([wave, wave], axis=1)
 
 
-async def test_the_page_plays_a_piece_a_fight_cuts_in_and_the_piece_is_picked_up_again(tmp_path):
+async def test_the_page_plays_a_piece_a_boss_cuts_in_and_the_piece_is_picked_up_again(tmp_path):
     app = create_app(ServerConfig(var_dir=tmp_path / "var", keep_log=False))
     conductor = music.attach(app, settings=Settings(var_dir=tmp_path / "var"))
     bucket = conductor.buckets.get("Duskwood", "knight")
@@ -63,9 +64,9 @@ async def test_the_page_plays_a_piece_a_fight_cuts_in_and_the_piece_is_picked_up
         # What it plays is counted, part by part.
         await until(lambda: sum(clip.plays for clip in bucket.clips if clip.piece == walk) >= 2, "the parts heard to be counted")
 
-        # A fight against an elite: the fight's own piece takes over.
+        # A dungeon's boss: the fight's own piece takes over (an ordinary fight goes on with the song that is playing).
         left_at = max(s["piece"]["at"] for s in conductor.statuses.values() if (s.get("piece") or {}).get("id") == walk)
-        say(app, zone_name="Duskwood", speed=7.0, in_combat=True, has_target=True, target_class="elite")
+        say(app, zone_name="Duskwood", speed=7.0, in_combat=True, encounter=True)
         fight = await until(in_piece(brawl), "the fight's piece to cut in")
         assert fight["late"] == 0 and set(fight["playing"]) == {"rhythm", "drums", "bass"}
         assert (await (await _get(server, "/api/music")).json())["forever"]["playing_piece"]["title"] == "Duskwood 1: Fight"
