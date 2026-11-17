@@ -4,7 +4,7 @@
 
 The studio keeps a track as a recording for each channel, which is what the player wants and
 nobody can listen to. This puts the channels of each staged track together and writes the whole
-track as an MP3 file under var/listen/<style>/, with index.html beside them: open that in a
+track as a FLAC file under var/listen/<style>/, with index.html beside them: open that in a
 browser and every track is a row with its title, what it is for and a play button. A track
 that is there already, and is no older than the staged track, is left alone.
 
@@ -42,6 +42,13 @@ PIECE = 12.0                   # seconds: for the mixer page a channel is kept a
 ORDER = ("texture", "lead", "rhythm", "drums", "bass")
 
 
+def names(meta: dict) -> tuple[str, str]:
+    """A staged track's whole file on its style's list, and the folder its channels are kept in
+    for the mixer page: the same name, the one with ".flac" on the end."""
+    base = "%s - take %s (%s)" % (meta["title"], meta["take"], meta["family"])
+    return base + ".flac", base
+
+
 def channels(desk: Path, meta: dict, parts: dict[str, np.ndarray], peak: float) -> None:
     """Writes a track's channels for the mixer page: each channel as pieces of PIECE seconds
     (<channel>-<number>.mp3), and track.json, which says what there is and is written last."""
@@ -70,12 +77,11 @@ def mixed(folder: Path) -> tuple[str, dict]:
     the file's name and what the track is."""
     meta, parts = studio.read_track(folder)
     out = VAR / "listen" / meta["style"]
-    # The whole track lossless (2026-11-17, morning: "Make sure the mp3s arent losing quality"): its channels were
-    # staged as MP3, and the whole as MP3 again would be a second encoding; as FLAC it is what the game plays.
-    base = "%s - take %s (%s)" % (meta["title"], meta["take"], meta["family"])
-    name = base + ".flac"
+    # The whole track lossless (2026-11-17, morning: "Make sure the mp3s arent losing quality"): as FLAC it is what the
+    # game plays, where the whole as MP3 would have been a second encoding of the night's MP3 channels.
+    name, kept = names(meta)
     staged = (folder / "track.json").stat().st_mtime
-    desk = out / base[:-1]                       # the mixer page's folder, named as it always was
+    desk = out / kept
 
     def stale(path: Path) -> bool:
         return not path.is_file() or path.stat().st_mtime < staged
@@ -86,7 +92,7 @@ def mixed(folder: Path) -> tuple[str, dict]:
         if peak <= 0.0:
             raise ValueError("The track in %s is silent" % folder)
         out.mkdir(parents=True, exist_ok=True)
-        scratch = out / (base + ".part.flac")
+        scratch = out / (kept + ".part.flac")
         soundfile.write(str(scratch), mix * (0.89 / peak), studio.RATE, format="FLAC", subtype="PCM_16")
         scratch.replace(out / name)
         channels(desk, meta, parts, peak)
@@ -114,7 +120,7 @@ def page(style: str, rows: list[tuple[str, dict]]) -> str:
                      "<td><a href='../mixer.html?track=%s'>channels</a></td></tr>" % (
                          html.escape(meta["title"]), meta["take"], html.escape(meta["role"]), html.escape(", ".join(meta["moods"])),
                          "light" if meta.get("light") else "", html.escape(meta["tonic"]), seconds(meta) // 60, seconds(meta) % 60,
-                         html.escape(name, quote=True), quote("%s/%s" % (style, name[:-5]), safe="/")))
+                         html.escape(name, quote=True), quote("%s/%s" % (style, names(meta)[1]), safe="/")))
     lines.append("</table></body></html>")
     return "\n".join(lines) + "\n"
 
