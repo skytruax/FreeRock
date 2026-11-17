@@ -154,8 +154,11 @@ def _references() -> dict[str, dict]:
     global _kept
     if _kept is None:
         _kept = json.loads(KEPT.read_text(encoding="utf-8")) if KEPT.is_file() else {}
-        with open(STEMS / "stems.csv", newline="", encoding="utf-8") as table:
-            rows = list(csv.DictReader(table))
+        # The stems themselves may be gone (2026-11-16, night: the drive was cleared); what was measured of them is kept.
+        rows = []
+        if (STEMS / "stems.csv").is_file():
+            with open(STEMS / "stems.csv", newline="", encoding="utf-8") as table:
+                rows = list(csv.DictReader(table))
         fresh = False
         for row in rows:
             if row["file"] in _kept or row["banned"] or not (STEMS / row["file"]).is_file():
