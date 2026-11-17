@@ -36,15 +36,17 @@ def _serve_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--host", default="0.0.0.0", help="address to listen on (default: every address of this machine)")
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--link-only", action="store_true", help="run the game link and its page without the music")
-    parser.add_argument("--no-new-music", action="store_true",
-                        help="play what is in the library and never ask ElevenLabs for more")
+    # ("stop buying eleven labs were making music now", 2026-11-16: the server used to buy phrases from ElevenLabs
+    # the whole time the game was played. The music is the studio's own now, so nothing is bought unless this is said.)
+    parser.add_argument("--buy-from-elevenlabs", action="store_true",
+                        help="also ask ElevenLabs for new phrases while the game is played (it costs money; off unless said)")
 
 
 def _serve(arguments: argparse.Namespace) -> int:
     from freerock import main as whole
 
     whole.serve(host=arguments.host, port=arguments.port, music=not arguments.link_only,
-                new_music=not arguments.no_new_music)
+                new_music=arguments.buy_from_elevenlabs)
     return 0
 
 

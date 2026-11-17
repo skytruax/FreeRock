@@ -24,7 +24,7 @@ import zipfile
 from pathlib import Path
 
 import numpy as np
-from aiohttp import WSMsgType, web
+from aiohttp import WSCloseCode, WSMsgType, web
 from PIL import Image
 
 from freerock import beacon, state
@@ -127,6 +127,7 @@ class LinkService:
         self._strip_pixels: np.ndarray | None = None   # the strip as last captured, for the page
         self._strip_read = False
         self._ui: set[web.WebSocketResponse] = set()
+        self._sensor_sockets: set[web.WebSocketResponse] = set()   # the open connections of sensors, to close when the server stops
         self._dirty = True
         self._log_file = None
         self._look = 0          # the way of looking that last read a frame (beacon.read's look_first)
@@ -380,6 +381,7 @@ async def _sensor_socket(request: web.Request) -> web.WebSocketResponse:
     link: LinkService = request.app["link"]
     connection = link.sensor_connected(request.remote or "unknown")
     connection.server_address = _address(request)
+    link._sensor_sockets.add(socket)
     try:
         async for message in socket:
             if message.type == WSMsgType.BINARY:
@@ -400,6 +402,7 @@ async def _sensor_socket(request: web.Request) -> web.WebSocketResponse:
             while connection.orders:
                 await socket.send_str(json.dumps(connection.orders.pop(0)))
     finally:
+        link._sensor_sockets.discard(socket)
         link.sensor_disconnected(connection)
     return socket
 
@@ -417,6 +420,21 @@ async def _ui_socket(request: web.Request) -> web.WebSocketResponse:
     finally:
         link._ui.discard(socket)
     return socket
+
+
+async def close_sockets(sockets: set[web.WebSocketResponse]) -> None:
+    """The server is stopping: every open connection is told so at once. Left open, each one
+    holds a stopping server up for a minute, and whoever is at the other end (the game's
+    sensor, a player page) goes on talking to it instead of finding the server that has taken
+    its place: on 2026-11-16 a restart left the music silent for a minute and a half that way,
+    and the old server wrote its buckets after the new ones had been put in."""
+    for socket in list(sockets):
+        await socket.close(code=WSCloseCode.SERVICE_RESTART, message=b"FreeRock is restarting")
+
+
+async def _stopping(app: web.Application) -> None:
+    link: LinkService = app["link"]
+    await close_sockets(link._sensor_sockets | link._ui)
 
 
 async def _front_page(request: web.Request) -> web.FileResponse:
@@ -561,6 +579,7 @@ def create_app(config: ServerConfig | None = None, *, hub: state.Hub | None = No
     app.router.add_get("/addon.zip", _addon_zip)
     app.router.add_get("/FreeRock.cmd", _launcher)
     app.on_startup.append(_start)
+    app.on_shutdown.append(_stopping)
     app.on_cleanup.append(_stop)
     return app
 

@@ -515,12 +515,17 @@ async def test_a_place_with_little_music_rests_sooner(tmp_path):
         await client.close()
 
 
-async def test_a_page_left_playing_over_a_restart_is_told_to_be_quiet(tmp_path):
+async def test_a_page_left_playing_over_a_restart_plays_on_for_half_a_minute_and_is_then_told_to_be_quiet(tmp_path):
     """After a restart the program has not seen the game yet. A player page that reconnects (it
-    may still be playing what it had) is sent silence until the game is seen."""
-    client, app, conductor, assets = await running(tmp_path)
+    may still be playing what it had) is left to it while the game's sensor finds the new
+    server, and is sent silence if the game has still not been seen half a minute on."""
+    clock = Clock()
+    client, app, conductor, assets = await running(tmp_path, clock=clock)
     try:
         socket = await client.ws_connect("/ws/player")
+        await conductor.step()
+        assert conductor.target is None, "a page that was playing was told to be quiet the moment the server came back"
+        clock.now += music.RESTART_GRACE_S + 1.0
         quiet = await next_of(socket, "target")
         assert quiet["target"]["silent"] is True and quiet["target"]["why"] == ["the game has not been seen yet"]
         assert quiet["where"] == {"zone": None, "subzone": None, "instance": None}

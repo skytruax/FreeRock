@@ -117,7 +117,7 @@ Under `var/samples` (on the assets drive), each fetched from GitHub as a tarball
 | `swirly-drums`, `black-and-green-guitars`, `pastabass`, `growlybass`, `meatbass`, `emilyguitar`, `shinyguitar` | A drum kit, electric guitars recorded clean, basses, guitars (for the band; not used yet) | sfzinstruments/karoryfer.* | CC0 |
 | `salamander-piano` | A grand piano (not used yet) | sfzinstruments/SalamanderGrandPiano | CC BY 3.0 (Alexander Holm) |
 | `tinysol` | Horn, trumpet, trombone, tuba, clarinet and bassoon (and flute, oboe, saxophone and solo strings, not used yet): every semitone played soft, medium and loud, one close microphone | TinySOL, zenodo.org/records/3685367 (Carmine Emanuele Cella, Daniele Ghisi, Vincent Lostanlen, Fabien Lévy, Joshua Fineberg and Yan Maresz; recorded at IRCAM) | CC BY 4.0 on the download page. IRCAM's paper on the same recordings says "free for non-commercial usage": fine for music that is only listened to at home, to be settled before anything is shared |
-| `naked-drums` | A drum kit with five toms, ten takes of every stroke and a far-room microphone (fetched for the war drums; not used yet) | sfzinstruments/WilkinsonAudio.NakedDrums | CC BY 4.0 (Wilkinson Audio) |
+| `naked-drums` | A drum kit with five toms, ten takes of every stroke and a far-room microphone: its bass drum's inside, outside and room microphones are the kick (`sounds.NAKED`); the rest is not used yet | sfzinstruments/WilkinsonAudio.NakedDrums | CC BY 4.0 (Wilkinson Audio) |
 
 `studio/samples.py` reads a folder of single notes into zones (measuring each recording's pitch),
 `studio/sfz.py` writes the sampler's instrument file for it into `var/reaper/sfz`, and

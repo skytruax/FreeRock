@@ -512,7 +512,7 @@ def read_the_screen(arguments) -> int:
         except (OSError, LinkClosed) as error:
             print(f"Cannot reach FreeRock at {arguments.server}: {error}. Trying again in {wait:.0f} s.")
             time.sleep(wait)
-            wait = min(wait * 2, 15.0)
+            wait = min(wait * 2, 3.0)             # the server is a few yards away: a restart of it is over in seconds
             continue
         wait = 1.0
         print("Connected to FreeRock.")

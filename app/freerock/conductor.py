@@ -28,6 +28,7 @@ from .eleven import AllowanceExceeded, ElevenError
 from .ingest import Ingest, TrackFailedChecks
 from .library import Asset, Library, merged
 from .playtime import Playtime
+from .server import close_sockets
 from .settings import Settings
 
 log = logging.getLogger("freerock.conductor")
@@ -58,6 +59,7 @@ POOL_REST_S = 90.0       # a pool whose phrase failed its checks three times run
 BUSY_S = 20.0            # how long to hold off when ElevenLabs is busy or stumbles
 SPENT_S = 3600.0         # how long to hold off when the account has nothing left to make music with
 SETTLE_S = 20.0          # how long the player has been in a new place before phrases are asked for in its colours
+RESTART_GRACE_S = 30.0   # after a start, how long a page that was playing is left to play while the game's sensor finds its way back
 ARRIVAL_EVERY_S = 600.0  # and how long before the same place is greeted that way again
 
 
@@ -86,6 +88,7 @@ class Conductor:
         self.settings = settings or Settings()
         self.playtime = playtime or Playtime(self.settings.var_dir / "playtime.json")
         self._last_step: float | None = None
+        self._began = clock()
         self.making: str | None = None   # the zone music is being made for right now
         self._making_task: asyncio.Task | None = None
         self._seen_in: tuple[str, float] | None = None   # (zone, when the player was first seen there)
@@ -278,8 +281,13 @@ class Conductor:
         """Looks at the game once and tells the players whatever has changed."""
         state = self.hub.state
         if state is None:
-            # Nothing has been heard from the game since the program started. A player page that
-            # was playing before a restart is told to be quiet, not left playing to itself.
+            # Nothing has been heard from the game since the program started. For the first half
+            # minute that is a restart: the game's sensor needs some seconds to find the new
+            # server, and a page that was playing goes on with what it has (on 2026-11-16 a
+            # restart was forty seconds of silence in the middle of an evening). After that, a
+            # page that is playing is told to be quiet, not left playing to itself.
+            if self.clock() - self._began < RESTART_GRACE_S:
+                return
             waiting = Target(silent=True, fade_s=2.0, why=("the game has not been seen yet",))
             if self.target != waiting:
                 self.target = waiting
@@ -1095,5 +1103,10 @@ def attach(app: web.Application, library: Library | None = None,
     listen.mkdir(parents=True, exist_ok=True)
     app.router.add_static("/listen", listen, show_index=True)
     app.on_startup.append(_start)
+
+    async def _stopping(app: web.Application) -> None:
+        await close_sockets(conductor.players)       # the player pages are told at once, and find the next server
+
+    app.on_shutdown.append(_stopping)
     app.on_cleanup.append(_stop)
     return conductor

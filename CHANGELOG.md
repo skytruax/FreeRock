@@ -1,5 +1,46 @@
 # Changelog
 
+## Played for an evening: one song through a fight, fades on everything, no repeats, nothing bought (2026-11-16, late)
+
+The first evening on the new pieces, with the game. What was said while playing, and what was
+changed while they played:
+
+- **"feels like its playing the same songs over and over and maybe playing a different song in
+  battles"; "in normal fights dont play a separate battle piece dungeon bosses ONLY".** Every
+  pull used to cut to a piece written for fights, on the beat, and back again: a different song
+  every half minute, from a handful of battle tracks (26 plays of four that evening). Now a
+  fight is answered by the song that is playing, with its drums and bass brought up. Only a
+  dungeon's boss (the game says when its encounter begins and ends) has music of its own; an
+  elite, a crowd, a long fight and a world boss do not (`director.py`: `place` is "boss" for an
+  encounter and nothing else names a fight's piece; `forever.js`: `_ask`).
+- **"the abruptness between fighting and not, its way too much now, it should only be a subtle
+  difference like before".** The afternoon's "drastic" hand is taken back: the drums and the
+  bass stand at 55 to 100% whatever the game does (`studio/build.py` FLOOR, and written into
+  the pieces already in the buckets without rendering them again), twenty seconds on foot
+  bring the drums to about 73%, and a fight adds the last quarter.
+- **"you gotta fade in and out of everything, new songs, but even channel changes".** A channel
+  now comes up over three and a half to four seconds and goes down over five to six (it was
+  1.2 for the drums and the bass). A new song is crossfaded in under the last bar of the one
+  that is ending, and is whole on the beat that one ends on; a boss's piece comes in over a
+  bar; the music comes in over three seconds when it starts from nothing.
+- **The same tracks round and round.** The best-suited track was chosen every time, so a place
+  of one kind with three tracks written for it heard those three all night. Now each time a
+  track has begun in the last three quarters of an hour counts against choosing it again,
+  measured among light tracks and among heavy ones separately so that they go on taking turns;
+  and the kinds of place have neighbours (pastoral: highland, regal, mystic; jungle: mystic,
+  haunted, desert; and so on), whose music is reached for before a track is heard a third time.
+- **"stop buying eleven labs were making music now".** The server used to buy phrases from
+  ElevenLabs the whole time the game was played (147 minutes that evening). `freerock serve`
+  now buys nothing; `--buy-from-elevenlabs` is how it is asked for.
+- **Restarts.** A server that was told to stop held on to the game's sensor for two minutes
+  (and wrote its old bucket lists over new ones): it now closes every connection at once. A
+  page that was playing is left to play for half a minute after a start, while the sensor finds
+  the new server, and the sensor tries again every three seconds at most, not fifteen.
+- Kept from a review that was begun and stopped: a place change that arrives in the middle of
+  a fight is no longer lost (the look is taken again when the fight is over); the calm after a
+  fight inside a cave no longer takes the cave's track away; and looking for a better track
+  no longer forgets the one that was left.
+
 ## A band, players that breathe, and music that goes where the player goes (2026-11-16, night)
 
 Said while the evening's music was being rendered: "make sure our location changes CHANGE

@@ -81,8 +81,8 @@ class Rules:
         on foot     the drums come in; keep going and the bass joins and the band fills out
         riding      drums and bass at once; a long ride reaches the zone's hard-rock part
         in sights   something to fight is targeted: the bass leans in
-        a fight     the Battle part with the whole band, on the next beat
-        a boss      the heaviest part
+        a fight     the whole band, in the song that is playing: no other piece comes in for it
+        a boss      a dungeon's boss has music of its own: the heaviest part
     """
     # The rungs, as intensity from 0 to 1.
     idle: float = 0.10
@@ -114,24 +114,22 @@ class Rules:
     base_dungeon: float = 0.40        # a dungeon is tenser than the open world
     inn_ceiling: float = 0.30         # inside an inn nothing but a fight rises above this
     # Where the layers and the hard-rock part come in on the way up, and go on the way down.
-    # ("theres not much difference between quet and full, we want more ... drasticness", 2026-11-16. Twenty seconds on
-    # foot used to bring the drums to 73% and the bass to 72%, and a fight could only add the last quarter. Now
-    # standing has neither, walking has a hint of the drums and a third of the bass, riding about half, and it is a
-    # fight that brings them in whole.)
-    drums_on: float = 0.45
-    drums_least: float = 0.1          # how much of the drums there is the moment they come in
-    drums_bend: float = 1.5           # above 1, the drums stay low for longer on the way up to a fight
+    # (2026-11-16, twice. In the afternoon: "theres not much difference between quet and full, we want more ...
+    # drasticness", and a calm game was given no drums and a third of the bass, a fight bringing them in whole. Played
+    # that evening: "the abruptness between fighting and not, its way too much now, it should only be a subtle
+    # difference like before". So these are as they were before: twenty seconds on foot bring the drums to about
+    # 73% and the bass to 72%, and a fight adds the last quarter.)
+    drums_on: float = 0.33
+    drums_least: float = 0.45         # how much of the drums there is the moment they come in
     bass_on: float = 0.55
     bass_off: float = 0.47
-    bass_least: float = 0.3
+    bass_least: float = 0.7
     charge_at: float = 0.70           # out of a fight, this much going on moves to the hard-rock part
     charge_off: float = 0.62
     decay_per_s: float = 0.12         # how fast the intensity comes down when things calm
     hold_after_combat_s: float = 3.0
-    battle_after_s: float = 0.0       # how long into a fight the Battle section comes: at once
-    battle_after_elite_s: float = 0.0
-    afterglow_s: float = 8.0          # Ember after a fight that reached Battle...
-    afterglow_fight_s: float = 10.0   # ...and lasted at least this long; a short one goes straight back
+    afterglow_s: float = 8.0          # Ember after a boss's fight...
+    afterglow_fight_s: float = 10.0   # ...that lasted at least this long; a short one goes straight back
     depths_after_s: float = 1.0
     depths_release_s: float = 2.0
     rain_drums_at: float = 0.3        # rain this strong brings the drums in
@@ -186,7 +184,6 @@ class _Memory:
     calm_weather_since: float | None = None
     in_storm: bool = False
     mounted_since: float | None = None
-    elite_since: float | None = None
     place_key: tuple | None = None       # where the player was last seen, to notice a new place
     play_until: float | None = None      # when the music next takes a rest
     rest_until: float | None = None      # when the rest that is going on ends
@@ -297,7 +294,11 @@ class Director:
         if state.cinematic:
             return Target(silent=True, fade_s=0.3, why=("cinematic",))
 
-        boss = state.encounter or (state.in_combat and state.target_class == "worldboss")
+        # A dungeon's boss (the game says when its encounter begins and ends) is the one fight that has music of its
+        # own. Every other fight, an elite's and a world boss's too, is answered by the song that is playing, with its
+        # drums and bass brought up ("in normal fights dont play a separate battle piece dungeon bosses ONLY",
+        # 2026-11-16: a piece of its own for every pull was a different song every half minute, cut in on the beat).
+        boss = state.encounter
         elite = state.in_combat and state.target_class in ("elite", "rareelite", "worldboss")
         dungeon = state.in_instance and state.instance_kind in ("party", "raid", "scenario")
         fallen = state.dead or state.ghost
@@ -373,17 +374,14 @@ class Director:
                 why.append("%s enemies in the fight" % ("14 or more" if crowd >= 14 else crowd))
             if elite:
                 m.intensity = max(m.intensity, rules.elite_floor)
-                m.elite_since = m.elite_since if m.elite_since is not None else now
-            else:
-                m.elite_since = None
-            if boss:
+            if boss or state.target_class == "worldboss":
                 m.intensity = 1.0
         else:
             m.heat *= 0.5 ** (elapsed / rules.heat_half_life_s)
             hold = rules.hold_after_combat_s + rules.roll_hold_s * roll()
             if m.combat_since is not None:
                 fought = now - m.combat_since
-                m.combat_since, m.combat_ended, m.elite_since = None, now, None
+                m.combat_since, m.combat_ended = None, now
                 if m.reached_battle and fought >= rules.afterglow_fight_s:
                     m.afterglow_until = now + hold + rules.afterglow_s
             held = m.combat_ended is not None and now - m.combat_ended < hold
@@ -420,14 +418,12 @@ class Director:
         elif intensity < rules.bass_off:
             m.bass_in = False
         bass = rules.bass_least + (1.0 - rules.bass_least) * _share(intensity, rules.bass_on, rules.combat_start) if m.bass_in else 0.0
-        drums = rules.drums_least + (1.0 - rules.drums_least) * _share(intensity, rules.drums_on, rules.combat_start) ** rules.drums_bend \
+        drums = rules.drums_least + (1.0 - rules.drums_least) * _share(intensity, rules.drums_on, rules.combat_start) \
             if intensity >= rules.drums_on else 0.0
         bed = 1.0
 
         # --- which section -------------------------------------------------------------------
-        in_combat_long = m.combat_since is not None and now - m.combat_since >= rules.battle_after_s
-        elite_long = m.elite_since is not None and now - m.elite_since >= rules.battle_after_elite_s
-        if in_combat_long or elite_long:
+        if boss and m.combat_since is not None:
             m.reached_battle = True
 
         # A dungeon is indoors from end to end; its own music is made for that. The cave rules
@@ -480,12 +476,10 @@ class Director:
             also.append("battle")
             why.append("boss")
         elif m.combat_since is not None and m.reached_battle:
+            # The boss's encounter is over and the fight is not (what it called in is still up): the pieces
+            # written for a fight go on, and the heaviest with them.
             place, cut = "battle", "beat"
-            # A fight takes turns through every hard piece the place has: its Battle parts, its
-            # hard-rock part, and against something big the heaviest part as well.
-            also.append("storm")
-            if elite or dungeon:
-                also.append("boss")
+            also += ["storm", "boss"]
             why.append("a fight")
         elif fallen:
             place = "ember"
@@ -494,7 +488,7 @@ class Director:
             place = "ember"
             why.append("after the fight")
         elif m.combat_ended is not None and m.reached_battle and now - m.combat_ended < hold:
-            place = "battle"       # the next pull may be coming; do not leave Battle yet
+            place = "battle"       # just after a boss: its music is not left at once
             also.append("storm")
         elif m.in_depths:
             place, cut, sited = "depths", "beat", True

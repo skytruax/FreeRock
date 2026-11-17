@@ -48,12 +48,13 @@ RIDE = 0.42                    # how far each part of the story is brought up to
 DUCK = {"bass": 0.56, "texture": 0.8, "rhythm": 0.8, "lead": 0.9}
 DRUMS_UP = 6.0                 # dB: the most the drums are ever turned up to reach their place
 MUSE_WORKERS = 5               # how many parts of a piece MuseScore performs at once
-# ("theres not much difference between quet and full, we want more ... drasticness", 2026-11-16: the drums and the
-# bass used to stand at 55 to 100% whatever the game did. Now a calm game has no drums and little bass, a rise
-# lets some in, a moment has half the drums, and a fight has everything.)
-FLOOR = {"open": {"rhythm": 1.0, "bass": 0.35, "drums": 0.0}, "theme": {"rhythm": 1.0, "bass": 0.4, "drums": 0.0},
-         "rise": {"rhythm": 1.0, "bass": 0.55, "drums": 0.25}, "moment": {"rhythm": 1.0, "bass": 0.8, "drums": 0.5},
-         "close": {"rhythm": 1.0, "bass": 0.35, "drums": 0.0}}
+# (2026-11-16, twice. In the afternoon: "theres not much difference between quet and full, we want more ...
+# drasticness", and a calm game was given no drums and a third of the bass. Played that evening: "the abruptness
+# between fighting and not, its way too much now, it should only be a subtle difference like before". So these are
+# as they were before: the drums and the bass stand at 55 to 100% whatever the game does, and a fight adds the rest.)
+FLOOR = {"open": {"rhythm": 1.0, "bass": 0.85, "drums": 0.6}, "theme": {"rhythm": 1.0, "bass": 0.85, "drums": 0.55},
+         "rise": {"rhythm": 1.0, "bass": 0.9, "drums": 0.75}, "moment": {"rhythm": 1.0, "bass": 1.0, "drums": 0.9},
+         "close": {"rhythm": 1.0, "bass": 0.85, "drums": 0.55}}
 
 
 def plan() -> list[tuple[Family, int]]:

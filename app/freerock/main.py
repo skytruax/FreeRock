@@ -20,12 +20,13 @@ from .settings import MissingKey, Settings, find_key
 log = logging.getLogger("freerock")
 
 
-def build_app(config: server.ServerConfig | None = None, *, music: bool = True, new_music: bool = True,
+def build_app(config: server.ServerConfig | None = None, *, music: bool = True, new_music: bool = False,
               settings: Settings | None = None) -> web.Application:
     """The server with everything attached.
 
-    music=False gives the game link alone. new_music=False plays what is in the library and
-    never calls ElevenLabs. Without a key, new music is off and the control page says why.
+    music=False gives the game link alone. new_music=True also buys new phrases from ElevenLabs
+    while the game is played; as a rule it is off, and what is in the buckets is played.
+    Without a key, new music is off whatever is asked and the control page says why.
     """
     config = config or server.ServerConfig(front_page="/player" if music else "/")
     app = server.create_app(config)
@@ -35,7 +36,7 @@ def build_app(config: server.ServerConfig | None = None, *, music: bool = True, 
     library = Library(settings.library_dir)
     ingest, filler, note = None, None, None
     if not new_music:
-        note = "New music is switched off; playing only what is in the library."
+        note = "Nothing is bought from ElevenLabs; playing what is in the buckets."
     else:
         try:
             find_key()
@@ -75,7 +76,7 @@ def addresses() -> list[str]:
     return found
 
 
-def serve(host: str = "0.0.0.0", port: int = 8765, *, music: bool = True, new_music: bool = True) -> None:
+def serve(host: str = "0.0.0.0", port: int = 8765, *, music: bool = True, new_music: bool = False) -> None:
     """Runs FreeRock until it is stopped."""
     config = server.ServerConfig(host=host, port=port, front_page="/player" if music else "/")
     app = build_app(config, music=music, new_music=new_music)

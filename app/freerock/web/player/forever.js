@@ -46,10 +46,11 @@
   const SEAM_IN = 0.003;     // a phrase that is cut into comes in over this long
   const SEAM_OUT = 0.020;    // every phrase goes out over this long, so its last note does not click
   const LINE_BARS = 4;       // at most one deck takes a new phrase at each line of this many bars
-  // How fast a channel comes up and goes down, in seconds. Channels arrive almost at once, so
-  // the music answers what the player does; they leave more slowly so that it does not flicker.
-  const UP = { texture: 3.0, lead: 2.0, rhythm: 1.6, drums: 1.2, bass: 1.2 };
-  const DOWN = { texture: 4.0, lead: 3.5, rhythm: 3.5, drums: 3.0, bass: 3.0 };
+  // How fast a channel comes up and goes down, in seconds: a slow hand on a fader. ("you gotta fade in and
+  // out of everything, new songs, but even channel changes", 2026-11-16: the drums and the bass used to be
+  // there 1.2 seconds after a fight began, which was heard as a switch being thrown.)
+  const UP = { texture: 4.0, lead: 3.5, rhythm: 3.5, drums: 4.0, bass: 4.0 };
+  const DOWN = { texture: 6.0, lead: 5.0, rhythm: 5.0, drums: 6.0, bass: 6.0 };
   // The crossfade when a deck changes strength in the middle of a phrase, for a bucket of short
   // phrases without a form.
   const SWAP = { texture: 1.0, lead: 0.25, rhythm: 0.08, drums: 0.03, bass: 0.03 };
@@ -61,7 +62,9 @@
   const BLEND = { texture: 4, lead: 2, rhythm: 2, drums: 2, bass: 2 };
   const BLEND_TURN = 2;
   const BLEND_EASING = 2;
-  const BLEND_FIGHT = 0.5;
+  const BLEND_FIGHT = 1;
+  const BLEND_SONG = 1;      // a new song comes in over this many bars, never whole on its first beat
+  const START_IN = 3.0;      // seconds the music takes to come in when it starts from nothing
   const BLEND_ENTRY = 1;     // a tune coming in after sitting out a verse
   const BLEND_STEPS = 8;     // a blend's curve is laid down as this many straight pieces
   // How long a phrase stays before the deck wants another, in passes through it (least, most).
@@ -90,7 +93,7 @@
   const LAY_OUT = 0.4;       // how often the tune sits out a phrase before the next tune comes in
   const TEXTURE_OVERLAP = 1; // bars over which one pass of the drone fades into the next
   const REST_IN = 3.5;       // how long the music takes to fade back in after a rest
-  const REST_IN_FAST = 0.2;  // ...unless something has just happened, a fight say
+  const REST_IN_FAST = 1.5;  // ...or over this long when something has just happened, a fight say: still a fade
   const WIND_DOWN = 1.2;     // how long the music takes to run down, like a record stopping, at a death
   const LEAVE = 6.0;         // one style's music fades away over this long when another's takes over
   const ARRIVE = 5.0;        // and the new one fades in over this long
@@ -103,6 +106,14 @@
   const RESUME_WITHIN = 900;   // a piece that a fight cut into is gone back to if the fight is over within this long
   const FIGHT_AGAIN = 600;     // a fight's own track is gone on with if the next fight comes within this long
   // Where the player goes, the music follows ("make sure our location changes CHANGE SONGS", 2026-11-16).
+  // ("feels like its playing the same songs over and over", the same evening: the best-suited track was chosen
+  // every time, and a place of one kind with three tracks written for it heard those three all night.)
+  const WORN_FOR = 2700;       // seconds a track counts as lately heard
+  const WORN = 0.45;           // ...and how much each time it began in that while counts against choosing it again
+  // The kinds of place whose music sits well in each other's: what is reached for before a track is heard a third time.
+  const NEAR = { pastoral: ["highland", "regal", "mystic"], highland: ["pastoral", "regal"], regal: ["pastoral", "highland", "infernal"],
+                 haunted: ["mystic", "jungle"], mystic: ["haunted", "jungle", "pastoral"], jungle: ["mystic", "haunted", "desert"],
+                 desert: ["infernal", "jungle"], infernal: ["desert", "regal"] };
   const SETTLE = 4.0;          // seconds in another kind of place (or in a cave, an inn) before the music follows: a step over a border and back changes nothing
   const PLACE_STAY = 20.0;     // ...and the music does not move for a place twice within this long
   const BLEND_PLACE = 2;       // bars the track that is playing takes to give way to the new place's
@@ -136,6 +147,7 @@
       // next fight, so that a fight's music gets past its opening over an evening).
       this.left = { walk: null, fight: null };
       this.standby = null;       // the piece a fight would bring in, chosen ahead so that it can be fetched ahead
+      this.begun = new Map();    // track -> the moments it began to play here (see _worn)
       this.followDue = null;     // when to look whether the music should follow the player somewhere new
       this.movedAt = -Infinity;  // when it last did
       this.restDue = null;       // when the next moment of silence is due, where pieces are strung together
@@ -650,8 +662,22 @@
       return { order, start: group.origin + lap * piece.seconds + order * span };
     }
 
-    // How hard the game is asking the music to play, as one number: calm, steady or hard.
-    _ask() { return this._wanted("rhythm").tier; }
+    // How hard the game is asking the music to play, as one number: calm, steady or hard. Hard
+    // is asked only where the director names a fight's own music (a dungeon's boss, and the
+    // fight around it): any other fight is answered by the song that is playing, its drums and
+    // bass brought up ("in normal fights dont play a separate battle piece dungeon bosses ONLY").
+    _ask() {
+      const tier = this._wanted("rhythm").tier, place = this.target.place;
+      return tier >= 2 && place !== "boss" && place !== "battle" ? 1 : tier;
+    }
+
+    // How often a track has begun in the last while: a track that has just been heard gives way
+    // to others, even ones that suit the place a little less, so that an evening in one kind
+    // of place is not the same three tracks round and round.
+    _worn(track) {
+      const now = this.ctx.currentTime;
+      return (this.begun.get(track) || []).filter((at) => now - at < WORN_FOR).length;
+    }
 
     // Whether the loose phrases of a bucket are enough to make music of on their own.
     _freeEnough(bucket) {
@@ -698,13 +724,15 @@
     // being cut into; `except` a piece not to choose; `ask` a strength to choose for in place
     // of the one the game asks for now.
     // How well a piece suits the kind of place the player is in: written for the place's first
-    // kind (Duskwood is haunted before it is anything else), for another of its kinds, or for
-    // neither. A piece that does not say, or a place that does not, is in between.
+    // kind (Duskwood is haunted before it is anything else), for another of its kinds, for a
+    // kind that sits near the first, or for none of those. A piece that does not say, or a
+    // place that does not, is in between.
     _mood(meta) {
       const kinds = this.target.kinds || [];
       if (!kinds.length || !meta.moods.length) return 0.5;
       if (meta.moods.includes(kinds[0])) return 0;
-      return meta.moods.some((mood) => kinds.includes(mood)) ? 0.3 : 1;
+      if (meta.moods.some((mood) => kinds.includes(mood))) return 0.3;
+      return meta.moods.some((mood) => (NEAR[kinds[0]] || []).includes(mood)) ? 0.6 : 1;
     }
 
     // How far a piece is from what the game asks for at strength `ask`: first how hard it plays,
@@ -808,11 +836,25 @@
         if (this.light >= 2) return piece.meta.light ? 0.3 : 0;
         return 0;
       };
+      // How lately each track has been heard counts against it, measured from the least-heard
+      // track of its own sort (light or heavy): so a worn track gives way to a fresher one, of
+      // a neighbouring kind of place if need be, and light and heavy go on taking their turns.
+      const wear = new Map(), freshest = { light: Infinity, heavy: Infinity };
+      for (const piece of index.values()) {
+        const count = this._worn(piece.meta.track), sort = piece.meta.light ? "light" : "heavy";
+        wear.set(piece.id, count);
+        if (serves(piece)) freshest[sort] = Math.min(freshest[sort], count);
+      }
+      const worn = (piece) => {
+        const low = freshest[piece.meta.light ? "light" : "heavy"];
+        return WORN * Math.max(0, wear.get(piece.id) - (low === Infinity ? 0 : low));
+      };
       let best = [], bestScore = [Infinity, Infinity, Infinity];
       for (const piece of index.values()) {
         if (piece.id === options.except && index.size > 1) continue;
         const story = !piece.meta.story || piece.meta.story === want ? 0 : 0.25;
-        const score = [off(piece) + shade(piece) + story, piece.plays, this.pieceAt.has(piece.id) ? this.pieceAt.get(piece.id) : -1];
+        const score = [off(piece) + shade(piece) + story + worn(piece), piece.plays,
+                       this.pieceAt.has(piece.id) ? this.pieceAt.get(piece.id) : -1];
         let order = 0;
         for (let i = 0; i < 3 && !order; i++) order = score[i] - bestScore[i];
         if (order < 0) { best = [piece]; bestScore = score; }
@@ -918,6 +960,7 @@
         for (const pass of deck.passes) { pass.source.stop(0); pass.source.disconnect(); }
       }
       this.next = null;
+      if (this.group && this.group.fadingFrom !== undefined) this._fadeBack(this.group);       // it was fading away for what is dropped
     }
 
     // What is ending rings on under what follows: each deck's last stretch, past its end.
@@ -931,10 +974,10 @@
 
     // The music that is playing is coming to its end (a piece, or a stretch of loose phrases
     // between two): what follows is made ready, to come in on the beat this ends on. A track
-    // goes on into its next piece without a seam. Anything else comes in whole on its first
-    // beat, while what is ending rings on underneath it for a couple of bars: less when the
-    // two are in keys that do not sit together. And when a moment of silence is due and a
-    // track has just ended, the silence comes first.
+    // goes on into its next piece without a seam. Anything else fades in over its first bar,
+    // while what is ending rings on underneath it for a couple of bars: less when the two are
+    // in keys that do not sit together. And when a moment of silence is due and a track has
+    // just ended, the silence comes first.
     async _handover(group) {
       if (this.next || group.endAt !== undefined || !(group.until < Infinity)) return;
       if (group.until - this.ctx.currentTime > HANDOVER) return;
@@ -953,18 +996,56 @@
       if (!this.started || this.group !== group || this.next || this._quiet()) return;
       const at = group.until;
       if (at < this.ctx.currentTime + 0.05) return;                    // too late to do it cleanly: tick() starts afresh
-      if (item.entry !== "continue") {
-        const together = !group.piece || !item.piece || this._related(group.piece.meta.tonic, item.piece.meta.tonic);
-        this._tails(group, at, Math.min((together ? RING : RING_APART) * group.bar, 6.0));
+      if (item.entry === "continue") {
+        this.next = this._group(at, 0, item);                          // the track's next piece carries straight on
+        return;
       }
-      this.next = this._group(at, 0, item);
+      // A new song: it comes in under the last bar of what is ending, which fades away as it
+      // rises (half a bar when the two are in keys that do not sit together), so that the one
+      // is whole on the beat the other ends on and nothing comes in at full strength.
+      const together = !group.piece || !item.piece || this._related(group.piece.meta.tonic, item.piece.meta.tonic);
+      const blend = Math.min((together ? BLEND_SONG : BLEND_SONG / 2) * group.bar, 4.0);
+      if (at - blend > Math.max(this.ctx.currentTime + NOTICE, group.start)) {
+        this._fadeAway(group, at - blend, blend);
+        this.next = this._group(at - blend, blend, item);
+      } else {
+        // No room for that (what is ending is shorter than the blend, or its end is upon us):
+        // it fades in from the beat, while what ended rings on underneath it.
+        this._tails(group, at, Math.min((together ? RING : RING_APART) * group.bar, 6.0));
+        this.next = this._group(at, blend, item);
+      }
     }
 
-    // The game asks for something the music that is playing was not written for: a fight, or
-    // the calm after one. Another piece takes over at once (on the next beat when the music is
-    // getting harder, on the next bar line when it is easing off), and what was playing is
-    // remembered, to be gone back to. `force` is for moving on whatever the game asks (a skip,
-    // or the piece having been banned). True if the music moved.
+    // What is playing fades away over `seconds` from `from`, to make room for what has been
+    // made ready to follow it; and is brought back if that is dropped after all.
+    _fadeAway(group, from, seconds) {
+      for (const node of [group.bed, group.rest]) {
+        const value = this._valueAt(node.gain, from);
+        node.gain.cancelScheduledValues(from);
+        node.gain.setValueAtTime(value, from);
+        node.gain.linearRampToValueAtTime(0, from + seconds);
+        this.moves.set(node.gain, { from: value, to: 0, t0: from, t1: from + seconds });
+      }
+      group.fadingFrom = from;
+    }
+
+    _fadeBack(group) {
+      const now = this.ctx.currentTime;
+      for (const node of [group.bed, group.rest]) {
+        const value = this._valueAt(node.gain, now);
+        node.gain.cancelScheduledValues(now);
+        node.gain.setValueAtTime(value, now);
+        node.gain.linearRampToValueAtTime(1, now + 0.5);
+        this.moves.set(node.gain, { from: value, to: 1, t0: now, t1: now + 0.5 });
+      }
+      delete group.fadingFrom;
+    }
+
+    // The game asks for something the music that is playing was not written for: a boss, or
+    // the calm after one. Another piece takes over (from the next beat when the music is
+    // getting harder, from the next bar line when it is easing off), blended in over what was
+    // playing, which is remembered, to be gone back to. `force` is for moving on whatever the
+    // game asks (a skip, or the piece having been banned). True if the music moved.
     async _regroup(force) {
       const group = this.group;
       const index = this.bucket ? this._index() : null;
@@ -998,36 +1079,53 @@
       const fade = Math.min((harder ? BLEND_FIGHT : BLEND_EASING) * group.bar, 6.0);
       if (group.piece && !gone && !force) {
         const mine = group.piece.meta.serves;
-        this.left[mine.includes(0) || mine.includes(1) ? "walk" : "fight"] = {
-          key: this.bucket.key, piece: group.piece.id, position: (when - group.origin) % group.piece.seconds,
-          at: now, casting: group.casting };
+        this.left[mine.includes(0) || mine.includes(1) ? "walk" : "fight"] = this._leftAt(group, when, now);
       }
+      await this._takeOver(group, item, when, fade, fade);
+      return true;
+    }
+
+    // Where a piece that is being left had got to, so that it can be gone back to.
+    _leftAt(group, when, now) {
+      return { key: this.bucket.key, piece: group.piece.id, position: (when - group.origin) % group.piece.seconds,
+               at: now, casting: group.casting };
+    }
+
+    // What is playing gives way at `when`, over `fade`, to the piece chosen to take its place,
+    // which comes in over `rise`.
+    async _takeOver(group, item, when, fade, rise) {
       this._dropNext();
       this._release(group, when, fade);
-      this.group = this._group(when, harder ? 0 : fade, item);
+      this.group = this._group(when, rise, item);
       for (const deck of Object.values(this.group.decks)) {
         deck.audible = this._level(this.group, deck.channel) > 0;
         await this._fill(this.group, deck);
-        if (!this.group || !this.started) return true;
+        if (!this.group || !this.started) return;
       }
-      return true;
     }
 
     // The player has gone somewhere else and stayed a moment: into another kind of place, into
     // a cave or an inn, or out of one. If the bucket has a piece that suits where the player is
     // now better than the one that is playing, it takes over on the next bar line, the old
     // track giving way over a couple of bars; and the old track is remembered, so that going
-    // back picks it up where it was left. Not in a fight: a fight is a fight wherever it is.
-    // True if the music moved.
+    // back picks it up where it was left. Not in a fight (a fight is a fight wherever it is),
+    // nor in the calm after one, which is not a place (the player may be standing in the cave
+    // still): the look is taken again when that is over. True if the music moved.
     async _follow() {
       const group = this.group;
       const index = this.bucket ? this._index() : null;
       if (!group || !group.piece || !index || !index.has(group.piece.id) || this._quiet()) return false;
       const ask = this._ask();
       const place = this.target.place;
-      if (ask === 2 || this.target.intensity >= WAVE_OFF || place === "battle" || place === "boss") return false;
+      const calm = place === "ember" && this.target.sited !== true;
+      if (ask === 2 || this.target.intensity >= WAVE_OFF || place === "battle" || place === "boss" || calm) {
+        this.followDue = this.ctx.currentTime + SETTLE;
+        return false;
+      }
       if (!group.piece.meta.serves.includes(ask)) return false;          // how hard it plays is _regroup's to answer
-      const item = this._nextItem(this.bucket, { after: group, except: group.piece.id, follow: true });
+      // (Only a look: the track that was left for this one is still remembered if the music
+      // does not move, and gives up its place to this one if it does.)
+      const item = this._nextItem(this.bucket, { after: group, except: group.piece.id, follow: true, peek: true });
       if (!item || !item.piece) return false;
       // Only for something that suits the place better than what is playing (and not for the
       // same track's next piece: that comes by itself).
@@ -1038,17 +1136,9 @@
       const now = this.ctx.currentTime;
       const when = Math.max(this._lineAfter(group, now + NOTICE, 1), group.start);
       const fade = Math.min(BLEND_PLACE * group.bar, 6.0);
-      this.left.walk = { key: this.bucket.key, piece: group.piece.id, position: (when - group.origin) % group.piece.seconds,
-                         at: now, casting: group.casting };
-      this._dropNext();
-      this._release(group, when, fade);
-      this.group = this._group(when, fade, item);
+      this.left.walk = this._leftAt(group, when, now);
       this.movedAt = now;
-      for (const deck of Object.values(this.group.decks)) {
-        deck.audible = this._level(this.group, deck.channel) > 0;
-        await this._fill(this.group, deck);
-        if (!this.group || !this.started) return true;
-      }
+      await this._takeOver(group, item, when, fade, fade);
       return true;
     }
 
@@ -1124,6 +1214,11 @@
         for (const channel of Object.keys(group.cast)) group.casting[channel] = group.cast[channel].meta.track;
         this.pieceTurn += 1;
         this.pieceAt.set(piece.id, this.pieceTurn);
+        if (group.entry !== "continue") {
+          const times = (this.begun.get(piece.meta.track) || []).filter((at) => start - at < WORN_FOR);
+          times.push(start);
+          this.begun.set(piece.meta.track, times);
+        }
         // A track beginning: light and heavy are counted, so that they take turns.
         if (group.entry === "start" && piece.meta.serves.includes(0)) {
           if (piece.meta.light) { this.light += 1; this.heavy = 0; } else { this.heavy += 1; this.light = 0; }
@@ -1643,7 +1738,7 @@
           for (const [slot, clip] of plan) this.planned.set(slot, clip);
           if (!this.started || this._quiet()) return;                  // the game went quiet while they loaded
           // Out of a silence the music fades back in, unless a fight is what ended it.
-          const rise = this.afterSilence ? (this.target.intensity >= WAVE_OFF ? REST_IN_FAST : BACK_IN) : 0;
+          const rise = this.afterSilence ? (this.target.intensity >= WAVE_OFF ? START_IN : BACK_IN) : START_IN;
           this.afterSilence = false;
           this.group = this._group(Math.max(this.ctx.currentTime + NOTICE, this.holdUntil), rise, item);
         }

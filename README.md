@@ -52,9 +52,11 @@ uv sync --extra stems          # once
 uv run freerock serve          # the game link, the music and the pages, on port 8765
 ```
 
-It prints the addresses to use. The key is read from `EL_BIG_BAD_KEY` (or `ELEVENLABS_API_KEY`)
-in the environment or in a `.env` file in this folder or the one above it. Without a key, or with
-`--no-new-music`, it plays only what is already in its library.
+It prints the addresses to use, and plays what is in its buckets: the music is the studio's own
+(`app/freerock/studio`), and nothing is bought. With `--buy-from-elevenlabs` it also asks
+ElevenLabs for new phrases while the game is played, as it did at first (that costs money; the
+key is read from `EL_BIG_BAD_KEY` or `ELEVENLABS_API_KEY` in the environment or in a `.env` file
+in this folder or the one above it).
 
 Open `http://localhost:8765/player` to hear it. The page has a **pretend game** panel: pick a zone,
 tick cave, fight, night or weather, and the music does what it would do in the game.

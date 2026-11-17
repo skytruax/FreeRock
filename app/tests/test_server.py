@@ -268,6 +268,26 @@ async def test_something_that_is_not_a_picture_is_logged_and_ends_that_connectio
     assert app["link"].sensors == []
 
 
+async def test_a_server_that_is_stopping_lets_go_of_the_sensor_and_the_pages_at_once(tmp_path):
+    """Left open, a connection holds a stopping server up for a minute, and the sensor goes on
+    talking to it while a new server waits to be found (a minute and a half without music,
+    2026-11-16)."""
+    app = server.create_app(server.ServerConfig(var_dir=tmp_path / "var", lost_after=0.3))
+    host = TestServer(app)
+    await host.start_server()
+    address = f"http://127.0.0.1:{host.port}"
+    async with aiohttp.ClientSession() as session:
+        async with session.ws_connect(address + "/ws/sensor") as sensor_side, session.ws_connect(address + "/ws/ui") as page:
+            await page.receive(timeout=2)                      # the page's first picture of things
+            assert len(app["link"]._sensor_sockets) == 1
+            stopping = asyncio.ensure_future(host.close())
+            for socket in (sensor_side, page):
+                message = await socket.receive(timeout=2)
+                assert message.type in (aiohttp.WSMsgType.CLOSE, aiohttp.WSMsgType.CLOSING, aiohttp.WSMsgType.CLOSED), message
+            await asyncio.wait_for(stopping, timeout=5)
+    assert app["link"].sensors == [] and not app["link"]._sensor_sockets
+
+
 async def test_the_sensor_waiting_for_the_game_shows_on_the_page(running):
     app, address = running
     scenario = {"screen": [1920, 1080], "steps": [{"at": 0.0, "in_front": False}, {"at": 4.0}]}

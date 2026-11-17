@@ -135,11 +135,13 @@ async def test_easing_off_waits_for_the_bar_line(results):
     assert gear["tiersAfter"] == [0, 0, 0, 0]
 
 
-async def test_a_channel_that_is_down_is_there_the_moment_it_comes_up(results):
+async def test_a_channel_that_comes_up_is_playing_at_once_and_is_faded_in_slowly(results):
+    """("you gotta fade in and out of everything, new songs, but even channel changes", 2026-11-16.)"""
     levels = of(results, "levels")
     assert levels["before"] < 1e-4
-    # It comes up over a second or so, the way a DJ brings a channel in, not all at once.
-    assert 0.2 * levels["rhythm"] < levels["halfway"] < 0.8 * levels["rhythm"]
+    # It is there half a second on (nothing has to be fetched first), and comes up over four seconds: a slow hand on a fader.
+    assert 0.03 * levels["rhythm"] < levels["soon"] < 0.25 * levels["rhythm"]
+    assert 0.35 * levels["rhythm"] < levels["halfway"] < 0.65 * levels["rhythm"]
     assert levels["after"] == pytest.approx(levels["rhythm"], rel=0.05)
 
 
@@ -285,7 +287,7 @@ async def test_every_change_is_a_blend(results):
     # ...and halfway the two together are as loud as either alone.
     together = (blend["oldMiddle"] ** 2 + blend["newMiddle"] ** 2) ** 0.5
     assert together == pytest.approx(full, rel=0.08)
-    # A fight in the middle of a turn: half a bar (a second here), still a blend, not a cut.
+    # A fight in the middle of a turn: a bar (two seconds here), a blend like the rest.
     assert blend["fightAt"] is not None and blend["fightAt"] - 10.3 <= 0.08 + 0.25 + 1e-6
     assert 0.2 * full < blend["fightOldSoon"] < 0.8 * full and 0.2 * full < blend["fightNewSoon"] < 0.9 * full
     assert blend["fightOldGone"] < 0.01 * full and blend["fightNewFull"] == pytest.approx(full, rel=0.05)
@@ -366,10 +368,15 @@ async def test_a_track_runs_from_one_piece_into_the_next_without_a_seam(results)
     assert track["late"] == 0
 
 
-async def test_a_fight_cuts_in_with_its_own_piece_and_the_track_is_picked_up_after(results):
+async def test_a_boss_brings_its_own_piece_in_and_the_track_is_picked_up_after_and_no_other_fight_does(results):
+    """("in normal fights dont play a separate battle piece dungeon bosses ONLY", 2026-11-16.)"""
     fight = of(results, "pieceFight")
-    assert fight["brawlAt"] == pytest.approx(ORIGIN + 10.5, abs=1e-6), "the fight's piece did not come in on the next beat"
+    assert fight["ordinary"] == ["walk"], "an ordinary fight brought another piece in: %s" % fight["ordinary"]
+    assert fight["ordinaryWalk"] == pytest.approx(0.1, rel=0.08), "the song that was playing did not go on through the fight"
+    assert fight["brawlAt"] == pytest.approx(ORIGIN + 10.5, abs=1e-6), "the boss's piece did not begin to come in on the next beat"
     assert fight["brawlOffset"] == 0
+    # A second into its bar of blending in: both are heard, neither whole.
+    assert 0.02 < fight["brawlBlend"] < 0.08 and 0.02 < fight["walkBlend"] < 0.08, "the boss's piece cut in: %s" % fight
     assert fight["walkBefore"] == pytest.approx(0.1, rel=0.08)
     assert fight["walkDuring"] < 0.005, "the piece that was playing went on under the fight"
     assert fight["brawlDuring"] == pytest.approx(0.1, rel=0.08)
@@ -418,6 +425,8 @@ async def test_the_music_follows_the_player_into_another_kind_of_place_within_a_
     assert follows["backAt"] == pytest.approx(ORIGIN + 34.0, abs=1e-6), follows
     assert follows["backClip"].endswith("-w1") and follows["backOffset"] == pytest.approx(6.0, abs=1e-6), "the old track was not picked up where it was left: %s" % follows
     assert follows["meadowBack"] > 0.05 and follows["cryptBack"] < 0.005, follows
+    # A border crossed at 4.5 s in a fight that is over at 12: the look at 8.5 s is put off, the one four seconds on moves the music.
+    assert follows["afterFightAt"] == pytest.approx(ORIGIN + 14.0, abs=1e-6), "the music did not follow once the fight was over: %s" % follows
 
 
 async def test_a_cave_brings_its_own_music_at_once_and_the_calm_after_a_fight_does_not(results):
@@ -426,6 +435,7 @@ async def test_a_cave_brings_its_own_music_at_once_and_the_calm_after_a_fight_do
     assert cave["backAt"] == pytest.approx(ORIGIN + 46.0, abs=1e-6), "the walking music did not come back outside: %s" % cave
     assert cave["backOffset"] == pytest.approx(2.0, abs=1e-6), "the walking track was not picked up where it was left: %s" % cave
     assert cave["calm"] == ["walk"], "the calm after a fight took the walking track away: %s" % cave
+    assert cave["afterFight"] == ["deep"], "the calm after a fight in the cave took the cave's track away: %s" % cave
 
 
 async def test_a_track_carries_on_through_a_calm_moment(results):
@@ -438,6 +448,16 @@ async def test_a_border_crossed_in_the_last_seconds_of_a_piece_still_changes_the
     border = of(results, "pieceBorderLate")
     assert border["meadow"] == pytest.approx(0.1, rel=0.1), "the new place's music did not come: %s" % border
     assert border["vault"] < 0.005, "the old track went on into its next piece"
+
+
+async def test_tracks_heard_lately_give_way_to_others_and_a_neighbouring_kind_of_place_comes_before_a_third_hearing(results):
+    """("feels like its playing the same songs over and over", 2026-11-16.)"""
+    order = of(results, "pieceVariety")["order"]
+    assert len(order) >= 8, order
+    assert set(order[:2]) == {"a1", "a2"}, "the two tracks written for the place did not come first: %s" % order
+    assert all(now != before for now, before in zip(order[1:], order)), "a track was played twice running: %s" % order
+    assert "near" in order[:5], "both tracks were heard a third time before the neighbouring kind's got a turn: %s" % order
+    assert "far" in order and order.index("near") < order.index("far"), "the track for somewhere else came before the neighbour's: %s" % order
 
 
 async def test_light_and_heavy_take_turns(results):
@@ -475,15 +495,18 @@ async def test_a_long_track_is_played_in_its_order_and_kin_keep_to_their_place(r
     assert long["late"] == 0
 
 
-async def test_one_track_hands_over_to_the_next_on_the_beat(results):
+async def test_one_track_is_crossfaded_into_the_next_under_its_last_bar(results):
     hand = of(results, "pieceHandover")
     assert len(hand["order"]) >= 2 and hand["order"][0] != hand["order"][1]
-    assert hand["at"] == pytest.approx(ORIGIN + 16.0, abs=1e-6)
+    # The first track ends at 16 s; a bar is two seconds: the next comes in from 14 s, from its own first beat.
+    assert hand["at"] == pytest.approx(ORIGIN + 14.0, abs=1e-6)
     assert hand["offset"] == 0
-    assert hand["arrived"] == pytest.approx(0.1, rel=0.1), "the next track did not come in whole"
-    assert 0.02 < hand["ringing"] < hand["before"], "the track that ended did not ring on under the next"
+    assert hand["newBefore"] < 0.003, "the next track was heard before the blend began"
+    assert 0.3 * hand["before"] < hand["oldMiddle"] < 0.7 * hand["before"], "the track that is ending did not fade away under the next: %s" % hand
+    assert 0.03 < hand["newMiddle"] < 0.07, "the next track did not fade in: %s" % hand
+    assert hand["arrived"] == pytest.approx(0.1, rel=0.1), "the next track was not whole when the first had ended"
     assert hand["gone"] < 0.003
-    assert hand["acrossSeam"] >= 0.9 * hand["steady"]
+    assert hand["acrossBlend"] >= 0.6 * hand["steady"], "a hole in the music where one track gives way to the next"
     assert hand["late"] == 0
 
 

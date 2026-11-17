@@ -271,8 +271,8 @@ tests.levels = async () => {
                                  script: [[6, (engine) => engine.setTarget(mix(1, { drums: 1, bass: 0 }))]] });
   const drums = of(run.engine.log, "drums"), d = run.data;
   const tone = TONE[drums[0].clip];
-  return { before: strength(d, 4, 5.9, tone), halfway: strength(d, 6.5, 6.7, tone), after: strength(d, 8, 9, tone),
-           rhythm: strength(d, 4, 5.9, TONE[of(run.engine.log, "rhythm")[0].clip]) };
+  return { before: strength(d, 4, 5.9, tone), soon: strength(d, 6.4, 6.6, tone), halfway: strength(d, 7.9, 8.1, tone),
+           after: strength(d, 10.5, 11.5, tone), rhythm: strength(d, 4, 5.9, TONE[of(run.engine.log, "rhythm")[0].clip]) };
 };
 
 // What the server is told has been heard: a phrase on a channel that is down is not counted
@@ -506,10 +506,10 @@ tests.formBlend = async () => {
            oldLate: at(3.6, before), newLate: at(3.6, after),
            oldGone: at(4.5, before), newFull: at(4.5, after),
            fightAt: hard ? hard.at : null,
-           fightOldSoon: hard ? strength(g, hard.at + 0.4, hard.at + 0.5, TONE[glog[0].clip]) : null,
-           fightNewSoon: hard ? strength(g, hard.at + 0.4, hard.at + 0.5, TONE[hard.clip]) : null,
-           fightOldGone: hard ? strength(g, hard.at + 1.3, hard.at + 1.5, TONE[glog[0].clip]) : null,
-           fightNewFull: hard ? strength(g, hard.at + 1.3, hard.at + 1.5, TONE[hard.clip]) : null };
+           fightOldSoon: hard ? strength(g, hard.at + 0.9, hard.at + 1.0, TONE[glog[0].clip]) : null,
+           fightNewSoon: hard ? strength(g, hard.at + 0.9, hard.at + 1.0, TONE[hard.clip]) : null,
+           fightOldGone: hard ? strength(g, hard.at + 2.3, hard.at + 2.5, TONE[glog[0].clip]) : null,
+           fightNewFull: hard ? strength(g, hard.at + 2.3, hard.at + 2.5, TONE[hard.clip]) : null };
 };
 
 // With a form, the tune that is due to change sits out the verse and comes in with the build-up.
@@ -553,7 +553,7 @@ tests.limiter = async () => {
 tests.unattended = async () => {
   const run = await render(60, { tickEvery: 3.0 });
   let quietest = Infinity;
-  for (let t = 1; t < 59; t += 0.05) quietest = Math.min(quietest, rms(run.data, t, t + 0.05));
+  for (let t = 4; t < 59; t += 0.05) quietest = Math.min(quietest, rms(run.data, t, t + 0.05));       // (it fades in over its first three seconds)
   return { quietestWindow: quietest, typical: rms(run.data, 20, 40), late: run.engine.late,
            passes: run.engine.log.length };
 };
@@ -648,12 +648,18 @@ tests.pieceTrack = async () => {
 // playing is picked up at the bar it had reached.
 tests.pieceFight = async () => {
   const bucket = makePieces("fight", [{ id: "walk", windows: 6 }, { id: "brawl", windows: 1, serves: [2], role: "battle" }]);
-  const run = await render(40, { bucket, script: [[10.3, (engine) => engine.setTarget(mix(2))],
-                                                  [20.3, (engine) => engine.setTarget(mix(1))]] });
+  const boss = Object.assign(mix(2), { place: "boss", also: ["battle"] }), calm = Object.assign(mix(1), { place: "wander", also: [] });
+  const run = await render(40, { bucket, script: [[10.3, (engine) => engine.setTarget(boss)], [20.3, (engine) => engine.setTarget(calm)]] });
   const d = run.data, log = run.engine.log;
   const brawl = log.filter((entry) => pieceOf(entry) === "brawl"), back = log.filter((entry) => pieceOf(entry) === "walk" && entry.at > 15);
   const walkTone = TONE["fight-walk-rhythm1-w0"], brawlTone = TONE["fight-brawl-rhythm1-w0"];
-  return { brawlAt: brawl.length ? brawl[0].at : null, brawlOffset: brawl.length ? brawl[0].offset : null,
+  // An ordinary fight (the game asks for everything at its hardest and names no boss): the song that is playing goes on.
+  const pull = await render(30, { bucket: makePieces("pull", [{ id: "walk", windows: 6 }, { id: "brawl", windows: 1, serves: [2], role: "battle" }]),
+                                  script: [[10.3, (engine) => engine.setTarget(Object.assign(mix(2), { place: "wander", also: [], intensity: 0.85 }))],
+                                           [20.3, (engine) => engine.setTarget(Object.assign(mix(1), { place: "wander", also: [], intensity: 0.4 }))]] });
+  return { ordinary: [...new Set(pull.engine.log.map(pieceOf))], ordinaryWalk: strength(pull.data, 13, 19, TONE["pull-walk-rhythm1-w0"]),
+           brawlBlend: strength(d, 11.5, 11.7, brawlTone), walkBlend: strength(d, 11.5, 11.7, walkTone),
+           brawlAt: brawl.length ? brawl[0].at : null, brawlOffset: brawl.length ? brawl[0].offset : null,
            walkBefore: strength(d, 8, 10, walkTone), walkDuring: strength(d, 13, 19, walkTone),
            brawlDuring: strength(d, 13, 19, brawlTone), brawlAfter: strength(d, 28, 34, brawlTone),
            walkAfter: strength(d, 28, 34, walkTone),
@@ -680,7 +686,8 @@ tests.pieceFightAtTheEnd = async () => {
                                      { id: "two", windows: 2, phase: "one", story: "theme", track: "t" },
                                      { id: "brawl", windows: 1, serves: [2], role: "battle" }]);
   const run = await render(40, { bucket, target: Object.assign(mix(1), { kinds: [] }),
-                                 script: [[13.3, (engine) => engine.setTarget(mix(2))], [20.3, (engine) => engine.setTarget(mix(1))]] });
+                                 script: [[13.3, (engine) => engine.setTarget(Object.assign(mix(2), { place: "boss", also: ["battle"] }))],
+                                          [20.3, (engine) => engine.setTarget(Object.assign(mix(1), { place: "wander", also: [] }))]] });
   // What came in when the fight was over (the log also holds what was laid down for later and then dropped).
   const brawl = run.engine.log.find((entry) => pieceOf(entry) === "brawl");
   const after = run.engine.log.filter((entry) => entry.at > 20.3 && pieceOf(entry) !== "brawl").sort((a, b) => a.at - b.at)[0];
@@ -716,7 +723,16 @@ tests.pieceFollows = async () => {
   // (What the old track had laid down ahead when the new one took over is in the log too: the return is looked for later.)
   const back = log.find((entry) => pieceOf(entry) === "meadow" && entry.at > 30);
   const meadow = TONE["follow-meadow-rhythm1-w0"], haunted = TONE["follow-crypt-rhythm1-w0"];
-  return { cryptAt: crypt ? crypt.at : null, backAt: back ? back.at : null, backOffset: back ? back.offset : null, backClip: back ? back.clip : null,
+  // A border crossed in a short fight (the game names no other moment for it): nothing moves
+  // while the fight is on, and the music follows when it is over.
+  const fight = await render(30, { bucket: makePieces("skirmish", [{ id: "meadow", windows: 6, moods: ["pastoral"], light: true },
+                                                                   { id: "crypt", windows: 6, moods: ["haunted"] }]),
+                                   target: Object.assign(mix(1), { kinds: ["pastoral"], light: true }),
+                                   script: [[4.5, (engine) => engine.setTarget({ kinds: ["haunted"], light: false, intensity: 0.8 })],
+                                            [12, (engine) => engine.setTarget({ intensity: 0.3 })]] });
+  const after = [...fight.engine.log].sort((a, b) => a.at - b.at).find((entry) => pieceOf(entry) === "crypt");
+  return { afterFightAt: after ? after.at : null,
+           cryptAt: crypt ? crypt.at : null, backAt: back ? back.at : null, backOffset: back ? back.offset : null, backClip: back ? back.clip : null,
            meadowBefore: strength(run.data, 9, 13, meadow), cryptBefore: strength(run.data, 9, 13, haunted),
            meadowThere: strength(run.data, 19, 23, meadow), cryptThere: strength(run.data, 19, 23, haunted),
            meadowBack: strength(run.data, 39, 43, meadow), cryptBack: strength(run.data, 39, 43, haunted) };
@@ -737,8 +753,16 @@ tests.pieceIntoCave = async () => {
   const calm = await render(40, { bucket: makePieces("calm", [{ id: "walk", windows: 8 }, { id: "rest", windows: 8, role: "ember" }]),
                                   target: Object.assign(mix(1), { place: "wander", also: [] }),
                                   script: [[5, (engine) => engine.setTarget({ place: "ember", also: [], sited: false })]] });
+  // Nor does it take the cave's track away: after a fight in the cave the game says "ember" for
+  // some seconds with no place named, and the player is standing in the cave all the while.
+  const fought = await render(60, { bucket: makePieces("fought", [{ id: "walk", windows: 8 }, { id: "deep", windows: 8, role: "depths" }]),
+                                    target: Object.assign(mix(1), { place: "depths", also: ["wander"], sited: true }),
+                                    script: [[25, (engine) => engine.setTarget({ place: "ember", also: [], sited: false })],
+                                             [33, (engine) => engine.setTarget({ place: "depths", also: ["wander"], sited: true })]] });
+  // (What follows the cave's track where it ends, past the minute rendered, is in the log too.)
   return { deepAt: deep ? deep.at : null, backAt: back ? back.at : null, backOffset: back ? back.offset : null,
-           calm: [...new Set(calm.engine.log.map(pieceOf))] };
+           calm: [...new Set(calm.engine.log.map(pieceOf))],
+           afterFight: [...new Set(fought.engine.log.filter((entry) => entry.at > 20 && entry.at < 60).map(pieceOf))] };
 };
 
 // A border crossed in the last seconds of a piece, after the track's next piece was made ready:
@@ -843,7 +867,19 @@ tests.pieceCarriesOn = async () => {
   return { order };
 };
 
-// One track ends and another begins on that beat, while the first rings on underneath.
+// A place with two tracks written for its kind: they are not heard round and round. When both
+// have been heard, a track for a neighbouring kind of place gets a turn before either is heard
+// a third time, and one for a place that has nothing to do with this one comes last of all.
+tests.pieceVariety = async () => {
+  const bucket = makePieces("variety", [{ id: "a1", moods: ["pastoral"] }, { id: "a2", moods: ["pastoral"] },
+                                        { id: "near", moods: ["highland"] }, { id: "far", moods: ["desert"] }]);
+  const run = await render(260, { bucket, tickEvery: 2.0, target: Object.assign(mix(1), { kinds: ["pastoral"] }) });
+  const order = [];
+  for (const entry of [...run.engine.log].sort((a, b) => a.at - b.at)) if (order[order.length - 1] !== pieceOf(entry)) order.push(pieceOf(entry));
+  return { order };
+};
+
+// One track ends and another comes in under its last bar: a crossfade, nothing at full strength at once.
 tests.pieceHandover = async () => {
   const bucket = makePieces("hand", [{ id: "first", windows: 2 }, { id: "other", windows: 2 }]);
   const run = await render(40, { bucket });
@@ -854,9 +890,10 @@ tests.pieceHandover = async () => {
   const firstTone = TONE["hand-" + order[0] + "-rhythm1-w0"], secondTone = TONE["hand-" + order[1] + "-rhythm1-w0"];
   const at = second ? second.at : 0;
   return { order, at, offset: second ? second.offset : null,
-           ringing: strength(d, at + 0.5, at + 1.5, firstTone), before: strength(d, at - 3, at - 1, firstTone),
-           gone: strength(d, at + 5, at + 7, firstTone), arrived: strength(d, at + 0.5, at + 1.5, secondTone),
-           acrossSeam: quietest(d, at - 0.1, at + 0.1), steady: quietest(d, 3, 4), late: run.engine.late };
+           before: strength(d, at - 3, at - 1, firstTone), newBefore: strength(d, at - 1, at - 0.2, secondTone),
+           oldMiddle: strength(d, at + 0.9, at + 1.1, firstTone), newMiddle: strength(d, at + 0.9, at + 1.1, secondTone),
+           gone: strength(d, at + 2.3, at + 3.3, firstTone), arrived: strength(d, at + 2.3, at + 3.3, secondTone),
+           acrossBlend: quietest(d, at, at + 2), steady: quietest(d, 4, 5), late: run.engine.late };
 };
 
 // A piece that is banned in the middle of itself is left for another.
@@ -913,7 +950,7 @@ tests.pieceUnattended = async () => {
   const bucket = makePieces("alone", [{ id: "one", windows: 2, then: "two", track: "t" }, { id: "two", windows: 2, phase: "one", then: "three", track: "t" },
                                       { id: "three", windows: 2, phase: "two", track: "t" }, { id: "else", windows: 2 }]);
   const run = await render(110, { bucket, tickEvery: 3.0 });
-  return { quietest: quietest(run.data, 1, 108), typical: rms(run.data, 3, 8), late: run.engine.late,
+  return { quietest: quietest(run.data, 4, 108), typical: rms(run.data, 5, 10), late: run.engine.late,       // (it fades in over its first three seconds)
            pieces: [...new Set(run.engine.log.map(pieceOf))] };
 };
 
