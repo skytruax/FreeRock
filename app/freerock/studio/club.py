@@ -160,6 +160,8 @@ def _loud(levels: list[float]) -> list[float]:
 
 SPAN = 4            # bars: a voice's level is read four at a time (a house phrase is eight, every part a whole number of them)
 UNDER = 0.6         # a note written under this part of the loudest in its four bars is a line under the tune: a doubling, an echo
+SUBBED = ("house bass pluck", "house bass saw")      # the basses that are heard more than felt: a sine goes under them
+SUB_UNDER = 0.7     # ...this far under the bass it holds up
 
 
 def _span_of(at: float) -> int:
@@ -248,6 +250,12 @@ def voices(heard: Heard) -> list[tuple[str, str, str, str, float, list[Note], fl
             # above 900 Hz and well under the sub, is the part of the bass that is heard; the sub is the part that is felt.
             out.append((channel, table, name + " growl", "house bass saw", 900.0, sorted(every, key=lambda note: note.start),
                         taste * 0.45, ride))
+        if written in SUBBED:
+            # (2026-11-17, morning: against the liked house stems the plucked and the sawtooth basses had 6 to 8 dB too much
+            # in their middle and too little under 200 Hz.) The other way about: the sub on the same notes under the bass
+            # that is heard, the weight a house bass has from a sine under it.
+            out.append((channel, table, name + " sub", "house sub", 0.0, sorted(every, key=lambda note: note.start),
+                        taste * SUB_UNDER, ride))
     return out
 
 

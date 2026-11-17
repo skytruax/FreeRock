@@ -414,3 +414,22 @@ def test_a_house_tracks_two_drops_are_both_its_moment(staged):
     once = house.measure(meta, parts)
     assert found["sections"]["moment"] == pytest.approx(once["sections"]["moment"], abs=0.5)
     assert not any("outside the moment" in problem for problem in found["problems"])
+
+
+def test_a_plucked_bass_has_a_sub_under_it_on_the_same_notes_and_a_sub_bass_none(monkeypatch):
+    # (2026-11-17, morning: the plucked and sawtooth basses were 6 to 8 dB heavy in their middle against the liked stems.)
+    from freerock.studio import club
+    monkeypatch.setattr(club.muse, "available", lambda: False)
+    heard = club.Heard()
+    bar = house.BAR
+    for index in range(8):
+        heard.notes[("bass", "bass", "pluck")].append((index * bar, bar / 4, 40.0, 0.5, 0.0, 1.0))
+    lines = {name: (written, mine, taste, ride) for _, _, name, written, _, mine, taste, ride in club.voices(heard)}
+    written, notes, taste, ride = lines["pluck sub"]
+    plucked = lines["pluck"]
+    assert written == "house sub" and [note.start for note in notes] == [note.start for note in plucked[1]]
+    assert [note.pitch for note in notes] == [note.pitch for note in plucked[1]]
+    assert taste == pytest.approx(plucked[2] * club.SUB_UNDER) and ride == plucked[3]
+    alone = club.Heard()
+    alone.notes[("bass", "bass", "sub")].append((0.0, bar, 40.0, 0.5, 0.0, 1.0))
+    assert not any(name.endswith(" sub") for _, _, name, *_ in club.voices(alone))
