@@ -37,6 +37,20 @@ each track", "prioritize warcraft for 3 hours then shift".
   the browser across a reload (`forever.js` `_worn`, `SISTER`; `player.js` `heard`). Four
   more light country characters with leads that country did not have: an oboe and bassoon
   scherzo, a solo horn at sunset, a piano by a lake, and a harvest dance that lifts its key.
+- **A town's streets and a battleground have music of their own** ("like whenever in an alliance
+  base should be a family of songs", "or in a battleground, a family"). Two new kinds of moment
+  (`director.py`): resting out of doors is a town (inside, its inn is still an inn), and a
+  battleground or an arena instance is a battleground, held through its fights and its deaths.
+  Their families: a heraldic town (brass and strings over a courtly march) and a cosy one, two
+  families of three songs each; and two battleground characters with war drums from end to end.
+  Knight Rock has none of these yet; where a style has no piece for a moment the player plays
+  its walking music.
+- **More caves, inns, bosses and nights** ("more different cave and special encounter pieces
+  like inns and caves"): a light cave had one piece. Nine caves now (a glowworm grotto, an old
+  mine, a crypt, a frozen cavern, a spider den, a lava tube, a sea grotto, kobold tunnels, a
+  bandit hideout, with the cavern and the crystal cave), each with a second family; five more
+  inns (fireside, an elven rest, a caravanserai, a lamplit inn, a harbour saloon); two bosses
+  beside the titan; second families for the night pieces.
 - **A second theme is never on the first one's changes** (`orchestra.family`): in major,
   "6 4 1 5" and "6 4 1" came to the same eight bars. The one family that met this and had a
   take made already keeps its changes, since its takes are played together.
