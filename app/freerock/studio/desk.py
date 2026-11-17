@@ -374,6 +374,19 @@ def _quote(text: str) -> str:
     return '"%s"' % clean
 
 
+# What REAPER calls the kind of each recording a project lays in, by its ending. (2026-11-17, night: the Muse
+# performances had become FLAC and were still laid in as WAVE; REAPER played them as silence, and the first piece
+# of the night came out with its lead, accompaniment and bass missing.)
+SOURCE_KINDS = {".wav": "WAVE", ".flac": "FLAC", ".mp3": "MP3", ".ogg": "VORBIS"}
+
+
+def source_kind(file: str) -> str:
+    ending = Path(file).suffix.lower()
+    if ending not in SOURCE_KINDS:
+        raise ValueError("REAPER is not given recordings of the kind %r (%s)" % (ending, file))
+    return SOURCE_KINDS[ending]
+
+
 def _events(notes: list[Note], bpm: float, seconds: float, early: float, controls: list[tuple[float, int, int]] | None = None) -> list[str]:
     """The notes as REAPER writes them in a project: `E <ticks since the last> <status> <note> <strength>`,
     with the controller moves among them."""
@@ -480,7 +493,7 @@ def track(line: Line, *, bpm: float, seconds: float, folder: int = 0, selected: 
         out += ["        " + event for event in _events(line.notes, bpm, seconds, line.early, line.controls)]
         out += ["      >", "    >"]
     for at, long, file in line.clips:
-        out += ["    <ITEM", "      POSITION %.6f" % (at + LEAD), "      LENGTH %.6f" % long, "      LOOP 0", "      <SOURCE WAVE",
+        out += ["    <ITEM", "      POSITION %.6f" % (at + LEAD), "      LENGTH %.6f" % long, "      LOOP 0", "      <SOURCE " + source_kind(file),
                 "        FILE " + _quote(file), "      >", "    >"]
     out.append("  >")
     return "\n".join(out)

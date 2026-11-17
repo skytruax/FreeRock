@@ -1655,6 +1655,12 @@ SETTINGS_OF: dict[str, tuple[str, ...]] = {
     "starlit meadow": ("fields", "heights"), "owl wood": ("woods",), "moonlit shore": ("water",), "village asleep": ("settlement",),
     "frost night": ("heights", "water"), "jungle night": ("woods", "water"), "grave watch": ("graves", "sacred"),
     "ember night": ("works", "wastes"), "moon choir": ("sacred", "woods"),
+    # Caves and inns have their ground too ("Dont forget caves inns pvp ect"): a mine's music in a mine, a crypt's in a crypt.
+    "old mine": ("works", "heights"), "kobold tunnels": ("works",), "crypt": ("graves", "sacred"), "sea grotto": ("water",),
+    "lava tube": ("wastes", "works"), "bandit hideout": ("ruins", "road"), "frozen cavern": ("heights", "water"),
+    "spider den": ("woods", "ruins"), "glowworm grotto": ("water", "woods"),
+    "harbour saloon": ("water", "settlement"), "caravanserai": ("road", "wastes"), "lamplit inn": ("settlement", "graves"),
+    "elven rest": ("woods", "sacred"), "drinking song": ("heights", "settlement"), "fireside": ("fields", "settlement"),
 }
 
 

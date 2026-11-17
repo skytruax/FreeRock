@@ -276,6 +276,12 @@ def stage(fam: Family, take: int) -> dict:
         if loud < -60.0:
             loud = analysis.loudness_lufs(audio[:whole], RATE)
         if loud < -65.0:
+            written_notes = sum(len(voice.notes) for voice in written.voices[channel].values() if not voice.drums)
+            if written_notes >= 24:
+                # Written and not heard: something between the writer and the recording failed (2026-11-17, night: the
+                # Muse performances were laid into REAPER as the wrong kind of file, and three channels came out silent).
+                raise RuntimeError("The %s channel of %s %d has %d notes written and came out silent (%.1f LUFS)"
+                                   % (channel, fam.name, take, written_notes, loud))
             del parts[channel]                       # it plays nothing to speak of in this take
             continue
         gain = min(max(places[channel] - loud, -18.0), 18.0)
