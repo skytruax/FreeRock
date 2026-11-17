@@ -1,7 +1,9 @@
 """The zone profiles: every zone in the game has one, and every one can be read."""
+import re
+
 import pytest
 
-from freerock import analysis, atlas
+from freerock import atlas
 
 # The zone maps of Forever 1.60.1, from the game's own map table (wago.tools, UiMap, build wowf).
 GAME_ZONES = [
@@ -29,7 +31,7 @@ def test_every_profile_can_be_read(name):
     assert profile.key == atlas.slug(name)
     assert profile.bpm in atlas.TEMPOS
     assert 2 <= len(profile.colours) <= 4 and 1 <= len(profile.mood) <= 3
-    analysis.parse_tonic(profile.tonic)                                   # raises if it cannot be read
+    assert re.fullmatch(r"[A-G]#? [a-z]+( [a-z]+)?", profile.tonic), "%s: %r is not a key" % (name, profile.tonic)
     assert (48000 * 60 * 4) % profile.bpm == 0, "a bar is not a whole number of samples"
 
 
