@@ -221,7 +221,10 @@ def lines(heard: Heard, track: house.Take, work: Path) -> tuple[dict[str, list[d
                 if cut:
                     line.effects = list(line.effects) + [sounds.equalise(high_cut=cut)]
                 if channel == "bass":
-                    line.effects = list(line.effects) + [sounds.equalise(low_cut=30.0), sounds.wide(0.25)]
+                    # (Against the liked house stems the sawtooth and wide basses were 13 to 34 dB bright above 2.5 kHz,
+                    # 2026-11-17, night: a house bass is closed well down. The growl beside the sub has its own cut.)
+                    line.effects = list(line.effects) + [sounds.equalise(low_cut=30.0, high_cut=2500.0, high_shelf=(1200.0, -6.0)),
+                                                         sounds.wide(0.25)]
                     line.send = 0.0
                 elif channel == "rhythm":
                     # (Measured against the house stems that were liked: the plucks had 11 to 24 dB too much above 3 kHz.)

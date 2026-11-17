@@ -747,6 +747,12 @@ class Take:
             self.sections.append((story, first, count))
             first += count
         self.bars = first
+        # The second wave's theme is the breakdown (2026-11-17, night: the tracks swung 4 to 9 dB from their quietest to
+        # their loudest, the second wave's theme being the first's again, kick and all): the kick and the groove drop
+        # out and the bass holds one note to a bar far down, until the rise brings them back for the last drop. A fight
+        # does not break down.
+        themes = [first for story, first, _ in self.sections if story == "theme"]
+        self.breakdown = themes[1] if len(themes) > 1 and not fam.hard else None
         self.frames = int(round(self.bars * BAR_FRAMES)) + int(round(POST_S * RATE))
         self.kick = KICKS[fam.groove]
         self.arc = ARCS[ARC_OF[fam.role]]
@@ -775,9 +781,13 @@ class Take:
     def blank(self) -> np.ndarray:
         return np.zeros((self.frames, 2), dtype=np.float32)
 
-    def kick_plays(self, story: str, bar: int, count: int) -> bool:
-        """Whether the kick is in at a bar of a section. The same for every take of a family."""
-        if not self.kick:
+    def broken(self, story: str, first: int) -> bool:
+        """Whether a section is the breakdown (see `__init__`)."""
+        return story == "theme" and first == self.breakdown
+
+    def kick_plays(self, story: str, bar: int, count: int, first: int = -1) -> bool:
+        """Whether the kick is in at a bar of a section (beginning at bar `first`). The same for every take of a family."""
+        if not self.kick or self.broken(story, first):
             return False
         if self.family.hard:
             return story != "rise" or bar < count // 2
@@ -788,7 +798,7 @@ class Take:
     def kicks(self) -> list[float]:
         """Every moment the kick falls, in seconds: what everything else ducks under."""
         return [self.at(first + bar, step) for story, first, count in self.sections for bar in range(count)
-                if self.kick_plays(story, bar, count) for step in self.kick]
+                if self.kick_plays(story, bar, count, first) for step in self.kick]
 
     def pumped(self, audio: np.ndarray, depth: float) -> np.ndarray:
         if not self.kick or depth <= 0:
@@ -833,10 +843,11 @@ class Take:
             build = 4 if count >= 16 else 2
             for inside in range(count):
                 bar, energy = first + inside, self.energy(story, inside / count)
-                groove = story in ("theme", "moment") or (story == "close" and inside < count - 2) or (fam.hard and story == "open")
+                groove = (story in ("theme", "moment") and not self.broken(story, first)) or (story == "close" and inside < count - 2) \
+                    or (fam.hard and story == "open")
                 last = inside == count - 1
                 filling = groove and inside % 8 == 7 and not (story == "close")
-                if self.kick_plays(story, inside, count):
+                if self.kick_plays(story, inside, count, first):
                     for step in self.kick:
                         if filling and fill == "lift" and step >= 12:
                             continue
@@ -934,8 +945,8 @@ class Take:
                 bar, energy = first + inside, self.energy(story, inside / count)
                 chord, after = self.changes.chord(inside), self.changes.chord(inside + 1)
                 bright = 0.4 + 0.6 * energy
-                if story in ("theme", "moment") or (fam.hard and story in ("open", "close")) \
-                        or (story == "close" and self.kick_plays(story, inside, count)):
+                if (story in ("theme", "moment") and not self.broken(story, first)) or (fam.hard and story in ("open", "close")) \
+                        or (story == "close" and self.kick_plays(story, inside, count, first)):
                     notes = figure
                     if story == "theme" and inside < 4 and style in ("rolling", "synco", "tresillo"):
                         notes = BASSES["offbeat"]              # it starts plainly and fills in
@@ -943,8 +954,8 @@ class Take:
                         pitch = self.bass_note(chord, which if not (which in ("O", "F") and story == "theme" and inside < 8) else "R", after)
                         synth.play(out, sound, self.at(bar, step), length * STEP * 0.92, pitch, loud * 0.5 * (0.85 + rng.random() * 0.15),
                                    seed=self.seed + bar * 16 + int(step), bright=bright)
-                elif story == "close" or (story == "open" and early and inside >= count // 2):
-                    # One long note to a bar, far down.
+                elif story == "close" or self.broken(story, first) or (story == "open" and early and inside >= count // 2):
+                    # One long note to a bar, far down (the breakdown's too).
                     held = sound if not isinstance(sound, Patch) or sound.sustain > 0.5 else BASS["sub"]
                     synth.play(out, held, self.at(bar, 0), 15 * STEP, self.bass_note(chord, "R"), trim(held, 40) * 0.34 * (0.5 + energy),
                                seed=self.seed + bar, bright=0.35)
