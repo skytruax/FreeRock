@@ -859,9 +859,11 @@ def bus(channel: str, style: str = "") -> list[str]:
         return [equalise(low_cut=28.0, high_shelf=(5000.0, -2.5)), drum_room(), squeeze(-12.0, 2.5, 25.0, 180.0, 1.0), warm(0.3),
                 ceiling(-1.5, push=1.0)]
     if channel == "bass":
-        # More of the bottom, and harmonics of it so that it is heard on small loudspeakers too; tape to thicken it.
-        return [equalise(low_cut=28.0, low_shelf=(90.0, 2.5)), enhance(0.35), squeeze(-14.0, 2.0, 30.0, 250.0, 1.0), warm(0.25),
-                ceiling(-1.5, push=1.0)]
+        # More of the bottom, and harmonics of it so that it is heard on small loudspeakers too; tape to thicken it. (Its
+        # top a little down, 2026-11-17, night: where the low brass and the contrabassoon join the basses, the channel came
+        # out 7 to 13 dB brighter than the liked bass stems; a plucked bass, which has little up there, hardly notices.)
+        return [equalise(low_cut=28.0, low_shelf=(90.0, 2.5), high_shelf=(2500.0, -3.0)), enhance(0.35), squeeze(-14.0, 2.0, 30.0, 250.0, 1.0),
+                warm(0.25), ceiling(-1.5, push=1.0)]
     if channel == "texture":
         return [equalise(low_cut=28.0, high_shelf=(4000.0, -5.5)), wide(1.25), squeeze(-14.0, 2.0, 30.0, 250.0, 1.0), warm(0.15),
                 ceiling(-1.5, push=0.5)]
