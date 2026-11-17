@@ -166,6 +166,39 @@ moment**, and the director picks one, first match wins:
 | night, out of doors | **night**: darker, further off, the drums well back |
 | anything else | **wander**: the walking music |
 
+### What a place does to the sound
+
+A place changes more than which track plays: it changes how the music sounds. The player has its
+own tone controls after the five decks: two low-pass filters one after the other (24 dB an
+octave), a high-pass, an echo (a stone room that rings for 1.6 s) and a volume. The director sets
+them for every place, and they move over 0.4 s.
+
+<p align="center">
+  <img src="docs/images/cave.png" alt="A cave mouth with a lantern inside; beside it the summit of a real track, out in the open and in a cave, closed at 2.5 kHz" width="100%">
+</p>
+
+**A cave** closes the music in. The moment you step inside, the top of the sound closes at 2.5 kHz
+and 40% of it goes into the stone room; within a second the cave's own music (the depths family)
+takes its turn. Step out and the sound opens at once, and the cave's music lets go two seconds
+later. A dungeon is not treated as a cave: it is indoors from end
+to end, so it gets its own tension and its own pieces, not the muffle.
+
+<p align="center">
+  <img src="docs/images/water.png" alt="Under the surface, light falling through the water and bubbles rising; beside it the same summit under water, closed at 500 Hz" width="100%">
+</p>
+
+**Water** is about your head, not your feet. Swimming on the surface changes nothing. Go under and
+everything above 500 Hz falls away: the bass, the drums' body and the low strings come through,
+and the tune and the cymbals blur above you. It happens in 0.15 s instead of 0.4, so you are under
+at once, and coming up for air opens the music again just as fast.
+
+<p align="center">
+  <img src="docs/images/places.png" alt="Twelve cards, one for each kind of place: out walking, night, a rain storm, snow, a sandstorm, a cave, under water, an inn, a flight path, camping, stealth and dead, each with what is heard and the track's sound there against the open air" width="100%">
+</p>
+
+Each card puts the same real track through the player's own filters, at the levels the player
+would set there, using the director's numbers for that place. The faint line is the open air.
+
 The place sets which track. **What you do** sets how much of it you hear. One number, the
 intensity, climbs a ladder:
 

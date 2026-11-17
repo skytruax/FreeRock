@@ -3,7 +3,9 @@ and mixing desk, the real strip encoder. Nothing is mocked up.
 
     cd app && uv run --no-sync --with matplotlib --with pillow python ../tools/readme_pictures.py [name ...]
 
-Writes docs/images/<name>.png (and demo.gif). Names: banner, story, signals, demo, strip, flow, ear.
+Writes docs/images/<name>.png (and demo.gif). Names: banner, story, signals, demo, strip, flow, ear,
+cave, water, places. The cave, water and places pictures put a real track's sound at its summit
+through the player's own filters (forever.js) with the director's real numbers for each place.
 The title font is FreeControl's (LifeCraft, fetched there into tools/.font-cache, never committed);
 the text font is Inter. Pages that need other programs (the engraved score, the mixer page) are
 made by their own tools and kept beside these: score_view.py and a headless browser.
@@ -430,7 +432,427 @@ def ear_picture() -> None:
     figure.savefig(OUT / "ear.png", facecolor=figure.get_facecolor())
 
 
-PICTURES = {"banner": banner, "story": story, "signals": signals, "demo": demo, "strip": strip, "flow": flow, "ear": ear_picture}
+# --- what a place does to the sound -----------------------------------------------------------------
+
+FREQS = np.geomspace(30.0, 16000.0, 240)        # where the sound is looked at, in Hz
+
+
+def _biquad_db(kind: str, corner: float, freqs: np.ndarray, rate: float = 48000.0) -> np.ndarray:
+    """What one of the player's filters (a Web Audio biquad, `lowpass` or `highpass`, its Q set to
+    0.707, which Web Audio reads in dB) passes at each frequency, in dB: the Audio EQ Cookbook's
+    formulas, as the Web Audio specification gives them."""
+    w0 = 2 * math.pi * min(corner, rate * 0.45) / rate
+    alpha = math.sin(w0) / (2 * 10 ** (0.707 / 20))
+    cos = math.cos(w0)
+    b = ((1 - cos) / 2, 1 - cos, (1 - cos) / 2) if kind == "lowpass" else ((1 + cos) / 2, -(1 + cos), (1 + cos) / 2)
+    a = (1 + alpha, -2 * cos, 1 - alpha)
+    z = np.exp(-1j * 2 * np.pi * freqs / rate)
+    response = (b[0] + b[1] * z + b[2] * z ** 2) / (a[0] + a[1] * z + a[2] * z ** 2)
+    return 20 * np.log10(np.abs(response) + 1e-12)
+
+
+def tone_db(target, freqs: np.ndarray = FREQS) -> np.ndarray:
+    """What the player's tone does to each frequency for a target, as forever.js builds it: two
+    low-passes one after the other, a high-pass, and the volume."""
+    return (2 * _biquad_db("lowpass", target.lowpass_hz, freqs) + _biquad_db("highpass", max(target.highpass_hz, 20.0), freqs)
+            + 20 * math.log10(max(target.volume, 1e-6)))
+
+
+_SUMMIT: tuple[dict, dict[str, np.ndarray]] | None = None
+
+
+def _summit() -> tuple[dict, dict[str, np.ndarray]]:
+    """The banner track at its summit (its last moment): what it says of itself, and each
+    channel's power in sixth-octave bands at FREQS."""
+    global _SUMMIT
+    if _SUMMIT is None:
+        from scipy import signal
+        meta, parts = studio.read_track(VAR / "studio" / BANNER_TRACK[0] / BANNER_TRACK[1])
+        bars = [section["bars"] for section in meta["sections"]]
+        last = max(index for index, section in enumerate(meta["sections"]) if section["story"] == "moment")
+        first = int(round(sum(bars[:last]) * meta["bar_frames"]))
+        until = first + int(round(bars[last] * meta["bar_frames"]))
+        bands = {}
+        for channel in CHANNELS:
+            if channel not in parts:
+                bands[channel] = np.zeros(len(FREQS))
+                continue
+            f, power = signal.welch(parts[channel][first:until].mean(axis=1), fs=studio.RATE, nperseg=16384)
+            bands[channel] = np.array([power[(f >= c * 2 ** (-1 / 12)) & (f < c * 2 ** (1 / 12))].mean() for c in FREQS])
+        _SUMMIT = meta, bands
+    return _SUMMIT
+
+
+def player_levels(target, meta: dict) -> dict[str, float]:
+    """How loud the player plays each channel of the summit for a target, as forever.js `_level`
+    does: the desk's level, raised to that of any channel it follows and to the piece's floor
+    (the floor kept less at night for the drums and the bass)."""
+    wanted = forever.mix(target)
+    floors, follow = meta["floor"].get("moment", {}), meta.get("follow", {})
+    out = {}
+    for channel in CHANNELS:
+        level = wanted[channel]["level"]
+        for other in follow.get(channel, []):
+            level = max(level, wanted[other]["level"])
+        hush = target.hush if channel in ("drums", "bass") else 1.0
+        if floors.get(channel, 0.0) > 0:
+            level = max(level, floors[channel] * target.bed * hush)
+        out[channel] = level
+    return out
+
+
+def heard_db(target=None) -> np.ndarray:
+    """The summit as it is heard for a target, in dB against the summit with every channel up and
+    nothing in the way (its loudest at 0); with no target, that open sound itself."""
+    meta, bands = _summit()
+    open_air = sum(bands.values())
+    reference = 10 * np.log10(open_air.max())
+    if target is None:
+        return 10 * np.log10(open_air + 1e-20) - reference
+    levels = player_levels(target, meta)
+    power = sum(levels[channel] ** 2 * bands[channel] for channel in CHANNELS)
+    return 10 * np.log10(power + 1e-20) - reference + tone_db(target)
+
+
+def _chart(target, label: str, colour: str, corner_text: str, size=(9.0, 3.9)) -> Image.Image:
+    """The track's sound in the open and in a place, as a picture to paste on a card."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    plt.style.use("dark_background")
+    figure, axis = plt.subplots(figsize=size, dpi=100)
+    figure.patch.set_facecolor("#10173a")
+    axis.set_facecolor("#10173a")
+    open_air, here = heard_db(), heard_db(target)
+    axis.fill_between(FREQS, -70, open_air, color="#9a8fd8", alpha=0.25, lw=0)
+    axis.plot(FREQS, open_air, color="#b8b0f0", lw=1.4, ls="--", label="out in the open")
+    axis.fill_between(FREQS, -70, here, color=colour, alpha=0.55, lw=0)
+    axis.plot(FREQS, here, color=colour, lw=2.4, label=label)
+    if target.lowpass_hz < 19000:
+        axis.axvline(target.lowpass_hz, color="#f0f0ff", lw=1, ls=":", alpha=0.8)
+        axis.text(target.lowpass_hz * 1.06, -8, corner_text, color="#f0f0ff", fontsize=11)
+    axis.set_xscale("log")
+    axis.set_xlim(FREQS[0], FREQS[-1])
+    axis.set_ylim(-66, 4)
+    axis.set_xticks([50, 100, 250, 500, 1000, 2500, 5000, 10000])
+    axis.set_xticklabels(["50", "100", "250", "500", "1k", "2.5k", "5k", "10k"])
+    axis.set_xlabel("Hz: low notes on the left, the shine of the top on the right", color="#c8c8e0", fontsize=10)
+    axis.set_ylabel("dB", color="#c8c8e0")
+    axis.legend(loc="lower left", frameon=False, fontsize=11)
+    for side in ("top", "right"):
+        axis.spines[side].set_visible(False)
+    figure.tight_layout()
+    figure.canvas.draw()
+    image = Image.frombuffer("RGBA", figure.canvas.get_width_height(), figure.canvas.buffer_rgba()).convert("RGB")
+    plt.close(figure)
+    return image
+
+
+def _card(image: Image.Image, box, outline) -> None:
+    """A dark rounded card on the sky, for a chart and its words."""
+    layer = Image.new("RGBA", image.size, (0, 0, 0, 0))
+    ImageDraw.Draw(layer).rounded_rectangle(box, radius=18, fill=(16, 23, 58, 235), outline=outline, width=2)
+    image.alpha_composite(layer)
+
+
+def _write(draw, xy, lines, size=20, colour=(226, 226, 240), gap=10, weight="Medium") -> None:
+    x, y = xy
+    for line in lines:
+        draw.text((x, y), line, font=font(size, weight), fill=colour)
+        y += size + gap
+
+
+def _cave_scene(width: int, height: int) -> Image.Image:
+    """A cave in a hillside at night, a lantern deep inside. Drawn twice as large and made smaller,
+    so its edges are smooth."""
+    w, h = width * 2, height * 2
+    image = sky(w, h, seed=11).convert("RGBA")
+    draw = ImageDraw.Draw(image)
+    rng = random.Random(5)
+    rock = [(0, h)] + [(x, int(h * 0.30 + 60 * math.sin(x / 210) + rng.randrange(0, 40))) for x in range(0, w + 40, 40)] + [(w, h)]
+    draw.polygon(rock, fill=(44, 36, 70))
+    for _ in range(26):                                                     # cracks and ledges in the stone
+        x, y = rng.randrange(w), rng.randrange(int(h * 0.38), h)
+        draw.line((x, y, x + rng.randrange(-60, 60), y + rng.randrange(20, 70)), fill=(30, 25, 52), width=4)
+    ground, left, right, top = int(h * 0.92), int(w * 0.22), int(w * 0.78), int(h * 0.46)
+    centre = (left + right) / 2
+
+    def roof(x: float) -> float:
+        """The height of the arch over the floor at `x`."""
+        across = (x - centre) / ((right - left) / 2)
+        return ground - (ground - top) * math.sqrt(max(1.0 - across ** 2, 0.0)) ** 0.8
+
+    arch = [(x + rng.randrange(-5, 6), roof(x) + rng.randrange(-5, 6)) for x in range(left, right + 1, 16)]
+    draw.polygon([(left, ground)] + arch + [(right, ground)], fill=(10, 8, 20))
+    glow = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    gdraw = ImageDraw.Draw(glow)
+    cy = int(ground - 0.32 * (ground - top))
+    for radius in range(230, 0, -8):                                        # the lantern's light on the walls inside
+        gdraw.ellipse((centre - radius, cy - radius * 0.75, centre + radius, cy + radius * 0.75),
+                      fill=(255, 150, 60, int(5 + 70 * (1 - radius / 230) ** 2)))
+    image.alpha_composite(glow.filter(ImageFilter.GaussianBlur(16)))
+    draw = ImageDraw.Draw(image)
+    for x in sorted(rng.sample(range(left + 90, right - 90, 10), 7)):       # stalactites hanging from the roof
+        hang = roof(x) - 4
+        draw.polygon([(x - 9, hang), (x + 9, hang), (x + rng.randrange(-3, 4), hang + rng.randrange(26, 64))], fill=(44, 36, 70))
+    draw.polygon([(left + 40, ground), (right - 40, ground), (right + 120, h), (left - 120, h)], fill=(58, 48, 86))   # the path in
+    for _ in range(9):                                                      # stones by the way
+        x, size = rng.choice((rng.randrange(0, left), rng.randrange(right, w))), rng.randrange(20, 46)
+        y = rng.randrange(ground - 20, h - 10)
+        draw.ellipse((x - size, y - size * 0.6, x + size, y + size * 0.6), fill=(36, 30, 60))
+    draw.ellipse((centre - 15, cy - 15, centre + 15, cy + 15), fill=(255, 214, 140))   # the lantern
+    draw.text((60, 50), "Into a Cave", font=title_font(110), fill=(246, 201, 84), stroke_width=4, stroke_fill=(60, 30, 10))
+    return image.resize((width, height), Image.LANCZOS)
+
+
+def _water_scene(width: int, height: int) -> Image.Image:
+    """Under the surface at night: light from above, bubbles rising, weed swaying."""
+    w, h = width * 2, height * 2
+    top, bottom = np.array((34, 128, 150), float), np.array((6, 16, 44), float)
+    rows = np.linspace(0.0, 1.0, h)[:, None] ** 0.8
+    gradient = (top * (1 - rows) + bottom * rows).astype(np.uint8)
+    image = Image.fromarray(np.repeat(gradient[:, None, :], w, axis=1).reshape(h, w, 3), "RGB").convert("RGBA")
+    surface = int(h * 0.16)
+    night = sky(w, surface + 40, seed=13).convert("RGBA")
+    image.alpha_composite(night.crop((0, 0, w, surface)), (0, 0))
+    draw = ImageDraw.Draw(image)
+    wave = [(x, surface + 14 * math.sin(x / 70.0) + 6 * math.sin(x / 23.0)) for x in range(0, w + 10, 10)]
+    draw.polygon(wave + [(w, surface + 60), (0, surface + 60)], fill=(60, 170, 186))
+    draw.line(wave, fill=(200, 245, 250), width=5)
+    rays = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    rdraw = ImageDraw.Draw(rays)
+    rng = random.Random(3)
+    for x in (int(w * 0.18), int(w * 0.42), int(w * 0.63), int(w * 0.85)):   # light falling through the water
+        spread = rng.randrange(60, 120)
+        rdraw.polygon([(x - 40, surface), (x + 40, surface), (x + 180 + spread, h), (x - 120 - spread, h)],
+                      fill=(190, 240, 255, 34))
+    image.alpha_composite(rays.filter(ImageFilter.GaussianBlur(18)))
+    draw = ImageDraw.Draw(image)
+    for stem in range(9):                                                  # weed on the bottom
+        x = 60 + stem * (w - 120) // 8 + rng.randrange(-30, 30)
+        points = [(x + 22 * math.sin(y / 60.0 + stem), y) for y in range(h, int(h * (0.62 + 0.1 * rng.random())), -12)]
+        draw.line(points, fill=(20, 70, 60), width=14)
+    for _ in range(60):                                                    # bubbles going up
+        x = int(w * 0.5 + rng.gauss(0, w * 0.10))
+        y = rng.randrange(surface + 60, h - 40)
+        radius = rng.randrange(4, 16)
+        draw.ellipse((x - radius, y - radius, x + radius, y + radius), outline=(210, 245, 255), width=3)
+    draw.text((60, surface + 70), "Under Water", font=title_font(110), fill=(246, 201, 84), stroke_width=4, stroke_fill=(10, 30, 50))
+    return image.resize((width, height), Image.LANCZOS)
+
+
+def _place_picture(name: str, scene: Image.Image, target, colour: str, label: str, corner_text: str,
+                   heading: str, lines: list[str]) -> None:
+    width, height = 1600, 640
+    image = sky(width, height, seed=21).convert("RGBA")
+    image.alpha_composite(scene.convert("RGBA"), (0, 0))
+    outline = tuple(int(colour[i:i + 2], 16) for i in (1, 3, 5)) + (255,)
+    _card(image, (650, 24, 1580, 616), outline)
+    chart = _chart(target, label, colour, corner_text, size=(8.9, 3.6))
+    image.paste(chart, (665, 92))
+    draw = ImageDraw.Draw(image)
+    draw.text((680, 40), heading, font=font(30, "Bold"), fill=(246, 246, 255))
+    _write(draw, (680, 462), lines, size=19, gap=9)
+    image.convert("RGB").save(OUT / ("%s.png" % name))
+
+
+def cave() -> None:
+    target, _ = situation({"indoors": True}, 6)
+    _place_picture("cave", _cave_scene(620, 640), target, "#f0a050", "in a cave", "2.5 kHz",
+                   "In a cave, the music closes in",
+                   ["One second inside and the cave's own music (depths) takes its turn; two seconds out, it lets go.",
+                    "Two filters close the top at 2.5 kHz, 24 dB an octave: the shine goes, the body stays.",
+                    "40% of the sound goes into a stone room that rings for 1.6 seconds.",
+                    "A storm outside does not reach in. (A dungeon is not a cave: it has music of its own.)"])
+
+
+def water() -> None:
+    target, _ = situation({"swimming": True, "submerged": True}, 2)
+    _place_picture("water", _water_scene(620, 640), target, "#4fd0e0", "under water", "500 Hz",
+                   "Under water, only the low notes get through",
+                   ["Head under the surface and everything above 500 Hz falls away: the bass, the drums' body",
+                    "and the lowest strings come through, the tune and the cymbals are a blur above you.",
+                    "It happens in 0.15 s, where every other change of tone takes 0.4: you are under at once.",
+                    "Swimming on the surface changes nothing. Come up for air and the music opens again."])
+
+
+# A card for each kind of place: what the game says, what is heard, and a little picture of it.
+PLACES = (
+    ("Out walking", {"speed": 7.0}, 25, "#f6c954", "sun",
+     "The walking music. The drums come in as you go, the bass after."),
+    ("Night", {"speed": 7.0, "daytime": False}, 25, "#a59cf0", "moon",
+     "Night's own music: darker, further off, the drums back."),
+    ("A rain storm", {"speed": 7.0, "weather": "rain", "weather_intensity": 0.9}, 10, "#6fb4f0", "storm",
+     "The whole band, never muffled. Storm music after 4 s."),
+    ("Snow", {"speed": 7.0, "weather": "snow", "weather_intensity": 1.0}, 10, "#e8f2ff", "snow",
+     "Softer at the top, wider, the drums lighter."),
+    ("A sandstorm", {"speed": 7.0, "weather": "sandstorm", "weather_intensity": 1.0}, 10, "#e8b46a", "sand",
+     "Narrow and gritty: the low end and the top both go."),
+    ("A cave", {"indoors": True}, 6, "#f0a050", "cave",
+     "The depths music, closed in, with an echo of stone."),
+    ("Under water", {"swimming": True, "submerged": True}, 2, "#4fd0e0", "water",
+     "Only the low notes, and at once."),
+    ("An inn", {"indoors": True, "resting": True}, 6, "#f08a5d", "inn",
+     "The inn's calm music, 4 dB down and closed in."),
+    ("A flight path", {"on_taxi": True, "flying": True, "speed": 30.0}, 20, "#9ee6c8", "wings",
+     "Thin and airy: everything under 150 Hz goes."),
+    ("Camping", {}, 50, "#ff9a4a", "camp",
+     "45 s still out of doors: the camp's own tunes."),
+    ("Stealth", {"stealthed": True, "speed": 3.0}, 6, "#8c7cf0", "hood",
+     "Only the bass line and quiet drums."),
+    ("Dead", {"dead": True}, 6, "#c8d0e8", "ghost",
+     "Run down like a record, then calm and far off."),
+)
+
+
+def _icon(draw: ImageDraw.ImageDraw, kind: str, box, colour) -> None:
+    """A small picture of a place, drawn in its colour inside `box` (twice the size it is shown)."""
+    x0, y0, x1, y1 = box
+    cx, cy, r = (x0 + x1) / 2, (y0 + y1) / 2, (x1 - x0) / 2
+    dim = tuple(int(c * 0.55) for c in colour)
+    if kind == "sun":
+        for k in range(12):
+            angle = k * math.pi / 6
+            draw.line((cx + 0.62 * r * math.cos(angle), cy + 0.62 * r * math.sin(angle),
+                       cx + 0.92 * r * math.cos(angle), cy + 0.92 * r * math.sin(angle)), fill=colour, width=8)
+        draw.ellipse((cx - 0.48 * r, cy - 0.48 * r, cx + 0.48 * r, cy + 0.48 * r), fill=colour)
+    elif kind == "moon":
+        draw.ellipse((cx - 0.7 * r, cy - 0.7 * r, cx + 0.7 * r, cy + 0.7 * r), fill=colour)
+        draw.ellipse((cx - 0.4 * r, cy - 0.85 * r, cx + 0.95 * r, cy + 0.5 * r), fill=(16, 23, 58))
+        for sx, sy in ((0.55, -0.6), (0.75, 0.3), (0.2, 0.75)):
+            draw.ellipse((cx + sx * r - 5, cy + sy * r - 5, cx + sx * r + 5, cy + sy * r + 5), fill=colour)
+    elif kind == "storm":
+        draw.ellipse((cx - 0.8 * r, cy - 0.55 * r, cx - 0.05 * r, cy + 0.15 * r), fill=dim)
+        draw.ellipse((cx - 0.35 * r, cy - 0.85 * r, cx + 0.45 * r, cy + 0.1 * r), fill=dim)
+        draw.ellipse((cx + 0.05 * r, cy - 0.5 * r, cx + 0.85 * r, cy + 0.15 * r), fill=dim)
+        draw.rectangle((cx - 0.55 * r, cy - 0.2 * r, cx + 0.6 * r, cy + 0.15 * r), fill=dim)
+        for k in range(5):
+            x = cx - 0.6 * r + k * 0.3 * r
+            draw.line((x, cy + 0.3 * r, x - 0.15 * r, cy + 0.85 * r), fill=colour, width=6)
+        draw.polygon([(cx + 0.05 * r, cy + 0.1 * r), (cx - 0.2 * r, cy + 0.55 * r), (cx, cy + 0.5 * r),
+                      (cx - 0.15 * r, cy + 0.95 * r), (cx + 0.3 * r, cy + 0.38 * r), (cx + 0.08 * r, cy + 0.42 * r)],
+                     fill=(255, 236, 140))
+    elif kind == "snow":
+        for k in range(6):
+            angle = k * math.pi / 3
+            ex, ey = cx + 0.85 * r * math.cos(angle), cy + 0.85 * r * math.sin(angle)
+            draw.line((cx, cy, ex, ey), fill=colour, width=7)
+            for along in (0.45, 0.68):
+                bx, by = cx + along * r * math.cos(angle), cy + along * r * math.sin(angle)
+                for turn in (0.6, -0.6):
+                    draw.line((bx, by, bx + 0.22 * r * math.cos(angle + turn), by + 0.22 * r * math.sin(angle + turn)),
+                              fill=colour, width=5)
+    elif kind == "sand":
+        for row in range(4):
+            y = cy - 0.6 * r + row * 0.4 * r
+            draw.line([(cx - 0.9 * r + t, y + 0.12 * r * math.sin(t / (0.18 * r) + row)) for t in range(0, int(1.8 * r), 6)],
+                      fill=colour if row % 2 == 0 else dim, width=7)
+    elif kind == "cave":
+        draw.polygon([(x0, y1), (x0 + 0.1 * r, cy - 0.3 * r), (cx - 0.4 * r, y0 + 0.2 * r), (cx + 0.5 * r, y0 + 0.1 * r),
+                      (x1 - 0.05 * r, cy - 0.2 * r), (x1, y1)], fill=dim)
+        draw.ellipse((cx - 0.5 * r, cy - 0.15 * r, cx + 0.5 * r, cy + 1.3 * r), fill=(10, 8, 20))
+        draw.ellipse((cx - 0.12 * r, cy + 0.45 * r, cx + 0.12 * r, cy + 0.69 * r), fill=colour)
+    elif kind == "water":
+        for row in range(3):
+            y = cy - 0.55 * r + row * 0.35 * r
+            draw.line([(cx - 0.9 * r + t, y + 0.1 * r * math.sin(t / (0.14 * r))) for t in range(0, int(1.8 * r), 6)],
+                      fill=colour, width=7)
+        for bx, by, br in ((0.1, 0.5, 0.12), (-0.3, 0.75, 0.08), (0.45, 0.8, 0.07)):
+            draw.ellipse((cx + bx * r - br * r, cy + by * r - br * r, cx + bx * r + br * r, cy + by * r + br * r), outline=colour, width=4)
+    elif kind == "inn":
+        draw.polygon([(cx - 0.85 * r, cy - 0.05 * r), (cx, cy - 0.85 * r), (cx + 0.85 * r, cy - 0.05 * r)], fill=dim)
+        draw.rectangle((cx - 0.65 * r, cy - 0.05 * r, cx + 0.65 * r, cy + 0.85 * r), fill=dim)
+        draw.rectangle((cx - 0.42 * r, cy + 0.12 * r, cx - 0.08 * r, cy + 0.42 * r), fill=(255, 200, 110))
+        draw.rectangle((cx + 0.12 * r, cy + 0.3 * r, cx + 0.42 * r, cy + 0.85 * r), fill=(60, 34, 24))
+    elif kind == "wings":
+        for side in (-1, 1):
+            draw.polygon([(cx, cy), (cx + side * 0.95 * r, cy - 0.55 * r), (cx + side * 0.7 * r, cy - 0.15 * r),
+                          (cx + side * 0.9 * r, cy - 0.1 * r), (cx + side * 0.55 * r, cy + 0.15 * r)], fill=colour)
+        draw.ellipse((cx - 0.12 * r, cy - 0.12 * r, cx + 0.12 * r, cy + 0.3 * r), fill=colour)
+    elif kind == "camp":
+        draw.polygon([(cx - 0.9 * r, cy + 0.6 * r), (cx - 0.35 * r, cy - 0.5 * r), (cx + 0.2 * r, cy + 0.6 * r)], fill=dim)
+        draw.line((cx + 0.3 * r, cy + 0.85 * r, cx + 0.9 * r, cy + 0.6 * r), fill=(110, 70, 40), width=8)
+        draw.line((cx + 0.3 * r, cy + 0.6 * r, cx + 0.9 * r, cy + 0.85 * r), fill=(110, 70, 40), width=8)
+        draw.polygon([(cx + 0.38 * r, cy + 0.68 * r), (cx + 0.6 * r, cy - 0.1 * r), (cx + 0.82 * r, cy + 0.68 * r)], fill=colour)
+        draw.polygon([(cx + 0.5 * r, cy + 0.68 * r), (cx + 0.6 * r, cy + 0.25 * r), (cx + 0.7 * r, cy + 0.68 * r)], fill=(255, 236, 140))
+    elif kind == "hood":
+        draw.polygon([(cx - 0.75 * r, cy + 0.9 * r), (cx - 0.6 * r, cy - 0.2 * r), (cx, cy - 0.9 * r), (cx + 0.6 * r, cy - 0.2 * r),
+                      (cx + 0.75 * r, cy + 0.9 * r)], fill=dim)
+        draw.ellipse((cx - 0.45 * r, cy - 0.35 * r, cx + 0.45 * r, cy + 0.55 * r), fill=(10, 8, 20))
+        for ex in (-0.18, 0.18):
+            draw.ellipse((cx + ex * r - 0.08 * r, cy + 0.02 * r, cx + ex * r + 0.08 * r, cy + 0.14 * r), fill=colour)
+    elif kind == "ghost":
+        draw.ellipse((cx - 0.55 * r, cy - 0.85 * r, cx + 0.55 * r, cy + 0.2 * r), fill=colour)
+        bottom = [(cx - 0.55 * r, cy - 0.3 * r), (cx + 0.55 * r, cy - 0.3 * r), (cx + 0.55 * r, cy + 0.8 * r)]
+        for k in range(6, -1, -1):
+            bottom.append((cx - 0.55 * r + k * (1.1 * r / 6), cy + (0.8 if k % 2 == 0 else 0.6) * r))
+        draw.polygon(bottom, fill=colour)
+        for ex in (-0.2, 0.2):
+            draw.ellipse((cx + ex * r - 0.09 * r, cy - 0.35 * r, cx + ex * r + 0.09 * r, cy - 0.15 * r), fill=(16, 23, 58))
+
+
+def places() -> None:
+    """Every kind of place on one page: a little picture, what is heard, and what the tone does."""
+    columns, card_w, card_h, gap = 4, 372, 292, 18
+    rows = math.ceil(len(PLACES) / columns)
+    width, height = 1600, 120 + rows * (card_h + gap) + 20
+    scale = 2
+    image = sky(width * scale, height * scale, seed=31).convert("RGBA")
+    draw = ImageDraw.Draw(image)
+    heading = "How Each Place Sounds"
+    size = draw.textbbox((0, 0), heading, font=title_font(96))
+    draw.text(((width * scale - size[2]) / 2, 30), heading, font=title_font(96), fill=(246, 201, 84),
+              stroke_width=4, stroke_fill=(60, 30, 10))
+    open_air = heard_db()
+    left = (width - (columns * card_w + (columns - 1) * gap)) / 2
+    for index, (name, changes, seconds, colour, icon, words) in enumerate(PLACES):
+        target, _ = situation(changes, seconds)
+        rgb = tuple(int(colour[i:i + 2], 16) for i in (1, 3, 5))
+        x = int((left + (index % columns) * (card_w + gap)) * scale)
+        y = int((120 + (index // columns) * (card_h + gap)) * scale)
+        w, h = card_w * scale, card_h * scale
+        layer = Image.new("RGBA", image.size, (0, 0, 0, 0))
+        ImageDraw.Draw(layer).rounded_rectangle((x, y, x + w, y + h), radius=36, fill=(16, 23, 58, 238), outline=rgb + (255,), width=4)
+        image.alpha_composite(layer)
+        draw = ImageDraw.Draw(image)
+        _icon(draw, icon, (x + 28, y + 28, x + 28 + 150, y + 28 + 150), rgb)
+        draw.text((x + 200, y + 40), name, font=font(46, "Bold"), fill=(246, 246, 255))
+        said, line = [], ""
+        for word in words.split():
+            trial = (line + " " + word).strip()
+            if draw.textlength(trial, font=font(30, "Medium")) > w - 230:
+                said.append(line)
+                line = word
+            else:
+                line = trial
+        said.append(line)
+        for row, text in enumerate(said[:3]):
+            draw.text((x + 200, y + 104 + row * 40), text, font=font(30, "Medium"), fill=(214, 214, 232))
+        # The track's sound here against the open air: a little chart along the bottom of the card.
+        px0, py0, px1, py1 = x + 28, y + 236, x + w - 28, y + h - 64
+        here = heard_db(target)
+
+        def at(f_index, level):
+            return (px0 + (px1 - px0) * f_index / (len(FREQS) - 1), py0 + (py1 - py0) * min(max(-level, 0.0), 66.0) / 66.0)
+        draw.line([at(i, v) for i, v in enumerate(open_air)], fill=(150, 140, 200), width=3)
+        draw.polygon([at(0, -66)] + [at(i, v) for i, v in enumerate(here)] + [at(len(FREQS) - 1, -66)], fill=rgb + (150,))
+        draw.line([at(i, v) for i, v in enumerate(here)], fill=rgb, width=5)
+        notes = []
+        if target.lowpass_hz < 19000:
+            notes.append("top at %s" % ("%g kHz" % round(target.lowpass_hz / 1000, 1) if target.lowpass_hz >= 1000 else "%d Hz" % target.lowpass_hz))
+        if target.highpass_hz > 40:
+            notes.append("lows cut at %d Hz" % target.highpass_hz)
+        if target.reverb > 0.05:
+            notes.append("echo %d%%" % round(target.reverb * 100))
+        if target.volume < 0.99:
+            notes.append("%+.0f dB" % (20 * math.log10(max(target.volume, 1e-6))))
+        draw.text((x + 28, y + h - 52), "  ·  ".join(notes) or "nothing in the way", font=font(26, "Medium"), fill=rgb)
+        draw.text((x + w - 28, y + h - 52), target.place, font=font(26, "Bold"), fill=(246, 246, 255), anchor="ra")
+    image.resize((width, height), Image.LANCZOS).convert("RGB").save(OUT / "places.png")
+
+
+PICTURES = {"banner": banner, "story": story, "signals": signals, "demo": demo, "strip": strip, "flow": flow, "ear": ear_picture,
+            "cave": cave, "water": water, "places": places}
 
 
 def main(argv: list[str]) -> int:
