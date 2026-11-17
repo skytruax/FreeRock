@@ -1,28 +1,24 @@
 """The rules from game state to sound, against scripted sessions.
 
-One number, the intensity, says how much is going on, and picks both the kind of section and how
+One number, the intensity, says how much is going on, and picks both the kind of moment and how
 much of the band plays. These tests walk up and down that ladder and through everything that
-bends it: caves, inns, weather, night, stealth, death, moments, and the songs and silences the
-music is played in.
+bends it: caves, inns, weather, night, stealth, death and moments.
 """
 import dataclasses
-import random
 
 import pytest
 
-from freerock.director import Director, Rules, playable
+from freerock.director import Director, Rules
 from freerock.state import GameState
 
 STEP = 0.25
-NO_RESTS = Rules(rest_every_s=0)
 
 
-def play(script, until, rules=NO_RESTS, start=None, seed=1, moments=()):
+def play(script, until, rules=None, start=None, moments=()):
     """Runs a session. `script` is a list of (time, {field: value}) changes, `moments` a list of
     (time, name) one-off events. Returns a function that gives the Target that was current at a
-    moment. Rests are off unless the rules say otherwise, so that they do not cut across what a
-    test is about."""
-    director = Director(rules, rng=random.Random(seed))
+    moment."""
+    director = Director(rules)
     state = start or GameState(daytime=True)
     changes = sorted(script, key=lambda item: item[0])
     events = sorted(moments)
@@ -55,7 +51,7 @@ def test_standing_is_a_riff_with_the_guitars_alone():
     assert calm.place == "wander" and calm.also == () and (calm.bed, calm.drums, calm.bass) == (0.85, 0.0, 0.0)
     assert calm.bed_highpass_hz == 110.0 and calm.lowpass_hz == 20000.0 and calm.reverb == 0.0
     assert calm.intensity == pytest.approx(0.25) and calm.why == ("standing still", "standing still: a little quieter")
-    assert not calm.silent and not calm.rest
+    assert not calm.silent
 
 
 def test_standing_still_quiets_the_music_and_moving_brings_it_back():
@@ -95,7 +91,7 @@ def test_riding_is_drums_and_bass_at_once_and_a_long_ride_reaches_the_hard_rock_
     assert levels(riding) == (0.75, 0.75) and riding.intensity == pytest.approx(0.60, abs=0.01) and "riding" in riding.why
     assert riding.place == "wander"
     assert at(18).place == "wander" and at(19).place == "storm" and at(19).also == ("wander",)
-    assert "at full tilt" in at(19).why and at(19).cut == "bar"
+    assert "at full tilt" in at(19).why
     assert at(30).intensity == pytest.approx(0.75) and levels(at(30)) == (0.95, 0.95)
     assert at(44.5).place == "wander", "off the mount for a moment: back to the riffs"
     assert at(47).drums == 0.0 and at(47).bass == 0.0
@@ -178,7 +174,7 @@ def test_an_elite_and_a_boss():
     elite = play([(5, {**FIGHT, "target_class": "elite"})], 12, start=STANDING)
     assert elite(5).intensity == pytest.approx(0.92) and elite(5).place == "wander", "harder, and still the song that is playing"
     boss = play([(5, {"in_combat": True, "encounter": True})], 8)
-    assert boss(5).place == "boss" and boss(5).cut == "beat" and boss(5).intensity == 1.0
+    assert boss(5).place == "boss" and boss(5).intensity == 1.0
     assert boss(5).also == ("battle",)
     world_boss = play([(5, {"in_combat": True, "target_class": "worldboss"})], 6)
     assert world_boss(5).place == "wander" and world_boss(5).intensity == 1.0, "only a dungeon's boss has music of its own"
@@ -315,7 +311,7 @@ def test_walking_indoors_muffles_at_once_and_moves_to_depths_if_you_stay():
     at = play([(5, {"indoors": True}), (15, {"indoors": False})], 25)
     inside = at(5)
     assert inside.lowpass_hz == 2500.0 and inside.reverb == 0.40 and inside.place == "wander"
-    assert at(5.75).place == "wander" and at(6).place == "depths" and at(6).cut == "beat"
+    assert at(5.75).place == "wander" and at(6).place == "depths"
     assert at(6).sited and not at(5.75).sited, "a cave is a place the player stands in: the music is to go there"
     assert at(6).also == ("wander",), "the cave part takes turns with the zone's riffs"
     out = at(15)
@@ -385,7 +381,7 @@ def test_under_water_and_stealth():
     sneaking = at(6)
     assert (sneaking.bed, sneaking.drums, sneaking.bass) == (0.0, 0.35, 0.7)
     assert at(8).bed == 1.0 and at(8).bass == 1.0, "the fight takes over from stealth"
-    plain = play([(2, {"stealthed": True})], 4, rules=Rules(rest_every_s=0, stealth_bass=False))(3)
+    plain = play([(2, {"stealthed": True})], 4, rules=Rules(stealth_bass=False))(3)
     assert plain.bed == 1.0 and plain.bass == 0.0
 
 
@@ -398,7 +394,7 @@ def test_rain_brings_the_drums_and_a_rain_storm_the_whole_band():
     storm = at(20)
     assert storm.bass > 0.8 and storm.drums > 0.8 and storm.lowpass_hz == 20000.0, "a storm: the whole band, not muffled"
     assert "a rain storm: the whole band" in storm.why and storm.place == "wander"
-    assert at(24).place == "storm" and at(24).cut == "beat" and at(24).also == ("wander",)
+    assert at(24).place == "storm" and at(24).also == ("wander",)
     assert at(59).place == "storm" and at(61).place == "wander", "it leaves twenty seconds after the weather clears"
 
 
@@ -458,89 +454,3 @@ def test_no_single_part_is_left_to_loop():
     assert play([(1, FIGHT)], 3)(3).also == (), "an ordinary fight names no other part: the song that is playing goes on"
     night_standing = play([(0, {"daytime": False})], 40, start=STANDING)(40)
     assert night_standing.place == "night" and night_standing.also == ("wander", "ember")
-
-
-def test_crossing_into_another_part_of_the_zone_is_a_new_scene_but_not_at_every_step():
-    at = play([(2, {"subzone_name": "Goldshire"}), (10, {"subzone_name": "Crystal Lake"}),
-               (12, {"subzone_name": None}), (14, {"subzone_name": "Crystal Lake"}),
-               (20, {"subzone_name": "Goldshire"}), (21, {"subzone_name": "Crystal Lake"}),
-               (30, {"subzone_name": "Goldshire"})], 32)
-    assert at(1).scene == 0 and at(3).scene == 0, "the first name to arrive is not a crossing"
-    assert at(10).scene == 1 and at(13).scene == 1 and at(15).scene == 1 and at(20).scene == 2
-    assert at(21).scene == 2, "back and forth over a border within a few seconds changes nothing more"
-    assert at(30).scene == 3
-
-
-def test_playable_falls_back_until_something_fits():
-    core = {"arrival", "wander", "battle", "ember", "depths"}
-    assert playable("boss", core) == "battle" and playable("storm", core) == "wander"
-    assert playable("night", core) == "ember" and playable("depths", core) == "depths"
-    assert playable("night", {"wander"}) == "wander"
-    with pytest.raises(ValueError):
-        playable("wander", {"battle"})
-
-
-# --- songs and silences ---------------------------------------------------------------------------
-
-SONGS = Rules(rest_every_s=20, rest_for_s=30, rest_spread=0.0, calm_before_rest_s=10, rest_fade_s=4)
-
-
-def test_the_music_plays_for_a_while_fades_out_stays_out_and_comes_back():
-    at = play([], 120, rules=SONGS, start=STANDING)
-    assert not at(19.75).rest
-    resting = at(20)
-    assert resting.rest and resting.fade_s == 4 and "a rest, as the game has between pieces" in resting.why
-    assert at(49.75).rest and not at(50).rest, "it stays out for half a minute"
-    assert at(50).fade_s == 0.4
-    assert not at(69.75).rest and at(70).rest, "and round again"
-
-
-def test_a_rest_does_not_wait_for_the_player_to_stand_still():
-    at = play([(1, {"speed": 7.0})], 60, rules=SONGS, start=STANDING)
-    assert at(20).rest and at(20).drums > 0, "walking about does not put a rest off"
-    assert at(45).rest, "nor end one"
-
-
-def test_a_rest_waits_for_a_fight_to_be_over_and_then_takes_the_place_of_the_calm_part():
-    at = play([(15, FIGHT), (40, NO_FIGHT)], 80, rules=SONGS, start=STANDING)
-    assert not any(at(moment).rest for moment in (20, 30, 39.75, 42)), "not in a fight, nor while it is held"
-    assert at(43).rest, "as soon as the fight has been let go"
-
-
-def test_a_fight_in_a_rest_brings_the_music_back_only_after_a_real_silence():
-    at = play([(22, FIGHT)], 60, rules=SONGS, start=STANDING)
-    assert at(21.75).rest
-    assert at(22).rest and at(30).rest, "a quarter of a minute of quiet, whatever happens"
-    back = at(35)
-    assert not back.rest and back.place == "wander" and back.bass == 1.0
-    late = play([(40, FIGHT)], 60, rules=SONGS, start=STANDING)
-    assert late(39.75).rest and not late(40).rest, "after that a fight ends it at once"
-
-
-def test_a_boss_a_moment_or_a_new_place_ends_a_rest_at_once():
-    boss = play([(22, {"in_combat": True, "encounter": True})], 30, rules=SONGS, start=STANDING)
-    assert boss(21.75).rest and not boss(22).rest
-    moment = play([], 30, rules=SONGS, start=STANDING, moments=[(22, "level_up")])
-    assert moment(21.75).rest and not moment(22).rest
-    place = play([(22, {"zone_name": "Westfall", "map_id": 52})], 40, rules=SONGS,
-                 start=GameState(daytime=True, zone_name="Elwynn Forest", map_id=37))
-    assert place(21.75).rest and not place(22).rest
-    assert not place(30).rest, "and a new place gets some music before the next one"
-
-
-def test_rests_can_be_switched_off_and_do_not_come_like_clockwork():
-    assert not any(play([], 300, rules=Rules(rest_every_s=0))(moment).rest for moment in range(0, 300, 5))
-    spread = Rules(rest_every_s=60, rest_for_s=10, rest_spread=0.4)
-    firsts = set()
-    for seed in range(8):
-        at = play([], 120, rules=spread, seed=seed)
-        firsts.add(next(moment for moment in range(0, 480) if at(moment * STEP).rest))
-    assert len(firsts) >= 6, "the first rest came at the same moment whatever the dice"
-    assert all(36 / STEP <= first <= 84 / STEP for first in firsts)
-
-
-def test_an_inn_and_a_cave_can_rest_too():
-    inn = play([(0, {"indoors": True, "resting": True})], 30, rules=SONGS)
-    assert inn(20).rest and inn(20).place == "ember"
-    cave = play([(0, {"indoors": True})], 30, rules=SONGS)
-    assert cave(20).rest and cave(20).place == "depths"

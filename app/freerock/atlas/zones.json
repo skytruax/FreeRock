@@ -1,5 +1,5 @@
 {
-  "_about": "One music profile per zone, keyed by the zone's name as the game reports it. Tempo is one of 80, 96, 100, 120, 125, 128, 150, 160 (the tempos at which a bar is a whole number of milliseconds and of samples). Colours are instruments or textures; mood is how the place feels. Nothing here names the game, its places or any band, because these words go into prompts. Profiles marked guess are for zones new in Forever that were written from the name alone.",
+  "_about": "One music profile per zone, keyed by the zone's name as the game reports it. Tempo is one of 80, 96, 100, 120, 125, 128, 150, 160 (the tempos at which a bar is a whole number of milliseconds and of samples). Colours are instruments or textures; mood is how the place feels. The kind of place, its ground and its shade are read from these words. Profiles marked guess are for zones new in Forever that were written from the name alone.",
   "zones": {
     "Elwynn Forest":       {"bpm": 120, "tonic": "G mixolydian", "colours": ["chiming clean electric guitar arpeggios", "fiddle"], "mood": ["pastoral", "sunny", "hopeful"]},
     "Westfall":            {"bpm": 96,  "tonic": "E dorian", "colours": ["dusty slide guitar", "tambourine", "reedy hurdy-gurdy melody"], "mood": ["windswept golden fields", "lonesome"]},

@@ -1,5 +1,28 @@
 # Changelog
 
+## The forever song alone: the songs and the buying taken out (2026-11-17, after midnight)
+
+"make sure everything makes sense there's no left over stupid code". What FreeRock no longer
+does, and so no longer has the code for:
+
+- **The songs of the first design** (`settings.mode = "songs"`): their library, their making and
+  splitting (`library.py`, `ingest.py`, `stems.py` and its separator), their growing with the
+  time spent in a place (`playtime.py`), their player (`engine.js`), and `freerock make`,
+  `adopt`, `library` and `pieces songs`. Pieces already cut from the songs stay in the buckets
+  and play on; `freerock pieces drop <style> song/` takes them out.
+- **Buying from ElevenLabs**: `eleven.py`, `ledger.py`, the feed that filled the buckets with
+  phrases while the game was played and the prompts it asked with, `freerock ledger`,
+  `--buy-from-elevenlabs`, the allowance settings and the key, and the first day's experiments
+  (`tools/spikes`). The loose phrases already in the buckets play on, the ones once set aside as
+  worn among them; `/rock love` now only marks what is playing.
+- **What only the songs used in the director**: its own rests (the song's moments of silence
+  are the player's, as they were), its scenes and its cuts.
+- What nothing reached any more: the decoders for what ElevenLabs sent, the key checks the songs
+  were measured with, the first REAPER experiment (`tools/stems/reaper_try.py`), and the packages
+  only they needed (httpx, PyAV, PyTorch, Demucs).
+- A `var/settings.json` that still names `monthly_minutes`, `daily_minutes`, `mode`, `rock` or
+  `hours_per_month` is read without them.
+
 ## More Warcraft, and more of the band in each piece (2026-11-16, night)
 
 Said while playing: "need more variety in warcraft first before you actually print house", "write

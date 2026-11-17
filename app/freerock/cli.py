@@ -4,11 +4,9 @@
     freerock sim <scenario>        play a scripted session against a running server, without the game
     freerock sim --list            the scenarios that come with FreeRock
     freerock read <picture>        read the strip out of a saved picture and say what it holds
-    freerock make "<zone>"         make a zone's first music now
-    freerock adopt <folder>        look again at a track that failed its checks
-    freerock settings [name value] show the allowances and the amount of rock, or change one
-    freerock library               list the music FreeRock has
-    freerock ledger                what has been spent this month and what is left
+    freerock settings [name value] show the settings, or change one
+    freerock stems                 keep every phrase and every part of every piece as an audio file
+    freerock pieces add|list|drop  the written pieces in a style's bucket
 
 Other parts of FreeRock add their own commands by calling add_command() before main() runs.
 """
@@ -36,17 +34,12 @@ def _serve_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--host", default="0.0.0.0", help="address to listen on (default: every address of this machine)")
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--link-only", action="store_true", help="run the game link and its page without the music")
-    # ("stop buying eleven labs were making music now", 2026-11-16: the server used to buy phrases from ElevenLabs
-    # the whole time the game was played. The music is the studio's own now, so nothing is bought unless this is said.)
-    parser.add_argument("--buy-from-elevenlabs", action="store_true",
-                        help="also ask ElevenLabs for new phrases while the game is played (it costs money; off unless said)")
 
 
 def _serve(arguments: argparse.Namespace) -> int:
     from freerock import main as whole
 
-    whole.serve(host=arguments.host, port=arguments.port, music=not arguments.link_only,
-                new_music=arguments.buy_from_elevenlabs)
+    whole.serve(host=arguments.host, port=arguments.port, music=not arguments.link_only)
     return 0
 
 
@@ -112,7 +105,7 @@ add_command("serve", "run FreeRock: the game link, the music and the pages", _se
 add_command("sim", "play a scripted session against a running server", _sim_arguments, _sim)
 add_command("read", "read the strip out of a saved picture", _read_arguments, _read)
 
-# The music commands (make, library, ledger) live with the music and add themselves here.
+# The music commands (settings, stems, pieces) live with the music and add themselves here.
 from freerock import musiccli  # noqa: E402,F401
 
 

@@ -6,12 +6,12 @@
 
 When the way the studio's tracks are played changes for the better, the bucket should hold
 only the new ones: this takes every written piece whose source begins with "<style>/" out of
-the style's bucket for good (the studio's own tracks and the real scores; the loose phrases
-and the songs cut into pieces stay), then puts every staged track of the style in, and makes
-the style the one in force (with `--keep-style` the style in force is left as it is: a second
-style is made ready while the first goes on being played). `freerock pieces drop` does the
-first part too, but saves the bucket after every piece, which for two thousand pieces is
-minutes; here it is saved once.
+the style's bucket for good (the studio's own tracks and the real scores; the loose phrases,
+and any pieces cut from the first design's songs, stay), then puts every staged track of the
+style in, and makes the style the one in force (with `--keep-style` the style in force is left
+as it is: a second style is made ready while the first goes on being played). `freerock pieces
+drop` does the first part too, but saves the bucket after every piece, which for two thousand
+pieces is minutes; here it is saved once.
 """
 from __future__ import annotations
 

@@ -18,8 +18,8 @@
 // own harmony and its own shape while the band comes and goes with the game. Pieces are strung
 // together: a track is a run of pieces that tell a story (it opens, states its theme, rises,
 // comes to its moment and closes), each going straight into the next; where the player is and
-// what is happening decide which track, and a fight cuts in with a piece of its own, after
-// which the track that was playing is picked up where it was left.
+// what is happening decide which track, and a dungeon's boss cuts in with a piece of its own,
+// after which the track that was playing is picked up where it was left.
 //
 // What the game is doing arrives as a target: how loud each channel is and how hard it plays.
 // Levels move the moment the target arrives. A change of strength swaps the phrase in the middle
@@ -447,24 +447,7 @@
       return plan;
     }
 
-    // One more phrase for the bucket in play. A phrase for another bucket is not this engine's
-    // business: that bucket's whole list comes with it when its turn comes.
-    addClip(key, clip) {
-      if (this.pending && this.pending.key === key) { this.pending.clips.set(clip.id, clip); this.pending.index = null; return; }
-      if (!this.bucket || this.bucket.key !== key) return;
-      this.bucket.clips.set(clip.id, clip);
-      if (clip.piece) { this.bucket.index = null; return; }    // a part of a piece: no deck takes it on its own
-      this.planned.delete(clip.channel + ":" + clip.tier);     // what is new is what is played next
-      // A channel that had nothing to play looks again on the next beat, not at the end of the
-      // stretch it had already been left empty for.
-      const group = this.group, deck = group ? group.decks[clip.channel] : null;
-      if (deck && !deck.clip && !deck.returning) {
-        const soon = Math.max(this._lineAfter(group, this.ctx.currentTime + NOTICE, 0.25), group.origin);
-        if (soon < deck.until) deck.until = soon;
-      }
-    }
-
-    // Phrases that have been set aside: they finish the pass they are in and are not chosen again.
+    // Phrases that have been banned: they finish the pass they are in and are not chosen again.
     dropClips(key, ids) {
       if (this.pending && this.pending.key === key) {
         for (const id of ids) this.pending.clips.delete(id);
@@ -498,7 +481,7 @@
 
     // The phrase of this channel and strength that has gone longest unheard. `except` is the one
     // playing; it is not chosen again while there is another. Between phrases that have never
-    // been heard on this page, one nobody has ever heard comes first: it was made for now.
+    // been heard on this page, one nobody has ever heard comes first.
     //
     // The choice is kept until it is used, so that the phrase fetched ahead of time is the
     // phrase that is then played.
@@ -1790,7 +1773,7 @@
       this.silenceUntil = 0;
     }
 
-    _quiet() { return this.target.rest === true || this.target.silent === true; }
+    _quiet() { return this.target.silent === true; }
 
     // Whether a moment of silence is going on.
     _silent() { return !this.group && this.ctx.currentTime < this.silenceUntil; }
@@ -1802,8 +1785,8 @@
         const now = this.ctx.currentTime;
         this.leaving = this.leaving.filter((group) => group.gone > now);
         if (this._quiet()) {
-          // A rest, or a cinematic: once the fade is over what was playing is let go, and the
-          // music starts afresh when it comes back.
+          // Silence asked for (a cinematic, FreeRock switched off, the game out of sight): once the
+          // fade is over what was playing is let go, and the music starts afresh when it comes back.
           const since = this.restSince === null ? now : this.restSince;
           if (this.group && now > since + this.target.fade_s + 0.25) {
             this._dropNext();
@@ -1902,7 +1885,7 @@
       // middle of. Only the choice of phrase waits its turn behind one that is loading.
       const before = this.target;
       this.target = Object.assign({}, before, target);
-      const wasQuiet = before.rest === true || before.silent === true;
+      const wasQuiet = before.silent === true;
       if (this._quiet() && !wasQuiet) this.restSince = this.ctx.currentTime;
       // Somewhere else (another kind of place, a cave, an inn, or out of one): the music follows
       // once the player has stayed there a moment.
@@ -1997,10 +1980,10 @@
       if (this.started) this._ramp(this.master.gain, this._loudness(), comingBack ? back : t.fade_s);
     }
 
-    // How loud the whole player is right now: nothing during a rest or a cinematic.
+    // How loud the whole player is right now: nothing while silence is asked for (a cinematic, FreeRock off).
     _loudness() {
       const t = this.target;
-      return t.silent || t.rest ? 0 : t.volume * this.userVolume;
+      return t.silent ? 0 : t.volume * this.userVolume;
     }
 
     setVolume(volume) {

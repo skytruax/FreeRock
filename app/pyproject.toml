@@ -5,22 +5,11 @@ description = "Generated game music that follows World of Warcraft: Forever"
 requires-python = ">=3.11,<3.14"
 dependencies = [
     "aiohttp>=3.9",
-    "httpx>=0.27",
     "numpy>=1.26",
     "scipy>=1.11",
     "soundfile>=0.12",
-    "av>=12",
     "pyloudnorm>=0.1.1",
     "pillow>=10",
-]
-
-[project.optional-dependencies]
-# Splitting a track into drums, bass and everything else. Heavy (PyTorch), so the machine that
-# only runs the sensor does not need it.
-stems = [
-    "torch>=2.2",
-    "torchaudio>=2.2",
-    "demucs>=4.0",
 ]
 
 [dependency-groups]
@@ -48,14 +37,3 @@ asyncio_default_fixture_loop_scope = "function"
 # The server keeps its parts under plain names (app["hub"], app["link"], app["conductor"]);
 # aiohttp suggests typed keys instead, which is a matter of style here.
 filterwarnings = ["ignore::aiohttp.web_exceptions.NotAppKeyWarning"]
-
-# PyTorch's CPU build: this machine has no GPU the separator can use, and the CUDA build is
-# several gigabytes larger.
-[tool.uv.sources]
-torch = { index = "pytorch-cpu" }
-torchaudio = { index = "pytorch-cpu" }
-
-[[tool.uv.index]]
-name = "pytorch-cpu"
-url = "https://download.pytorch.org/whl/cpu"
-explicit = true

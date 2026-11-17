@@ -14,14 +14,14 @@ def rows(store):
         return list(csv.DictReader(table))
 
 
-def test_a_new_phrase_is_kept_as_a_file_with_a_row_saying_what_it_is(tmp_path):
+def test_a_phrase_is_kept_as_a_file_with_a_row_saying_what_it_is(tmp_path):
     bucket = bucket_at(tmp_path, bpm=80, zone="duskwood", genre="warcraft")
     audio = phrase(80, bucket.cycle)
-    clip = bucket.add(audio, channel="lead", tier=2, words=["solo trumpet", "a battle fanfare in D minor"],
+    clip = bucket.add(audio, channel="lead", tier=2, source="elevenlabs", words=["solo trumpet", "a battle fanfare in D minor"],
                       measured={"lufs": -14.0, "tuning_cents": 3.0, "verse": {"tempo_off": 0.01}, "chorus": {"tempo_off": -0.02}},
                       seed=4242, place="westfall")
     store = StemStore(tmp_path / "stems")
-    store.add(bucket, clip)
+    assert store.sync(tmp_path / "buckets") == (1, 1)
     path = tmp_path / "stems" / "warcraft" / "lead-hard" / ("80bpm-G-mixolydian-%s.flac" % clip.id)
     assert path.is_file() and (tmp_path / "stems" / "README.txt").is_file()
     samples, rate = soundfile.read(str(path), dtype="int16")
@@ -39,13 +39,14 @@ def test_a_new_phrase_is_kept_as_a_file_with_a_row_saying_what_it_is(tmp_path):
 
 def test_the_folder_is_brought_up_to_date_from_the_buckets(tmp_path):
     bucket = bucket_at(tmp_path, bpm=80, zone="duskwood", genre="knight")
-    first = bucket.add(phrase(80, bucket.cycle), channel="drums", tier=1, measured={"lufs": -18.0})
-    old = bucket.add(phrase(80, 4), channel="drums", tier=1, measured={"lufs": -18.0, "tempo_off": 0.0})   # from before the form
+    first = bucket.add(phrase(80, bucket.cycle), channel="drums", tier=1, source="test", measured={"lufs": -18.0})
+    old = bucket.add(phrase(80, 4), channel="drums", tier=1, source="test",
+                     measured={"lufs": -18.0, "tempo_off": 0.0})   # from before the form
     store = StemStore(tmp_path / "stems")
-    store.add(bucket, first)
+    assert store.keep(bucket, first) and not store.keep(bucket, first), "a file that is there is not written again"
     bucket.played([first.id])
     bucket.played([first.id])
-    second = bucket.add(phrase(80, bucket.cycle, seed=2), channel="bass", tier=0, measured={"lufs": -20.0})
+    second = bucket.add(phrase(80, bucket.cycle, seed=2), channel="bass", tier=0, source="test", measured={"lufs": -20.0})
     written, total = store.sync(tmp_path / "buckets")
     assert (written, total) == (2, 3), "the file that was there is not written again"
     table = {row["id"]: row for row in rows(store)}
@@ -58,7 +59,7 @@ def test_the_folder_is_brought_up_to_date_from_the_buckets(tmp_path):
 
 def test_the_parts_of_a_written_piece_are_kept_in_the_pieces_own_folder(tmp_path):
     bucket = bucket_at(tmp_path, bpm=80, zone="duskwood", genre="knight")
-    loose = bucket.add(phrase(80, bucket.cycle), channel="drums", tier=1, measured={"lufs": -18.0})
+    loose = bucket.add(phrase(80, bucket.cycle), channel="drums", tier=1, source="test", measured={"lufs": -18.0})
     # A piece at its own tempo (100: a bar is 115200 samples), 24 bars with two seconds of what
     # the music went on to, kept in stretches of 16 bars: two stretches for each of two parts.
     bar, post = 115200, 2 * forever.RATE

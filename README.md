@@ -1,62 +1,58 @@
 # FreeRock
 
-Generated music for World of Warcraft: Forever that follows the game, made with ElevenLabs and
-played as one song that never ends.
+Music for World of Warcraft: Forever that follows the game, played as one song that never ends.
 
-The music for a place is a bucket of phrases, each one instrument alone: drums, bass, a rhythm
-part, a tune and a drone, each calm, steady or hard. The player is five decks, one for each of
-those channels, on one bar grid. A phrase is one turn of a form (a verse, a build-up and a
-chorus), so the whole band builds up and reaches the chorus together, and each time round a
-couple of the decks have something new. What you do in the game decides which channels are up
-and how hard they play: standing still is a drone and a tune, moving brings the rhythm part and
-the drums, a fight brings the hard phrases on the next half beat, and more enemies in the fight
-bring more of them. Now and then the song eases right off of its own accord, or leans in, and
-every few minutes it comes down to a moment of silence. There are three styles: Knight Rock,
-Warcraft (an orchestral score in the old manner) and Progressive House.
+Each of the three styles (Knight Rock, Warcraft: an orchestral score in the old manner, and
+Progressive House) has a bucket of music. Most of it is **written pieces**: music written and
+played on this machine by FreeRock's studio (`app/freerock/studio/`) and kept as its parts, one
+recording for each channel: drums, bass, a rhythm part, a tune and a drone. The player is five
+decks, one for each of those channels, on one bar grid. It plays a piece's parts together, each
+as loud as the game asks, so the piece keeps its own harmony and shape while the band comes and
+goes. Pieces are strung into tracks that tell a story (it opens, states its theme, rises, comes
+to its moment and closes). Which track plays depends on the kind of place you are in (haunted
+woods, farmland, a desert: not the zone by name) and on what is happening; a dungeon's boss cuts
+in with a piece of its own and the track is picked up afterwards where it was left; and light
+and heavy tracks take turns, so that staying in one place does not grow too intense.
 
-A bucket also holds **written pieces**: music written as a whole and kept as its parts, one
-recording for each channel. The decks play a piece's parts together, each as loud as the game
-asks, so the piece keeps its own harmony and shape while the band comes and goes. Pieces are
-strung into tracks that tell a story (it opens, states its theme, rises, comes to its moment and
-closes). Which track plays depends on the kind of place you are in (haunted woods, farmland, a
-desert: not the zone by name) and on what is happening; a fight cuts in with a piece of its own
-and the track is picked up afterwards where it was left; and light and heavy tracks take turns,
-so that staying in one place does not grow too intense.
+Beside its pieces a bucket keeps **loose phrases**, each one instrument alone, calm, steady or
+hard, all on one tempo and key: they were made with ElevenLabs while the game was played in
+FreeRock's first days. Now and then a stretch of them comes between two tracks. A phrase is one
+turn of a form (a verse, a build-up and a chorus), so the whole band builds up and reaches the
+chorus together, and each time round a couple of the decks have something new.
+
+What you do in the game decides which channels are up and how hard they play: standing still is
+a drone and a tune, moving brings the rhythm part and the drums, a fight brings the hard parts on
+the next half beat, and more enemies in the fight bring more of them. Now and then the song eases
+right off of its own accord, or leans in, and every few minutes it comes down to a moment of
+silence.
 
 FreeRock is two parts. A small addon draws what the game is doing as a thin strip of squares along
 the top of the screen. A program outside the game reads that strip, decides what should be heard,
-makes the music, and plays it through a browser tab. The first design is in
-[docs/plan.md](docs/plan.md); what the first evening in the game changed is in
-[CHANGELOG.md](CHANGELOG.md), and the strip is defined in [protocol/beacon.md](protocol/beacon.md).
+and plays it through a browser tab; its studio writes and plays the music beforehand. The first
+design (music bought from ElevenLabs and played as whole songs) is in [docs/plan.md](docs/plan.md);
+what the evenings in the game changed is in [CHANGELOG.md](CHANGELOG.md), and the strip is
+defined in [protocol/beacon.md](protocol/beacon.md).
 
 ## Where it stands (2026-11-15)
 
 - **Run in the game, on the gaming PC:** the addon, the strip read off a real screen, the
   sensor, the player page, the forever song in all three styles.
-- **Measured here:** the player (decks locked to the sample, changes in step, no clipping), every
-  phrase before it goes into a bucket (tempo, beat and tuning, part by part), the rules from
-  game state to sound, and the whole chain driven by a pretend game.
+- **Measured here:** the player (decks locked to the sample, changes in step, no clipping), the
+  rules from game state to sound, and the whole chain driven by a pretend game.
 - **Judged by ear only by Sky:** how the music sounds. WoW is not installed on the development
   machine.
-- **Not yet run in the game:** strip version 3 (the count of enemies in view and in a fight),
-  and written pieces, which have only been played in a browser on the development machine.
-- **Out of date:** the tests of the songs mode (`settings.mode = "songs"`), which the forever
-  song replaced as the default.
+- **Not yet run in the game:** strip version 3 (the count of enemies in view and in a fight).
 
 ## Run it
 
 On the Linux machine, from `app/`:
 
 ```
-uv sync --extra stems          # once
+uv sync                        # once
 uv run freerock serve          # the game link, the music and the pages, on port 8765
 ```
 
-It prints the addresses to use, and plays what is in its buckets: the music is the studio's own
-(`app/freerock/studio`), and nothing is bought. With `--buy-from-elevenlabs` it also asks
-ElevenLabs for new phrases while the game is played, as it did at first (that costs money; the
-key is read from `EL_BIG_BAD_KEY` or `ELEVENLABS_API_KEY` in the environment or in a `.env` file
-in this folder or the one above it).
+It prints the addresses to use, and plays what is in its buckets.
 
 Open `http://localhost:8765/player` to hear it. The page has a **pretend game** panel: pick a zone,
 tick cave, fight, night or weather, and the music does what it would do in the game.
@@ -82,78 +78,57 @@ in its own window, with sound allowed to start by itself, and starts the sensor.
 | `/rock on`, `/rock off` | Turns FreeRock on or off. Off puts the game's own music back. |
 | `/rock test` | Sends a test pattern for ten seconds |
 | `/rock status` | Prints what the addon sees, the weather values the game reports, and any errors |
-| `/rock skip`, `/rock love`, `/rock ban` | Play something else; keep this music; never play it again |
+| `/rock skip`, `/rock love`, `/rock ban` | Play something else; mark this music as loved; never play it again |
 | `/rock volume <0-100>` | How loud FreeRock plays |
 | `/rock gamemusic on`, `off` | Leave the game's own music on as well, or off while FreeRock is on |
 | `/rock strip top`, `bottom`, `size <2-8>`, `inset <left> [edge]` | Where the strip is and how big its squares are |
 
 ## The music
 
-A zone's first music is a **core suite**: one request of about three minutes with six parts in one
-tempo and key (Arrival, two Wander riffs, Battle, Ember, Depths). It is split on this machine into
-three layers (drums, bass, and everything else) that add back up to the original exactly. The
-player moves between parts on bar lines and moves the layers' levels at once, so a fight brings
-the bass and drums in under the music that is already playing.
-
 Each of the game's 50 zones has a profile (tempo, key, instruments, mood) in
 `app/freerock/atlas/zones.json`. A place without one, such as a dungeon, gets a profile from the
-words in its name.
+words in its name. A style's bucket takes its tempo and key from the place it was begun in, and
+goes with the player wherever they go: the song does not start again at a zone's border.
 
-**It grows where you spend time.** Ten minutes in a place earns it a second set (two more riffs,
-Night, Storm, a second Battle, Boss), and every two hours after that a fresh set (three more
-riffs, a second Ember and Depths, a third Battle). Later sets are told to stay close to the core
-suite so they sound like the same band. A place keeps three fresh sets in rotation; an older one
-makes room for a newer one unless you have marked it with `/rock love`.
+**Written pieces.** Tracks are written and played on this machine by the studio
+(`app/freerock/studio/`): its orchestra and its band (`build`), its house writer (`house`, played
+through Surge XT, Muse Sounds and the TR-8 recordings by `club`), and real public-domain scores
+(`scores`). Each track is staged under `var/studio/` and put in its style's bucket with
+`freerock pieces add`, cut into the pieces of its story (see `forever.Bucket.add_piece`). A piece
+says what it is for: the kinds of place (pastoral, highland, haunted, desert, jungle, infernal,
+regal, mystic: `app/freerock/kinds.py`), the sort of ground (woods, water, heights, fields...),
+how dark or bright it is, the kind of moment, how hard it plays, and whether it is of the lighter
+sort. Every zone is of one or two kinds, read from the words of its profile, and a named place
+inside it adds its own; the player page says which kind of place you are in. A bucket may also
+still hold pieces cut from the first design's songs (their source begins with `song/`).
 
-**Planned for 100 hours a month.** The minutes that go on growing music are released as the hours
-are played, so the month's allowance lasts the month. `freerock settings` shows the numbers.
-
-**Written pieces.** Each style's bucket holds pieces beside its loose phrases (see
-`forever.Bucket.add_piece`). They come from two places. The songs on disk, made before the
-forever song, are cut at their own section boundaries: a song proper is one track with a piece
-for each section, and its Fight, Boss, Storm, Night, Ember and Depths parts are short tracks
-for those moments. And tracks written and played on this machine in the studio
-(`app/freerock/studio/`) are staged under `var/studio/` and cut into the pieces of their
-stories. A piece says what it is for: the kinds of place (pastoral, highland, haunted, desert,
-jungle, infernal, regal, mystic: `app/freerock/kinds.py`), the kind of moment, how hard it
-plays, and whether it is of the lighter sort. Every zone is of one or two kinds, read from the
-words of its profile, and a named place inside it adds its own; the player page says which kind
-of place you are in.
-
-**Rain and rests.** Steady rain brings the drums in, and a rain storm the whole band; rain is
-never muffled. After about six minutes of calm music the music rests for about a minute and comes
-back with a fresh opening. Anything happening brings it straight back.
+**Rain and silences.** Steady rain brings the drums in, and a rain storm the whole band; rain is
+never muffled. After about six minutes of music (`rest_every_minutes`) the song comes down to a
+moment of silence of about a minute (`rest_seconds`), where its form comes round, and fades back
+in afterwards; a fight brings it straight back.
 
 | Command | What it does |
 |---|---|
-| `freerock make "<zone>"` | Makes a zone's first music now, instead of on the first visit. `--set second` or `--set fresh` adds a later set. |
-| `freerock library` | Lists the music FreeRock has |
-| `freerock ledger` | What has been spent this month and today, and the account's credit balance |
-| `freerock pieces songs [style]` | Cuts every song on disk in a style into written pieces, in the style's bucket. Does nothing the second time. Stop the server first. |
 | `freerock pieces add [style]` | Puts every track the studio has staged for a style in its bucket, skipping those already there. Stop the server first. |
-| `freerock pieces drop <style> <source>` | Takes every piece whose source begins with `<source>` out of the style's bucket for good: `knight/` for the studio's Knight Rock, `warcraft/real-` for the real scores, `song/` for the songs. Stop the server first. |
+| `freerock pieces drop <style> <source>` | Takes every piece whose source begins with `<source>` out of the style's bucket for good: `knight/` for the studio's Knight Rock, `warcraft/real-` for the real scores, `song/` for the pieces cut from the first design's songs. Stop the server first. |
 | `freerock pieces list [style]` | What written pieces a style has: how many, how long, and how they divide by kind of moment, kind of place, light and heavy |
 | `uv run --no-sync python -m freerock.studio.build` | The studio's orchestra and its band: writes and plays every family of original tracks, staging the orchestra's under `var/studio/warcraft/` and Knight Rock's under `var/studio/knight/` (`--list` says what there would be, `--style knight` does only the band) |
 | `uv run --no-sync --with numba python -m freerock.studio.house` | The studio's house writer and its synthesiser: stages tracks under `var/studio/house/` |
 | `uv run --no-sync python -I -m freerock.studio.scores stage` | Real public-domain scores, played by family and staged (`fetch` gets them first) |
-| `uv run --no-sync python ../tools/listen.py [style]` | Every staged track as one file to listen to, under `var/listen/`; the server shows them at `/listen/` |
+| `uv run --no-sync python ../tools/render_some.py <family/take> ...` | Writes and plays a chosen list of tracks, several at a time (`--until` begins none after that time of day) |
+| `uv run --no-sync python ../tools/fresh_bucket.py <style>` | Takes a style's old studio pieces out of its bucket and puts in everything staged now. Stop the server first. |
+| `uv run --no-sync python ../tools/listen.py [style]` | Every staged track as one file to listen to, under `var/listen/`, with a mixer page for its channels; the server shows them at `/listen/` |
+| `uv run --no-sync python ../tools/audition.py` | Every instrument alone, on one page to listen to |
 | `uv run --no-sync python ../tools/soak.py [style]` | A pretend evening played through the running server and a hidden browser: what music was chosen, and whether it played without a hitch |
 | `freerock settings pieces off` | Only the loose phrases are played (`on` brings the written pieces back); the same as the tick box on the player page |
 | `freerock stems [--to folder]` | Keeps every phrase and every part of every piece as a FLAC file, with `stems.csv` saying what each is |
-| `freerock settings [name value]` | Shows or changes `monthly_minutes` (300), `daily_minutes` (30), `hours_per_month` (100), `rock` (0.5), `rest_every_minutes` (6; 0 for no rests) and `rest_seconds` (60) |
-| `freerock adopt <folder>` | Looks again at a track that failed its checks; keeps it if it now passes |
+| `freerock settings [name value]` | Shows or changes `rest_every_minutes` (6; 0 for no silences), `rest_seconds` (60), `genre` (knight, warcraft or house) and `pieces` (on or off) |
 | `freerock sim <scenario>` | Plays a scripted session against a running server, drawing and reading the real strip |
 | `freerock read <picture>` | Reads the strip out of a saved picture and says what it holds |
 
-**Cost.** ElevenLabs charges about $0.15 a minute. Every paid call goes through one function
-(`app/freerock/eleven.py`) that checks the monthly and daily allowance first and writes a ledger.
-At the allowance FreeRock stops making music and plays what it has. A track that fails its checks
-is kept in `var/rejected/` rather than thrown away.
-
-**Tools for listening and measuring.** `tools/spikes/` holds the experiments that settled the
-design, with a listening page (`var/spikes/index.html`). `tools/render_session.py walk|storm [zone]`
-plays a scripted stretch of play through the real player faster than real time (a fight, a mine
-and stealth; or a rain storm and a rest) and writes the clip and its measurements to `var/demos/`.
+`tools/stems/README.md` says how the studio's instruments (REAPER and its plug-ins, MuseScore and
+Muse Sounds, the sampled recordings) were fetched and put on this machine, and under what
+licences; `tools/reaper.sh` opens the studio's REAPER with its window.
 
 ## Staying within the rules
 
@@ -167,7 +142,6 @@ and stealth; or a rain storm and a rest) and writes the clip and its measurement
 - Blizzard's licence has a broad clause against unauthorized software that "reads information
   generated by the Platform", and Blizzard has not said whether passive screen readers are fine.
   The strip was chosen knowing that. See [docs/plan.md](docs/plan.md).
-- Prompts never name artists, songs, the game or its places.
 
 ## Tests
 
@@ -184,12 +158,11 @@ tools/sim/run.sh                           # the addon beside Blizzard's real in
 FreeRock/        the addon folder that goes into _forever_\Interface\AddOns\
 protocol/        the strip format and its test vectors
 app/freerock/    the program: game link (beacon, state, server, sim, web/sensor.py),
-                 music (composer, eleven, ledger, stems, analysis, library, ingest, atlas),
-                 the forever song (forever, stemstore), written pieces (kinds, songstems,
-                 pieces, studio/), what plays (director, conductor, web/player), and the
-                 commands (cli, musiccli)
+                 places and styles (atlas, kinds, composer), the forever song (forever,
+                 stemstore, analysis, audio), written pieces (pieces, studio/), what plays
+                 (director, conductor, web/player), and the commands (cli, musiccli, main)
 app/tests/       Python tests
-tools/           Lua tests, the simulator runner, the experiments, the session renderer
-docs/plan.md     the plan
-var/             everything made at run time: library, ledger, logs, demos (not in git)
+tools/           the studio's tools, the listening pages, the Lua tests, the simulator runner
+docs/            the first design (plan.md) and the plan for the studio (own-stems.md)
+var/             everything made at run time: buckets, the studio's tracks, logs (not in git)
 ```

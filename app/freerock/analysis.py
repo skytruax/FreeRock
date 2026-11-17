@@ -1,8 +1,8 @@
 """Measuring a track without ears: tempo and beat grid, key and tuning, loudness, band energy.
 
-FreeRock asks ElevenLabs for a stated tempo and key, so nothing here has to guess a tempo from
-nothing. Each function checks how well the audio matches what was asked for, and reports numbers
-that tests and the experiment reports can hold against a pass line.
+Everything FreeRock measures was made at a stated tempo and key, so nothing here has to guess a
+tempo from nothing. Each function checks how well the audio matches what it was meant to be, and
+reports numbers that tests and the studio can hold against a pass line.
 """
 from __future__ import annotations
 
@@ -86,10 +86,6 @@ class Grid:
     @property
     def period_s(self) -> float:
         return 60.0 / self.bpm
-
-    def beat_times(self, until_s: float) -> np.ndarray:
-        count = int(np.floor((until_s - self.first_beat_s) / self.period_s)) + 1
-        return self.first_beat_s + np.arange(max(count, 0)) * self.period_s
 
     def distance_to_beat_s(self, moment_s: float) -> float:
         """How far `moment_s` is from the nearest beat of this grid, signed (positive = beat is later)."""
@@ -187,41 +183,6 @@ class KeyEstimate:
     def name(self) -> str:
         return "%s %s" % (PITCH_NAMES[self.tonic], self.mode)
 
-    def rank_of(self, pitch_class: int) -> int:
-        """1 if `pitch_class` is the strongest pitch class in the track, 2 if second, and so on."""
-        order = np.argsort(-self.chroma)
-        return int(np.where(order == pitch_class % 12)[0][0]) + 1
-
-    def scale_shares(self) -> np.ndarray:
-        """For each of the twelve major scales, the share of the track's energy that falls on
-        its seven notes. Entry 0 is the scale of C major (the white keys), entry 7 that of G."""
-        return np.array([sum(self.chroma[(root + step) % 12] for step in MAJOR_SCALE) for root in range(12)])
-
-    def in_family(self, key_name: str) -> bool:
-        """Whether the track uses the notes of `key_name`, give or take one.
-
-        Riff rock and folk tunes move their weight around inside one set of seven notes: a piece
-        asked for in D minor may sit on A for a section, or lean on the major sixth and so sound
-        Dorian. A key finder then names a different key each time, though nothing has gone wrong
-        and the parts still join and layer. So this asks which seven-note scale the audio fits
-        best, and accepts the scale `key_name` belongs to or a neighbour that differs from it by
-        a single note.
-        """
-        wanted = parent_scale(key_name)
-        shares = self.scale_shares()
-        family = max(shares[wanted], shares[(wanted + 7) % 12], shares[(wanted + 5) % 12])
-        # "As well as any scale could, within three points": a sparse part (a drone, power chords
-        # of root and fifth) fits several scales equally, and must not fail for which one a tie
-        # happens to name.
-        return bool(family >= shares.max() - 0.03)
-
-    def agrees_with(self, tonic: int) -> bool:
-        """True when `tonic` is this estimate's tonic, or the tonic of its relative key, or one of
-        the two strongest pitch classes. Modal music (Dorian, Mixolydian) is often heard by a
-        key finder as the relative major or minor, so an exact match would be too strict."""
-        relative = (self.tonic + 3) % 12 if self.mode == "minor" else (self.tonic - 3) % 12
-        return tonic % 12 in (self.tonic, relative) or self.rank_of(tonic) <= 2
-
 
 def estimate_key(audio: np.ndarray, rate: int) -> KeyEstimate:
     mono = to_mono(audio).astype(np.float32)
@@ -274,32 +235,6 @@ def estimate_key(audio: np.ndarray, rate: int) -> KeyEstimate:
                        tuning_cents=tuning_cents, chroma=chroma)
 
 
-MAJOR_SCALE = (0, 2, 4, 5, 7, 9, 11)
-# How far above its parent major scale's key note each mode starts, in semitones: D Dorian uses
-# the notes of C major, two semitones below D.
-MODE_STEPS = {"major": 0, "ionian": 0, "dorian": 2, "phrygian": 4, "lydian": 5, "mixolydian": 7,
-              "minor": 9, "aeolian": 9, "locrian": 11}
-
-
-def parent_scale(key_name: str) -> int:
-    """The major scale whose seven notes a key uses, as the pitch class of that scale's key
-    note: "A minor", "D dorian" and "G mixolydian" all give 0, the scale of C major."""
-    words = key_name.strip().lower().split()
-    mode = words[1] if len(words) > 1 else "major"
-    if mode not in MODE_STEPS:
-        raise ValueError("Unknown mode %r in %r" % (mode, key_name))
-    return (parse_tonic(key_name) - MODE_STEPS[mode]) % 12
-
-
-def parse_tonic(name: str) -> int:
-    """The pitch class of a key name such as "A minor", "D dorian" or "F# mixolydian"."""
-    note = name.strip().split()[0].replace("b", "♭")
-    flat = note.endswith("♭")
-    base = note.rstrip("♭")
-    index = PITCH_NAMES.index(base.upper() if len(base) == 1 else base[0].upper() + base[1:])
-    return (index - 1) % 12 if flat else index
-
-
 # --- loudness and bands ----------------------------------------------------------------------------
 
 def loudness_lufs(audio: np.ndarray, rate: int) -> float:
@@ -318,39 +253,3 @@ def band_level_db(audio: np.ndarray, rate: int, low_hz: float, high_hz: float) -
 
 def peak(audio: np.ndarray) -> float:
     return float(np.max(np.abs(audio))) if audio.size else 0.0
-
-
-# --- comparing the sound of two recordings ---------------------------------------------------
-
-def band_profile(audio: np.ndarray, rate: int, low_hz: float = 50.0, high_hz: float = 12_800.0,
-                 per_octave: int = 3) -> np.ndarray:
-    """The average level in each third of an octave from `low_hz` to `high_hz`, in dB.
-
-    It is a rough picture of a recording's tone: how much low end, how bright, where the guitars
-    sit. Two recordings by the same band in the same room have similar pictures.
-    """
-    mono = to_mono(audio).astype(np.float32)
-    size = 8192
-    if len(mono) < size:
-        raise ValueError("Too short to take a band profile")
-    window = np.hanning(size).astype(np.float32)
-    frames = np.lib.stride_tricks.sliding_window_view(mono, size)[::size // 2]
-    power = np.zeros(size // 2 + 1, dtype=np.float64)
-    for start in range(0, len(frames), 256):
-        power += (np.abs(np.fft.rfft(frames[start:start + 256] * window, axis=1)) ** 2).sum(axis=0)
-    power /= len(frames)
-    freqs = np.fft.rfftfreq(size, 1.0 / rate)
-    count = int(round(np.log2(high_hz / low_hz) * per_octave))
-    edges = low_hz * 2.0 ** (np.arange(count + 1) / per_octave)
-    levels = np.empty(count)
-    for index in range(count):
-        inside = (freqs >= edges[index]) & (freqs < edges[index + 1])
-        levels[index] = 10.0 * np.log10(power[inside].sum() + 1e-20)
-    return levels
-
-
-def profile_difference_db(first: np.ndarray, second: np.ndarray) -> float:
-    """How different two band profiles are, in dB, ignoring that one may simply be louder.
-    Around 1 to 2 dB is the same sound; 4 dB and up is a clearly different mix."""
-    gap = (first - first.mean()) - (second - second.mean())
-    return float(np.sqrt(np.mean(gap ** 2)))

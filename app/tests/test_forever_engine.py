@@ -152,13 +152,13 @@ async def test_only_phrases_that_can_be_heard_are_counted_as_heard(results):
     assert heard["playing"] == ["drums", "lead", "rhythm", "texture"]
 
 
-async def test_a_rest_fades_right_out_and_the_music_comes_back_afresh(results):
-    rest = of(results, "rest")
-    assert rest["during"] < 1e-4
-    assert rest["scheduledDuring"] == 0
-    assert rest["firstAfter"] == pytest.approx(18.0 + ORIGIN, abs=0.01)
-    assert rest["offsetsAfter"] and all(offset == 0 for offset in rest["offsetsAfter"])
-    assert rest["after"] == pytest.approx(rest["before"], rel=0.25)
+async def test_a_silence_fades_right_out_and_the_music_comes_back_afresh(results):
+    silence = of(results, "silence")
+    assert silence["during"] < 1e-4
+    assert silence["scheduledDuring"] == 0
+    assert silence["firstAfter"] == pytest.approx(18.0 + ORIGIN, abs=0.01)
+    assert silence["offsetsAfter"] and all(offset == 0 for offset in silence["offsetsAfter"])
+    assert silence["after"] == pytest.approx(silence["before"], rel=0.25)
 
 
 async def test_another_place_comes_in_on_its_own_tempo(results):
@@ -172,17 +172,7 @@ async def test_another_place_comes_in_on_its_own_tempo(results):
     assert place["newAfter"] > 0.05
 
 
-async def test_phrases_that_arrive_are_taken_up_at_once(results):
-    arrivals = of(results, "arrivals")
-    # The first drum phrase arrived at 3 s: the drums come in on the next beat, in step.
-    assert arrivals["first"]["at"] == pytest.approx(3.0 + ORIGIN, abs=1e-6)
-    assert arrivals["first"]["offset"] == pytest.approx(3.0, abs=1e-6)
-    assert arrivals["first"]["tier"] == 1          # the nearest strength there was
-    assert arrivals["hard"] is not None and arrivals["hard"]["at"] == pytest.approx(arrivals["hardExpected"], abs=1e-6)
-    assert arrivals["channels"] == ["drums", "texture"]
-
-
-async def test_a_phrase_that_is_set_aside_is_not_chosen_again(results):
+async def test_a_phrase_that_is_banned_is_not_chosen_again(results):
     aside = of(results, "setAside")
     assert aside["playedAfter"] == 0
     assert aside["others"] == 2

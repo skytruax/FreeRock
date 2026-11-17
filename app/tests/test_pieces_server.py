@@ -1,12 +1,13 @@
 """Written pieces on the server: the kind of place the player is told of, love and ban on a whole
-piece, what the control page is told, and the feed leaving the parts of pieces alone."""
+piece, and what the control page is told."""
 import json
 
 import numpy as np
 
 from freerock import atlas, forever
 from freerock import state as game
-from test_forever import fill, next_of, publish, running, shallow_pools, until  # noqa: F401  (small pools, as there)
+from test_conductor import STARTING, next_of, publish, running, until
+from test_forever import fill
 
 RATE = forever.RATE
 BAR = 2 * RATE                 # a two-second bar
@@ -38,9 +39,9 @@ async def told_of(socket, kinds):
 
 
 async def test_the_kind_of_place_goes_to_the_player_and_changes_at_a_border(tmp_path):
-    client, app, conductor, _ = await running(tmp_path, with_filler=False)
+    client, app, conductor = await running(tmp_path)
     try:
-        fill(conductor.buckets.get("Duskwood", "knight"), forever.FIRST[:5])
+        fill(conductor.buckets.get("Duskwood", "knight"), STARTING)
         socket = await client.ws_connect("/ws/player")
         publish(app, zone_name="Duskwood")
         target = await told_of(socket, ["haunted"])
@@ -113,8 +114,8 @@ def test_a_place_has_a_shade_from_grim_to_radiant_and_the_hour_the_rain_and_a_ca
     assert atlas.shade_for("Duskwood", "Scarlet Raven Tavern") > atlas.shade_for("Duskwood"), "an inn is a warm room whatever it is called"
     assert atlas.shade_for(None) == 0.0 and atlas.shade_for("Somewhere Nobody Has Been") == 0.0
     from freerock.conductor import Conductor
-    from freerock.library import Library
-    music = Conductor(game.Hub(), Library(tmp_path / "library"))
+    from freerock.settings import Settings
+    music = Conductor(game.Hub(), settings=Settings(var_dir=tmp_path / "var"))
     day = game.GameState(zone_name="Elwynn Forest", daytime=True)
     here = music.shade_here(day)
     assert here == 1.5
@@ -127,10 +128,10 @@ def test_a_place_has_a_shade_from_grim_to_radiant_and_the_hour_the_rain_and_a_ca
 
 
 async def test_love_and_ban_are_for_the_whole_piece(tmp_path):
-    client, app, conductor, _ = await running(tmp_path, with_filler=False)
+    client, app, conductor = await running(tmp_path)
     try:
         bucket = conductor.buckets.get("Duskwood", "knight")
-        fill(bucket, forever.FIRST[:5])
+        fill(bucket, STARTING)
         piece = add_piece(bucket)
         other = add_piece(bucket, title="Another")
         parts = [clip.id for clip in bucket.clips if clip.piece == piece]
@@ -163,10 +164,10 @@ async def test_love_and_ban_are_for_the_whole_piece(tmp_path):
 
 
 async def test_the_control_page_is_told_of_pieces_apart_from_phrases(tmp_path):
-    client, app, conductor, _ = await running(tmp_path, with_filler=False)
+    client, app, conductor = await running(tmp_path)
     try:
         bucket = conductor.buckets.get("Duskwood", "knight")
-        fill(bucket, forever.FIRST[:5])
+        fill(bucket, STARTING)
         piece = add_piece(bucket)
         socket = await client.ws_connect("/ws/player")
         publish(app, zone_name="Duskwood")
@@ -188,27 +189,10 @@ async def test_the_control_page_is_told_of_pieces_apart_from_phrases(tmp_path):
         await client.close()
 
 
-async def test_the_feed_takes_no_notice_of_the_parts_of_pieces(tmp_path):
-    client, app, conductor, filler = await running(tmp_path)
-    try:
-        bucket = conductor.buckets.get("Duskwood", "knight")
-        add_piece(bucket)
-        await client.ws_connect("/ws/player")
-        publish(app, zone_name="Duskwood")
-        # A bucket that has a piece and no loose phrases is fed from the beginning, pool by pool.
-        await until(lambda: bucket.started())
-        assert [(channel, tier) for _, channel, tier, _, _ in filler.asked[:len(forever.FIRST)]] == list(forever.FIRST)
-        await until(lambda: all(count == forever.MOST for count in bucket.counts().values()), timeout=20)
-        assert len(bucket.live_pieces()) == 1 and len([clip for clip in bucket.live() if clip.piece]) == 6
-        assert not [clip for clip in bucket.clips if clip.piece and clip.retired], "a part of a piece is never set aside as worn"
-    finally:
-        await client.close()
-
-
 async def test_a_page_that_connects_is_told_where_the_player_is_before_it_is_given_the_music(tmp_path):
-    client, app, conductor, _ = await running(tmp_path, with_filler=False)
+    client, app, conductor = await running(tmp_path)
     try:
-        fill(conductor.buckets.get("Duskwood", "knight"), forever.FIRST[:5])
+        fill(conductor.buckets.get("Duskwood", "knight"), STARTING)
         first = await client.ws_connect("/ws/player")
         publish(app, zone_name="Duskwood")
         await next_of(first, "bucket")

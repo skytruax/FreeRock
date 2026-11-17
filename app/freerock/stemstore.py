@@ -11,8 +11,8 @@ A bucket also holds written pieces, each kept as its parts: one recording for ea
 in stretches of under a minute. Every stretch of every part is here as well, in a folder for
 its piece, with the piece's name and which stretch it is in the table.
 
-The server adds each new phrase as it is made. `freerock stems` brings the whole folder up to
-date from the buckets at any time, and can write it somewhere else.
+`freerock stems` brings the whole folder up to date from the buckets at any time, and can write
+it somewhere else.
 """
 from __future__ import annotations
 
@@ -21,7 +21,6 @@ import datetime
 import json
 from pathlib import Path
 
-import numpy as np
 import soundfile
 
 from . import forever
@@ -132,19 +131,6 @@ class StemStore:
         soundfile.write(str(scratch), samples, forever.RATE, format="FLAC", subtype="PCM_16")
         scratch.replace(path)
         return True
-
-    def add(self, bucket: forever.Bucket, clip: forever.Clip) -> None:
-        """A phrase that has just been made: its file, and its row at the end of the table."""
-        self.keep(bucket, clip)
-        table = self.root / "stems.csv"
-        fresh = not table.is_file()
-        with table.open("a", newline="", encoding="utf-8") as out:
-            writer = csv.DictWriter(out, fieldnames=COLUMNS)
-            if fresh:
-                writer.writeheader()
-            writer.writerow(_row(bucket, clip))
-        if fresh:
-            (self.root / "README.txt").write_text(ABOUT, encoding="utf-8")
 
     def sync(self, buckets_root: Path) -> tuple[int, int]:
         """Brings the folder up to date with every bucket on disk: a file for every phrase that
