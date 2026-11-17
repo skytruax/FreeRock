@@ -267,7 +267,7 @@ def stage(name: str, take: int) -> dict:
             back = RECOVER[channel]
             moves += [(at - 0.02, 1.0), (at, down), (at + 0.08, down), (at + back, 1.0)]
             last = at + back
-        bus = sounds.bus(channel)
+        bus = sounds.bus(channel, style="house")
         if channel == "drums":
             # A drum machine on a dance floor is not a kit in a hall: no room around it and no tape on it, only the box
             # at 250 Hz taken down and a compressor slow enough to let every stroke through (measured against the liked
