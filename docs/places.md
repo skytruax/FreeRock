@@ -13,8 +13,8 @@ Written 2026-11-16, night, for "Dont forget caves inns pvp ect you make a list".
 | Out of doors at night | `IsDayTime()` false, not in a dungeon | night (walking music counts 0.12 against itself) | wander, and ember when lingering | 24 / 48 | 2 / 4 | night palettes |
 | A cave, a mine, a crypt, a building (a few seconds inside) | `IsIndoors()`, not resting, not in an instance | depths, on the beat | wander | 22 / 44 | 2 / 4 | depths palettes |
 | An inn (resting under a roof) | resting and indoors | ember, 4 dB down, no bass | wander | 16 / 32 | 2 / 4 | ember palettes |
-| A town, a city, an Alliance base (resting out of doors) | resting and not indoors | town | wander | 4 / 12 (alliance town, town square) | none: walking music | none |
-| A battleground or an arena | instance of kind battleground or arena | battleground, through its fights and deaths | wander | 4 / 12 (battleground, siege line) | none: battle music | none |
+| A town, a city, an Alliance base (resting out of doors) | resting and not indoors | town | wander | 4 / 12 (alliance town, town square) | none: walking music | 2 (lanterns on the square, harbour lights) |
+| A battleground or an arena | instance of kind battleground or arena | battleground, through its fights and deaths | wander | 4 / 12 (battleground, siege line) | none: battle music | 2 (hold the line, capture the flag) |
 | A dungeon or a raid | instance of kind party, raid or scenario | wander | depths | walking and cave music of the zone's kind | same | same |
 | A dungeon boss | `ENCOUNTER_START` | boss, on the beat | battle | 6 / 12 | 2 / 4 | moment |
 | The boss is dead, the fight is not | encounter over, still in combat | battle | storm, boss | 8 / 16 | 4 / 8 | moment |
@@ -85,8 +85,8 @@ mystic       .    3    .    5    1    .    9
   sea grotto: water; lava tube: wastes; bandit hideout: ruins and road; frozen cavern: heights;
   harbour saloon: water; caravanserai: road and wastes).
 - **Night in regal places** has no piece of its own; it borrows pastoral and highland night music.
-- **Knight Rock and House have no town or battleground music**: there the walking music of the
-  kind of place plays (Knight Rock) or the palette of the place (House).
+- **Knight Rock has no town or battleground music** (a decision of 2026-11-16): there its walking
+  music plays. House has two families of each since the night of 2026-11-17.
 - **Battle music is heard only around dungeon bosses** (a decision of 2026-11-16: no separate fight
   piece except bosses; fights in the open bring up the layers of what is playing).
 - **Raids** use the dungeon rule (walking and cave music, boss music at encounters). No raid music
