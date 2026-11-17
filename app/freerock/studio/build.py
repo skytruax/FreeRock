@@ -213,7 +213,9 @@ def stage(fam: Family, take: int) -> dict:
     rpp.write_text(desk.project(folders, bpm=fam.bpm, seconds=whole / RATE, out=work, tail=forever.POST_S,
                                 hall=sounds.hall(min(character.hall[0] * 1.3, 3.8))), encoding="utf-8")
     with reaper.Display() as display:
-        desk.render(rpp, display=display, timeout=240.0 + 2.0 * whole / RATE)
+        # (A heavy piece on a machine that is doing other things renders at less than half speed: "lava fields" was
+        # stopped twice, half a minute from its end, by a limit of twice its length. Five times its length is the limit.)
+        desk.render(rpp, display=display, timeout=300.0 + 5.0 * whole / RATE)
     parts = desk.stems(work, [bus.name for bus, _ in folders], frames)
     for bus, _ in folders:
         (work / (bus.name + ".wav")).unlink()      # the staged track has them; the project can make them again
