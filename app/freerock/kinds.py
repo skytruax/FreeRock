@@ -83,6 +83,38 @@ def named(name: str | None) -> list[str]:
     return sorted((kind for kind in KINDS if scores[kind] > 0), key=lambda kind: (-scores[kind], KINDS.index(kind)))
 
 
+# How dark or bright a place is, from -3 (grim) through 0 to 3 (radiant): a finer thing than its kind, and finer
+# than light or heavy ("we need lots of different granularity", 2026-11-16). A haunted wood and a haunted chapel
+# garden are both haunted; a meadow at noon and the same meadow in the rain at night are both pastoral. The words
+# of a profile that brighten a place and the ones that darken it, each worth three quarters of a step:
+_BRIGHT = ("sunny", "hopeful", "peaceful", "cheerful", "easy-going", "bright", "serene", "gentle", "merry", "breezy", "warm", "golden",
+           "calm pride", "friendly", "sunlit", "homely", "sparkling")
+_DARK = ("gothic", "haunted", "blighted", "sorrowful", "dread", "mournful", "misty", "fog", "menace", "cursed", "desolate", "crypt",
+         "sinister", "corrupted", "sickly", "grey wasteland", "tolling", "dark", "plague", "murky", "prowling", "scorched", "harsh",
+         "volcanic", "under siege", "battlefield", "melancholy", "hushed", "close")
+# ...and the beginnings of words in a place's own name: these darken it outright, these dim it, these brighten it.
+_NAME_DARK = _IN_NAMES["haunted"] + _IN_NAMES["infernal"]
+_NAME_DIM = ("mist", "fog", "moon", "twilight", "night", "swamp", "marsh", "bog", "mire", "whisper", "veil", "frozen", "winter")
+_NAME_BRIGHT = _IN_NAMES["pastoral"] + ("sun", "dawn", "bright", "crown", "royal", "star", "glimmer")
+
+
+def shade_of(words: list[str] | tuple[str, ...], name: str | None = None) -> float:
+    """How dark or bright a place is (-3 to 3), from the words of its profile and, for a named
+    place inside a zone, from its own name: a name that darkens outweighs a bright country."""
+    text = " ; ".join(words).lower()
+    shade = 0.75 * sum(1 for word in _BRIGHT if word in text) - 0.75 * sum(1 for word in _DARK if word in text)
+    shade = min(max(shade, -2.5), 2.5)
+    parts = "".join(letter if letter.isalpha() else " " for letter in (name or "").lower()).split()
+    begins = lambda found: any(word.startswith(part) for word in parts for part in found)       # noqa: E731
+    if begins(_NAME_DARK):
+        shade = min(shade, 0.0) - 1.5
+    elif begins(_NAME_DIM):
+        shade = min(shade, 1.0) - 1.0
+    elif begins(_NAME_BRIGHT):
+        shade += 1.0
+    return min(max(shade, -3.0), 3.0)
+
+
 def kinds_of(words: list[str] | tuple[str, ...]) -> list[str]:
     """The kinds of place a set of profile words describes: the best fit first, two at most.
     None for words that say nothing about it."""

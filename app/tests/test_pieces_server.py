@@ -92,6 +92,27 @@ def test_every_zone_has_a_kind_and_a_place_with_no_name_has_none():
     assert atlas.kinds_for("Elwynn Forest", "Eastvale Graveyard")[0][0] == "haunted"
 
 
+def test_a_place_has_a_shade_from_grim_to_radiant_and_the_hour_the_rain_and_a_cave_darken_it(tmp_path):
+    """("in a dark misty place and music is too light we need lots of different granularity", 2026-11-16.)"""
+    assert atlas.shade_for("Zephras Isle") > 1.0 and atlas.shade_for("Zephras Isle", "Shadowgale Forest") <= -1.5
+    assert atlas.shade_for("Elwynn Forest", "Goldshire") > atlas.shade_for("Elwynn Forest") > atlas.shade_for("Westfall") > atlas.shade_for("Duskwood")
+    assert atlas.shade_for("Duskwood", "Raven Hill Cemetery") == -3.0
+    assert atlas.shade_for("Duskwood", "Scarlet Raven Tavern") > atlas.shade_for("Duskwood"), "an inn is a warm room whatever it is called"
+    assert atlas.shade_for(None) == 0.0 and atlas.shade_for("Somewhere Nobody Has Been") == 0.0
+    from freerock.conductor import Conductor
+    from freerock.library import Library
+    music = Conductor(game.Hub(), Library(tmp_path / "library"))
+    day = game.GameState(zone_name="Elwynn Forest", daytime=True)
+    here = music.shade_here(day)
+    assert here == 1.5
+    assert music.shade_here(game.GameState(zone_name="Elwynn Forest", daytime=False)) == here - 1.0
+    assert music.shade_here(game.GameState(zone_name="Elwynn Forest", daytime=True, weather="rain", weather_intensity=0.9)) == here - 1.0
+    assert music.shade_here(game.GameState(zone_name="Elwynn Forest", daytime=True, indoors=True)) == here - 1.0
+    assert music.shade_here(game.GameState(zone_name="Elwynn Forest", daytime=True, indoors=True, resting=True)) == here, "an inn is not a cave"
+    assert music.shade_here(game.GameState(zone_name="Duskwood", subzone_name="Raven Hill Cemetery", daytime=False)) == -3.0
+    assert music.shade_here(None) == 0.0
+
+
 async def test_love_and_ban_are_for_the_whole_piece(tmp_path):
     client, app, conductor, _ = await running(tmp_path, with_filler=False)
     try:

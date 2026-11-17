@@ -474,6 +474,15 @@ async def test_with_six_loudspeakers_the_music_is_laid_over_all_of_them_and_each
         assert slot["others"] < 0.2 * slot["own"], "another loudspeaker sounded with the %s: %s" % (name, slot)
 
 
+async def test_among_pieces_for_one_kind_of_place_the_nearest_in_shade_is_chosen_and_the_music_follows_the_light(results):
+    """("in a dark misty place and music is too light we need lots of different granularity", 2026-11-16.)"""
+    shade = of(results, "pieceShade2")
+    assert shade["shades"] == [3, -2.5, 0], "a bright major piece, a dark minor one, a wistful light one: %s" % shade["shades"]
+    assert shade["bright"] == ["sunny"] and shade["dark"] == ["dusky"], shade
+    # The light goes at 8.5 s (a passing cloud at 5.5 moved nothing): four seconds to be sure, then the next bar line.
+    assert shade["first"] == "sunny" and shade["movedAt"] == pytest.approx(ORIGIN + 14.0, abs=1e-6), shade
+
+
 async def test_light_and_heavy_take_turns(results):
     shade = of(results, "pieceShade")
     assert len(shade["order"]) >= 12

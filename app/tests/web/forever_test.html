@@ -867,6 +867,27 @@ tests.pieceCarriesOn = async () => {
   return { order };
 };
 
+// How dark or bright: two tracks for the same kind of place, one in a major key and one in a
+// minor, are told apart by the place's shade. A dark corner of bright country takes the minor
+// one; and when the light goes (the shade falls by two steps) the music follows, though the
+// kind of place has not changed.
+tests.pieceShade2 = async () => {
+  const pieces = () => makePieces("shade2", [{ id: "sunny", windows: 6, moods: ["pastoral"], tonic: "G major" },
+                                            { id: "dusky", windows: 6, moods: ["pastoral"], tonic: "E phrygian" }]);
+  const bright = await render(10, { bucket: pieces(), target: Object.assign(mix(1), { kinds: ["pastoral"], shade: 2 }) });
+  const dark = await render(10, { bucket: pieces(), target: Object.assign(mix(1), { kinds: ["pastoral"], shade: -2 }) });
+  const dusk = await render(30, { bucket: pieces(), target: Object.assign(mix(1), { kinds: ["pastoral"], shade: 2 }),
+                                  script: [[5.5, (engine) => engine.setTarget({ shade: 1.5 })],        // a cloud: nothing
+                                           [8.5, (engine) => engine.setTarget({ shade: -1 })]] });      // nightfall and rain
+  const log = [...dusk.engine.log].sort((a, b) => a.at - b.at);
+  const moved = log.find((entry) => pieceOf(entry) === "dusky");
+  return { bright: [...new Set(bright.engine.log.map(pieceOf))], dark: [...new Set(dark.engine.log.map(pieceOf))],
+           first: pieceOf(log[0]), movedAt: moved ? moved.at : null,
+           shades: [dusk.engine._shade({ tonic: "G major", moods: ["pastoral"], light: true }),
+                    dusk.engine._shade({ tonic: "A minor", moods: ["haunted"], light: false }),
+                    dusk.engine._shade({ tonic: "F dorian", moods: ["haunted"], light: true })] };
+};
+
 // Six loudspeakers: the music is laid over all of them (the front pair as it is, some in the
 // centre, the low end to the sub, the rear pair late and soft), and the page's test sounds each
 // of them in turn and no other.

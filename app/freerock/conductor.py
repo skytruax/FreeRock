@@ -175,6 +175,20 @@ class Conductor:
             return [], False
         return atlas.kinds_for(self.place_name(state), self.spot_name(state))
 
+    def shade_here(self, state: game.GameState | None) -> float:
+        """How dark or bright it is where the player is (-3 grim to 3 radiant), to the half
+        step: the place itself, darker by night, in the rain and under a roof of rock."""
+        if state is None:
+            return 0.0
+        shade = atlas.shade_for(self.place_name(state), self.spot_name(state))
+        if state.daytime is False:
+            shade -= 1.0
+        if state.weather == "rain" and (state.weather_intensity or 0.0) > 0.0 and not state.indoors:
+            shade -= 0.5 if (state.weather_intensity or 0.0) < 0.6 else 1.0
+        if state.indoors and not state.resting and not state.in_instance:
+            shade -= 1.0                                  # a cave, a mine, a crypt: not an inn
+        return round(min(max(shade, -3.0), 3.0) * 2.0) / 2.0
+
     @property
     def asset(self) -> Asset | None:
         """The first piece of the music that is playing (a place's core suite, as a rule)."""
@@ -265,6 +279,8 @@ class Conductor:
             # The kind of place the player is in, and whether it is a light one: what written
             # pieces are chosen by.
             target["kinds"], target["light"] = self.kinds_here(state) if state is not None else ([], False)
+            # ...and how dark or bright it is there: among pieces for the same kind of place, the nearest in shade.
+            target["shade"] = self.shade_here(state)
             zone = self.bucket.zone if self.bucket else None
         else:
             zone = self.asset.zone if self.asset else None
@@ -372,7 +388,7 @@ class Conductor:
             await self._broadcast(self._bucket_message())
         mixed = forever.mix(target, self.mix)
         found, light = self.kinds_here(state)
-        told = (target, state.volume, self._sent_bucket, json.dumps(mixed, sort_keys=True), tuple(found), light)
+        told = (target, state.volume, self._sent_bucket, json.dumps(mixed, sort_keys=True), tuple(found), light, self.shade_here(state))
         if told != self._told:
             self.target, self.mix, self._volume, self._told = target, mixed, state.volume, told
             await self._broadcast(self._target_message())

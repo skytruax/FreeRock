@@ -135,10 +135,31 @@ def kinds_for(zone_name: str | None, place_name: str | None = None) -> tuple[lis
     if flavour is not None:
         colours, mood = flavour
         sort = kinds.kinds_of(mood + colours)
+    if kinds.is_light(mood):
+        # An inn is a warm room whatever it is called and wherever it stands (the Scarlet Raven Tavern, in Duskwood).
+        return list(dict.fromkeys(sort + own + found))[:2], True
     dead = [kind for kind in sort if kind == "haunted"]
     ordered = list(dict.fromkeys(own + dead + found + sort))
-    light = (kinds.is_light(mood) or light) and not any(kind in _HEAVY_KINDS for kind in own + sort)
+    light = light and not any(kind in _HEAVY_KINDS for kind in own + sort)
     return ordered[:2], light
+
+
+def shade_for(zone_name: str | None, place_name: str | None = None) -> float:
+    """How dark or bright the place the player is in is, from -3 (grim) to 3 (radiant): read
+    from the words of the zone's profile, from what sort of place a named place is (a crypt, a
+    village) and from its own name. 0 for a place nothing is known about."""
+    if not zone_name or not slug(zone_name):
+        return 0.0
+    zone = profile_for(zone_name)
+    words = list(zone.mood)
+    if not place_name or slug(place_name) == slug(zone_name):
+        return kinds.shade_of(words)
+    flavour = place_flavour(place_name)
+    if flavour is not None:
+        words += flavour[1]
+        if kinds.is_light(flavour[1]):
+            return kinds.shade_of(words)              # an inn is a warm room whatever it is called
+    return kinds.shade_of(words, place_name)
 
 
 def slug(name: str) -> str:

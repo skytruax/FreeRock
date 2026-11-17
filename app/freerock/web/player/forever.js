@@ -114,6 +114,16 @@
   const NEAR = { pastoral: ["highland", "regal", "mystic"], highland: ["pastoral", "regal"], regal: ["pastoral", "highland", "infernal"],
                  haunted: ["mystic", "jungle"], mystic: ["haunted", "jungle", "pastoral"], jungle: ["mystic", "haunted", "desert"],
                  desert: ["infernal", "jungle"], infernal: ["desert", "regal"] };
+  // How dark or bright ("in a dark misty place and music is too light we need lots of different granularity",
+  // 2026-11-16). A place has a shade from -3 (grim) to 3 (radiant), which the server works out from what the
+  // place is called, the hour and the weather; a piece has one too, from the mode it is written in, whether it is
+  // a light one, and the kind of place it was written for. Among pieces for the same kind of place the nearest in
+  // shade is chosen, and each step apart counts this much against a piece (two steps weigh about as much as being
+  // written for the place's second kind and not its first).
+  const SHADE = 0.18;
+  const MODE_SHADE = { lydian: 2, major: 2, mixolydian: 1, dorian: 0, minor: -1, "phrygian dominant": -1.5, phrygian: -2, locrian: -3 };
+  const KIND_SHADE = { pastoral: 0.5, regal: 0.5, highland: 0, mystic: 0, desert: 0, jungle: -0.5, haunted: -1, infernal: -1 };
+  const FOLLOW_BY = 0.25;      // the music moves for a place only when another piece suits it this much better
   const SETTLE = 4.0;          // seconds in another kind of place (or in a cave, an inn) before the music follows: a step over a border and back changes nothing
   const PLACE_STAY = 20.0;     // ...and the music does not move for a place twice within this long
   const BLEND_PLACE = 2;       // bars the track that is playing takes to give way to the new place's
@@ -765,6 +775,16 @@
       return meta.moods.some((mood) => (NEAR[kinds[0]] || []).includes(mood)) ? 0.6 : 1;
     }
 
+    // How dark or bright a piece is, -3 to 3: the mode it is in (lydian and major the brightest,
+    // phrygian the darkest), a step up for a light piece and half a step down for a heavy one,
+    // and a lean from the kind of place it was written for.
+    _shade(meta) {
+      const mode = String(meta.tonic || "").trim().split(/\s+/).slice(1).join(" ").toLowerCase();
+      const shade = (mode in MODE_SHADE ? MODE_SHADE[mode] : 0) + (meta.light ? 1 : -0.5)
+        + (meta.moods && meta.moods.length && meta.moods[0] in KIND_SHADE ? KIND_SHADE[meta.moods[0]] : 0);
+      return Math.max(-3, Math.min(3, shade));
+    }
+
     // How far a piece is from what the game asks for at strength `ask`: first how hard it plays,
     // then the kind of moment, then the kind of place. `follow` is the reckoning for a player who
     // has gone somewhere else: where the game names a place the player is standing in (a cave,
@@ -781,7 +801,9 @@
         if (this.target.sited === true) role = meta.role === place ? 0 : also.includes(meta.role) ? 0.5 : 1;
         else if (meta.role === "wander") role = 0;
       }
-      return strength * 100 + role * 10 + this._mood(meta);
+      // Then how dark or bright: the further a piece's shade from the place's, the less it suits.
+      const shade = typeof this.target.shade === "number" ? SHADE * Math.abs(this._shade(meta) - this.target.shade) : 0;
+      return strength * 100 + role * 10 + this._mood(meta) + shade;
     }
 
     _nextItem(bucket, options) {
@@ -1159,7 +1181,7 @@
       if (!item || !item.piece) return false;
       // Only for something that suits the place better than what is playing (and not for the
       // same track's next piece: that comes by itself).
-      if (!(this._off(item.piece, ask, true) < this._off(group.piece, ask, true))) return false;
+      if (!(this._off(item.piece, ask, true) + FOLLOW_BY <= this._off(group.piece, ask, true))) return false;
       if (item.piece.meta.track === group.piece.meta.track) return false;
       await this._first(this.bucket, item);
       if (!this.started || this.group !== group || this._quiet()) return false;
@@ -1828,8 +1850,10 @@
       if (this._quiet() && !wasQuiet) this.restSince = this.ctx.currentTime;
       // Somewhere else (another kind of place, a cave, an inn, or out of one): the music follows
       // once the player has stayed there a moment.
+      const darker = typeof before.shade === "number" && typeof this.target.shade === "number"
+        && Math.abs(before.shade - this.target.shade) >= 1;                  // night has fallen, a storm has come, a darker corner
       if (String(before.kinds) !== String(this.target.kinds) || before.light !== this.target.light
-          || before.place !== this.target.place || before.sited !== this.target.sited) this.followDue = this.ctx.currentTime + SETTLE;
+          || before.place !== this.target.place || before.sited !== this.target.sited || darker) this.followDue = this.ctx.currentTime + SETTLE;
       this._levels(before, wasQuiet);
       return this._serial(async () => {
         if (!this.started || !this.bucket) return;
