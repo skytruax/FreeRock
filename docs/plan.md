@@ -1,5 +1,8 @@
 # FreeRock: generated zone music that follows the game
 
+> The first design, from 2026-11-15, kept for its history. FreeRock no longer buys music from
+> ElevenLabs or plays it as songs: its own studio writes and plays every track (see the README).
+
 ## Context
 
 Sky plays World of Warcraft: Forever with the music turned up and wants the soundtrack replaced by

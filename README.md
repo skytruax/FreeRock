@@ -17,13 +17,15 @@
   <img alt="Played in REAPER" src="https://img.shields.io/badge/studio-REAPER%20%2B%20real%20instruments-e0533d">
   <img alt="Python 3.11 to 3.13" src="https://img.shields.io/badge/python-3.11%E2%80%933.13-3fa55b">
   <img alt="Tests: Python, headless Chrome, Lua" src="https://img.shields.io/badge/tests-650%2B-3fa55b">
+  <a href="LICENSE"><img alt="Licence: MIT" src="https://img.shields.io/badge/licence-MIT-3fa55b"></a>
 </p>
 
 <p align="center">
+  <a href="#get-started">Get started</a> ·
   <a href="#how-it-works">How it works</a> ·
   <a href="#the-music">The music</a> ·
   <a href="#the-studio">The studio</a> ·
-  <a href="#run-it">Run it</a> ·
+  <a href="#commands">Commands</a> ·
   <a href="#staying-within-the-rules">The rules</a> ·
   <a href="#developing">Developing</a>
 </p>
@@ -82,6 +84,65 @@ against stems that were liked by ear, and kept lossless. The studio writes more 
     </td>
   </tr>
 </table>
+
+## Get started
+
+FreeRock needs two machines you probably already have: a **Linux machine** that makes and plays
+the music, and the **Windows PC** you play on. The music is not downloaded: your own studio makes
+it, so the first run includes setting the studio up. After that, it is four commands and a game.
+
+**1. Get FreeRock** on the Linux machine (you need [uv](https://docs.astral.sh/uv/)):
+
+```
+git clone https://github.com/skytruax/FreeRock.git
+cd FreeRock/app
+uv sync
+```
+
+**2. Set up the studio, once.** It plays real instruments, so it needs them: REAPER, MuseScore
+Studio with its free Muse Sounds, a few free plug-ins and some sample libraries.
+[tools/stems/README.md](tools/stems/README.md) lists every one, where to get it and its licence.
+Then let the studio meet its instruments. It plays each one alone in REAPER and measures it:
+
+```
+uv run --no-sync python -m freerock.studio.sounds
+```
+
+**3. Make your first music.** Pick a few tracks from the list, render them, and put them in a
+bucket:
+
+```
+uv run --no-sync python -m freerock.studio.build --list             # every track the orchestra and the band can write
+uv run --no-sync python ../tools/render_some.py --workers 3 pastoral-village-dance-1/1 haunted-requiem-1/1 highland-snowfall-1/1
+uv run freerock pieces add warcraft --zone "Elwynn Forest"
+```
+
+Each track is several minutes of music and takes a few minutes to render. Leave a long list
+rendering overnight and you wake up to hours of it. [docs/songwriting.md](docs/songwriting.md)
+covers the rest: Knight Rock and House, and writing tracks of your own.
+
+**4. Play.** Start the server on the Linux machine:
+
+```
+uv run freerock serve
+```
+
+Open `http://localhost:8765/player` to hear it right away. The page has a **pretend game** panel
+(pick a zone, tick cave, fight, night or weather) that moves the music exactly as the game would.
+
+Then, on the gaming PC:
+
+1. Install uv once, in PowerShell:
+   `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`
+2. Put the addon in the game and start reading the screen:
+   `uv run http://<music machine>:8765/sensor.py --install-addon`
+   It shows the AddOns folder it found and asks before copying anything.
+3. Start the game and type `/rock test`. `http://<music machine>:8765/` shows what FreeRock sees,
+   and `http://<music machine>:8765/player` plays it.
+
+From then on, `http://<music machine>:8765/FreeRock.cmd` downloads a launcher that does it all in
+one click: it opens the player in its own window, with sound allowed to start by itself, and
+starts the sensor.
 
 ## How it works
 
@@ -263,31 +324,7 @@ every section), so tracks are queued in lists and rendered in lanes: a quarter o
 by day, all of it at night, and half while the game is being played. Buckets are rebuilt only
 while the game is off.
 
-## Run it
-
-**On the music machine (Linux)**, from `app/`:
-
-```
-uv sync                        # once
-uv run freerock serve          # the game link, the music and the pages, on port 8765
-```
-
-It prints the addresses to use. Open `http://localhost:8765/player` to hear it: the page has a
-**pretend game** panel (pick a zone, tick cave, fight, night or weather), so everything except
-the game itself can be heard without it.
-
-**On the gaming PC (Windows):**
-
-1. Install uv once, in PowerShell:
-   `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`
-2. Put the addon in the game and start reading the screen:
-   `uv run http://<music machine>:8765/sensor.py --install-addon`
-   It shows the AddOns folder it found and asks before copying anything.
-3. Start the game and type `/rock test`. `http://<music machine>:8765/` shows what FreeRock
-   sees, and `http://<music machine>:8765/player` plays it.
-
-After that, `http://<music machine>:8765/FreeRock.cmd` downloads a launcher. It opens the player
-in its own window with sound allowed to start by itself, and starts the sensor.
+## Commands
 
 **In the game:**
 
@@ -375,7 +412,8 @@ The pictures in this file are drawn from the real code and a real track by
 
 ## Credits and licences
 
-The music is FreeRock's own: written by its studio, for listening at home. It is played on
+FreeRock's code and documents are under the [MIT licence](LICENSE). The music is not in the
+repository: every studio writes and plays its own, for listening at home. It is played on
 instruments that others recorded and gave away: MuseScore Studio and Muse Sounds; VSCO-2 CE,
 VCSL and Karoryfer's instruments (CC0); the AVL drum kits (CC BY-SA 3.0); Naked Drums (CC BY
 4.0); TinySOL (IRCAM); the TR-8 recordings from MckAudio (CC0); Surge XT, sfizz, Dragonfly
