@@ -259,12 +259,14 @@ def stage(fam: Family, take: int) -> dict:
                                 hall=sounds.hall(min(character.hall[0] * 1.3, 3.8))), encoding="utf-8")
     with reaper.Display() as display:
         # (A heavy piece on a machine that is doing other things renders at less than half speed: "lava fields" was
-        # stopped twice, half a minute from its end, by a limit of twice its length. Five times its length is the limit.)
-        desk.render(rpp, display=display, timeout=300.0 + 5.0 * whole / RATE)
+        # stopped twice, half a minute from its end, by a limit of twice its length. On the night of 2026-11-17, with
+        # every core busy, two night pieces at the lowest priority rendered at an eighth of their speed and were stopped
+        # by a limit of five times their length, minutes from the end. Twelve times: the limit is only there for a
+        # REAPER that waits on a message nobody will answer.)
+        desk.render(rpp, display=display, timeout=300.0 + 12.0 * whole / RATE)
     parts = desk.stems(work, [bus.name for bus, _ in folders], frames)
-    for bus, _ in folders:
-        (work / (bus.name + ".wav")).unlink()      # the staged track has them; the project can make them again
-    # Each channel to its place in the mix, by how loud it is where everyone is playing.
+    # Each channel to its place in the mix, by how loud it is where everyone is playing. (What follows is measured here
+    # and done in REAPER, as a mixer would: see the end.)
     if character.band:
         places = dict(BAND, **(BAND_LIGHT if character.weight < 0.7 else {}))
     else:
@@ -293,7 +295,7 @@ def stage(fam: Family, take: int) -> dict:
             gain = min(gain, DRUMS_UP)
         parts[channel] = audio * np.float32(10 ** (gain / 20.0))
         levels[channel] = round(loud + gain, 1)
-        gains[channel] = round(gain, 1)
+        gains[channel] = gain
     # The story keeps its shape but not its extremes: music behind a game cannot drop to a
     # whisper. Every part of the story is brought some of the way up to the loudest, the whole
     # band together, easing from one level to the next over three seconds at each join.
@@ -308,13 +310,21 @@ def stage(fam: Family, take: int) -> dict:
     for index, edge in enumerate(edges[1:-1]):
         low, high = max(edge - ease, 0), min(edge + ease, frames)
         ride[low:high] = np.linspace(lifts[index], lifts[index + 1], high - low, dtype=np.float32)
-    curve = (10.0 ** (ride / 20.0)).astype(np.float32)[:, None]
-    parts = {channel: audio * curve for channel, audio in parts.items()}
-    mix = mix * curve
-    peak = max(float(np.abs(mix).max()), max(float(np.abs(audio).max()) for audio in parts.values()))
-    scale = np.float32(0.6 / peak)
-    parts = {channel: audio * scale for channel, audio in parts.items()}
-    mix = mix * scale
+    curve = (10.0 ** (ride / 20.0)).astype(np.float32)
+    peak = max(float(np.abs(mix * curve[:, None]).max()), max(float(np.abs(audio * curve[:, None]).max()) for audio in parts.values()))
+    scale = 0.6 / peak
+    # The mix itself is REAPER's (2026-11-17, night: "remember to use reaper and plugins for effects and mixing"): each
+    # channel's stem on a track of its own with its fader where it was measured to go, the ride of the story as the
+    # volume envelope, rendered again; the project is kept as mix.rpp beside the track's own.
+    recorded = {channel: work / (channel + ".wav") for channel in parts}
+    with reaper.Display() as display:
+        parts = desk.mixdown(work, recorded, faders={channel: 10 ** (gains[channel] / 20.0) * scale for channel in parts},
+                             ride=desk.ride_points(curve), bpm=fam.bpm, seconds=whole / RATE, tail=forever.POST_S, frames=frames,
+                             display=display, timeout=300.0 + whole / RATE)
+    for bus, _ in folders:
+        (work / (bus.name + ".wav")).unlink()      # the staged track has them; the project can make them again
+    gains = {channel: round(gain, 1) for channel, gain in gains.items()}
+    mix = sum(parts.values())
     loudness = [round(analysis.loudness_lufs(mix[first:last], RATE), 1) for first, last in zip(edges, edges[1:])]
     sections = []
     for section in fam.sections:

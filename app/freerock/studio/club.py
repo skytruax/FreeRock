@@ -289,16 +289,16 @@ def stage(name: str, take: int) -> dict:
     rpp = work / "track.rpp"
     rpp.write_text(desk.project(folders, bpm=float(house.BPM), seconds=seconds, out=work, tail=forever.POST_S, hall=sounds.hall(1.5)), encoding="utf-8")
     with reaper.Display() as display:
-        desk.render(rpp, display=display, timeout=300.0 + 5.0 * seconds)
+        desk.render(rpp, display=display, timeout=300.0 + 12.0 * seconds)       # (see build.stage)
     parts = desk.stems(work, [bus.name for bus, _ in folders], track.frames)
-    for bus, _ in folders:
-        (work / (bus.name + ".wav")).unlink()
-    # Each channel to its place by how loud it is where the track is fullest, as the writer's own mix did it.
+    # Each channel to its place by how loud it is where the track is fullest, as the writer's own mix did it. (Measured
+    # here and done in REAPER, as a mixer would: see below.)
     story, first, count = next(section for section in reversed(track.sections) if section[0] == "moment")     # the last drop
     a, b = int(round(first * house.BAR_FRAMES)), int(round((first + count) * house.BAR_FRAMES))
     want = dict(PLACE, **(CALM if fam.role in ("ember", "night") else {}))
     if not track.kick:
         want["drums"] = -27.0
+    faders = {}
     for channel in list(parts):
         have = analysis.loudness_lufs(parts[channel][a:b], RATE)
         if have < -70.0:
@@ -306,17 +306,29 @@ def stage(name: str, take: int) -> dict:
         if have < -70.0:
             del parts[channel]                       # it plays nothing to speak of in this take
             continue
-        parts[channel] = (parts[channel] * 10.0 ** ((want[channel] - have) / 20.0)).astype(np.float32)
+        faders[channel] = 10.0 ** ((want[channel] - have) / 20.0)
+        parts[channel] = (parts[channel] * faders[channel]).astype(np.float32)
     # What is still ringing two seconds before the recording ends is eased away to nothing (as the writer's own render does).
     last = int(2.0 * RATE)
-    ease = (0.5 * (1.0 + np.cos(np.linspace(0.0, np.pi, last)))).astype(np.float32)[:, None]
-    for channel in parts:
-        parts[channel][-last:] *= ease
-    parts = house.master(parts, a, b)
-    peak = max(float(np.max(np.abs(audio))) for audio in parts.values())
-    if peak > 0.97:
-        # One channel alone over the top, the others pulling the other way in the mix: all come down together.
-        parts = {channel: (audio * (0.97 / peak)).astype(np.float32) for channel, audio in parts.items()}
+    ease = np.ones(track.frames, dtype=np.float32)
+    ease[-last:] = 0.5 * (1.0 + np.cos(np.linspace(0.0, np.pi, last)))
+    eased = {channel: audio * ease[:, None] for channel, audio in parts.items()}
+    # The track to its level and its peaks under the ceiling (house.master), and if one channel alone would still be
+    # over the top, the others pulling the other way in the mix, all come down together.
+    up, need = house.master_gains(eased, a, b)
+    curve = ease * need.astype(np.float32)
+    peak = max(float(np.max(np.abs(audio * (up * need)[:, None]))) for audio in eased.values())
+    extra = 0.97 / peak if peak > 0.97 else 1.0
+    # The mix itself is REAPER's (2026-11-17, night: "remember to use reaper and plugins for effects and mixing"): each
+    # channel's stem on a track of its own, its fader where it was measured to go, the peaks held and the end faded by
+    # the volume envelope, rendered again; the project is kept as mix.rpp beside the track's own.
+    recorded = {channel: work / (channel + ".wav") for channel in parts}
+    with reaper.Display() as display:
+        parts = desk.mixdown(work, recorded, faders={channel: faders[channel] * up * extra for channel in parts},
+                             ride=desk.ride_points(curve), bpm=float(house.BPM), seconds=seconds, tail=forever.POST_S,
+                             frames=track.frames, display=display, timeout=300.0 + seconds)
+    for bus, _ in folders:
+        (work / (bus.name + ".wav")).unlink()
     meta = track.meta()
     meta["credit"] = ("Written by FreeRock's studio (studio.house); played in REAPER by the Surge XT synth, MuseScore Studio's Muse Sounds "
                       "(Muse Group) and MckAudio's TR-8 drum-machine recordings (CC0), put together by studio.club.")

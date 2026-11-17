@@ -1261,6 +1261,14 @@ def master(parts: dict[str, np.ndarray], first: int, last: int) -> dict[str, np.
     A peak that would pass the ceiling is held under it by turning every part down together,
     by the same amount, for a few thousandths of a second around it: the parts keep their
     balance, and whichever of them the player has up, the whole never passes full scale."""
+    up, need = master_gains(parts, first, last)
+    gain = (up * need).astype(np.float32)[:, None]
+    return {channel: (audio * gain).astype(np.float32) for channel, audio in parts.items()}
+
+
+def master_gains(parts: dict[str, np.ndarray], first: int, last: int) -> tuple[float, np.ndarray]:
+    """What `master` does to a track, as numbers for the desk to do: the gain that brings its moment to MOMENT_LUFS,
+    and the gain (one for each sample, 1 nearly everywhere) that holds its peaks under the ceiling."""
     mix = sum(parts.values())
     have = analysis.loudness_lufs(mix[first:last], RATE)
     if have < -60.0:
@@ -1269,8 +1277,7 @@ def master(parts: dict[str, np.ndarray], first: int, last: int) -> dict[str, np.
     need = np.minimum(1.0, CEILING / np.maximum(np.abs(mix).max(axis=1) * up, 1e-9))
     hold = 240                                     # five thousandths of a second either side
     need = uniform_filter1d(minimum_filter1d(need, size=2 * hold + 1, mode="nearest"), size=hold, mode="nearest")
-    gain = (up * need).astype(np.float32)[:, None]
-    return {channel: (audio * gain).astype(np.float32) for channel, audio in parts.items()}
+    return float(up), need
 
 
 # ---------------------------------------------------------------------------------------------

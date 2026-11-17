@@ -562,6 +562,73 @@ def heard(path: Path) -> np.ndarray:
     return audio[int(round(LEAD * RATE)):]
 
 
+def ride_points(curve: np.ndarray, *, step: int = 480, tolerance_db: float = 0.1) -> list[tuple[float, float]]:
+    """A gain that moves through a track (one value for each sample) as the points of a volume envelope: (seconds,
+    gain). The curve is read every `step` samples (a hundredth of a second), each block at its lowest, so that no
+    peak held under the ceiling slips through; then each straight line REAPER will draw is made as long as it can be
+    while it stays within `tolerance_db` of the curve (under -60 dB nothing is told apart)."""
+    curve = np.asarray(curve, dtype=np.float64)
+    if len(curve) == 0:
+        return []
+    blocks = np.minimum.reduceat(curve, np.arange(0, len(curve), step))
+    floor = 1e-3
+    level = 20.0 * np.log10(np.maximum(blocks, floor))
+    count = len(blocks)
+
+    def fits(first: int, last: int) -> bool:
+        if last - first < 2:
+            return True
+        drawn = blocks[first] + (blocks[last] - blocks[first]) * np.arange(last - first + 1) / (last - first)
+        return float(np.max(np.abs(20.0 * np.log10(np.maximum(drawn, floor)) - level[first:last + 1]))) <= tolerance_db
+
+    keep, first = [0], 0
+    while first < count - 1:
+        reach, jump = first + 1, 1
+        while reach + jump < count and fits(first, reach + jump):          # as far as it holds, doubling...
+            reach += jump
+            jump *= 2
+        low, high = reach, min(reach + jump, count - 1)                    # ...then the last place it holds, halving
+        while high - low > 1:
+            middle = (low + high) // 2
+            if fits(first, middle):
+                low = middle
+            else:
+                high = middle
+        if high > low and fits(first, high):
+            low = high
+        keep.append(low)
+        first = low
+    return [(index * step / RATE, float(blocks[index])) for index in keep]
+
+
+def mixdown(work: Path, recorded: dict[str, Path], *, faders: dict[str, float], ride: list[tuple[float, float]], bpm: float,
+            seconds: float, tail: float, frames: int, display: str, timeout: float = 600.0) -> dict[str, np.ndarray]:
+    """The last of the mix, done in REAPER (2026-11-17, night: "remember to use reaper and plugins for effects and
+    mixing"). Each channel's stem, as REAPER rendered it from the track's own project, is laid on a track of its own
+    in a project of its own (`mix.rpp`, kept beside the track's project, to be opened and changed by hand): its fader
+    where the measurements put it (`faders`, as gains), and the turns the whole takes through the story (the ride of
+    each part towards the loudest, the peaks held under the ceiling, the end faded away: `ride`, (seconds, gain)
+    points, the same for every channel) as its volume envelope. REAPER plays it and renders each channel again."""
+    out = work / "mixed"
+    out.mkdir(parents=True, exist_ok=True)
+    moves = [(at * bpm / 60.0, gain) for at, gain in ride]
+    folders = []
+    for channel, path in recorded.items():
+        if channel not in faders:
+            raise ValueError("The mix has no fader for the %s" % channel)
+        length = soundfile.info(str(path)).duration
+        # The stem begins with the LEAD of silence every render begins with: laid that much early, it lines up again.
+        stem = Line(channel + " stem", bare(channel + " stem", []), volume=faders[channel], clips=[(-LEAD, length, str(path))])
+        folders.append((Line(channel, bare(channel, []), moves=moves), [stem]))
+    rpp = work / "mix.rpp"
+    rpp.write_text(project(folders, bpm=bpm, seconds=seconds, out=out, tail=tail), encoding="utf-8")
+    render(rpp, display=display, timeout=timeout)
+    mixed = stems(out, list(recorded), frames)
+    for channel in recorded:
+        (out / (channel + ".wav")).unlink()
+    return mixed
+
+
 def stems(folder: Path, names: list[str], frames: int) -> dict[str, np.ndarray]:
     """The files REAPER rendered into `folder`, by name, each exactly `frames` long."""
     out = {}
