@@ -2392,6 +2392,21 @@ class Take:
                 if density > 0.85 or figure == "chug":
                     hits = hits + [(on, None) for on in [index * half for index in range(slots)]
                                    if not any(abs(on - at) < 1e-6 for at, _ in hits)]
+                if ch.band and bar % 2 == 1 and not thin:
+                    # The riff answers its chords (2026-11-17, night: "acdc for knight rock"; the band's guitars struck the
+                    # same chords in every bar). At the end of the second bar a run down the blues scale to the root, at
+                    # the end of the fourth a walk up to the fifth: single notes, picked, where the chords would have been.
+                    span = 1.0 if beats >= 4.0 else self.group[-1]
+                    step = 0.25 if self.fam.bpm <= 150 else 0.5
+                    lick = [10, 7, 5, 3] if bar % 4 == 1 else [3, 5, 6, 7]
+                    count = int(round(span / step))
+                    lick = lick[-count:] if count < len(lick) else lick
+                    begin = beats - len(lick) * step
+                    hits = [(on, None if length is None else min(length, begin - on)) for on, length in hits if on < begin - 1e-6]
+                    for index, above in enumerate(lick):
+                        at = bar_at + begin + index * step
+                        if not self.breathing(at):
+                            self.put("rhythm", "rhythm guitar", at, step * 0.9, root + above, loud * (0.95 if index == 0 else 0.85))
                 for on, length in sorted(hits, key=lambda hit: hit[0]):
                     if self.breathing(bar_at + on):
                         continue
