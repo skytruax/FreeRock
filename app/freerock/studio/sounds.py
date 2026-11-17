@@ -415,14 +415,19 @@ SOUNDS: dict[str, Sound] = {
 # 2026-11-16). Chosen by what each patch is; the ones that are real instruments (piano, marimba, harp, flute,
 # strings, brass) go to Muse Sounds instead (studio.club.PLAYED).
 _SURGE = "surge:patches_factory/"
+# (2026-11-17, early afternoon, by ear: "your house sounds cheesy bro", the synths heard as stock presets and the tunes'
+# instruments as cheesy. 38 of Surge's patches were played alone through House's desk and measured against the liked
+# house stems (var/listen/house-sounds): the leads, plucks and pads below came nearest. Before: Classic Lead 1, Super
+# Jupiter, Smoothy Hollow, Sine Lead (a bare sine, 30 dB off), Nice Pluck 1, Bell 1, Diamonds (two octaves high),
+# MKS-70 Warm Pad, Super, Ooh. Anthemish 1 came nearest of the leads but is 49 cents flat: Oberheim Dreams sings instead.)
 HOUSE = {
     "house sub": "Basses/Sub 1", "house bass pluck": "Basses/Fingered", "house bass saw": "Basses/Lord Sawtooth",
     "house bass square": "Basses/Squared", "house bass fm": "Basses/FM Bass 1", "house bass wide": "Basses/Wide Bassline",
     "house bass organ": "Keys/House Organ", "house organ": "Keys/House Organ", "house stab": "Polysynths/Smooth Stabs",
-    "house pluck": "Plucks/Nice Pluck 1", "house bell": "Plucks/Bell 1", "house glass": "Plucks/Diamonds",
-    "house lead saw": "Leads/Classic Lead 1", "house lead super": "Polysynths/Super Jupiter", "house lead hollow": "Leads/Smoothy Hollow",
-    "house lead sine": "Leads/Sine Lead", "house pad warm": "Pads/MKS-70 Warm Pad", "house pad super": "Pads/Super",
-    "house pad glass": "Pads/Sparkly", "house pad hollow": "Pads/Ooh", "house pad organ": "Keys/Organ 1",
+    "house pluck": "Plucks/Saw Pluck", "house bell": "Polysynths/Fat Curtis", "house glass": "Plucks/Delay Dancer",
+    "house lead saw": "Polysynths/Oberheim Dreams", "house lead super": "Polysynths/Prophet VS", "house lead hollow": "Leads/Moogy Saw",
+    "house lead sine": "Leads/Crisp PWM", "house pad warm": "Pads/Verb Pad", "house pad super": "Pads/Legacy",
+    "house pad glass": "Pads/Sparkly", "house pad hollow": "Pads/Winter Warmer", "house pad organ": "Keys/Organ 1",
 }
 # How many octaves from where it is written each patch has to be played to sound where it is written. Measured
 # 2026-11-16 by playing C3, C4 and C5 on each alone and reading the pitch that came out: Surge's basses sound an
@@ -430,7 +435,8 @@ HOUSE = {
 # (Its "Square Bass" does not follow the keys at all, and "Rubber Bass" does not die away as a plucked bass does:
 # "Squared" and "Fingered" are used in their places.)
 HOUSE_OCTAVE: dict[str, int] = {"house sub": 1, "house bass pluck": 1, "house bass saw": 1, "house bass square": 1, "house bass wide": 2,
-                                "house bass organ": 2, "house organ": 2, "house lead super": 1, "house pad warm": 1}
+                                "house bass organ": 2, "house organ": 2, "house lead saw": 1, "house lead super": 1, "house lead sine": 1,
+                                "house bell": 1, "house pad warm": -1, "house pad hollow": -1}
 SOUNDS.update({name: Sound((Player(_SURGE + patch + ".fxp", octave=HOUSE_OCTAVE.get(name, 0), seat=0.0),)) for name, patch in HOUSE.items()})
 
 
@@ -645,6 +651,12 @@ def ensemble(amount: float, *, voices: int = 6, rate: float = 0.35, depth: float
     """A chorus (Calf's multi chorus): for synths. Not for recorded strings."""
     return desk.lv2("Calf Multi Chorus", voices=voices, min_delay=6.0, mod_depth=depth, mod_rate=rate, stereo=180.0, vphase=300.0,
                     amount=amount, dry=1.0 - 0.35 * amount)
+
+
+def phase(amount: float, *, rate: float = 0.06) -> str:
+    """A slow phaser (Calf's): a sound's colour turning over some bars, as a dance floor's chords and pads move
+    (at 0.06 Hz once in about eight bars at 110 BPM)."""
+    return desk.lv2("Calf Phaser", base_freq=800.0, mod_depth=2500.0, mod_rate=rate, feedback=0.4, stages=4.0, amount=amount, dry=1.0)
 
 
 def wide(side: float) -> str:
@@ -1381,7 +1393,11 @@ def lines(voice: Voice, title: str, bpm: float, *, taste: float = 1.0, room: flo
         effects = [turned(level(player.name)["before"])] + (synth_chain(player.name, bpm) if synth else chain(player.name, bpm)) + placed
         out.append(desk.Line("%s: %s" % (title, name), track_of(player.name, slurs), notes, volume=_db(level(player.name)["after"] + player.gain) * taste,
                              pan=voice.pan if player.seat is None else player.seat,
-                             controls=_dynamics(notes, voice.swells, bpm) if held else [], early=early, send=send,
+                             # (Not to Surge: each of its patches puts controller 1 on something of its own, a vibrato, the
+                             # pitch, a filter. On 2026-11-17 a new House lead went 49 cents out of tune in the drops, where
+                             # the line is played hardest; House's loudness is drawn as its volume instead, club.py.)
+                             controls=_dynamics(notes, voice.swells, bpm) if held and not player.name.startswith("surge:") else [],
+                             early=early, send=send,
                              effects=[each for each in effects if each]))
     return out
 

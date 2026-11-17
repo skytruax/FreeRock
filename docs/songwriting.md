@@ -803,11 +803,20 @@ brightness) and every stroke. The writer's echo, chorus and hall do nothing then
 chorus and the hall are the desk's now*.
 
 - **Sounds** (`club.PLAYED`). Synth names go to Surge XT factory patches (`sounds.HOUSE`), each at
-  the octave it was measured to need (`sounds.HOUSE_OCTAVE`: the basses, Super Jupiter and the MKS-70
-  pad an octave up; the wide bassline and house organ two). Real instruments go to Muse Sounds: the
-  piano, the Suitcase Piano for `keys` chords and the Wurly 200A for a `keys` lead, marimba, harp
-  (also a plucked-string lead), flute, alto flute for the `pipe`, nylon guitar for the oud and for
-  plucked-string chords, trumpet, brass, and slow strings for the strings pad.
+  the octave it was measured to need (`sounds.HOUSE_OCTAVE`). On 2026-11-17 the House sounds were
+  heard as cheesy ("your house sounds cheesy bro"; asked which: the synth sounds, and the tunes'
+  instruments), and 38 patches were auditioned alone through House's desk, measured against the
+  liked stems and for tuning. Now: leads Oberheim Dreams, Prophet VS, Moogy Saw and Crisp PWM;
+  plucks Saw Pluck, Fat Curtis and Delay Dancer; pads Legacy, Verb Pad, Winter Warmer and Sparkly;
+  stabs Smooth Stabs. The tunes the pan flute, the flute and the marimba sang are sung by synths.
+  Real instruments still go to Muse Sounds for chords and colour: the piano, the Suitcase Piano for
+  `keys` chords and the Wurly 200A for a `keys` lead, marimba chords, harp, nylon guitar for the oud
+  and for plucked-string chords, trumpet, brass, and slow strings for the strings pad. Surge is not
+  sent controller 1: each patch puts it on something of its own, and one new lead went 49 cents out
+  of tune in the drops on it.
+- **Effects.** Tape on the chords, the lead and the drum room; a light chorus on synth leads; slow
+  phasers on the chords (about eight bars a turn) and the pads (slower); a longer echo from side to
+  side on the lead and the chords; more of the (darker) hall on everything but the bass.
 - **Brightness over lines** (`club.BRIGHT`). A voice is split over up to four tracks of the same
   instrument, closed at 900 Hz (brightness under 0.55), 2.2 kHz (under 0.7), 5 kHz (under 0.85) or
   open, and each note goes to the track its brightness calls for.

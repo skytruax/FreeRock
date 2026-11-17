@@ -142,6 +142,17 @@ def project_of(fam: Family, take: int) -> Path:
     return PROJECTS / fam.character.style / fam.name / str(take) / "track.rpp"
 
 
+def tamed_tone(name: str, instrument: str) -> str | None:
+    """The top of a voice that comes out bright against the liked stems, taken down (2026-11-17, midday, the morning's
+    storms, inns, bosses and battles: the brass stabs and the tubular bells at the moments had the accompaniment 12 to
+    16 dB over from 3.5 kHz up, and the harmonica that plays the accordion had the inns' texture 20 to 24 dB over)."""
+    if name.endswith(" stabs") or name == "bell at the moments":
+        return sounds.equalise(high_shelf=(3000.0, -9.0))
+    if instrument == "accordion":
+        return sounds.equalise(high_cut=7000.0, high_shelf=(2500.0, -10.0))
+    return None
+
+
 def stage(fam: Family, take: int) -> dict:
     """Writes one take of a family, has REAPER play it, balances the channels and stages the
     track. Returns what it measured. The REAPER project is kept (see `project_of`)."""
@@ -248,7 +259,12 @@ def stage(fam: Family, take: int) -> dict:
             if not voice.notes:
                 continue
             taste = INSTRUMENTS[voice.instrument].level if voice.instrument in INSTRUMENTS else 1.0
-            under += sounds.lines(voice, name, fam.bpm, taste=taste, room=room, seed=fam.seed * 31 + take)
+            made = sounds.lines(voice, name, fam.bpm, taste=taste, room=room, seed=fam.seed * 31 + take)
+            tamed = tamed_tone(name, voice.instrument)
+            if tamed:
+                for line in made:
+                    line.effects = list(line.effects) + [tamed]
+            under += made
         if under:
             moves, last = [], -1.0
             for at, loud in sorted(strokes) if channel in DUCK else ():

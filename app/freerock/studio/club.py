@@ -50,9 +50,10 @@ PLAYED = {
     ("keys", "piano"): "house piano", ("keys", "keys"): "electric piano", ("keys", "organ"): "house organ", ("keys", "stab"): "house stab",
     ("keys", "pluck"): "house pluck", ("keys", "bell"): "house bell", ("keys", "glass"): "house glass", ("keys", "harp"): "harp",
     ("keys", "marimba"): "marimba", ("keys", "oud"): "guitar", ("keys", "string"): "guitar", ("keys", "brass"): "brass",
-    ("lead", "saw"): "house lead saw", ("lead", "super"): "house lead super", ("lead", "hollow"): "house lead hollow", ("lead", "pipe"): "pan flute",
-    ("lead", "whistle"): "house lead sine", ("lead", "flute"): "flute", ("lead", "bell"): "house bell", ("lead", "glass"): "house glass",
-    ("lead", "keys"): "wurly", ("lead", "pluck"): "house pluck", ("lead", "marimba"): "marimba", ("lead", "harp"): "harp", ("lead", "oud"): "guitar",
+    # (The tunes the pan flute, the flute and the marimba sang were heard as cheesy, 2026-11-17: synths sing them now.)
+    ("lead", "saw"): "house lead saw", ("lead", "super"): "house lead super", ("lead", "hollow"): "house lead hollow", ("lead", "pipe"): "house lead hollow",
+    ("lead", "whistle"): "house lead sine", ("lead", "flute"): "house lead sine", ("lead", "bell"): "house bell", ("lead", "glass"): "house glass",
+    ("lead", "keys"): "wurly", ("lead", "pluck"): "house pluck", ("lead", "marimba"): "house pluck", ("lead", "harp"): "harp", ("lead", "oud"): "guitar",
     ("lead", "string"): "harp", ("lead", "brass"): "trumpet",
     ("pad", "warm"): "house pad warm", ("pad", "strings"): "strings slow", ("pad", "super"): "house pad super", ("pad", "glass"): "house pad glass",
     ("pad", "hollow"): "house pad hollow", ("pad", "organ"): "house pad organ",
@@ -285,7 +286,7 @@ def lines(heard: Heard, track: house.Take, work: Path) -> tuple[dict[str, list[d
             # The kick: its stroke brought out, what is under 30 Hz taken away, held together; nothing of it in the hall.
             "kick": ([sounds.punch(0.35, -0.1), sounds.equalise(low_cut=30.0, bands=((320.0, -2.5, 1.2), (3500.0, 2.0, 1.6))), sounds.smash(0.3)], 0.0, 1.0),
             # (The clap, the snare and the hats 4 to 10 dB short from 900 Hz to 3.5 kHz against the liked stems, 2026-11-17.)
-            "room": ([sounds.equalise(low_cut=180.0, bands=((2000.0, 3.0, 0.8),))], 0.22, 0.6),
+            "room": ([sounds.equalise(low_cut=180.0, bands=((2000.0, 3.0, 0.8),)), sounds.warm(0.35)], 0.22, 0.6),
         }
         for which, notes in sets.items():
             effects, send, volume = chains[which]
@@ -320,9 +321,12 @@ def lines(heard: Heard, track: house.Take, work: Path) -> tuple[dict[str, list[d
                     # (Third pass, midday, twenty tracks: still 11 dB over at 1.8 kHz, 19 to 23 at 3.5 kHz: the shelf from
                     # 2.5 kHz, closed from 6 kHz.)
                     tone = ((1800.0, -4.0, 1.0),) if synth_played else ()
-                    line.effects = list(line.effects) + [sounds.equalise(low_cut=110.0, high_cut=6000.0, bands=tone, high_shelf=(2500.0, -16.0)),
-                                                         sounds.echo(house.BPM, 0.2, left=3, right=4, again=0.32)]
-                    line.send = max(line.send, 0.16)
+                    # (2026-11-17, early afternoon, by ear: "your house sounds cheesy bro more effects or something", the synths
+                    # heard as presets: the chords turn slowly under a phaser, through tape, with more echo and more room.)
+                    moved = [sounds.phase(0.35)] if synth_played else []
+                    line.effects = list(line.effects) + [sounds.equalise(low_cut=110.0, high_cut=6000.0, bands=tone, high_shelf=(2500.0, -16.0))] \
+                        + moved + [sounds.warm(0.3), sounds.echo(house.BPM, 0.26, left=3, right=4, again=0.36)]
+                    line.send = max(line.send, 0.24)
                 elif channel == "lead":
                     # (The night's leads, MuseScore's, were 6 dB dull at their top and 3 in their middle against the liked house
                     # stems: lifted. The Surge leads are the other way about: taken down from 2.5 kHz. Open from 120 Hz, since
@@ -334,16 +338,19 @@ def lines(heard: Heard, track: house.Take, work: Path) -> tuple[dict[str, list[d
                         toned = sounds.equalise(low_cut=120.0, bands=((2500.0, -5.0, 1.0),), high_shelf=(3500.0, -8.0))
                     else:
                         toned = sounds.equalise(low_cut=120.0, bands=((1200.0, 3.0, 1.5),), high_shelf=(4000.0, 6.0))
-                    line.effects = list(line.effects) + [toned, sounds.echo(house.BPM, 0.24, left=3, right=4, again=0.34)]
-                    line.send = max(line.send, 0.2)
+                    # (...and the lead: tape, a little chorus on a synth's, a longer echo from side to side, more room.)
+                    widened = [sounds.ensemble(0.2)] if synth_played else []
+                    line.effects = list(line.effects) + [toned, sounds.warm(0.35)] + widened + [sounds.echo(house.BPM, 0.3, left=3, right=4, again=0.42)]
+                    line.send = max(line.send, 0.3)
                 elif channel == "texture":
                     # (...and the pad 15 to 35 dB too much there: its glass is kept, its glare taken away; 16 dB bright still on
                     # 2026-11-17, night, with the risers tamed: 4 dB more off, and closed from 5 kHz.)
                     # (Third pass, midday: the pads alone, in the open and the themes, still 7 to 20 dB over at 3.5 to 7 kHz.)
                     closed = sounds.equalise(low_cut=200.0, high_cut=3500.0, high_shelf=(2000.0, -12.0)) if synth_played \
                         else sounds.equalise(low_cut=200.0, high_cut=4500.0, high_shelf=(3000.0, -12.0))
-                    line.effects = list(line.effects) + [closed, sounds.ensemble(0.35)]
-                    line.send = max(line.send, 0.28)
+                    # (...and the pads wider, turning more slowly than the chords, further into the room.)
+                    line.effects = list(line.effects) + [closed, sounds.ensemble(0.55), sounds.phase(0.25, rate=0.04)]
+                    line.send = max(line.send, 0.36)
                 out[channel].append(line)
     # ----- the risers and the air: played in REAPER by the studio's own instrument (studio/jsfx/air)
     out["texture"] += air_lines(heard.airs)
