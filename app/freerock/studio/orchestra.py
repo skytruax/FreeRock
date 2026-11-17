@@ -797,6 +797,94 @@ CHARACTERS = (
       pad_ways=("pad", "tremolo"), plucks=("strings", "bells"), figures=("hammer", "pulse"), basses=("basses", "tuba"), kit="orchestra",
       drums=("taiko", "great drum", "timpani"), grooves=("war drums", "colossus"), hall=(2.4, 0.26), lift=0.5,
       titles=(("Iron", "Siege", "Burning", "Last", "Broken", "Thundering"), ("Line", "Wall", "Bridge", "Ramparts", "Stand", "Breach"))),
+    # --- the gaps in every kind of place, by setting and by light (2026-11-16, the night's loop: "make sure by tomorroow ---
+    # --- morning we have granularity in locations on all the kinds"). Each fills a cell of kind x setting x light that ---
+    # --- had nothing, or darkens a kind that had only bright music. ------------------------------------------------------
+    C("frozen lake", ("highland", "mystic"), light=True, modes=("lydian", "major", "dorian"), bpm=(66, 78), metres=("3/4",), busy=0.4,
+      weight=0.5, leads=("celesta", "flute", "violin"), strong=("violins slow", "glock"), under=("celli",), pads=("strings slow", "oohs"),
+      pad_ways=("pad",), plucks=("harp", "celesta", "glock"), figures=("arp", "rock"), basses=("celli slow", "basses pizz"), kit="folk",
+      drums=(), grooves=("sleigh", "sparkle"), hall=(3.0, 0.32), lift=0.25,
+      titles=(("Frozen", "Moonlit", "Glass", "Still", "Skater's", "Silver"), ("Lake", "Mere", "Ice", "Waltz", "Shallows", "Tarn"))),
+    C("snowbound pines", ("highland", "haunted"), modes=("minor", "dorian"), bpm=(84, 96), metres=("6/8", "4/4"), busy=0.45, weight=0.85,
+      leads=("horns", "english horn", "cello"), strong=("violins", "horns"), under=("trombone", "celli"), pads=("tremolo", "strings slow"),
+      pad_ways=("tremolo", "pad"), plucks=("harp", "pizzicato"), figures=("arp", "gallop"), basses=("celli", "basses"), kit="march",
+      drums=("timpani",), grooves=("ride", "dirge"), hall=(3.0, 0.32), lift=0.35,
+      titles=(("Snowbound", "Wolf", "Black", "Deep", "Howling", "Hunter's"), ("Pines", "Forest", "Timber", "Woods", "Night", "Trail"))),
+    C("misty lake", ("haunted", "mystic"), light=True, modes=("dorian", "minor"), bpm=(60, 72), metres=("3/4", "4/4"), busy=0.3, weight=0.45,
+      leads=("bass flute", "harp", "oohs"), strong=("oohs", "violins slow"), under=("celli",), pads=("strings slow", "oohs"), pad_ways=("pad",),
+      plucks=("harp", "celesta", "vibes"), figures=("arp", "rock"), basses=("celli slow", "basses pizz"), kit="folk", drums=(),
+      grooves=("drip", "sparkle"), hall=(3.4, 0.36), lift=0.15,
+      titles=(("Misty", "Grey", "Veiled", "Drifting", "Pale", "Hushed"), ("Lake", "Water", "Shore", "Reeds", "Mere", "Fog"))),
+    C("wisp wood", ("haunted", "pastoral"), light=True, modes=("dorian", "minor"), bpm=(80, 92), metres=("3/4", "6/8"), busy=0.45, weight=0.5,
+      leads=("celesta", "clarinet", "viola"), strong=("violins slow", "celesta"), under=("bassoon",), pads=("strings slow", "oohs"),
+      pad_ways=("pad",), plucks=("pizzicato", "harpsichord", "harp"), figures=("arp", "oompah"), basses=("celli pizz", "basses pizz"),
+      kit="folk", drums=(), grooves=("tick", "sparkle"), hall=(2.8, 0.3), lift=0.2,
+      titles=(("Wisp", "Lantern", "Glimmer", "Will-o'", "Faerie", "Twinkling"), ("Wood", "Path", "Lights", "Dance", "Thicket", "Ring"))),
+    C("dark road", ("haunted", "pastoral"), modes=("minor", "phrygian"), bpm=(72, 84), busy=0.35, weight=0.85,
+      leads=("bass clarinet", "english horn", "cello"), strong=("violins", "horns"), under=("trombone",), pads=("tremolo", "strings slow"),
+      pad_ways=("tremolo", "drone"), plucks=("pizzicato", "church bell"), figures=("pulse", "toll"), basses=("basses", "celli"),
+      kit="orchestra", drums=("timpani", "great drum"), grooves=("dirge", "march"), hall=(2.8, 0.3), lift=0.3,
+      titles=(("Dark", "Gallows", "Crow's", "Old Corpse", "Lonely", "Wagon-Rut"), ("Road", "Way", "Mile", "Track", "Lane", "Crossing"))),
+    C("buried tomb", ("desert", "haunted"), modes=("phrygian dominant", "phrygian"), bpm=(60, 72), busy=0.3, weight=0.9,
+      leads=("shenai", "choir", "english horn"), strong=("choir", "brass"), under=("trombone", "tuba"), pads=("tremolo", "choir"),
+      pad_ways=("drone", "tremolo"), plucks=("dulcimer", "harp", "bells"), figures=("toll", "pulse"), basses=("basses slow", "tuba"),
+      kit="hands", drums=("great drum", "taiko"), grooves=("heat", "war camp"), hall=(3.6, 0.38), lift=0.3,
+      titles=(("Buried", "Sand-Choked", "Pharaoh's", "Sealed", "Scarab", "Sunken"), ("Tomb", "Kings", "Necropolis", "Dynasty", "Vault", "Sphinx"))),
+    C("desert shrine", ("desert", "mystic"), light=True, modes=("dorian", "phrygian dominant", "lydian"), bpm=(66, 78), busy=0.35, weight=0.5,
+      leads=("pan flute", "guitar", "handbells"), strong=("pan flute", "violins slow"), under=("cello",), pads=("strings slow", "oohs"),
+      pad_ways=("drone", "pad"), plucks=("guitar", "dulcimer", "handbells"), figures=("arp", "pattern"), basses=("fretless", "celli pizz"),
+      kit="hands", drums=(), grooves=("heat", "sparkle"), hall=(3.0, 0.32), lift=0.2,
+      titles=(("Sun", "Moon", "Pilgrim's", "Lamp", "Wind", "Star"), ("Shrine", "Altar", "Prayer", "Pillar", "Well", "Stone"))),
+    C("jungle cliffs", ("jungle", "highland"), modes=("dorian", "minor"), bpm=(96, 108), metres=("6/8", "4/4"), busy=0.5, weight=0.9,
+      leads=("horns", "pan flute", "violin"), strong=("violins", "horns"), under=("trombone",), pads=("strings", "tremolo"), pad_ways=("pad", "tremolo"),
+      plucks=("marimba", "harp", "strings"), figures=("pattern", "gallop"), basses=("celli", "basses"), kit="wood", drums=("taiko", "timpani"),
+      grooves=("hunt", "canopy"), hall=(2.6, 0.28), lift=0.45,
+      titles=(("Vine", "Mist", "Eagle", "Waterfall", "Sky", "Jaguar"), ("Cliffs", "Heights", "Crag", "Ledge", "Ridge", "Falls"))),
+    C("jungle camp", ("jungle", "pastoral"), light=True, modes=("mixolydian", "major", "dorian"), bpm=(100, 112), metres=("4/4", "6/8"), busy=0.65,
+      weight=0.55, leads=("kalimba", "flute", "marimba"), strong=("marimba", "flute"), under=("clarinet",), pads=("strings", "oohs"), pad_ways=("pad",),
+      plucks=("kalimba", "guitar", "marimba"), figures=("pattern", "strum"), basses=("acoustic bass", "fretless"), kit="wood", drums=(),
+      grooves=("canopy", "claps"), hall=(1.8, 0.2), lift=0.2,
+      titles=(("Expedition", "Explorer's", "Bamboo", "Hammock", "Riverboat", "Base"), ("Camp", "Outpost", "Landing", "Stockade", "Post", "Clearing"))),
+    C("jungle temple", ("jungle", "mystic"), modes=("phrygian", "dorian", "minor"), bpm=(80, 92), metres=("4/4", "5/4"), busy=0.4, weight=0.95,
+      leads=("choir", "shakuhachi", "trombone"), strong=("choir", "brass"), under=("trombone", "tuba"), pads=("choir", "tremolo"),
+      pad_ways=("drone", "pad"), plucks=("marimba", "bells", "harp"), figures=("toll", "pattern"), basses=("basses slow", "melodic tom"),
+      kit="wood", drums=("taiko", "great drum"), grooves=("hunt", "dirge"), hall=(3.4, 0.36), lift=0.4,
+      titles=(("Serpent", "Sunken", "Idol", "Moss-Grown", "Jaguar", "Feathered"), ("Temple", "Ziggurat", "Altar", "Steps", "Pyramid", "Sanctum"))),
+    C("volcano peak", ("infernal", "highland"), modes=("phrygian", "minor"), bpm=(88, 100), busy=0.45, weight=1.0,
+      leads=("trombone", "horns", "choir"), strong=("brass", "choir"), under=("tuba", "trombone"), pads=("tremolo", "choir"), pad_ways=("tremolo", "drone"),
+      plucks=("strings", "bells"), figures=("hammer", "gallop"), basses=("basses", "tuba"), kit="orchestra", drums=("taiko", "timpani", "great drum"),
+      grooves=("anvil", "colossus"), hall=(3.0, 0.32), lift=0.45,
+      titles=(("Smoking", "Fire", "Cinder", "Ashfall", "Burning", "Black"), ("Peak", "Summit", "Crater", "Mountain", "Caldera", "Crown"))),
+    C("harbour town", ("regal", "pastoral"), light=True, modes=("major", "mixolydian", "lydian"), bpm=(104, 116), metres=("6/8", "4/4"), busy=0.6,
+      weight=0.65, leads=("flute", "violin", "trumpet"), strong=("violins", "flute"), under=("horns", "celli"), pads=("strings",), pad_ways=("pad",),
+      plucks=("harp", "pizzicato", "glock"), figures=("arp", "oompah"), basses=("celli pizz", "basses pizz"), kit="march", drums=("timpani",),
+      grooves=("courtly", "jig"), hall=(2.2, 0.24), lift=0.35,
+      titles=(("Harbour", "Lighthouse", "Seagate", "Admiral's", "Mariner's", "Pier"), ("Town", "Watch", "Promenade", "Quay", "Morning", "Sails"))),
+    C("royal gardens", ("regal", "pastoral"), light=True, modes=("major", "lydian"), bpm=(80, 92), metres=("3/4",), busy=0.5, weight=0.5,
+      leads=("flute", "oboe", "harpsichord"), strong=("violins slow", "flute"), under=("celli",), pads=("strings slow",), pad_ways=("pad",),
+      plucks=("harpsichord", "harp", "pizzicato"), figures=("arp", "oompah"), basses=("celli pizz", "basses pizz"), kit="folk", drums=(),
+      grooves=("courtly", "sparkle"), hall=(2.0, 0.22), lift=0.2,
+      titles=(("Royal", "Rose", "Fountain", "Topiary", "Queen's", "Summer"), ("Gardens", "Walk", "Arbour", "Terrace", "Parterre", "Hedge"))),
+    C("shadow glade", ("mystic", "haunted"), modes=("phrygian", "minor"), bpm=(64, 76), metres=("4/4", "3/4"), busy=0.3, weight=0.85,
+      leads=("bass flute", "oohs", "cello"), strong=("choir", "violins slow"), under=("bass clarinet",), pads=("tremolo", "oohs"),
+      pad_ways=("tremolo", "drone"), plucks=("harp", "celesta", "vibes"), figures=("toll", "arp"), basses=("basses slow", "celli slow"),
+      kit="folk", drums=("great drum",), grooves=("drip", "dirge"), hall=(3.6, 0.38), lift=0.25,
+      titles=(("Shadow", "Withered", "Blighted", "Moonless", "Thorned", "Hollow"), ("Glade", "Grove", "Boughs", "Circle", "Clearing", "Wood"))),
+    C("moon peak", ("mystic", "highland"), light=True, modes=("lydian", "dorian"), bpm=(64, 76), metres=("4/4", "3/4"), busy=0.35, weight=0.55,
+      leads=("handbells", "flute", "oohs"), strong=("violins slow", "handbells"), under=("horns",), pads=("oohs", "strings slow"), pad_ways=("pad",),
+      plucks=("harp", "handbells", "celesta"), figures=("arp", "toll"), basses=("celli slow", "basses pizz"), kit="folk", drums=(),
+      grooves=("sparkle",), hall=(3.4, 0.36), lift=0.3,
+      titles=(("Moon", "Star", "Silver", "Owl", "Cloud", "Wind"), ("Peak", "Summit", "Spire", "Heights", "Overlook", "Crest"))),
+    C("flooded mill", ("pastoral", "haunted"), modes=("minor", "dorian"), bpm=(72, 84), metres=("3/4", "4/4"), busy=0.4, weight=0.8,
+      leads=("cello", "english horn", "piano"), strong=("violins", "piano"), under=("celli",), pads=("strings slow", "tremolo"),
+      pad_ways=("pad", "tremolo"), plucks=("harp", "piano", "pizzicato"), figures=("arp", "rock"), basses=("celli", "basses pizz"),
+      kit="folk", drums=("timpani",), grooves=("rain", "waltz"), hall=(2.6, 0.28), lift=0.3,
+      titles=(("Flooded", "Drowned", "Silted", "Broken", "Weir", "Rain-Swollen"), ("Mill", "Wheel", "Sluice", "Millrace", "Pond", "Dam"))),
+    C("stone circle", ("highland", "pastoral"), modes=("dorian", "mixolydian", "minor"), bpm=(76, 88), metres=("4/4", "6/8"), busy=0.4, weight=0.75,
+      leads=("english horn", "bagpipe", "viola"), strong=("violins", "horns"), under=("celli",), pads=("strings slow", "oohs"), pad_ways=("drone", "pad"),
+      plucks=("harp", "pizzicato"), figures=("arp", "toll"), basses=("celli slow", "basses"), kit="march", drums=("great drum",),
+      grooves=("dirge", "stately"), hall=(3.2, 0.34), lift=0.3,
+      titles=(("Standing", "Old", "Ring", "Sentinel", "Weathered", "Solstice"), ("Stones", "Circle", "Henge", "Menhirs", "Watchers", "Dolmen"))),
 )
 
 METRES = {"4/4": (4.0, (2.0, 2.0)), "3/4": (3.0, (3.0,)), "6/8": (3.0, (1.5, 1.5)), "5/4": (5.0, (3.0, 2.0)),
@@ -1219,6 +1307,15 @@ def theme(rng: random.Random, fam: Family, chords: list[Chord], busy: float, way
     else:
         spine, notes = phrase(chords[:8], asking, False)
         _, answer_notes = phrase(chords[8:], homeward, True, given=spine[:4])
+        if len(answer_notes) >= 2 and notes and notes[-1][2] == answer_notes[0][2] == answer_notes[1][2]:
+            # The question's held note is the note the answer begins on twice: three of a kind, and the tidying would move
+            # one inside the answer, which is to begin as the question did. The held note moves instead, to the nearest
+            # other note of its chord that is not the key note (a question does not end at home). (Found 2026-11-16.)
+            at, length, step, weight = notes[-1]
+            chord = chords[7]
+            others = [tone for tone in _chord_steps(chord, step - 5, step + 5) if tone != step and tone % 7 != 0]
+            if others:
+                notes[-1] = (at, length, min(others, key=lambda tone: (abs(tone - step), tone)), weight)
         notes += [(at + 8 * beats, length, step, weight) for at, length, step, weight in answer_notes]
     return Line(_singable(notes, beats, chords))
 
@@ -1498,6 +1595,12 @@ SETTINGS_OF: dict[str, tuple[str, ...]] = {
     "dark ritual": ("sacred",), "savanna": ("wastes", "fields"), "temple steps": ("sacred",), "night market": ("settlement",),
     "high pasture": ("heights", "fields"), "orchard morning": ("fields",), "sunset hills": ("heights", "fields"),
     "lakeside reverie": ("water",), "harvest home": ("fields", "settlement"),
+    "frozen lake": ("water", "heights"), "snowbound pines": ("woods", "heights"), "misty lake": ("water",), "wisp wood": ("woods",),
+    "dark road": ("road",), "buried tomb": ("ruins", "graves", "wastes"), "desert shrine": ("sacred", "wastes"),
+    "jungle cliffs": ("heights", "woods", "water"), "jungle camp": ("settlement", "woods"), "jungle temple": ("sacred", "ruins"),
+    "volcano peak": ("heights", "wastes"), "harbour town": ("water", "settlement"), "royal gardens": ("fields", "sacred"),
+    "shadow glade": ("woods", "sacred"), "moon peak": ("heights", "sacred"), "flooded mill": ("water", "fields", "ruins"),
+    "stone circle": ("sacred", "heights", "fields"),
 }
 
 
