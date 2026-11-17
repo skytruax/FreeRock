@@ -681,28 +681,6 @@ def test_a_long_part_is_kept_in_stretches(tmp_path):
 
 # --- the band ------------------------------------------------------------------------------------
 
-def test_the_amplifier_keeps_the_length_and_makes_two_guitars_of_one():
-    from freerock.studio import amp
-    chord = tone(RATE, 110.0, 0.2) + tone(RATE, 165.0, 0.2)                 # a root and its fifth
-    driven = amp.drive(chord)
-    assert driven.shape == chord.shape and np.isfinite(driven).all()
-    assert 0.05 < float(np.abs(driven).max()) < 2.0
-    # What the two notes make between them in the valves: a tone at their difference that neither has.
-    def at(audio, hz):
-        return abs(np.dot(audio[:, 0], np.sin(2 * np.pi * hz * np.arange(len(audio)) / RATE))) / len(audio)
-    assert at(driven, 275.0) > 20 * at(chord, 275.0), "the notes did not beat against each other"
-    assert not np.allclose(driven[:, 0], driven[:, 1]), "a rhythm part should be two guitars, side by side"
-    middle = amp.drive(chord, wide=0.0)
-    assert np.allclose(middle[:, 0], middle[:, 1])
-    assert not amp.drive(np.zeros((RATE, 2), dtype=np.float32)).any()       # nothing in, nothing out
-    pluck = np.zeros((RATE, 2), dtype=np.float32)
-    pluck[:2400] = tone(2400, 440.0, 0.3)                                   # a note a twentieth of a second long
-    again = amp.echo(pluck, 0.25)
-    assert again.shape == pluck.shape and np.array_equal(again[:2400], pluck[:2400])
-    assert float(np.abs(again[12000:14400]).max()) > 0.05, "the note did not come back a quarter of a second later"
-    assert float(np.abs(again[24000:26400]).max()) < float(np.abs(again[12000:14400]).max()), "the echo did not die away"
-
-
 def test_a_band_plays_riffs_on_wired_guitars_and_the_bass_in_eighths():
     character = next(each for each in orchestra.CHARACTERS if each.name == "banner ride")
     assert character.band and character.style == "knight"

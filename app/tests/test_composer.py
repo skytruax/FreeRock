@@ -135,8 +135,8 @@ def test_band_profile_tells_a_dull_mix_from_a_bright_one():
     same = analysis.profile_difference_db(analysis.band_profile(noise, 48000),
                                           analysis.band_profile(noise * 0.3, 48000))
     assert same < 0.1, "a level change alone must not count as a difference"
-    from freerock.render import lowpass
-    dull = lowpass(noise[:, None], 48000, 1500.0, order=4)[:, 0]
+    from scipy.signal import butter, sosfilt
+    dull = sosfilt(butter(4, 1500.0, "low", fs=48000, output="sos"), noise).astype(np.float32)
     assert analysis.profile_difference_db(analysis.band_profile(noise, 48000),
                                           analysis.band_profile(dull, 48000)) > 6
 

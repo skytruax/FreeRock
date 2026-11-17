@@ -57,7 +57,7 @@ class Instrument:
     held: bool = True          # it sustains for as long as the note is written (a bow, a breath); a plucked one does not
     level: float = 1.0         # a taste: this one a little under the others whatever it measures
     early: float = 0.0         # seconds it is played ahead, for instruments that speak slowly
-    wired: bool = False        # an electric guitar: recorded clean and played through the amplifier (studio.amp)
+    wired: bool = False        # an electric guitar (Muse Guitars plays it through its own amplifier)
 
 
 I = Instrument
