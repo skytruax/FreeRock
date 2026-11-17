@@ -2615,9 +2615,17 @@ class Take:
                     low(bar_at + beats - pulse, pulse, near, loud * 0.8)
                 elif way == "eight":
                     step = 0.5
-                    for index in range(int(round(beats / step))):
+                    count = int(round(beats / step))
+                    toward = key.pitch(after.root, inst.home - 5)
+                    toward += 12 if toward < root - 6 else -12 if toward > root + 6 else 0
+                    for index in range(count):
                         on = index * step
-                        low(bar_at + on, step * 0.85, root, loud * (1.0 if on in starts else 0.8))
+                        pitch = root
+                        if index == count - 1 and toward != root and bar + 1 < bars:
+                            # Into a new chord the last eighth is a step away from its root (2026-11-17, night: the band's bass
+                            # played one note 85% of the time; the riff bands' bass players lead into each change like this).
+                            pitch = toward + (1 if toward < root else -1) * (1 if abs(toward - root) <= 2 else 2)
+                        low(bar_at + on, step * 0.85, pitch, loud * (1.0 if on in starts else 0.8))
                 elif way == "pulse":
                     for index in range(int(round(beats / pulse))):
                         on = index * pulse
@@ -2714,11 +2722,12 @@ class Take:
                     lay(second, bar, bar_at, level, 1.0 if other is not main else 0.85, chord, key)
                     if bar >= self.fam.period and not (ch.band and self.heavy):
                         lay([each for each in other["moment"] if each[0] in SMALL and each not in second], bar, bar_at, level, 0.55, chord, key)
-                if part in ("first", "second") and not (ch.band and self.heavy):
+                if part in ("first", "second"):
                     # Phrasing (2026-11-17, night: "make sure the individual stem tracks are interesting enough"; the drums
                     # played the same bar through a whole theme). The last bar of each phrase ends on a pickup of the
-                    # groove's roll into the next, getting louder; the next phrase opens with its light stroke.
-                    period = self.fam.period
+                    # groove's roll into the next, getting louder; the next phrase opens with its light stroke. A heavy
+                    # band's drummer keeps time and fills only every other phrase.
+                    period = self.fam.period * (2 if ch.band and self.heavy else 1)
                     groove = main if part == "first" else other
                     if bar % period == period - 1 and bar < bars - 1 and groove["roll"] and not (crowded and groove["roll"] in LOW):
                         count = 3 if self.pulse == 1.0 else 2
