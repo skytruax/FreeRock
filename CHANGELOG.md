@@ -28,6 +28,18 @@ each track", "prioritize warcraft for 3 hours then shift".
   its moments with the same choir and bell. Now the haunted, mystic and regal places have the
   choir and the bell, infernal ones the choir, the open country and the hills the horns, the
   desert and the jungle neither; light pieces have a soft horn or voice chord at their moments.
+- **"been hearing the same thing over and over".** The evening's most played tracks were two
+  jigs of one palette (*Market Day Hop* and *Market Day Jig*) and the takes of a few light
+  country families. The player counted every take as a song of its own, though a family's
+  takes share a key, a pace and changes (a track plays each channel from one take or another).
+  Now it counts what it has heard by family, a sister family (the same character) as 0.8 of
+  one, over an hour and a half instead of three quarters, and the page keeps that memory in
+  the browser across a reload (`forever.js` `_worn`, `SISTER`; `player.js` `heard`). Four
+  more light country characters with leads that country did not have: an oboe and bassoon
+  scherzo, a solo horn at sunset, a piano by a lake, and a harvest dance that lifts its key.
+- **A second theme is never on the first one's changes** (`orchestra.family`): in major,
+  "6 4 1 5" and "6 4 1" came to the same eight bars. The one family that met this and had a
+  take made already keeps its changes, since its takes are played together.
 - **High ground is read from a place's name** (`kinds.py`): "Shen'dar Highlands" was heard as the
   plain country round it. Highland, mountain, peak, ridge, summit, cliff, height, crest,
   pinnacle and moor now say highland.
