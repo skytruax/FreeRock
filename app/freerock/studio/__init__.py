@@ -89,6 +89,13 @@ def write_track(folder: Path, meta: dict[str, Any], parts: dict[str, np.ndarray]
         older = folder / (channel + ".mp3")
         if older.is_file():
             older.unlink()
+    for channel in forever.CHANNELS:
+        if channel not in parts:
+            # A channel this take no longer plays: what an earlier render of it left must not be read with the new parts
+            # (it would go into the bucket out of step with them).
+            for stale in (folder / (channel + ".flac"), folder / (channel + ".mp3")):
+                if stale.is_file():
+                    stale.unlink()
     scratch = folder / "track.json.new"
     scratch.write_text(json.dumps(meta, indent=1) + "\n", encoding="utf-8")
     scratch.replace(folder / "track.json")

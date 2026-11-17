@@ -210,8 +210,7 @@ def stage(fam: Family, take: int) -> dict:
         deep = [note for note in low if any(first <= note.start < last for first, last in spans)]
         written.voices["bass"]["sub at the moments"] = Voice(notes=[Note(note.start, note.length, note.pitch, 0.8) for note in deep], instrument="deep")
         if not any(voice.instrument in ("tuba", "trombone") and voice.notes for voice in written.voices["bass"].values()):
-            written.voices["bass"]["low brass at the moments"] = Voice(
-                0, notes=[Note(note.start, note.length, note.pitch if note.pitch >= 29 else note.pitch + 12, 0.75) for note in deep if note.length >= 0.45],
+            written.voices["bass"]["low brass at the moments"] = Voice(notes=[Note(note.start, note.length, note.pitch if note.pitch >= 29 else note.pitch + 12, 0.75) for note in deep if note.length >= 0.45],
                 instrument="tuba")
         rung = []
         for first, last in spans:

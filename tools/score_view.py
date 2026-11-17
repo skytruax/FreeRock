@@ -80,7 +80,7 @@ def house_lines(name: str, take: int, part: str, bars: int) -> tuple[list[tuple[
         raise SystemExit("%s has no part called %r" % (name, part))
     span = (first * 4.0, (first + bars) * 4.0)
     lines = []
-    for channel, table, sound, written, cut, notes, taste in club.voices(heard):
+    for channel, table, sound, written, cut, notes, taste, ride in club.voices(heard):
         mine = window(notes, *span)
         if not mine:
             continue

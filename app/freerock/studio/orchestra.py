@@ -54,18 +54,19 @@ class Instrument:
     high: int
     home: int                  # the middle of where its tunes sit
     held: bool = True          # it sustains for as long as the note is written (a bow, a breath); a plucked one does not
+    level: float = 1.0         # a taste: this one a little under (or over) the others whatever it measures (the desk's taste)
     early: float = 0.0         # seconds it is played ahead, for instruments that speak slowly
     wired: bool = False        # an electric guitar: a twin tune a third above is written for it in a band
 
 
 I = Instrument
 INSTRUMENTS = {
-    "flute": I(60, 96, 79), "piccolo": I(74, 103, 90), "oboe": I(58, 89, 72),
+    "flute": I(60, 96, 79), "piccolo": I(74, 103, 90, level=0.8), "oboe": I(58, 89, 72),
     "english horn": I(52, 81, 65), "clarinet": I(50, 89, 67), "bassoon": I(34, 70, 50),
     "recorder": I(60, 93, 77), "pan flute": I(60, 93, 76), "shakuhachi": I(55, 86, 70),
-    "whistle": I(72, 98, 84), "ocarina": I(60, 91, 76),
+    "whistle": I(72, 98, 84, level=0.8), "ocarina": I(60, 91, 76),
     "trumpet": I(55, 82, 70), "trombone": I(40, 70, 55), "tuba": I(28, 55, 40),
-    "horns": I(41, 74, 58), "brass": I(48, 82, 62),
+    "horns": I(41, 74, 58), "brass": I(48, 82, 62, level=0.9),
     "violin": I(55, 96, 74), "viola": I(48, 84, 62), "cello": I(36, 74, 52),
     "violins": I(55, 96, 74, early=0.02), "violins slow": I(55, 96, 74, early=0.08),
     "violas": I(48, 84, 62, early=0.02), "celli": I(36, 72, 50, early=0.02),
@@ -75,17 +76,17 @@ INSTRUMENTS = {
     "tremolo": I(36, 96, 64, early=0.03), "pizzicato": I(36, 91, 62, held=False),
     "celli pizz": I(36, 72, 50, held=False), "basses pizz": I(28, 52, 38, held=False),
     "harp": I(31, 96, 64, held=False), "celesta": I(60, 105, 84, held=False),
-    "glock": I(72, 105, 88, held=False), "music box": I(60, 96, 79, held=False),
+    "glock": I(72, 105, 88, held=False, level=0.7), "music box": I(60, 96, 79, held=False),
     "vibes": I(53, 89, 70, held=False), "marimba": I(45, 96, 65, held=False),
-    "xylophone": I(65, 105, 84, held=False), "bells": I(55, 84, 69, held=False),
+    "xylophone": I(65, 105, 84, held=False, level=0.8), "bells": I(55, 84, 69, held=False),
     "church bell": I(48, 72, 60, held=False), "dulcimer": I(55, 91, 70, held=False),
-    "organ": I(36, 91, 60), "harpsichord": I(36, 89, 65, held=False),
-    "accordion": I(53, 89, 69), "guitar": I(40, 84, 60, held=False),
+    "organ": I(36, 91, 60, level=0.8), "harpsichord": I(36, 89, 65, held=False),
+    "accordion": I(53, 89, 69, level=0.8), "guitar": I(40, 84, 60, held=False),
     "steel guitar": I(40, 84, 62, held=False), "mandolin": I(55, 91, 72, held=False),
     "twelve string": I(40, 84, 62, held=False), "sitar": I(48, 84, 64, held=False),
     "koto": I(48, 91, 67, held=False), "kalimba": I(60, 96, 76, held=False),
-    "banjo": I(48, 84, 64, held=False), "bagpipe": I(58, 82, 70),
-    "fiddle": I(55, 96, 74), "shenai": I(58, 86, 70),
+    "banjo": I(48, 84, 64, held=False), "bagpipe": I(58, 82, 70, level=0.7),
+    "fiddle": I(55, 96, 74), "shenai": I(58, 86, 70, level=0.8),
     "choir": I(48, 81, 64, early=0.05), "oohs": I(48, 84, 65, early=0.05),
     "timpani": I(36, 57, 45, held=False), "taiko": I(36, 60, 45, held=False),
     "great drum": I(36, 60, 43, held=False), "melodic tom": I(36, 72, 48, held=False),
@@ -94,18 +95,18 @@ INSTRUMENTS = {
     "rhythm guitar": I(40, 76, 50, held=False, wired=True), "muted guitar": I(40, 72, 47, held=False, wired=True),
     "single guitar": I(40, 76, 50, held=False, wired=True),     # one of the two riff guitars, alone: a heavy band's opening riff
     "lead guitar": I(52, 86, 67, wired=True), "picked bass": I(28, 55, 38, held=False),
-    "rock organ": I(36, 84, 60), "harmonica": I(60, 84, 72),
+    "rock organ": I(36, 84, 60, level=0.8), "harmonica": I(60, 84, 72),
     "fretless": I(28, 60, 40),
     # Colours added for variety (2026-11-16, played: "need more variety in warcraft"). Muse Sounds plays all of these.
     "piano": I(33, 100, 64, held=False), "bass flute": I(48, 84, 62), "bass clarinet": I(38, 77, 55),
     # (Handbells carry far more than the glockenspiel at the same written strength: at 0.85 a frost night's rise, its
     # tune on handbells, came out louder than its moment on the glockenspiel, 2026-11-17, night.)
-    "handbells": I(60, 93, 74, held=False),
+    "handbells": I(60, 93, 74, held=False, level=0.6),
     # (Muse's euphonium under C3 was found to sound an octave up and 18 dB soft, played alone: it is kept above it.)
     "euphonium": I(48, 72, 58),
     # The rest of what Muse Sounds has (2026-11-17, night: "revisit it see if you left good ones out"), each heard played
     # alone first: the two low winds at the written pitch, every note.
-    "contrabassoon": I(22, 50, 34), "contrabass flute": I(36, 62, 48),
+    "contrabassoon": I(22, 50, 34, level=1.6), "contrabass flute": I(36, 62, 48, level=1.6),
     "eb clarinet": I(62, 91, 76), "full choir": I(43, 81, 62, early=0.05),
     "handchimes": I(60, 96, 74, held=False), "dream piano": I(36, 96, 64, held=False),
     # The big drums and what marks an arrival, found by name alone. A war drum's or a frame
@@ -116,11 +117,11 @@ INSTRUMENTS = {
     "swell": I(49, 49, 49, held=False), "anvil": I(60, 60, 60, held=False),
     # Played by Muse Percussion on drum staves (studio.muse.PERCUSSION): the pitch is the drum. The level is what each
     # needed beside the rest, measured played alone at one strength (2026-11-17, night): the taikos are by far the loudest.
-    "taikos": I(86, 87, 87, held=False), "tam-tam": I(52, 52, 52, held=False),
+    "taikos": I(86, 87, 87, held=False, level=0.4), "tam-tam": I(52, 52, 52, held=False, level=1.2),
     # (The mark tree was at 2.0 at first: a night piece's drums, nearly all mark tree, came out 14 dB bright.)
-    "mark tree": I(84, 84, 84, held=False), "field drum": I(37, 38, 38, held=False),
-    "field drum roll": I(38, 38, 38, held=False), "cymbal roll": I(57, 57, 57, held=False),
-    "piatti": I(57, 57, 57, held=False), "concert drum roll": I(36, 36, 36, held=False),
+    "mark tree": I(84, 84, 84, held=False, level=1.0), "field drum": I(37, 38, 38, held=False),
+    "field drum roll": I(38, 38, 38, held=False, level=1.3), "cymbal roll": I(57, 57, 57, held=False, level=1.5),
+    "piatti": I(57, 57, 57, held=False, level=0.5), "concert drum roll": I(36, 36, 36, held=False, level=1.3),
 }
 
 # Percussion: a kit's strokes by name, as the note each is written on.

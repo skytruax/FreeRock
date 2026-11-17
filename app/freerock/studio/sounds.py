@@ -1311,7 +1311,7 @@ def lines(voice: Voice, title: str, bpm: float, *, taste: float = 1.0, room: flo
             # The strokes a drum-kit plug-in has are played by it; the rest stay with the recordings in the sampler.
             from .orchestra import KITS
             plug, table = KIT_PLUGS[kit]
-            strokes = KITS[kit][1]
+            strokes = KITS[kit]
             to = {strokes[stroke]: note for stroke, note in table.items() if stroke in strokes}
             mine = [Note(note.start, note.length, to[note.pitch], note.loud) for note in left if note.pitch in to]
             left = [note for note in left if note.pitch not in to]
@@ -1327,7 +1327,7 @@ def lines(voice: Voice, title: str, bpm: float, *, taste: float = 1.0, room: flo
         if kit in KICKED:
             # An orchestra's bass drum is a soft, deep stroke that small loudspeakers do not carry: the kick goes with it.
             from .orchestra import KITS
-            boom = KITS[kit][1]["boom"]
+            boom = KITS[kit]["boom"]
             struck = [Note(note.start, note.length, 36, note.loud) for note in voice.notes if note.pitch == boom]
             if struck:
                 own = "boom" in KIT_PLUGS.get(kit, ("", {}))[1]          # the kit's plug-in has a bass drum of its own

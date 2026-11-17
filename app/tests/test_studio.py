@@ -569,6 +569,15 @@ def test_a_staged_track_is_read_back_as_it_was_written(tmp_path):
         studio.write_track(tmp_path / "bad", meta, {"lead": tone(RATE, 440)})          # not the length the story says
 
 
+def test_a_take_staged_again_without_a_channel_leaves_no_old_recording_of_it(tmp_path):
+    folder = tmp_path / "warcraft" / "test-family" / "1"
+    meta = made_track(folder)
+    (folder / "bass.mp3").write_bytes(b"from the night the tracks were MP3")
+    studio.write_track(folder, meta, {"lead": tone(11 * RATE, 440, 0.1)})               # the drums are silent this time
+    assert not (folder / "drums.flac").exists() and not (folder / "bass.mp3").exists()
+    assert set(studio.read_track(folder)[1]) == {"lead"}
+
+
 def test_a_staged_track_becomes_the_pieces_of_its_story_each_going_into_the_next(tmp_path, monkeypatch):
     folder = tmp_path / "studio" / "warcraft" / "test-family" / "1"
     made_track(folder)
