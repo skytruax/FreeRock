@@ -428,8 +428,18 @@ def test_a_plucked_bass_has_a_sub_under_it_on_the_same_notes_and_a_sub_bass_none
     written, notes, taste, ride = lines["pluck sub"]
     plucked = lines["pluck"]
     assert written == "house sub" and [note.start for note in notes] == [note.start for note in plucked[1]]
-    assert [note.pitch for note in notes] == [note.pitch for note in plucked[1]]
+    assert [note.pitch for note in notes] == [note.pitch - 12 for note in plucked[1]]          # an octave under it
     assert taste == pytest.approx(plucked[2] * club.SUB_UNDER) and ride == plucked[3]
     alone = club.Heard()
     alone.notes[("bass", "bass", "sub")].append((0.0, bar, 40.0, 0.5, 0.0, 1.0))
     assert not any(name.endswith(" sub") for _, _, name, *_ in club.voices(alone))
+
+
+def test_the_fm_bass_has_a_growl_beside_it_as_the_sub_has(monkeypatch):
+    # (2026-11-17, morning: the FM bass was 17 to 30 dB short from 450 Hz up against the liked house stems.)
+    from freerock.studio import club
+    monkeypatch.setattr(club.muse, "available", lambda: False)
+    heard = club.Heard()
+    heard.notes[("bass", "bass", "fm")].append((0.0, house.BAR, 40.0, 0.5, 0.0, 1.0))
+    lines = {name: (written, cut) for _, _, name, written, cut, *_ in club.voices(heard)}
+    assert lines["fm growl"] == ("house bass saw", 900.0) and "fm sub" not in lines

@@ -244,9 +244,10 @@ def voices(heard: Heard) -> list[tuple[str, str, str, str, float, list[Note], fl
             for cut, mine in sorted(bands.items()):
                 out.append((channel, table, name + suffix, written, cut, mine, level, ride))
                 every += mine
-        if written == "house sub":
+        if written in ("house sub", "house bass fm"):
             # (2026-11-17, night: against the liked house stems the bass was 30 dB short in its middle and 44 at its top: a
-            # sine under 100 Hz, which a small loudspeaker does not play at all.) A sawtooth on the same notes, closed
+            # sine under 100 Hz, which a small loudspeaker does not play at all. The FM bass the same the next morning: 17 to
+            # 30 dB short from 450 Hz up.) A sawtooth on the same notes, closed
             # above 900 Hz and well under the sub, is the part of the bass that is heard; the sub is the part that is felt.
             out.append((channel, table, name + " growl", "house bass saw", 900.0, sorted(every, key=lambda note: note.start),
                         taste * 0.45, ride))
@@ -254,8 +255,9 @@ def voices(heard: Heard) -> list[tuple[str, str, str, str, float, list[Note], fl
             # (2026-11-17, morning: against the liked house stems the plucked and the sawtooth basses had 6 to 8 dB too much
             # in their middle and too little under 200 Hz.) The other way about: the sub on the same notes under the bass
             # that is heard, the weight a house bass has from a sine under it.
-            out.append((channel, table, name + " sub", "house sub", 0.0, sorted(every, key=lambda note: note.start),
-                        taste * SUB_UNDER, ride))
+            # An octave under them: the liked house basses have their weight at 40 to 80 Hz, these at 80 to 160.
+            under = [Note(note.start, note.length, note.pitch - 12, note.loud) for note in sorted(every, key=lambda note: note.start)]
+            out.append((channel, table, name + " sub", "house sub", 0.0, under, taste * SUB_UNDER, ride))
     return out
 
 
@@ -280,7 +282,8 @@ def lines(heard: Heard, track: house.Take, work: Path) -> tuple[dict[str, list[d
         chains = {
             # The kick: its stroke brought out, what is under 30 Hz taken away, held together; nothing of it in the hall.
             "kick": ([sounds.punch(0.35, -0.1), sounds.equalise(low_cut=30.0, bands=((320.0, -2.5, 1.2), (3500.0, 2.0, 1.6))), sounds.smash(0.3)], 0.0, 1.0),
-            "kit": ([sounds.equalise(low_cut=120.0, high_shelf=(9000.0, 1.5)), sounds.smash(0.25)], 0.06, 0.7),
+            # (The clap, the snare and the hats 4 to 10 dB short from 900 Hz to 3.5 kHz against the liked stems, 2026-11-17.)
+            "kit": ([sounds.equalise(low_cut=120.0, bands=((2000.0, 3.0, 0.8),), high_shelf=(9000.0, 1.5)), sounds.smash(0.25)], 0.06, 0.7),
             "room": ([sounds.equalise(low_cut=180.0)], 0.22, 0.6),
         }
         for which, notes in sets.items():
@@ -292,6 +295,10 @@ def lines(heard: Heard, track: house.Take, work: Path) -> tuple[dict[str, list[d
             # (MuseScore's players measured to the level the studio's own are, 2026-11-17, morning: they were laid in
             # 6 dB up as the orchestra has them, and a channel that had one of each had no level between them, a
             # haunted piece's theme sung by the Wurlitzer 7 dB over its drops sung by Surge's sine.)
+            # (2026-11-17, morning, against the liked house stems octave by octave: the Surge patches were the bright ones,
+            # 6 to 19 dB too much from 900 Hz to 3.5 kHz in the leads and keys, the pads 16 dB over at 3.5 kHz; MuseScore's
+            # instruments had measured dull the night before. So each line is toned by what plays it.)
+            synth_played = not (written in muse.PARTS and muse.available())
             for line in sounds.lines(Voice(0, notes=mine, instrument=written), title, house.BPM, taste=taste, room=1.0, seed=seed,
                                      muse_level=sounds.LEVEL):
                 if ride:
@@ -307,19 +314,26 @@ def lines(heard: Heard, track: house.Take, work: Path) -> tuple[dict[str, list[d
                 elif channel == "rhythm":
                     # (Measured against the house stems that were liked: the plucks had 11 to 24 dB too much above 3 kHz.)
                     # (Still 13 dB bright there on 2026-11-17, night: 4 dB more; then still 11: 4 more and closed from 7 kHz.)
-                    line.effects = list(line.effects) + [sounds.equalise(low_cut=140.0, high_cut=7000.0, high_shelf=(4500.0, -16.0)),
+                    tone = ((2000.0, -4.0, 1.0),) if synth_played else ()
+                    line.effects = list(line.effects) + [sounds.equalise(low_cut=110.0, high_cut=7000.0, bands=tone, high_shelf=(4500.0, -16.0)),
                                                          sounds.echo(house.BPM, 0.2, left=3, right=4, again=0.32)]
                     line.send = max(line.send, 0.16)
                 elif channel == "lead":
-                    # (6 dB dull at its top and 3 in its middle against the liked house stems, 2026-11-17, night; 5 dB dull after the first lift.)
-                    line.effects = list(line.effects) + [sounds.equalise(low_cut=180.0, bands=((1200.0, 3.0, 1.5),), high_shelf=(4000.0, 6.0)),
-                                                         sounds.echo(house.BPM, 0.24, left=3, right=4, again=0.34)]
+                    # (The night's leads, MuseScore's, were 6 dB dull at their top and 3 in their middle against the liked house
+                    # stems: lifted. The Surge leads are the other way about: taken down from 2.5 kHz. Open from 120 Hz, since
+                    # the tunes sit a fifth lower.)
+                    if synth_played:
+                        toned = sounds.equalise(low_cut=120.0, bands=((2500.0, -3.0, 1.0),), high_shelf=(5000.0, -4.0))
+                    else:
+                        toned = sounds.equalise(low_cut=120.0, bands=((1200.0, 3.0, 1.5),), high_shelf=(4000.0, 6.0))
+                    line.effects = list(line.effects) + [toned, sounds.echo(house.BPM, 0.24, left=3, right=4, again=0.34)]
                     line.send = max(line.send, 0.2)
                 elif channel == "texture":
                     # (...and the pad 15 to 35 dB too much there: its glass is kept, its glare taken away; 16 dB bright still on
                     # 2026-11-17, night, with the risers tamed: 4 dB more off, and closed from 5 kHz.)
-                    line.effects = list(line.effects) + [sounds.equalise(low_cut=200.0, high_cut=5000.0, high_shelf=(3500.0, -10.0)),
-                                                         sounds.ensemble(0.35)]
+                    closed = sounds.equalise(low_cut=200.0, high_cut=4000.0, high_shelf=(2500.0, -10.0)) if synth_played \
+                        else sounds.equalise(low_cut=200.0, high_cut=5000.0, high_shelf=(3500.0, -10.0))
+                    line.effects = list(line.effects) + [closed, sounds.ensemble(0.35)]
                     line.send = max(line.send, 0.28)
                 out[channel].append(line)
     # ----- the risers and the air: played in REAPER by the studio's own instrument (studio/jsfx/air)

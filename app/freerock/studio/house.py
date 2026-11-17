@@ -561,7 +561,10 @@ class Tune:
     climb a third higher. Notes on the strong beats and the long notes are notes of the chord
     under them; the notes between move by step."""
 
-    def __init__(self, changes: Changes, rng: random.Random, home: int = 74):
+    def __init__(self, changes: Changes, rng: random.Random, home: int = 67):
+        # (The middle of the tune at G4, not D5 as it was: 2026-11-17, morning, "your house needs some work". Against
+        # the liked house stems the leads had nothing under 320 Hz and 6 to 19 dB too much from 900 Hz to 3.5 kHz, where
+        # the liked leads have their weight at 200 to 450 Hz: a house hook sits in the warm middle, not over the band.)
         self.changes, self.rng = changes, rng
         # The step of the scale nearest `home` (a MIDI note) is the middle of the tune's range.
         self.centre = min(range(-7, 22), key=lambda degree: abs(changes.pitch(degree) - home))
