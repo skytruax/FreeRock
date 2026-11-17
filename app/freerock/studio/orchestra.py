@@ -100,7 +100,9 @@ INSTRUMENTS = {
     "fretless": I(0, 35, 28, 60, 40),
     # Colours added for variety (2026-11-16, played: "need more variety in warcraft"). Muse Sounds plays all of these.
     "piano": I(0, 0, 33, 100, 64, held=False), "bass flute": I(0, 73, 48, 84, 62), "bass clarinet": I(0, 71, 38, 77, 55),
-    "handbells": I(0, 14, 60, 93, 74, held=False, level=0.85),
+    # (Handbells carry far more than the glockenspiel at the same written strength: at 0.85 a frost night's rise, its
+    # tune on handbells, came out louder than its moment on the glockenspiel, 2026-11-17, night.)
+    "handbells": I(0, 14, 60, 93, 74, held=False, level=0.6),
     # (Muse's euphonium under C3 was found to sound an octave up and 18 dB soft, played alone: it is kept above it.)
     "euphonium": I(0, 58, 48, 72, 58),
     # The rest of what Muse Sounds has (2026-11-17, night: "revisit it see if you left good ones out"), each heard played
