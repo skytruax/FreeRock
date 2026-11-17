@@ -74,8 +74,19 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit("There are no such families: %s" % ", ".join(unknown))
     reaper.configure()
     from freerock.studio.orchestra import KITS
-    for player in sounds.wanted() + ["kit " + kit for kit in KITS]:
+    players = sounds.wanted() + ["kit " + kit for kit in KITS]
+    for player in players:
         sounds.track_of(player)                    # every instrument written out before anything renders: a render must not see one change
+    # Every instrument's level measured before anything renders (2026-11-17, night: a house piece failed half an hour in,
+    # on a bass whose level had never been measured): `python -m freerock.studio.sounds --only <name>` measures one.
+    unmeasured = []
+    for player in players:
+        try:
+            sounds.level(player)
+        except KeyError:
+            unmeasured.append(sounds.template_of(player))
+    if unmeasured:
+        raise SystemExit("These instruments' levels have not been measured: %s" % ", ".join(sorted(set(unmeasured))))
     failed = []
     with Pool(processes=args.workers) as pool:
         for name, take, how, said in pool.imap_unordered(one, jobs):
