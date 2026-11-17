@@ -1,168 +1,351 @@
-# FreeRock
+<p align="center">
+  <img src="docs/images/banner.png" alt="FreeRock: the five stems of a Warcraft track across its eight minutes, rising twice to a summit" width="100%">
+</p>
 
-Music for World of Warcraft: Forever that follows the game, played as one song that never ends.
+<h1 align="center">FreeRock</h1>
 
-Each of the three styles (Knight Rock, Warcraft: an orchestral score in the old manner, and
-Progressive House) has a bucket of music. Most of it is **written pieces**: music written and
-played on this machine by FreeRock's studio (`app/freerock/studio/`) and kept as its parts, one
-recording for each channel: drums, bass, a rhythm part, a tune and a drone. The player is five
-decks, one for each of those channels, on one bar grid. It plays a piece's parts together, each
-as loud as the game asks, so the piece keeps its own harmony and shape while the band comes and
-goes. Pieces are strung into tracks that tell a story (it opens, states its theme, rises, comes
-to its moment and closes). Which track plays depends on the kind of place you are in (haunted
-woods, farmland, a desert: not the zone by name) and on what is happening; a dungeon's boss cuts
-in with a piece of its own and the track is picked up afterwards where it was left; and light
-and heavy tracks take turns, so that staying in one place does not grow too intense.
+<p align="center">
+  <b>A soundtrack for World of Warcraft: Forever that plays your game.</b><br>
+  Original music, written, performed and mixed by its own studio, then conducted live by what you do:<br>
+  walk, ride, fight, hide, camp, die.
+</p>
 
-Beside its pieces a bucket keeps **loose phrases**, each one instrument alone, calm, steady or
-hard, all on one tempo and key: they were made with ElevenLabs while the game was played in
-FreeRock's first days. Now and then a stretch of them comes between two tracks. A phrase is one
-turn of a form (a verse, a build-up and a chorus), so the whole band builds up and reaches the
-chorus together, and each time round a couple of the decks have something new.
+<p align="center">
+  <img alt="World of Warcraft: Forever 1.60.1" src="https://img.shields.io/badge/WoW%20Forever-1.60.1-3b82c4">
+  <img alt="Three styles: Warcraft, Knight Rock, House" src="https://img.shields.io/badge/styles-Warcraft%20%C2%B7%20Knight%20Rock%20%C2%B7%20House-d9a441">
+  <img alt="Five stems, lossless" src="https://img.shields.io/badge/audio-5%20stems%2C%2024--bit%20FLAC-7c5cd6">
+  <img alt="Played in REAPER" src="https://img.shields.io/badge/studio-REAPER%20%2B%20real%20instruments-e0533d">
+  <img alt="Python 3.11 to 3.13" src="https://img.shields.io/badge/python-3.11%E2%80%933.13-3fa55b">
+  <img alt="Tests: Python, headless Chrome, Lua" src="https://img.shields.io/badge/tests-650%2B-3fa55b">
+</p>
 
-What you do in the game decides which channels are up and how hard they play: standing still is
-a drone and a tune, moving brings the rhythm part and the drums, a fight brings the hard parts on
-the next half beat, and more enemies in the fight bring more of them. Now and then the song eases
-right off of its own accord, or leans in, and every few minutes it comes down to a moment of
-silence.
+<p align="center">
+  <a href="#how-it-works">How it works</a> ·
+  <a href="#the-music">The music</a> ·
+  <a href="#the-studio">The studio</a> ·
+  <a href="#run-it">Run it</a> ·
+  <a href="#staying-within-the-rules">The rules</a> ·
+  <a href="#developing">Developing</a>
+</p>
 
-FreeRock is two parts. A small addon draws what the game is doing as a thin strip of squares along
-the top of the screen. A program outside the game reads that strip, decides what should be heard,
-and plays it through a browser tab; its studio writes and plays the music beforehand. The first
-design (music bought from ElevenLabs and played as whole songs) is in [docs/plan.md](docs/plan.md);
-what the evenings in the game changed is in [CHANGELOG.md](CHANGELOG.md), and the strip is
-defined in [protocol/beacon.md](protocol/beacon.md).
+---
 
-## Where it stands (2026-11-15)
+Game music has always had to guess. A zone gets a few tracks, a fight gets a sting, and the same
+three minutes come round again whatever you are doing.
 
-- **Run in the game, on the gaming PC:** the addon, the strip read off a real screen, the
-  sensor, the player page, the forever song in all three styles.
-- **Measured here:** the player (decks locked to the sample, changes in step, no clipping), the
-  rules from game state to sound, and the whole chain driven by a pretend game.
-- **Judged by ear only by Sky:** how the music sounds. WoW is not installed on the development
-  machine.
-- **Not yet run in the game:** strip version 3 (the count of enemies in view and in a fight).
+**FreeRock doesn't guess. It watches.** An addon reports what the game is doing five times a
+second. A director turns that into a target: what kind of moment it is, how much is going on, and
+what the music should sound like. A player in the browser takes the target and moves five
+channels of a written track to meet it. Start walking and the drums come in. Stand still and the
+music settles. Put a wolf in your sights and the bass leans in. A dungeon boss gets music of its
+own, and afterwards the track you were in carries on where it left off. Wait out of doors long
+enough and you are camping, which has its own tunes.
+
+**It isn't loops or stock music either.** Every track is original: written as notes by
+FreeRock's own studio, played on recorded instruments (a Muse Sounds orchestra, sampled drums
+and guitars, Surge XT synths), mixed in REAPER through real plug-ins, measured octave by octave
+against stems that were liked by ear, and kept lossless. The studio writes more every night.
+
+<p align="center">
+  <img src="docs/images/demo.gif" alt="Two minutes of play: standing, walking, a wolf in your sights, the fight, a mine, riding, nightfall, the inn. Each channel's level moves as it happens." width="900">
+</p>
+
+## What you get
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/images/story.png" alt="One track's nine sections and every channel's loudness through them">
+      <b>Tracks that tell a story.</b> About eight minutes each, in nine sections: an opening, two
+      themes, a build, an arrival, a valley, a climb, a summit and a close. The quiet stretches
+      breathe, the big ones land, and the song never stops to loop.
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/images/signals.png" alt="A chart of each channel's level in fourteen situations, from standing still to a dungeon boss">
+      <b>Every channel follows the game.</b> Pads, tune, accompaniment, beat and low line are
+      five separate recordings, and each has its own fader. A fight brings them all up, stealth
+      drops to the bass line, and a cave closes the sound in.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/images/ear.png" alt="Each channel's octave profile against the stems that were liked">
+      <b>Measured, not guessed.</b> The studio's "ear" measures each channel's balance across
+      ten octaves and compares it with stems that were liked by ear. Bass that is too heavy, a
+      lead with nothing under it, a kit that is too dull: each shows up as a number.
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/images/strip.png" alt="The strip of black and white squares, with its first squares enlarged">
+      <b>The whole game state in a strip of squares.</b> A strip a few pixels tall along the top
+      of the screen, with a sync pattern and a checksum, readable through gamma, HDR, colour
+      filters and the dimming you see when you die. The addon uses only documented calls.
+    </td>
+  </tr>
+</table>
+
+## How it works
+
+<p align="center">
+  <img src="docs/images/flow.png" alt="The gaming PC (World of Warcraft, the sensor, the player page) and the music machine (the server, the buckets, the studio), with what passes between them" width="100%">
+</p>
+
+1. **The addon** (`FreeRock/`, Lua) reads the game every 0.2 s through Blizzard's documented
+   API: where you are, whether you are moving, indoors, resting, mounted, on a flight path, in
+   stealth, under water, dead, in combat, what you have targeted, how many foes are in view,
+   boss encounters, the weather and whether it is day. Moments arrive as they happen: a level
+   gained, a quest handed in, a boss beaten.
+2. **The strip** (`Beacon.lua`, format in [protocol/beacon.md](protocol/beacon.md)) packs all of
+   it into a few dozen bytes with a version and a checksum, and draws them as black and white
+   squares on the next frame.
+3. **The sensor** (`app/freerock/web/sensor.py`) copies the strip's pixels 20 times a second
+   while the game is the window in front, and sends them on. It decodes nothing, so it has
+   nothing to get wrong. It is a single file served by the server, so the gaming PC always
+   runs the current version.
+4. **The server** (`app/freerock/`, Python) decodes the strip. If frames stop coming, it holds
+   the last good state. The **director** (`director.py`) turns the state into a target: a
+   *place* (what kind of music), an *intensity* (how much is going on), levels for the bed,
+   drums and bass, and a tone (filters, reverb, volume). The **mixing desk** (`forever.mix`)
+   gives each of the five channels its level.
+5. **The player** (`app/freerock/web/player/`, in the browser) is five decks on one bar grid,
+   scheduled ahead on the audio clock and locked to the sample. It plays a piece's five
+   recordings together, each at the level the game asks for, and moves them like a hand on a
+   fader: up over about 4 s, down over about 6.
+
+A fight is heard starting to come up about a quarter of a second after it begins, and is fully
+up after about four. Everything from the game to the speakers is written down, knob by knob, in
+[docs/signals-and-channels.md](docs/signals-and-channels.md).
+
+## The music
+
+### Three styles
+
+| Style | What it is | Played by |
+|---|---|---|
+| **Warcraft** | An orchestral score in the old manner: strings and horns, choir, harp, war drums | Muse Sounds' strings, brass, woodwinds, choir, harp and percussion in MuseScore; war drums, timpani and hand percussion from recorded kits and sample libraries |
+| **Knight Rock** | A riff-driven rock band. The riff carries the walking music, and the whole band comes in for the fights | Muse Sounds' electric guitars, bass and Hammond organ; a 1970s rock kit with a 26-inch bass drum |
+| **Progressive House** | Builds, drops and long breakdowns, with the pads ducking under every kick | Surge XT's synths; Muse Sounds' piano, electric pianos, marimba, harp, flute, strings and brass; a TR-8 drum machine |
+
+As of the morning of 2026-11-17 the buckets hold **90 tracks, over 11 hours**: 50 Warcraft (6.6
+hours), 20 Knight Rock (2.6) and 20 House (2.0). More are rendered every night.
+
+### A track is a story
+
+Each track is cut at its sections into **pieces**, and each piece keeps its five channels as
+separate recordings in step with each other:
+
+| Channel | What it is | Warcraft | Knight Rock | House |
+|---|---|---|---|---|
+| texture | the bed: pads, drones, held chords | strings, organ, choir | Hammond, pads | Surge pads, the air |
+| lead | the tune | the solo instruments | lead and clean guitar | lead synths, Muse keys and winds |
+| rhythm | the accompaniment: figures, riffs, arpeggios | harp, plucked strings, ostinati | the riff guitars | plucks, stabs, keys |
+| drums | the beat | war drums, timpani, percussion | the rock kit | the TR-8 kit |
+| bass | the low line | cellos and basses, contrabassoon | electric bass | sub, growl, bass synths |
+
+Pieces run straight into each other and the track tells its story. Light and heavy tracks take
+turns, so a long stay in one place doesn't keep getting more intense. Takes of the same family
+share a form and a key, so each channel's part can come from a different take: the same story,
+told by another band each time.
+
+### Where you are, and what is going on
+
+A track says what it is for. There are **eight kinds of place**: pastoral, highland, haunted,
+desert, jungle, infernal, regal and mystic. Every zone and named subzone belongs to one or two of
+them, read from its profile (`app/freerock/kinds.py`, `atlas/`). There are also **kinds of
+moment**, and the director picks one, first match wins:
+
+| In the game | The music |
+|---|---|
+| a dungeon boss | **boss**: its own music, heavy. The track you were in waits for you |
+| a battleground or arena | **battleground**: its own family, through every fight and every death |
+| a cave or a building | **depths**, within a second of going in, and closed in: low-passed and echoing |
+| an inn | **ember**: calm, and quieter |
+| a town's streets | **town**: the town's own family |
+| a rain storm that has set in | **storm**: the whole band, never muffled |
+| a long ride, or fights close together | **full tilt**: the hard-rock part |
+| still for 45 s out of doors | **camp**: waiting on a spawn, a rare or a friend, with tunes of its own |
+| night, out of doors | **night**: darker, further off, the drums well back |
+| anything else | **wander**: the walking music |
+
+The place sets which track. **What you do** sets how much of it you hear. One number, the
+intensity, climbs a ladder:
+
+| You are | Intensity | The band |
+|---|---|---|
+| standing a while | 0.10 | every channel about 4 dB down |
+| standing | 0.25 | every channel about 1.5 dB down |
+| walking | 0.40, building over 20 s | the drums come up, then the bass |
+| riding | 0.60, building over 25 s | drums and bass up at once; a long ride goes full tilt |
+| a foe in your sights | 0.57; 0.68 for an elite or a rare | leaning in |
+| in a fight | 0.80 and climbing; up to 0.96 with more foes; 0.92 for an elite or a rare | the whole band at full |
+| a dungeon boss, a world boss | 1.0 | the boss's own music, at full |
+
+Each written piece keeps a floor under its drums and bass, so going from calm to a fight is a
+lift, not a switch being thrown. That was asked for after the first evening of play.
+
+Moments get the whole band for a few seconds: a level gained, a boss beaten, an achievement, a
+quest handed in. Fights close together keep the band up between them. Stealth drops everything
+but the bass line and quiet drums. Under water the sound closes to 500 Hz. A death runs the music
+down like a record stopping, and the ghost walks back to calm, far-off music. In a battleground
+the music plays on through a death. Every few minutes
+the music comes down to a short silence, as the game's own music does, and a fight brings it
+straight back.
+
+## The studio
+
+The studio (`app/freerock/studio/`) makes the music, from the first note to the lossless file in
+the bucket.
+
+**1. Write.** The writers compose in Python, as notes with dynamics, articulations and a form.
+`orchestra.py` (run by `build.py`) writes Warcraft and Knight Rock: themes, counter-melodies,
+ostinati and riffs, voiced for the instruments that will play them, with levels drawn through
+each section. `house.py` writes the House tracks: grooves, chords, plucks, risers and drops.
+`scores.py` arranges real public-domain scores.
+
+**2. Play.** Every part is performed by recorded instruments. The orchestra is MuseScore Studio
+with Muse Sounds: 117 recorded instruments covering strings, brass, woodwinds, choir, harp,
+keys, guitars and percussion. Sample libraries fill in around it, played by sfizz inside REAPER:
+VSCO-2 CE and VCSL, Karoryfer's big drums, TinySOL's brass, and Naked Drums for a kick. The war
+drums and the rock kits are the AVL drum kits. House's synths are Surge XT patches, each at
+the octave it was measured to need, and its drums are a TR-8's own recordings.
+
+**3. Mix.** `desk.py` builds a REAPER project for each track and renders every channel on its
+own. Each source gets its own equaliser, and there is compression, a hall and a room from
+Dragonfly Reverb, parallel compression on the drums and a limiter over them. House's desk
+(`club.py`) also rides each voice's level in four-bar spans from its loudest notes, puts a sine
+sub under the plucked basses on their own notes, and lets the bass and pads give way under every
+kick.
+
+**4. Measure.** The studio has no ears, so it measures. `ear.py` takes each channel's balance in
+octaves from 28 Hz to 14 kHz and sets it against the stems that were liked. House tracks are also
+checked as they render: the moment has to be the loudest part, nothing may clip, and every
+channel has to be in tune and in the key.
+
+**5. Keep.** A finished track is written as five 24-bit FLAC stems with its sections, its kinds
+of place and moment, its key and its tempo (`track.json`). `freerock pieces add` cuts it into
+pieces and puts them in its style's bucket as 16-bit FLAC. `tools/listen.py` makes a listening
+page for every track: the whole mix to play, and a mixer with a fader for each channel.
+
+**6. Overnight.** Rendering is heavy (REAPER, MuseScore and the sampler for every channel of
+every section), so tracks are queued in lists and rendered in lanes: a quarter of the machine
+by day, all of it at night, and half while the game is being played. Buckets are rebuilt only
+while the game is off.
 
 ## Run it
 
-On the Linux machine, from `app/`:
+**On the music machine (Linux)**, from `app/`:
 
 ```
 uv sync                        # once
 uv run freerock serve          # the game link, the music and the pages, on port 8765
 ```
 
-It prints the addresses to use, and plays what is in its buckets.
+It prints the addresses to use. Open `http://localhost:8765/player` to hear it: the page has a
+**pretend game** panel (pick a zone, tick cave, fight, night or weather), so everything except
+the game itself can be heard without it.
 
-Open `http://localhost:8765/player` to hear it. The page has a **pretend game** panel: pick a zone,
-tick cave, fight, night or weather, and the music does what it would do in the game.
+**On the gaming PC (Windows):**
 
-## On the gaming PC
-
-1. Install uv once. In PowerShell:
+1. Install uv once, in PowerShell:
    `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`
 2. Put the addon in the game and start reading the screen:
-   `uv run http://<linux machine>:8765/sensor.py --install-addon`
-   It shows the AddOns folder it found and asks before copying.
-3. Start the game and type `/rock test`. Open `http://<linux machine>:8765/` to see what FreeRock
-   sees, and `http://<linux machine>:8765/player` to hear it.
+   `uv run http://<music machine>:8765/sensor.py --install-addon`
+   It shows the AddOns folder it found and asks before copying anything.
+3. Start the game and type `/rock test`. `http://<music machine>:8765/` shows what FreeRock
+   sees, and `http://<music machine>:8765/player` plays it.
 
-After that, `http://<linux machine>:8765/FreeRock.cmd` downloads a launcher that opens the player
-in its own window, with sound allowed to start by itself, and starts the sensor.
+After that, `http://<music machine>:8765/FreeRock.cmd` downloads a launcher. It opens the player
+in its own window with sound allowed to start by itself, and starts the sensor.
 
-## In the game
+**In the game:**
 
 | Command | What it does |
 |---|---|
 | `/rock` | Opens the settings |
-| `/rock on`, `/rock off` | Turns FreeRock on or off. Off puts the game's own music back. |
-| `/rock test` | Sends a test pattern for ten seconds |
-| `/rock status` | Prints what the addon sees, the weather values the game reports, and any errors |
-| `/rock skip`, `/rock love`, `/rock ban` | Play something else; mark this music as loved; never play it again |
+| `/rock on`, `/rock off` | Turns FreeRock on or off. Off puts the game's own music back |
+| `/rock skip`, `/rock love`, `/rock ban` | Play something else; mark what is playing as loved; never play it again |
 | `/rock volume <0-100>` | How loud FreeRock plays |
 | `/rock gamemusic on`, `off` | Leave the game's own music on as well, or off while FreeRock is on |
-| `/rock strip top`, `bottom`, `size <2-8>`, `inset <left> [edge]` | Where the strip is and how big its squares are |
+| `/rock strip top`, `bottom`, `size <1-8>`, `faint`, `bright`, `ink <10-100>`, `inset <left> [edge]` | Where the strip is, how big its squares are and how bright |
+| `/rock test` | Sends a test pattern for ten seconds |
+| `/rock status` | What the addon sees, the weather values the game reports, and any errors |
 
-## The music
-
-Each of the game's 50 zones has a profile (tempo, key, instruments, mood) in
-`app/freerock/atlas/zones.json`. A place without one, such as a dungeon, gets a profile from the
-words in its name. A style's bucket takes its tempo and key from the place it was begun in, and
-goes with the player wherever they go: the song does not start again at a zone's border.
-
-**Written pieces.** Tracks are written and played on this machine by the studio
-(`app/freerock/studio/`): its orchestra and its band (`build`), its house writer (`house`, played
-through Surge XT, Muse Sounds and the TR-8 recordings by `club`), and real public-domain scores
-(`scores`). Each track is staged under `var/studio/` and put in its style's bucket with
-`freerock pieces add`, cut into the pieces of its story (see `forever.Bucket.add_piece`). A piece
-says what it is for: the kinds of place (pastoral, highland, haunted, desert, jungle, infernal,
-regal, mystic: `app/freerock/kinds.py`), the sort of ground (woods, water, heights, fields...),
-how dark or bright it is, the kind of moment, how hard it plays, and whether it is of the lighter
-sort. Every zone is of one or two kinds, read from the words of its profile, and a named place
-inside it adds its own; the player page says which kind of place you are in. A bucket may also
-still hold pieces cut from the first design's songs (their source begins with `song/`).
-
-**Rain and silences.** Steady rain brings the drums in, and a rain storm the whole band; rain is
-never muffled. After about six minutes of music (`rest_every_minutes`) the song comes down to a
-moment of silence of about a minute (`rest_seconds`), where its form comes round, and fades back
-in afterwards; a fight brings it straight back.
+**The program and the studio** (from `app/`):
 
 | Command | What it does |
 |---|---|
-| `freerock pieces add [style]` | Puts every track the studio has staged for a style in its bucket, skipping those already there. Stop the server first. |
-| `freerock pieces drop <style> <source>` | Takes every piece whose source begins with `<source>` out of the style's bucket for good: `knight/` for the studio's Knight Rock, `warcraft/real-` for the real scores, `song/` for the pieces cut from the first design's songs. Stop the server first. |
-| `freerock pieces list [style]` | What written pieces a style has: how many, how long, and how they divide by kind of moment, kind of place, light and heavy |
-| `uv run --no-sync python -m freerock.studio.build` | The studio's orchestra and its band: writes and plays every family of original tracks, staging the orchestra's under `var/studio/warcraft/` and Knight Rock's under `var/studio/knight/` (`--list` says what there would be, `--style knight` does only the band) |
-| `uv run --no-sync --with numba python -m freerock.studio.house` | The studio's house writer and its synthesiser: stages tracks under `var/studio/house/` |
-| `uv run --no-sync python -I -m freerock.studio.scores stage` | Real public-domain scores, played by family and staged (`fetch` gets them first) |
-| `uv run --no-sync python ../tools/render_some.py <family/take> ...` | Writes and plays a chosen list of tracks, several at a time (`--until` begins none after that time of day) |
-| `uv run --no-sync python ../tools/fresh_bucket.py <style>` | Takes a style's old studio pieces out of its bucket and puts in everything staged now. Stop the server first. |
-| `uv run --no-sync python ../tools/listen.py [style]` | Every staged track as one file to listen to, under `var/listen/`, with a mixer page for its channels; the server shows them at `/listen/` |
-| `uv run --no-sync python ../tools/audition.py` | Every instrument alone, on one page to listen to |
-| `uv run --no-sync python ../tools/soak.py [style]` | A pretend evening played through the running server and a hidden browser: what music was chosen, and whether it played without a hitch |
-| `freerock settings pieces off` | Only the loose phrases are played (`on` brings the written pieces back); the same as the tick box on the player page |
-| `freerock stems [--to folder]` | Keeps every phrase and every part of every piece as a FLAC file, with `stems.csv` saying what each is |
-| `freerock settings [name value]` | Shows or changes `rest_every_minutes` (6; 0 for no silences), `rest_seconds` (60), `genre` (knight, warcraft or house) and `pieces` (on or off) |
+| `freerock serve` | Runs FreeRock |
+| `freerock pieces list [style]` | What a style's bucket holds: tracks, minutes, and how they divide by moment, place, light and heavy |
+| `freerock pieces add [style]` | Puts every track the studio has staged into its style's bucket. Stop the server first |
+| `freerock pieces drop <style> <source>` | Takes every piece whose source begins with `<source>` out of the bucket. Stop the server first |
+| `freerock settings [name value]` | `rest_every_minutes` and `rest_seconds` (the silences), and `genre` (warcraft, knight or house) |
 | `freerock sim <scenario>` | Plays a scripted session against a running server, drawing and reading the real strip |
-| `freerock read <picture>` | Reads the strip out of a saved picture and says what it holds |
-
-`tools/stems/README.md` says how the studio's instruments (REAPER and its plug-ins, MuseScore and
-Muse Sounds, the sampled recordings) were fetched and put on this machine, and under what
-licences; `tools/reaper.sh` opens the studio's REAPER with its window.
+| `freerock read <picture>` | Reads the strip out of a saved screenshot |
+| `uv run --no-sync python -m freerock.studio.build` | Writes and plays the orchestra's and the band's tracks (`--list` shows what there would be, `--style knight` the band only) |
+| `uv run --no-sync --with numba python -m freerock.studio.club <family/take> ...` | Writes and plays House tracks |
+| `uv run --no-sync python ../tools/render_some.py <family/take> ...` | Writes and plays a chosen list of tracks, several at a time |
+| `uv run --no-sync python ../tools/fresh_bucket.py <style>` | Rebuilds a style's bucket from everything staged now. Stop the server first |
+| `uv run --no-sync python ../tools/listen.py [style]` | A listening page and a mixer for every staged track, at `/listen/` |
+| `uv run --no-sync python ../tools/soak.py [style]` | A pretend evening played through the running server and a hidden browser, to see what was chosen and whether it played cleanly |
 
 ## Staying within the rules
 
 - The addon calls only functions Blizzard documents and reads only values the game never seals.
-  It does nothing in the game except draw the strip and switch the music setting.
-- The program outside the game only looks at a patch of the screen, and only while the game is the
-  window in front. It never reads the game's memory, never sends keys or clicks, and never changes
-  game files.
-- Health, threat and the identity of units outside the group are sealed in combat. They are not
+  Health, threat and the identity of units outside the group are sealed in combat. They are not
   read, not sent, and not worked out some other way.
-- Blizzard's licence has a broad clause against unauthorized software that "reads information
+- In the game it does two things: it draws the strip, and it switches the game's own music off
+  (and back on at logout or `/rock off`).
+- The program outside the game only looks at a patch of the screen, and only while the game is
+  the window in front. It never reads the game's memory, never sends keys or clicks, and never
+  changes game files.
+- Blizzard's licence has a broad clause against unauthorised software that "reads information
   generated by the Platform", and Blizzard has not said whether passive screen readers are fine.
-  The strip was chosen knowing that. See [docs/plan.md](docs/plan.md).
+  The strip was chosen knowing that.
 
-## Tests
-
-```
-cd app && uv run pytest -q                 # everything in Python, including the player in headless Chrome
-cd app && uv run python ../tools/tests/run.py   # the addon's Lua, against a stand-in for the game client
-tools/sim/run.sh                           # the addon beside Blizzard's real interface code (needs Docker
-                                           # and FreeControl's simulator lab next door)
-```
-
-## Layout
+## Developing
 
 ```
-FreeRock/        the addon folder that goes into _forever_\Interface\AddOns\
-protocol/        the strip format and its test vectors
-app/freerock/    the program: game link (beacon, state, server, sim, web/sensor.py),
-                 places and styles (atlas, kinds, composer), the forever song (forever,
-                 stemstore, analysis, audio), written pieces (pieces, studio/), what plays
-                 (director, conductor, web/player), and the commands (cli, musiccli, main)
-app/tests/       Python tests
-tools/           the studio's tools, the listening pages, the Lua tests, the simulator runner
-docs/            the first design (plan.md) and the plan for the studio (own-stems.md)
-var/             everything made at run time: buckets, the studio's tracks, logs (not in git)
+cd app && uv run --no-sync --with numba pytest -q      # the Python, and the player in headless Chrome (muted)
+cd app && uv run python ../tools/tests/run.py          # the addon's Lua, against a stand-in for the game client
+tools/sim/run.sh                                       # the addon beside Blizzard's real interface code (Docker)
 ```
+
+The player is tested by rendering it offline in headless Chrome: decks stay aligned to the
+sample, a change asked for on a bar lands on it, and the output never clips. The director is
+tested against scripted sessions, and the strip by a round trip: the real `Beacon.lua` draws it,
+the picture is distorted (gamma, contrast, tint, dimming, blur), and the real decoder has to read
+it back.
+
+```
+FreeRock/          the addon (goes into _forever_\Interface\AddOns\)
+protocol/          the strip's format and its test vectors
+app/freerock/      the program: the game link (beacon, state, server, web/sensor.py), places
+                   (atlas, kinds), what plays (director, conductor, forever, web/player), and
+                   the commands (cli, musiccli)
+app/freerock/studio/   the studio: writers (orchestra, build, house, scores), players (muse,
+                   sounds, sfz, reaper, club), the desk, the ear
+app/tests/         the Python tests
+tools/             the listening pages, render tools, the Lua tests, the simulator, these pictures
+docs/              how signals become music, the places, the plans
+var/               everything made at run time: buckets, staged tracks, logs (not in git)
+```
+
+| Read more | |
+|---|---|
+| [docs/signals-and-channels.md](docs/signals-and-channels.md) | Every signal, rule and knob from the game to the five channels, and what is still to be argued over |
+| [docs/places.md](docs/places.md) | Every kind of place and moment, and how many tracks each style has for it |
+| [protocol/beacon.md](protocol/beacon.md) | The strip, square by square |
+| [tools/stems/README.md](tools/stems/README.md) | Every instrument and plug-in the studio plays, where it came from, and its licence |
+| [CHANGELOG.md](CHANGELOG.md) | What the evenings in the game changed |
+
+The pictures in this file are drawn from the real code and a real track by
+`tools/readme_pictures.py`.
+
+## Credits and licences
+
+The music is FreeRock's own: written by its studio, for listening at home. It is played on
+instruments that others recorded and gave away: MuseScore Studio and Muse Sounds; VSCO-2 CE,
+VCSL and Karoryfer's instruments (CC0); the AVL drum kits (CC BY-SA 3.0); Naked Drums (CC BY
+4.0); TinySOL (IRCAM); the TR-8 recordings from MckAudio (CC0); Surge XT, sfizz, Dragonfly
+Reverb, x42, Calf and the other free plug-ins in REAPER. Each one, and its licence, is listed in
+[tools/stems/README.md](tools/stems/README.md). Muse Sounds' and TinySOL's terms are still to be
+read before anything is shared beyond home listening.
