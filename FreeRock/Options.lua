@@ -242,7 +242,7 @@ local HELP = {
 	"/rock - open the settings",
 	"/rock on | off - turn FreeRock on or off (off puts the game's own music back)",
 	"/rock skip - play something else",
-	"/rock love - keep what is playing in this zone's rotation",
+	"/rock love - mark what is playing as one you love",
 	"/rock ban - never play what is playing again",
 	"/rock volume <0-100> - how loud FreeRock plays",
 	"/rock gamemusic on | off - leave the game's own music playing as well (on), or switch it off while FreeRock is on (off)",
@@ -257,7 +257,7 @@ local HELP = {
 
 local COMMANDS = {
 	skip = { ns.Beacon.COMMAND_SKIP, "Asked FreeRock for something else." },
-	love = { ns.Beacon.COMMAND_LOVE, "Told FreeRock to keep this one." },
+	love = { ns.Beacon.COMMAND_LOVE, "Told FreeRock you love this one." },
 	ban = { ns.Beacon.COMMAND_BAN, "Told FreeRock never to play this one again." },
 }
 

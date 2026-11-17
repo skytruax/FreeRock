@@ -11,16 +11,16 @@ Written 2026-11-16, night, for "Dont forget caves inns pvp ect you make a list".
 |---|---|---|---|---|---|---|
 | Walking about outdoors, by day | the default | wander | (in a dungeon: depths; lingering: ember) | 156 families, 390 takes | 20 / 50 | by kind of place |
 | Out of doors at night | `IsDayTime()` false, not in a dungeon | night (walking music counts 0.12 against itself) | wander, and ember when lingering | 24 / 48 | 2 / 4 | night palettes |
-| A cave, a mine, a crypt, a building (a few seconds inside) | `IsIndoors()`, not resting, not in an instance | depths, on the beat | wander | 22 / 44 | 2 / 4 | depths palettes |
+| A cave, a mine, a crypt, a building (a few seconds inside) | `IsIndoors()`, not resting, not in an instance | depths | wander | 22 / 44 | 2 / 4 | depths palettes |
 | An inn (resting under a roof) | resting and indoors | ember, 4 dB down, no bass | wander | 16 / 32 | 2 / 4 | ember palettes |
 | A town, a city, an Alliance base (resting out of doors) | resting and not indoors | town | wander | 4 / 12 (alliance town, town square) | none: walking music | 2 (lanterns on the square, harbour lights) |
 | A battleground or an arena | instance of kind battleground or arena | battleground, through its fights and deaths | wander | 4 / 12 (battleground, siege line) | none: battle music | 2 (hold the line, capture the flag) |
 | A dungeon or a raid | instance of kind party, raid or scenario | wander | depths | walking and cave music of the zone's kind | same | same |
-| A dungeon boss | `ENCOUNTER_START` | boss, on the beat | battle | 6 / 12 | 2 / 4 | moment |
+| A dungeon boss | `ENCOUNTER_START` | boss | battle | 6 / 12 | 2 / 4 | moment |
 | The boss is dead, the fight is not | encounter over, still in combat | battle | storm, boss | 8 / 16 | 4 / 8 | moment |
 | A fight in the open (also world PvP) | combat | the same piece, layered: bass, drums and the fight's stems come up | | (every piece) | | |
 | After a fight | combat over for the hold time | ember for the afterglow | | ember | ember | ember |
-| A rain storm that has set in, out of doors | weather rain at storm strength for 10 s | storm, on the beat | wander | 4 / 8 (tempest, blizzard) | 2 / 4 | storm |
+| A rain storm that has set in, out of doors | weather rain at storm strength for 10 s | storm | wander | 4 / 8 (tempest, blizzard) | 2 / 4 | storm |
 | Full tilt (a long ride, rolling from pull to pull) | the drive rule | storm | wander | storm | storm | storm |
 | Dead, a ghost | dead flag | ember, filtered, slow and far | wander | ember | ember | ember |
 
