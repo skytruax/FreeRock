@@ -119,9 +119,7 @@
     const t = message.target, where = message.where || {};
     $("where").textContent = [where.instance || where.zone, where.subzone].filter(Boolean).join(", ") || "Waiting for the game";
     $("place").textContent = t.silent ? "silence"
-      : t.rest ? "a rest: no music for a little while, as in the game"
       : t.place + ((t.also || []).length ? ", taking turns with " + t.also.join(" and ") : "")
-        + (t.cut === "beat" ? " (on the beat)" : "")
         // The kind of place this is, which is what written pieces are chosen by.
         + ((t.kinds || []).length ? ", in a " + t.kinds.join(" and ") + " place" + (t.light ? " (a light one)" : "") : "");
     for (const name of ["intensity", "bed", "drums", "bass"]) $(name).style.width = Math.round(100 * t[name]) + "%";

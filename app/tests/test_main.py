@@ -44,9 +44,8 @@ def test_addresses_are_plain_ip_addresses():
 def test_the_moments_of_silence_come_from_the_settings(tmp_path):
     settings = Settings(var_dir=tmp_path / "var", rest_every_minutes=9.0, rest_seconds=45.0)
     music = main.build_app(config(tmp_path), settings=settings)["conductor"]
-    # The forever song takes its own moments of silence, where its form comes round: the player
-    # page is told how often and how long, and the director's rests, which cut in anywhere, are off.
+    # The song takes its moments of silence where its form comes round: the player page is told
+    # how often and how long.
     assert music._silences == {"every_s": 540.0, "for_s": 45.0}
-    assert music.director.rules.rest_every_s == 0.0
     never = main.build_app(config(tmp_path), settings=Settings(var_dir=tmp_path / "var", rest_every_minutes=0.0))
     assert never["conductor"]._silences["every_s"] == 0.0

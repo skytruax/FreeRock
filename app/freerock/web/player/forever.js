@@ -1773,7 +1773,7 @@
       this.silenceUntil = 0;
     }
 
-    _quiet() { return this.target.rest === true || this.target.silent === true; }
+    _quiet() { return this.target.silent === true; }
 
     // Whether a moment of silence is going on.
     _silent() { return !this.group && this.ctx.currentTime < this.silenceUntil; }
@@ -1785,8 +1785,8 @@
         const now = this.ctx.currentTime;
         this.leaving = this.leaving.filter((group) => group.gone > now);
         if (this._quiet()) {
-          // A rest, or a cinematic: once the fade is over what was playing is let go, and the
-          // music starts afresh when it comes back.
+          // Silence asked for (a cinematic, FreeRock switched off, the game out of sight): once the
+          // fade is over what was playing is let go, and the music starts afresh when it comes back.
           const since = this.restSince === null ? now : this.restSince;
           if (this.group && now > since + this.target.fade_s + 0.25) {
             this._dropNext();
@@ -1885,7 +1885,7 @@
       // middle of. Only the choice of phrase waits its turn behind one that is loading.
       const before = this.target;
       this.target = Object.assign({}, before, target);
-      const wasQuiet = before.rest === true || before.silent === true;
+      const wasQuiet = before.silent === true;
       if (this._quiet() && !wasQuiet) this.restSince = this.ctx.currentTime;
       // Somewhere else (another kind of place, a cave, an inn, or out of one): the music follows
       // once the player has stayed there a moment.
@@ -1980,10 +1980,10 @@
       if (this.started) this._ramp(this.master.gain, this._loudness(), comingBack ? back : t.fade_s);
     }
 
-    // How loud the whole player is right now: nothing during a rest or a cinematic.
+    // How loud the whole player is right now: nothing while silence is asked for (a cinematic, FreeRock off).
     _loudness() {
       const t = this.target;
-      return t.silent || t.rest ? 0 : t.volume * this.userVolume;
+      return t.silent ? 0 : t.volume * this.userVolume;
     }
 
     setVolume(volume) {

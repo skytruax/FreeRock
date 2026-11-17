@@ -1,9 +1,9 @@
 """From what the game is doing to what should be heard.
 
-The director is told the game state and the time, and answers with a Target: which kind of
-section should be playing, how loud each of the three layers is, and the tone (muffled, echoing,
-thin). It holds the little bits of memory the rules need: how long a fight has lasted, when it
-ended, how long the player has been indoors.
+The director is told the game state and the time, and answers with a Target: what kind of
+moment it is (and so what kind of music should be playing), how loud the drums, the bass and the
+rest of the band are, and the tone (muffled, echoing, thin). It holds the little bits of memory
+the rules need: how long a fight has lasted, when it ended, how long the player has been indoors.
 
 Two things move at different speeds. Layer levels and tone change at once and can be undone at
 once, so they follow the game directly. The section changes on a bar line and stays a while, so
@@ -15,22 +15,18 @@ the weather (a rain storm brings the whole band in).
 
 The music follows what the player does, not only where they are. Moving brings the drums in and
 standing still takes them out; fights close together keep the band in between them; a level
-gained or a quest handed in gets the whole band for a moment; crossing into another part of the
-zone changes the riff. And no single part is left to loop: at night, in a cave, in a city and in
-a storm the part made for that joins the zone's other riffs instead of replacing them.
+gained or a quest handed in gets the whole band for a moment. And no single part is left to
+loop: at night, in a cave, in a city and in a storm the part made for that joins the zone's
+other riffs instead of replacing them.
 """
 from __future__ import annotations
 
-import random
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, field
 
 from .state import GameState
 
-# Kinds of section, most urgent first. A zone's music may not have every kind; `FALLBACK` says
-# what to play instead.
+# The kinds of moment, most urgent first: what a written piece's role is one of.
 PLACES = ("boss", "battle", "battleground", "town", "depths", "storm", "night", "ember", "wander")
-FALLBACK = {"boss": "battle", "battle": "wander", "storm": "wander", "night": "ember",
-            "depths": "ember", "ember": "wander", "arrival": "wander"}
 
 OPEN_HZ = 20000.0     # a low-pass up here does nothing
 FLOOR_HZ = 20.0       # a high-pass down here does nothing
@@ -57,8 +53,6 @@ class Target:
     lean: float = 0.0
     # How much of the least the drums and the bass are played at (a piece's floor) is kept: 1 all of it, at night less.
     hush: float = 1.0
-    scene: int = 0                    # goes up when the player crosses into another part of the zone
-    cut: str = "bar"                  # how soon a change of place should land: bar | beat
     bed: float = 1.0                  # layer levels, 0 to 1
     drums: float = 0.0
     bass: float = 0.0
@@ -68,8 +62,6 @@ class Target:
     reverb: float = 0.0               # 0 to 0.6
     volume: float = 1.0               # 0 to 1, on top of the player's own volume control
     silent: bool = False              # fade right out (a cinematic, or FreeRock switched off in game)
-    rest: bool = False                # a stretch without music, as the game has between pieces
-    gap_s: float = 30.0               # about how long the silence after a song is
     fade_s: float = 0.4               # how long the levels and tone take to get there
     intensity: float = 0.0            # 0 to 1, for the log and the control page
     why: tuple[str, ...] = ()         # the rules in force, for the log
@@ -169,16 +161,7 @@ class Rules:
     moments: dict = field(default_factory=lambda: {
         "level_up": (1.0, 10.0), "quest_turned_in": (0.7, 5.0), "boss_defeated": (0.9, 10.0),
         "achievement": (0.8, 6.0)})
-    scene_every_s: float = 6.0        # crossing back and forth over a border changes the riff no oftener
     stealth_bass: bool = True         # stealth drops the band to the bass line and quiet drums
-    # Rests: after about this much calm music the music stops for a while, as the game's own does
-    # between pieces. Anything happening brings it straight back. rest_every_s of 0 means never.
-    rest_every_s: float = 360.0
-    rest_for_s: float = 60.0
-    rest_spread: float = 0.4          # each is varied by up to this fraction either way
-    calm_before_rest_s: float = 30.0  # arriving somewhere new, at least this much music before a rest
-    rest_fade_s: float = 6.0          # how long the music takes to fade away into a rest
-    rest_at_least_s: float = 15.0     # a rest lasts at least this long even if a fight starts in it
 
 
 @dataclass
@@ -198,10 +181,6 @@ class _Memory:
     calm_weather_since: float | None = None
     in_storm: bool = False
     mounted_since: float | None = None
-    place_key: tuple | None = None       # where the player was last seen, to notice a new place
-    play_until: float | None = None      # when the music next takes a rest
-    rest_until: float | None = None      # when the rest that is going on ends
-    rest_since: float | None = None      # when it began
     position: tuple | None = None        # (map, x, y) at the last look
     moved_at: float | None = None        # when the position last changed
     moving_since: float | None = None
@@ -211,9 +190,6 @@ class _Memory:
     swell_until: float = 0.0             # a moment is being answered until then...
     swell_level: float = 0.0             # ...at this intensity...
     swell_name: str = ""                 # ...because of this
-    subzone: str | None = None
-    scene: int = 0
-    scene_at: float | None = None        # when the riff last changed for a crossing
     sizing_since: float | None = None    # since when something to fight has been targeted
 
 
@@ -236,19 +212,14 @@ def _step(level: float) -> float:
 
 
 class Director:
-    def __init__(self, rules: Rules | None = None, rng: random.Random | None = None):
+    def __init__(self, rules: Rules | None = None):
         self.rules = rules or Rules()
-        self.rng = rng or random.Random()
         self._m = _Memory()
 
     @property
     def heat(self) -> float:
         """How much fighting there has been lately, 0 to 1."""
         return self._m.heat
-
-    def _about(self, seconds: float) -> float:
-        """`seconds`, give or take the spread, so rests do not come round like clockwork."""
-        return seconds * (1.0 + self.rules.rest_spread * (2.0 * self.rng.random() - 1.0))
 
     def moment(self, name: str, now: float) -> bool:
         """Something happened in the game that the band answers at once: a level gained, a quest
@@ -489,24 +460,17 @@ class Director:
         elif drive < rules.charge_off or fallen or inn:
             m.charging = False
 
-        # The subzone the player is in: crossing into another one changes the riff.
-        if state.subzone_name and state.subzone_name != m.subzone:
-            if m.subzone is not None and (m.scene_at is None or now - m.scene_at >= rules.scene_every_s):
-                m.scene += 1
-                m.scene_at = now
-            m.subzone = state.subzone_name
-
         # `place` is where the music goes now; `also` is what takes turns with it for as long as
         # it lasts, so that one part is never left to loop.
-        cut, also, sited, lean = "bar", [], False, 0.0
+        also, sited, lean = [], False, 0.0
         if boss and not fallen:
-            place, cut = "boss", "beat"
+            place = "boss"
             also.append("battle")
             why.append("boss")
         elif m.combat_since is not None and m.reached_battle:
             # The boss's encounter is over and the fight is not (what it called in is still up): the pieces
             # written for a fight go on, and the heaviest with them.
-            place, cut = "battle", "beat"
+            place = "battle"
             also += ["storm", "boss"]
             why.append("a fight")
         elif battleground:
@@ -525,7 +489,7 @@ class Director:
             place = "battle"       # just after a boss: its music is not left at once
             also.append("storm")
         elif m.in_depths:
-            place, cut, sited = "depths", "beat", True
+            place, sited = "depths", True
             also.append("wander")
             why.append("indoors for a while")
         elif inn:
@@ -537,7 +501,7 @@ class Director:
             also.append("wander")
             why.append("in a town")
         elif m.in_storm and not state.indoors:
-            place, cut = "storm", "beat"
+            place = "storm"
             also.append("wander")
             why.append("a storm that has set in")
         elif m.charging:
@@ -615,61 +579,9 @@ class Director:
             lowpass, reverb, volume = min(lowpass, 1200.0), max(reverb, 0.6), volume * 0.4
             why.append("dead")
 
-        # --- rests -------------------------------------------------------------------------------
-        # The game's own music stops between pieces, and the quiet is part of how a zone feels.
-        # After a stretch of calm music FreeRock rests too, and anything happening (a fight, a
-        # storm, stealth, a new place) brings the music straight back.
-        here = (state.in_instance, state.instance_id, state.map_id, state.zone_name)
-        new_place = m.place_key is not None and here != m.place_key
-        m.place_key = here
-        # A rest waits for a lull: not in the middle of a fight or of the moment after one. It
-        # does not wait for the player to stand still. Once it has begun, a fight, stealth, a
-        # storm or a new place ends it; walking about does not.
-        # The music plays as songs: after a while it fades out, stays out for a time, and fades
-        # back in with something else. A rest begins in a lull (not in the middle of a fight) and
-        # may take the place of the calm part after one. Once begun it is a real silence: a
-        # fight, stealth or a storm brings the music back only after a quarter of a minute, so
-        # the quiet is long enough to be heard. A boss, a moment or a new place ends it at once.
-        held_now = m.combat_ended is not None and now - m.combat_ended < hold
-        lull = (m.combat_since is None and not held_now and not fallen and not swelling
-                and not state.loading)
-        stirring = (m.combat_since is not None or storming
-                    or (state.stealthed and rules.stealth_bass) or sizing_up)
-        urgent = (boss and not fallen) or swelling or new_place
-        rest = False
-        if rules.rest_every_s > 0:
-            if m.play_until is None:
-                m.play_until = now + self._about(rules.rest_every_s)
-            if m.rest_until is not None:
-                long_enough = now - m.rest_since >= rules.rest_at_least_s
-                if urgent or now >= m.rest_until or (stirring and long_enough):
-                    m.rest_until = m.rest_since = None
-                    m.play_until = now + self._about(rules.rest_every_s)
-                else:
-                    rest = True
-            elif new_place:
-                m.play_until = max(m.play_until, now + rules.calm_before_rest_s)
-            elif now >= m.play_until and lull and not stirring:
-                m.rest_until, m.rest_since = now + self._about(rules.rest_for_s), now
-                rest = True
-        if rest:
-            fade = rules.rest_fade_s
-            why.append("a rest, as the game has between pieces")
-
-        return Target(place=place, also=tuple(also), sited=sited, lean=lean, hush=hush, scene=m.scene, cut=cut, gap_s=rules.rest_for_s,
+        return Target(place=place, also=tuple(also), sited=sited, lean=lean, hush=hush,
                       bed=round(bed, 3), drums=_step(drums), bass=_step(bass),
                       bed_highpass_hz=FLOOR_HZ if bass > 0 else 110.0,
                       lowpass_hz=round(lowpass, 1), highpass_hz=round(highpass, 1),
-                      reverb=round(min(reverb, 0.6), 3), volume=round(volume, 3), rest=rest, fade_s=fade,
+                      reverb=round(min(reverb, 0.6), 3), volume=round(volume, 3), fade_s=fade,
                       intensity=round(intensity, 3), why=tuple(dict.fromkeys(why)))
-
-
-def playable(place: str, roles: set[str]) -> str:
-    """The kind of section to play for `place` given the kinds this zone's music actually has."""
-    seen = set()
-    while place not in roles:
-        if place in seen or place not in FALLBACK:
-            raise ValueError("Nothing to play for %r; the music has only %s" % (place, sorted(roles)))
-        seen.add(place)
-        place = FALLBACK[place]
-    return place

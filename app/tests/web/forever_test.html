@@ -289,11 +289,11 @@ tests.heard = async () => {
            playing: Object.keys(run.engine.status().playing).sort() };
 };
 
-// A rest: the music fades right out, and comes back afresh.
-tests.rest = async () => {
+// Silence asked for (a cinematic, FreeRock switched off): the music fades right out, and comes back afresh.
+tests.silence = async () => {
   const run = await render(30, { script: [
-    [8, (engine) => engine.setTarget({ rest: true, fade_s: 2 })],
-    [18, (engine) => engine.setTarget({ rest: false, fade_s: 0.4 })],
+    [8, (engine) => engine.setTarget({ silent: true, fade_s: 2 })],
+    [18, (engine) => engine.setTarget({ silent: false, fade_s: 0.4 })],
   ] });
   const d = run.data, log = run.engine.log;
   return { before: rms(d, 5, 7), during: rms(d, 11, 17.9), after: rms(d, 24, 28),
