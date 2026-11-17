@@ -2031,7 +2031,12 @@ class Take:
                     elif index % 4 == 1:
                         sing(mate, again, bar, loud)
                     elif index % 4 == 2:
-                        sing(third, tune, bar, loud)
+                        # A conversation: the question from one player, the answer from another (2026-11-17, night: in the
+                        # orchestral scores studied, who is playing changes every two bars or so; here it changed only
+                        # from one statement of a theme to the next).
+                        answering = solo if solo != third else mate
+                        sing(third, tune.cut(0, half), bar, loud)
+                        sing(answering, tune.cut(half, whole), bar + period // 2, loud)
                     else:
                         sing(solo, tune, bar, loud)
                         sing(mate, again, bar, loud * 0.9, octave=1 if mate != solo else -1)
