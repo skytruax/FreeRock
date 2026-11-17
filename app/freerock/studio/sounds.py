@@ -840,7 +840,8 @@ def bus(channel: str, style: str = "") -> list[str]:
         return [equalise(low_cut=28.0), squeeze(-14.0, 2.0, 30.0, 250.0, 1.0), warm(0.15), ceiling(-1.5, push=0.5)]
     # (2026-11-17, night: the first pieces of the night held against the stems that were liked, studio/ear.py: the pads
     # 5 to 9 dB too bright from 2.5 to 10 kHz, the tune 3 to 6 dB too bright and short of its middle, the drums 2 to 7 dB
-    # too bright, the accompaniment 1 to 3 dB dull. Half of each is taken back here: the liked stems were separated from
+    # too bright, the accompaniment 1 to 3 dB dull. Half of each is taken back here, and after the second pass (pads still 3 dB
+    # bright, the tune 3 dB) half of what was left: the liked stems were separated from
     # whole mixes, and separation dulls the top a little.)
     if channel == "drums":
         return [equalise(low_cut=28.0, high_shelf=(5000.0, -2.5)), drum_room(), squeeze(-12.0, 2.5, 25.0, 180.0, 1.0), warm(0.3),
@@ -850,10 +851,10 @@ def bus(channel: str, style: str = "") -> list[str]:
         return [equalise(low_cut=28.0, low_shelf=(90.0, 2.5)), enhance(0.35), squeeze(-14.0, 2.0, 30.0, 250.0, 1.0), warm(0.25),
                 ceiling(-1.5, push=1.0)]
     if channel == "texture":
-        return [equalise(low_cut=28.0, high_shelf=(4000.0, -4.0)), wide(1.25), squeeze(-14.0, 2.0, 30.0, 250.0, 1.0), warm(0.15),
+        return [equalise(low_cut=28.0, high_shelf=(4000.0, -5.5)), wide(1.25), squeeze(-14.0, 2.0, 30.0, 250.0, 1.0), warm(0.15),
                 ceiling(-1.5, push=0.5)]
     if channel == "lead":
-        return [equalise(low_cut=28.0, bands=((600.0, 2.0, 1.5),), high_shelf=(5000.0, -2.0)), squeeze(-14.0, 2.0, 30.0, 250.0, 1.0),
+        return [equalise(low_cut=28.0, bands=((600.0, 2.0, 1.5),), high_shelf=(5000.0, -3.5)), squeeze(-14.0, 2.0, 30.0, 250.0, 1.0),
                 excite(0.1), warm(0.12), ceiling(-1.5, push=0.5)]
     return [equalise(low_cut=28.0, high_shelf=(5000.0, 1.0)), squeeze(-14.0, 2.0, 30.0, 250.0, 1.0), warm(0.15), ceiling(-1.5, push=0.5)]
 
