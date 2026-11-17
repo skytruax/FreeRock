@@ -944,6 +944,49 @@ CHARACTERS = (
       pad_ways=("drone", "pad"), plucks=("guitar", "mandolin", "banjo"), figures=("strum",), basses=("picked bass",), kit="rock", drums=(),
       grooves=("brushes",), hall=(1.4, 0.15), lift=0.0,
       titles=(("Campfire", "Starlit", "Bedroll", "Woodsmoke", "Coffee Pot", "Saddle"), ("Blues", "Strum", "Jam", "Song", "Ballad", "Ramble"))),
+    # --- more camps (2026-11-17, afternoon: "we want lots of options of inns camping, caves dungeons and just a not -------
+    # --- repetative experienxe"; a camp is heard at every sit-down to eat and drink): a second camp for each sort of -----
+    # --- country, with winds, plucks and a ground of its own. Named after every other family, so none is given another title.
+    # (The marsh's demo, written with a pad as well as a drone, had 13 to 17 players at once where the other camps have 9 to
+    # 13: a four-part string pad. A camp is a line over a drone, so these hold a drone only, of one voice: a hum, a cello,
+    # the basses or an organ.)
+    C("shepherds rest", ("pastoral", "highland", "regal"), role="camp", light=True, modes=("major", "lydian", "mixolydian"),
+      bpm=(58, 70), metres=("3/4", "6/8"), busy=0.3, weight=0.35, leads=("whistle", "recorder", "clarinet"),
+      strong=("violins slow", "oohs"), under=("violas",), pads=("oohs", "celli slow"), pad_ways=("drone",),
+      plucks=("dulcimer", "harp", "twelve string"), figures=("arp",), basses=("celli slow", "basses pizz"), kit="folk", drums=(),
+      grooves=("none", "tick"), hall=(2.4, 0.26), lift=0.0,
+      titles=(("Shepherd's", "Hillside", "Folded", "Evening", "Dusk", "Lamb's"), ("Rest", "Star", "Pipe", "Fold", "Hour", "Hush"))),
+    C("fen fire", ("jungle", "mystic", "haunted"), role="camp", modes=("dorian", "lydian"), bpm=(60, 72), metres=("6/8", "4/4"),
+      busy=0.3, weight=0.4, leads=("ocarina", "shakuhachi", "pan flute"), strong=("violins slow", "oohs"), under=("celli",),
+      pads=("oohs", "basses slow"), pad_ways=("drone",), plucks=("kalimba", "harp", "celesta"), figures=("arp", "pattern"),
+      basses=("fretless", "celli slow"), kit="wood", drums=(), grooves=("drip", "bog"), hall=(2.8, 0.32), lift=0.0,
+      titles=(("Fen", "Marsh", "Reed", "Mire", "Wisp", "Heron"), ("Fire", "Lights", "Rest", "Hush", "Glow", "Dusk"))),
+    C("oasis embers", ("desert", "infernal"), role="camp", light=True, modes=("phrygian dominant", "dorian"), bpm=(62, 74),
+      metres=("4/4", "6/8"), busy=0.3, weight=0.45, leads=("english horn", "clarinet", "sitar"), strong=("violins slow", "oohs"),
+      under=("bassoon",), pads=("celli slow", "oohs"), pad_ways=("drone",), plucks=("dulcimer", "harp", "twelve string"),
+      figures=("pattern", "arp"), basses=("basses pizz", "fretless"), kit="hands", drums=(), grooves=("heat", "none"),
+      hall=(2.2, 0.24), lift=0.0,
+      titles=(("Oasis", "Ember", "Dune", "Starlit", "Coal", "Palm"), ("Embers", "Rest", "Coals", "Night", "Hours", "Shade"))),
+    C("crows rest", ("haunted", "highland"), role="camp", modes=("minor", "dorian"), bpm=(54, 66), metres=("3/4", "4/4"),
+      busy=0.25, weight=0.45, leads=("violin", "clarinet", "english horn"), strong=("violins slow", "oohs"), under=("celli",),
+      pads=("organ", "basses slow"), pad_ways=("drone",), plucks=("music box", "harp", "celesta"),
+      figures=("toll", "arp"), basses=("basses slow", "celli slow"), kit="orchestra", drums=(), grooves=("drip", "none"),
+      hall=(3.0, 0.32), lift=0.0,
+      titles=(("Crow's", "Lantern", "Grey", "Lonely", "Mist", "Tolling"), ("Rest", "Watch", "Hour", "Light", "Wait", "Heath"))),
+    # --- more dungeon bosses (the same afternoon): the kinds of place whose dungeons had only the titan's music. A drowned ---
+    # --- horror for the water and the old forests (Blackfathom), a fallen crusader for the halls and the cloisters. ------
+    C("deep tide", ("mystic", "jungle"), role="boss", serves=(2,), modes=("dorian", "phrygian"), bpm=(88, 100), metres=("6/8", "4/4"),
+      busy=0.45, weight=1.0, leads=("horns", "full choir", "trombone"), strong=("brass", "full choir"), under=("trombone", "tuba"),
+      pads=("choir", "tremolo"), pad_ways=("tremolo", "pad"), plucks=("strings", "harp"), figures=("gallop", "hammer"),
+      basses=("basses", "contrabassoon"), kit="orchestra", drums=("taiko", "great drum"), grooves=("colossus", "thunder"),
+      hall=(3.4, 0.34), lift=0.5,
+      titles=(("Abyssal", "Drowned", "Tidal", "Leviathan", "Sunken", "Brine"), ("Tide", "Maw", "Herald", "Horror", "Queen", "Deep"))),
+    C("fallen crusade", ("regal", "haunted"), role="boss", serves=(2,), modes=("minor", "phrygian"), bpm=(100, 112), metres=("4/4",),
+      busy=0.5, weight=1.0, leads=("trumpet", "choir", "horns"), strong=("brass", "choir"), under=("trombone", "tuba"),
+      pads=("organ", "choir"), pad_ways=("pad", "tremolo"), plucks=("strings", "church bell"), figures=("hammer", "gallop"),
+      basses=("basses", "tuba"), kit="march", drums=("timpani", "church bell"), grooves=("march", "battle"),
+      hall=(3.0, 0.3), lift=0.5,
+      titles=(("Crimson", "Fallen", "Zealot", "Scarlet", "Iron", "Penitent"), ("Crusade", "Inquisitor", "Commander", "Paladin", "Warden", "Judge"))),
 )
 
 METRES = {"4/4": (4.0, (2.0, 2.0)), "3/4": (3.0, (3.0,)), "6/8": (3.0, (1.5, 1.5)), "5/4": (5.0, (3.0, 2.0)),
@@ -1699,6 +1742,10 @@ SETTINGS_OF: dict[str, tuple[str, ...]] = {
     "spider den": ("woods", "ruins"), "glowworm grotto": ("water", "woods"),
     "harbour saloon": ("water", "settlement"), "caravanserai": ("road", "wastes"), "lamplit inn": ("settlement", "graves"),
     "elven rest": ("woods", "sacred"), "drinking song": ("heights", "settlement"), "fireside": ("fields", "settlement"),
+    # A camp is out of doors, so its ground counts as a walk's does (2026-11-17, with the second camps).
+    "watchfire": ("fields", "road"), "still hunt": ("woods", "wastes"), "uneasy vigil": ("graves", "ruins"),
+    "shepherds rest": ("fields", "heights"), "fen fire": ("water", "woods"), "oasis embers": ("wastes", "water", "road"),
+    "crows rest": ("heights", "graves", "fields"),
 }
 
 

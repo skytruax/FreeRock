@@ -218,7 +218,7 @@ every kind of place.
 
 | | Warcraft and Knight Rock | House |
 |---|---|---|
-| Character: a kind of track | `orchestra.Character` in `orchestra.CHARACTERS`: 143, of which 125 Warcraft and 18 Knight Rock | none; palettes by kind of place (`house.PALETTES`) |
+| Character: a kind of track | `orchestra.Character` in `orchestra.CHARACTERS`: 149, of which 131 Warcraft and 18 Knight Rock | none; palettes by kind of place (`house.PALETTES`) |
 | Family: the changes | `orchestra.Family`, from `orchestra.family(character, seed, name, title)`: key, tempo, metre, lift, the chord under every bar, part lengths and levels | `house.Family` in `house.PLAN` (60): tonic, loop, five lengths, kick pattern, swing, drum machine, palette |
 | Take: one band playing it | `orchestra.Take(fam, take)`: tunes, figures, bass, drums and players, from its own seed | `house.Take(fam, take)`: sounds and ways chosen in turn (`Take.pick`) |
 
@@ -239,9 +239,10 @@ second wave is a key higher); `titles` (two word lists); `style` and `band`.
 | town, battleground | 3, then 3 |
 | battle, ember, storm, boss | 2, then 2 |
 | depths, night | 2, and later 2 |
-| camp | 2 and 2, planned last |
+| camp | 2 and 2, planned after all the above |
+| added after the camps (`build.LAST_ADDED`: the bosses deep tide and fallen crusade) | 2 and 2, planned last |
 
-That gives 250 Warcraft families with 586 takes (about 4,640 minutes) and 36 Knight Rock families
+That gives 262 Warcraft families with 610 takes (about 4,830 minutes) and 36 Knight Rock families
 with 82 takes (about 650 minutes). House has 60 families of 3 takes (`house.TAKES`).
 
 **Seeds and names.** A family's seed is 20261115 × 100 + its character's index × 10 + its number,
@@ -922,6 +923,15 @@ made the orchestra dull and wide and unlike itself*.
 | Muse parts | a low cut by part (`MUSE_CUT`), tone for the guitars, bass and organ (`MUSE_TONE`), echo on plucked and struck parts, tape on brass |
 | choir and pad synths | low cut, then ensemble (choir) or width and echo (the Zyn pad) |
 
+A voice that still comes out bright against the liked stems has its top taken down by name or by
+instrument (`build.tamed_tone`, 2026-11-17, each measured on rendered tracks and noted beside it):
+brass stabs and the bell at the moments shelved 9 dB from 3 kHz; the accordion (played by a
+harmonica) closed at 5.5 kHz and shelved 14 dB from 2 kHz; xylophone, glock and harpsichord shelved
+7 dB from 4 kHz; banjo and mandolin 6 dB from 4 kHz, keeping the twang under it; a trombone doubling
+a battle's bass shelved 6 dB from 1.5 kHz; in the band only (`band=True`), the church organ and the rock
+organ closed at 6 kHz and shelved 10 dB from 3 kHz (the black chapel's had its texture 24 to 28 dB over
+the liked band stems; the orchestra's organ sits about 5 dB over its own and is left as it is).
+
 ### 6.4 Buses
 
 Each channel is a folder with a bus (`sounds.bus(channel, style)`). The drums get the equaliser, a
@@ -1144,11 +1154,14 @@ On the music machine `var/passes/rebuild.sh <style>` does all of this; it lives 
 1. Add a `C(...)` at the end of `orchestra.CHARACTERS`. A family's seed comes from its character's
    index, so a character put in earlier would change every family after it: *new ones go at the end,
    so that the families already written keep the numbers they were written from*. Give it title
-   words of its own: titles are drawn in plan order and must be unique.
+   words of its own: titles are drawn in plan order and must be unique. The plan names the camps
+   after everything else, so a new character that is not a camp also goes into `build.LAST_ADDED`,
+   which names it after the camps: otherwise it could take a title a camp already has. Its name
+   becomes a folder name: letters and spaces only, no apostrophes (`shepherds rest`).
 2. Fill its fields (2.5): `kinds` from `kinds.KINDS` (or `KINDS_ALL`), `role` from `studio.ROLES`,
    `serves` as in 2.6, `modes` that `THEMES` has, instruments from `orchestra.INSTRUMENTS`, grooves
    from `GROOVES`; `style="knight", band=True` for the band.
-3. Give walking, night, cave and inn music its ground in `orchestra.SETTINGS_OF`.
+3. Give walking, night, cave, inn and camp music its ground in `orchestra.SETTINGS_OF`.
 4. Run `uv run --no-sync --with numba pytest -q tests/test_studio.py`: it checks that the instruments
    and grooves exist, that every kind of place has light and heavy walking music, that every role has
    music, and that the families are 450 to 510 s with the right shape.
@@ -1164,7 +1177,11 @@ pytest -q tests/test_studio_house.py`.
 **A new kind of moment** is a change to the director (`director.PLACES`) and to `studio.ROLES`, and
 every style needs music for it. Camping (2026-11-17) is the pattern: one role, written for all three
 styles the same way: watchfire, still hunt and uneasy vigil (Warcraft), campfire (Knight Rock), three
-camp families (House).
+camp families (House). The same afternoon a second camp was written for each sort of country
+(shepherds rest, fen fire, oasis embers, crows rest), each with winds, plucks and a ground of its own.
+A camp is one line over a drone. Give it a pad of one voice (oohs, celli slow, basses slow, organ):
+`strings slow` splits into four string parts even as a drone, and the first marsh camp, written that
+way, had 13 to 17 players at once where the other camps have 9 to 13.
 
 **Never change a family that has takes.** Its changes, key and tempo are shared with its kin in the
 bucket. Write a new family.
@@ -1200,19 +1217,26 @@ on the audition page (after adding a row to `audition.rows`):
 
 ### 8.9 Work in passes
 
-The night of 2026-11-16 set the method: "make 10 of each genre listen to it with musescore, make it
-better and do that 3 times for each set of 10".
+The night of 2026-11-16 set the first method: "make 10 of each genre listen to it with musescore,
+make it better and do that 3 times for each set of 10". The next afternoon, with the writer better,
+it became one pass: "just do one adversarial pass instead of 3", "re render everything only at
+night".
 
-1. Write the set as a list of `family/take` (the pass lists live in `var/passes/`).
-2. Render it with `render_some.py`.
-3. Study it: `study.py` for the swing and the octaves, `stem_interest.py` for each channel alone,
-   `score_view.py` for the writing, the ear for one instrument.
-4. Change the writer or the desk where the numbers and the ears point. Put what was measured, dated,
-   in the comment beside the change: the comments in this code are its history.
-5. Copy the old renders aside (`var/rejected/pass1-...`), render the same set again (unchanged Muse
-   parts come from the cache), and compare the numbers, then by ear.
-6. Keep the better; revert the worse in git and put the copies back. Rebuild the bucket (8.6) only with
-   the game off.
+1. Write a list of `family/take` (the lists live in `var/passes/`, a queue folder per lane). By day the
+   lanes render new pieces only, ordered by where the owner plays (the server's `var/log/link-*.jsonl`
+   names the zones; `atlas.kinds_for` gives their kinds of place).
+2. When a list is finished, study it once: `study.py` for the swing, the octaves against the liked
+   stems and the tune's repeated bars; `stem_interest.py` for each channel alone; `score_view.py` for
+   the writing; the ear for one instrument. Listen for what a musician would hear: a place that
+   repeats, a tune that does not sing, a channel wrong for its place, too many players for a quiet one.
+3. Change the writer or the desk where the study points, with what was measured, dated, in the
+   comment beside the change: the comments in this code are its history. The change goes into the
+   pieces still to come. Nothing is rendered again by day.
+4. At night (`var/passes/lane-tonight`, from 23:00) every staged track rendered with code older than
+   its style's latest change is rendered again, once. A `render_some` run keeps the code it started
+   with, so a track belongs to the time its run began, not the time it was staged. Unchanged Muse parts
+   come from the cache.
+5. Rebuild a bucket (8.6) only with the game off.
 
 The passes so far looked for more swing between quietest and loudest (the orchestra's pieces reached
 18 dB; the heavy band's went from 8 to 17–20), channels within a few dB of the liked stems octave by

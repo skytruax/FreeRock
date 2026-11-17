@@ -54,7 +54,7 @@ def written(style: str, name: str, take: int) -> dict:
     w = orchestra.Take(fam, take)
     beats = fam.beats
     at, out = 0.0, {"at_once": [], "spread": []}
-    lead_bars: list[tuple] = []
+    lead_bars: list[bool] = []
     for section in fam.sections:
         span = (at, at + section.bars * beats)
         playing = collections.Counter()
@@ -70,14 +70,19 @@ def written(style: str, name: str, take: int) -> dict:
         out["at_once"].append((section.part, sum(playing.values())))
         out["spread"].append((section.part, (high - low) if high >= low else 0))
         at = span[1]
-    # How much of the tune is a bar heard before (the same notes in the same places, wherever it stands).
+    # How much of the tune is a bar heard before: through time, each bar of the lead channel (all its voices together)
+    # against every bar before it. (Until 2026-11-17 every voice's bars were pooled, so a tune doubled by a second
+    # instrument counted as half heard before: 58 to 80% where through time it is 28 to 54%.)
+    by_bar = collections.defaultdict(set)
     for tag, voice in w.voices["lead"].items():
-        bars = collections.defaultdict(list)
         for note in voice.notes:
-            bars[int(note.start // beats)].append((round(note.start % beats, 3), note.pitch))
-        lead_bars += [tuple(sorted(notes)) for notes in bars.values()]
-    counts = collections.Counter(lead_bars)
-    out["tune_repeats"] = 1.0 - len(counts) / max(len(lead_bars), 1)
+            by_bar[int(note.start // beats)].add((round(note.start % beats, 3), note.pitch))
+    seen: set = set()
+    for bar in sorted(by_bar):
+        signature = tuple(sorted(by_bar[bar]))
+        lead_bars.append(signature in seen)
+        seen.add(signature)
+    out["tune_repeats"] = sum(lead_bars) / max(len(lead_bars), 1)
     return out
 
 

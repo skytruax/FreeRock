@@ -58,6 +58,11 @@ FLOOR = {"open": {"rhythm": 1.0, "bass": 0.85, "drums": 0.6}, "theme": {"rhythm"
          "close": {"rhythm": 1.0, "bass": 0.85, "drums": 0.55}}
 
 
+# Characters written after the camps were named, kept to the end of the plan so that no family made before is given
+# another title: the dungeon bosses of 2026-11-17's afternoon.
+LAST_ADDED = ("deep tide", "fallen crusade")
+
+
 def plan() -> list[tuple[Family, int]]:
     """Every family of the library and how many takes of it there are. A character that is
     for walking about gets a family of three takes (and the light ones a second family of
@@ -79,8 +84,11 @@ def plan() -> list[tuple[Family, int]]:
         name = "%s-%s-%d" % (place, character.name.replace(" ", "-"), number + 1)
         out.append((family(character, seed, name, title), takes))
 
-    later, camps = [], []
+    later, camps, last = [], [], []
     for index, character in enumerate(CHARACTERS):
+        if character.name in LAST_ADDED:
+            last.append((index, character))           # (see below)
+            continue
         if character.role == "camp":
             camps.append((index, character))          # (see below)
             continue
@@ -107,6 +115,11 @@ def plan() -> list[tuple[Family, int]]:
     # Camping (2026-11-17: "camping should get its own tunes"): two families of two for each, named after every family
     # made before them, so that none of those is given another title.
     for index, character in camps:
+        for number in (0, 1):
+            add(index, character, number, 2)
+    # Dungeon bosses for the kinds of place that had only the titan's (2026-11-17, afternoon: "we want lots of options of
+    # inns camping, caves dungeons"): two families of two for each, named after every family made before them.
+    for index, character in last:
         for number in (0, 1):
             add(index, character, number, 2)
     return out
@@ -142,14 +155,31 @@ def project_of(fam: Family, take: int) -> Path:
     return PROJECTS / fam.character.style / fam.name / str(take) / "track.rpp"
 
 
-def tamed_tone(name: str, instrument: str) -> str | None:
+def tamed_tone(name: str, instrument: str, band: bool = False) -> str | None:
     """The top of a voice that comes out bright against the liked stems, taken down (2026-11-17, midday, the morning's
     storms, inns, bosses and battles: the brass stabs and the tubular bells at the moments had the accompaniment 12 to
     16 dB over from 3.5 kHz up, and the harmonica that plays the accordion had the inns' texture 20 to 24 dB over)."""
     if name.endswith(" stabs") or name == "bell at the moments":
         return sounds.equalise(high_shelf=(3000.0, -9.0))
     if instrument == "accordion":
-        return sounds.equalise(high_cut=7000.0, high_shelf=(2500.0, -10.0))
+        # (Taken down further the same afternoon: where it is the whole of an inn's texture it was still 14 to 16 dB over.)
+        return sounds.equalise(high_cut=5500.0, high_shelf=(2000.0, -14.0))
+    if instrument in ("xylophone", "glock", "harpsichord"):
+        # (The afternoon's storms, hunts and battles: with the stabs and bells taken down, the struck and plucked
+        # ostinati still had the accompaniment 10 to 14 dB over from 3.5 kHz up.)
+        return sounds.equalise(high_shelf=(4000.0, -7.0))
+    if band and instrument in ("organ", "rock organ"):
+        # (Knight Rock's first piece of the evening, 2026-11-17: in the black chapel the church organ and the rock organ
+        # that hold its texture had it 24 to 28 dB over the liked band stems from 7 kHz up, and 12 to 14 under the lead.
+        # The orchestra's organ sits about 5 dB over its own and is left alone.)
+        return sounds.equalise(high_cut=6000.0, high_shelf=(3000.0, -10.0))
+    if instrument in ("banjo", "mandolin"):
+        # (The places' study the same afternoon: a tavern's banjo and mandolin had the accompaniment 10 to 13 dB over
+        # from 7 kHz up. Their twang, under 4 kHz, stays; the jangle of the picks over it is taken down.)
+        return sounds.equalise(high_shelf=(4000.0, -6.0))
+    if name == "trombone tutti":
+        # (...and a trombone doubling a battle's bass line had the bass 9 to 13 dB over at the top.)
+        return sounds.equalise(high_shelf=(1500.0, -6.0))
     return None
 
 
@@ -260,7 +290,7 @@ def stage(fam: Family, take: int) -> dict:
                 continue
             taste = INSTRUMENTS[voice.instrument].level if voice.instrument in INSTRUMENTS else 1.0
             made = sounds.lines(voice, name, fam.bpm, taste=taste, room=room, seed=fam.seed * 31 + take)
-            tamed = tamed_tone(name, voice.instrument)
+            tamed = tamed_tone(name, voice.instrument, band=character.band)
             if tamed:
                 for line in made:
                     line.effects = list(line.effects) + [tamed]
