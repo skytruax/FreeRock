@@ -309,6 +309,33 @@ PALETTES: dict[str, dict[str, Any]] = {
                    keys=("stab", "brass", "pluck"), keys_style=("stabs", "arp", "pumpchords"),
                    lead=("saw", "super", "hollow"), pad=("super", "hollow", "strings"),
                    perc=("tom", "cowbell", "ride"), hats=("sixteenths", "off", "eighths"), atmos="", voicing="close"),
+    # The new kinds of place (2026-11-17, evening: "make sure all genres got the updates around new place categories"): the
+    # marsh's dub bass, marimba and glass, a jawbone rattle and drips; the coast's harp and strummed strings, whistle and the
+    # sea; the snow's bells and glass and wind. Each a light one and a deep one, as the others are.
+    "marsh": dict(bass=("sub", "fm", "pluck"), bass_style=("dub", "long", "offbeat"),
+                  keys=("marimba", "pluck", "glass", "organ"), keys_style=("arp", "broken", "dub"),
+                  lead=("flute", "hollow", "pipe", "glass"), pad=("hollow", "warm", "glass"),
+                  perc=("quijada", "conga", "rim", "cabasa"), hats=("sparse", "shuffle", "eighths"), atmos="drips", voicing="close"),
+    "marsh-dark": dict(bass=("reese", "sub", "saw"), bass_style=("dub", "rolling", "long"),
+                       keys=("organ", "pluck", "glass", "marimba"), keys_style=("stabs", "arp", "dub"),
+                       lead=("hollow", "glass", "saw", "pipe"), pad=("hollow", "organ", "glass"),
+                       perc=("quijada", "rim", "clave"), hats=("sparse", "sixteenths", "off"), atmos="rain", voicing="close"),
+    "coast": dict(bass=("pluck", "sub", "organ"), bass_style=("offbeat", "tresillo", "offbeat_oct"),
+                  keys=("harp", "string", "pluck", "keys"), keys_style=("strum", "arp", "broken"),
+                  lead=("whistle", "flute", "keys", "hollow"), pad=("warm", "glass", "strings"),
+                  perc=("tambourine", "maracas", "snap", "clap2"), hats=("eighths", "off", "shuffle"), atmos="sea", voicing="open"),
+    "coast-deep": dict(bass=("saw", "reese", "pluck"), bass_style=("rolling", "driving", "offbeat"),
+                       keys=("pluck", "string", "brass", "stab"), keys_style=("arp", "stabs", "pumpchords"),
+                       lead=("saw", "hollow", "whistle", "super"), pad=("super", "hollow", "warm"),
+                       perc=("tom", "rim", "maracas"), hats=("sixteenths", "off", "eighths"), atmos="sea", voicing="open"),
+    "frozen": dict(bass=("sub", "fm", "square"), bass_style=("long", "offbeat", "tresillo"),
+                   keys=("bell", "glass", "harp", "keys"), keys_style=("arp", "broken", "strum"),
+                   lead=("glass", "bell", "flute", "whistle"), pad=("glass", "warm", "hollow"),
+                   perc=("chime", "rim", "snap"), hats=("sparse", "eighths", "off"), atmos="wind", voicing="open"),
+    "frozen-deep": dict(bass=("reese", "sub", "square"), bass_style=("long", "rolling", "driving"),
+                        keys=("bell", "pluck", "glass", "brass"), keys_style=("stabs", "arp", "pumpchords"),
+                        lead=("hollow", "glass", "saw", "super"), pad=("hollow", "glass", "super"),
+                        perc=("chime", "tom", "rim"), hats=("sparse", "sixteenths", "eighths"), atmos="wind", voicing="open"),
 }
 
 
@@ -365,17 +392,20 @@ class Family:
 ANY = ()
 W, S01, S0, S2, S012 = "wander", (0, 1), (0,), (2,), (0, 1, 2)
 E5, T8 = (16, 16, 16, 16, 16), (8, 24, 16, 24, 8)          # two of the shapes a story takes, in bars
+# (2026-11-17, evening: the marsh, the coast and the snowfields became kinds of place. Until House has families written for
+# them, the nearest of its own are theirs too: River Drums, The Old Swamp and Drowned Halls for the marsh; Morning on the Hill,
+# Glade at Dusk and Drowned Halls for the coast; the High Moor, Stone and Sky and Larks over the Ridge for the snow.)
 PLAN: tuple[Family, ...] = (
     # name, title, kinds of place, kind of moment, strengths, light, key, changes, shape, kick, swing, machine, sounds
     Family("pastoral-01", "Sunlit Fields", ("pastoral",), W, S01, True, 2, "M1", E5, "four", 0.08, "909", "pastoral"),
-    Family("pastoral-02", "Morning on the Hill", ("pastoral",), W, S01, True, 7, "L2", T8, "four", 0.0, "707", "pastoral"),
+    Family("pastoral-02", "Morning on the Hill", ("pastoral", "coast"), W, S01, True, 7, "L2", T8, "four", 0.0, "707", "pastoral"),
     Family("pastoral-03", "Mill Stream", ("pastoral",), W, S01, True, 9, "X1", (16, 16, 8, 24, 16), "broken", 0.12, "606", "pastoral"),
     Family("pastoral-04", "Long Road Home", ("pastoral",), W, S01, False, 4, "D2", (16, 16, 16, 24, 8), "four", 0.0, "909", "pastoral-deep"),
     Family("highland-01", "Wind over the Pass", ("highland",), W, S01, True, 4, "X2", E5, "four", 0.0, "909", "highland"),
     Family("highland-02", "Snowmelt", ("highland",), W, S01, True, 0, "M5", (8, 16, 16, 24, 16), "four", 0.1, "707", "highland"),
-    Family("highland-03", "The High Moor", ("highland",), W, S01, False, 9, "D3", E5, "broken2", 0.0, "808", "highland-deep"),
-    Family("highland-04", "Stone and Sky", ("highland",), W, S01, False, 6, "N1", (16, 24, 8, 24, 8), "four", 0.0, "909", "highland-deep"),
-    Family("highland-05", "Larks over the Ridge", ("highland",), W, S01, True, 10, "L2", (16, 16, 8, 24, 16), "four", 0.08, "606", "highland"),
+    Family("highland-03", "The High Moor", ("highland", "frozen"), W, S01, False, 9, "D3", E5, "broken2", 0.0, "808", "highland-deep"),
+    Family("highland-04", "Stone and Sky", ("highland", "frozen"), W, S01, False, 6, "N1", (16, 24, 8, 24, 8), "four", 0.0, "909", "highland-deep"),
+    Family("highland-05", "Larks over the Ridge", ("highland", "frozen"), W, S01, True, 10, "L2", (16, 16, 8, 24, 16), "four", 0.08, "606", "highland"),
     Family("haunted-01", "Lanterns in the Fog", ("haunted",), W, S01, True, 2, "D1", E5, "four", 0.06, "808", "haunted-light"),
     Family("haunted-02", "The Kind Ghost", ("haunted",), W, S01, True, 11, "N6", (16, 16, 8, 24, 16), "broken", 0.0, "606", "haunted-light"),
     Family("haunted-03", "Bells under the Hill", ("haunted",), W, S01, False, 2, "N2", (16, 16, 16, 24, 8), "four", 0.0, "909", "haunted-dark"),
@@ -387,9 +417,9 @@ PLAN: tuple[Family, ...] = (
     Family("desert-04", "Mirage", ("desert",), W, S01, False, 11, "P4", T8, "broken", 0.08, "808", "desert-dark"),
     Family("desert-05", "Dunes at Dawn", ("desert",), W, S01, True, 9, "X2", T8, "four", 0.1, "808", "desert"),
     Family("jungle-01", "Canopy", ("jungle",), W, S01, True, 7, "X1", E5, "four", 0.14, "707", "jungle"),
-    Family("jungle-02", "River Drums", ("jungle",), W, S01, True, 0, "D1", T8, "broken2", 0.1, "808", "jungle"),
+    Family("jungle-02", "River Drums", ("jungle", "marsh"), W, S01, True, 0, "D1", T8, "broken2", 0.1, "808", "jungle"),
     Family("jungle-03", "Night Prowl", ("jungle",), W, S01, False, 9, "N1", (16, 16, 16, 24, 8), "four", 0.06, "909", "jungle-dark"),
-    Family("jungle-04", "The Old Swamp", ("jungle",), W, S01, False, 7, "N4", (16, 24, 8, 24, 8), "broken3", 0.0, "808", "jungle-dark"),
+    Family("jungle-04", "The Old Swamp", ("jungle", "marsh"), W, S01, False, 7, "N4", (16, 24, 8, 24, 8), "broken3", 0.0, "808", "jungle-dark"),
     Family("jungle-05", "Parrots", ("jungle",), W, S01, True, 5, "M4", E5, "broken", 0.12, "606", "jungle"),
     Family("infernal-01", "The Forge at Rest", ("infernal",), W, S01, True, 2, "D3", E5, "four", 0.0, "909", "infernal-light"),
     Family("infernal-02", "Hammerfall", ("infernal",), W, S01, False, 0, "N2", (16, 16, 8, 24, 16), "four", 0.0, "909", "infernal-dark"),
@@ -401,8 +431,18 @@ PLAN: tuple[Family, ...] = (
     Family("regal-04", "The Long Watch", ("regal",), W, S01, False, 4, "N3", (16, 16, 16, 24, 8), "four", 0.0, "909", "regal-deep"),
     Family("mystic-01", "Moonwell", ("mystic",), W, S01, True, 4, "L1", E5, "four", 0.0, "808", "mystic"),
     Family("mystic-02", "Starfall", ("mystic",), W, S01, True, 8, "L3", T8, "broken", 0.08, "606", "mystic"),
-    Family("mystic-03", "Glade at Dusk", ("mystic",), W, S01, True, 6, "D4", (16, 16, 8, 24, 16), "four", 0.1, "707", "mystic"),
-    Family("mystic-04", "Drowned Halls", ("mystic",), W, S01, False, 11, "N6", (16, 24, 8, 24, 8), "four", 0.0, "808", "mystic-deep"),
+    Family("mystic-03", "Glade at Dusk", ("mystic", "coast"), W, S01, True, 6, "D4", (16, 16, 8, 24, 16), "four", 0.1, "707", "mystic"),
+    Family("mystic-04", "Drowned Halls", ("mystic", "marsh", "coast"), W, S01, False, 11, "N6", (16, 24, 8, 24, 8), "four", 0.0, "808", "mystic-deep"),
+    # (The new kinds' own, 2026-11-17, evening.)
+    Family("marsh-01", "Bullfrog Bass", ("marsh",), W, S01, True, 7, "D2", T8, "broken2", 0.1, "808", "marsh"),
+    Family("marsh-02", "Peat Smoke", ("marsh",), W, S01, False, 2, "N3", (16, 24, 8, 24, 8), "broken3", 0.0, "808", "marsh-dark"),
+    Family("marsh-03", "Reedlight", ("marsh",), W, S01, True, 9, "L3", E5, "four", 0.08, "707", "marsh"),
+    Family("coast-01", "Seaspray", ("coast",), W, S01, True, 2, "X1", T8, "four", 0.0, "909", "coast"),
+    Family("coast-02", "Gull's Morning", ("coast",), W, S01, True, 5, "M5", (16, 16, 8, 24, 16), "four", 0.06, "707", "coast"),
+    Family("coast-03", "Breakwater", ("coast",), W, S01, False, 9, "D3", (16, 24, 8, 24, 8), "broken2", 0.0, "909", "coast-deep"),
+    Family("frozen-01", "Snowglobe", ("frozen",), W, S01, True, 4, "L1", E5, "four", 0.0, "707", "frozen"),
+    Family("frozen-02", "Ice Bridge", ("frozen",), W, S01, False, 11, "N5", (16, 24, 8, 24, 8), "four", 0.0, "909", "frozen-deep"),
+    Family("frozen-03", "Northern Lights", ("frozen",), W, S01, True, 1, "D4", T8, "broken", 0.06, "606", "frozen"),
     Family("ember-01", "By the Fire", ("pastoral", "regal", "highland"), "ember", S01, True, 0, "M6", (8, 16, 8, 16, 8), "half", 0.16, "808", "ember"),
     Family("ember-02", "Last Candle", ("haunted", "mystic"), "ember", S01, True, 5, "L1", (8, 16, 8, 16, 8), "none", 0.0, "606", "ember"),
     Family("ember-03", "Cool of the Evening", ("desert", "jungle", "infernal"), "ember", S01, True, 7, "X3", (8, 16, 8, 16, 8), "half", 0.12, "707", "ember"),

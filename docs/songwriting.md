@@ -24,7 +24,8 @@ plays where.
 ### 1.1 What it is for
 
 The music sits behind hours of play and follows it. Each track is written for a kind of place
-(pastoral, highland, haunted, desert, jungle, infernal, regal, mystic) and a kind of moment
+(pastoral, highland, haunted, desert, jungle, infernal, regal, mystic, and since 2026-11-17 the marsh, the coast and
+the frozen snowfields) and a kind of moment
 (`studio.ROLES`: wander, night, ember, depths, storm, battle, boss, town, battleground, camp). It
 is recorded as five channels (texture, lead, rhythm, drums, bass) that the game turns up and
 down. So a track must tell its story whole, still make sense with channels missing, and not wear
@@ -344,14 +345,21 @@ the first kind each is written for:
 
 | Kind | Modes offered |
 |---|---|
-| pastoral | major 18, dorian 16, mixolydian 15, lydian 8, minor 4 |
-| highland | dorian 15, minor 9, mixolydian 8, major 4, lydian 4, phrygian 3 |
-| haunted | minor 19, phrygian 8, dorian 7 |
-| desert | phrygian dominant 12, dorian 7, mixolydian 5, phrygian 3, minor 3, major 2, lydian 1 |
-| jungle | dorian 10, minor 8, major 2, mixolydian 2, phrygian 2, phrygian dominant 2, lydian 1 |
+| pastoral | major 21, dorian 18, mixolydian 18, lydian 11, minor 9, phrygian 4 |
+| highland | dorian 15, minor 9, mixolydian 8, lydian 4, major 4, phrygian 3 |
+| haunted | minor 20, dorian 9, phrygian 8, major 1 |
+| desert | phrygian dominant 13, dorian 8, mixolydian 5, minor 3, phrygian 3, major 2, lydian 1 |
+| jungle | dorian 11, minor 8, lydian 2, major 2, mixolydian 2, phrygian 2, phrygian dominant 2 |
 | infernal | minor 8, phrygian 7, dorian 2, mixolydian 1 |
-| regal | major 7, mixolydian 4, lydian 4, dorian 4, minor 1, phrygian dominant 1 |
-| mystic | dorian 9, lydian 8, minor 5, major 3, phrygian 2, mixolydian 1 |
+| regal | major 7, dorian 4, lydian 4, mixolydian 4, minor 2, phrygian 1, phrygian dominant 1 |
+| mystic | dorian 10, lydian 8, minor 5, major 3, phrygian 3, mixolydian 1 |
+| marsh | dorian 2, lydian 1, minor 1, mixolydian 1, phrygian 1 |
+| coast | dorian 3, mixolydian 2, lydian 1, major 1, minor 1 |
+| frozen | dorian 2, lydian 1, major 1, minor 1, phrygian 1 |
+
+(The characters written for every kind of place, `KINDS_ALL`, are counted under pastoral, their first. The marsh, the
+coast and the snowfields have few of their own so far; the pieces of the kinds nearest them (`forever.js`, `NEAR`) are
+played there too, and many older characters were given the new kinds besides their own.)
 
 The changes (`orchestra.family`):
 
@@ -930,7 +938,10 @@ harmonica) closed at 5.5 kHz and shelved 14 dB from 2 kHz; xylophone, glock and 
 7 dB from 4 kHz; banjo and mandolin 6 dB from 4 kHz, keeping the twang under it; a trombone doubling
 a battle's bass shelved 6 dB from 1.5 kHz; in the band only (`band=True`), the church organ and the rock
 organ closed at 6 kHz and shelved 10 dB from 3 kHz (the black chapel's had its texture 24 to 28 dB over
-the liked band stems; the orchestra's organ sits about 5 dB over its own and is left as it is).
+the liked band stems; the orchestra's organ sits about 5 dB over its own and is left as it is). The rest of the
+band's texture and lead (the lead guitar, the reeds and pipes, the fiddle) are closed at 7.5 kHz and shelved 6 dB from
+4 kHz, as a guitar's cabinet and a keyboard's speaker fall away and leave the top to the cymbals: they had been 12 to 22
+dB over, and the first piece made with it came 4 to 5 dB nearer.
 
 ### 6.4 Buses
 

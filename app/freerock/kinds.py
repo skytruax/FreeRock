@@ -10,22 +10,25 @@ lighter sort. Everywhere else light and heavy music take turns.
 """
 from __future__ import annotations
 
-KINDS = ("pastoral", "highland", "haunted", "desert", "jungle", "infernal", "regal", "mystic")
+KINDS = ("pastoral", "highland", "haunted", "desert", "jungle", "infernal", "regal", "mystic", "marsh", "coast", "frozen")
+# (The last three, 2026-11-17, evening: "tonight make more types or categories of places and thus the tracks that match
+# them and how they're categorized". The Wetlands, a grey and damp marsh, had been heard as a jungle; the snowfields as
+# the mountains round them; the sea coasts and islands as plain country by the water.)
 
 # Words in a place's profile (its moods and its instruments) that say which kinds it is.
 _WORDS = {
     "pastoral": ("pastoral", "sunny", "hopeful", "farmland", "golden fields", "lakeside", "cheerful", "rolling plains",
                  "peaceful", "meadow", "easy-going", "breezy", "bright", "fiddle", "tin whistle", "mandolin", "village",
                  "merry", "tavern", "river"),
-    "highland": ("mountain", "snow", "highland", "peaks", "heights", "windy", "crisp", "sleigh", "drone pipes",
-                 "stout", "riding hard", "slopes", "sturdy", "soaring", "cold"),
+    "highland": ("mountain", "highland", "peaks", "heights", "windy", "crisp", "drone pipes",
+                 "stout", "riding hard", "slopes", "sturdy", "soaring"),
     "haunted": ("gothic", "haunted", "moonlit", "blighted", "sorrowful", "ruin", "dread", "mournful", "misty", "fog",
                 "menace", "cursed", "desolate", "crypt", "sinister", "corrupted", "sickly", "grey wasteland", "tolling",
                 "organ", "dark pines", "plague", "ash on the wind", "witchy"),
     "desert": ("scorched", "dry wind", "desert", "red rock", "harsh sun", "savanna", "heat haze", "canyon", "mesas",
                "bazaar", "sand on", "like an oud", "rattles", "long roads"),
-    "jungle": ("jungle", "humid", "prowling", "rainforest", "swamp", "murky", "marsh", "primeval", "beasts", "log drums",
-               "hand drums and shakers", "damp", "lush"),
+    "jungle": ("jungle", "humid", "prowling", "rainforest", "primeval", "beasts", "log drums",
+               "hand drums and shakers", "lush"),
     "infernal": ("volcanic", "forge", "heat", "ash and fire", "anvil", "fire", "molten", "red sky", "war drums",
                  "clanking chains", "insect hives", "under siege", "battlefield"),
     "regal": ("proud", "regal", "bustling", "great forge", "stone halls", "fortress city", "majestic", "fanfare",
@@ -33,6 +36,10 @@ _WORDS = {
     "mystic": ("ancient forest", "twilight", "gentle", "misty shore", "violet dusk", "lost empire", "sacred",
                "moonlight", "serene", "temple", "chimes", "harp-like", "faded grandeur", "ancient ruins", "sparkling",
                "curious", "melancholy", "autumn"),
+    "marsh": ("swamp", "marsh", "bog", "fen ", "mire", "murky", "damp", "wetland", "croaking", "heavy air", "reeds"),
+    "coast": ("surf", "shore", "seaside", "by the sea", "sea air", "sea breeze", "salt air", "coast", "harbour", "harbor",
+              "island", "beach", "concertina", "shanty", "gulls", "waves"),
+    "frozen": ("snow", "frozen", "icy", "glacier", "winter", "frost", "sleigh", "cold", "blizzard"),
 }
 
 # Words that make a place a light one.
@@ -53,10 +60,14 @@ _IN_NAMES = {
                "rune", "arcane", "fae", "enchant", "glimmer", "oracle", "eternal", "night", "ancient"),
     "infernal": ("fire", "flame", "ember", "cinder", "lava", "magma", "scorch", "burn", "forge", "furnace", "brimstone", "blaze", "molten",
                  "smolder", "slag", "searing"),
-    "jungle": ("swamp", "marsh", "bog", "mire", "tangle", "jungle", "serpent", "raptor", "moss", "mud", "venom"),
+    "jungle": ("tangle", "jungle", "serpent", "raptor", "moss", "venom"),
+    "marsh": ("swamp", "marsh", "bog", "mire", "mud", "reed", "quag", "slough", "bayou"),
+    "coast": ("harbor", "harbour", "bay", "beach", "coast", "shore", "isle", "island", "cove", "dock", "pier", "wharf", "reef", "tide",
+              "gull", "lighthouse", "strand", "seaside", "seashore", "seaspray", "seabreeze"),   # not "sea": a seat, a season
+    "frozen": ("frost", "snow", "ice", "icy", "frozen", "winter", "chill", "glacier", "rime", "blizzard", "hoar"),
     # (2026-11-16, played: "Shen'dar Highlands" was heard as the plain country round it. The words for high ground itself.)
-    "highland": ("frost", "snow", "ice", "icy", "frozen", "winter", "chill", "glacier", "crag", "eagle", "gryphon", "highland", "mountain",
-                 "peak", "ridge", "summit", "cliff", "height", "crest", "pinnacle", "moor"),
+    "highland": ("crag", "eagle", "gryphon", "highland", "mountain", "peak", "ridge", "summit", "cliff", "height", "crest", "pinnacle",
+                 "moor"),
     "desert": ("sand", "dune", "dust", "dry", "salt", "mesa", "canyon", "gulch", "barren", "waste", "bleach", "parch", "scorpid"),
     "pastoral": ("gold", "sunny", "meadow", "bloom", "blossom", "honey", "apple", "berry", "willow", "brook", "clover", "barley", "wheat"),
     "regal": ("king", "queen", "crown", "throne", "royal", "lion", "noble", "court", "cathedral", "garrison", "bastion", "valor", "honor"),

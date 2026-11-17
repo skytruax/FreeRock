@@ -113,9 +113,11 @@
   const SISTER = 0.8;          // ...and how much a sister family's beginning counts (see _worn)
   const SETTING = 0.35;        // how much a piece written for other ground than the player's counts against it (see _setting)
   // The kinds of place whose music sits well in each other's: what is reached for before a track is heard a third time.
-  const NEAR = { pastoral: ["highland", "regal", "mystic"], highland: ["pastoral", "regal"], regal: ["pastoral", "highland", "infernal"],
-                 haunted: ["mystic", "jungle"], mystic: ["haunted", "jungle", "pastoral"], jungle: ["mystic", "haunted", "desert"],
-                 desert: ["infernal", "jungle"], infernal: ["desert", "regal"] };
+  const NEAR = { pastoral: ["highland", "regal", "mystic", "coast"], highland: ["pastoral", "regal", "frozen"], regal: ["pastoral", "highland", "infernal"],
+                 haunted: ["mystic", "jungle", "marsh"], mystic: ["haunted", "jungle", "pastoral"], jungle: ["mystic", "haunted", "desert", "marsh"],
+                 desert: ["infernal", "jungle"], infernal: ["desert", "regal"],
+                 // (2026-11-17, evening: "make more types or categories of places".)
+                 marsh: ["jungle", "haunted", "mystic"], coast: ["pastoral", "mystic", "regal"], frozen: ["highland", "mystic"] };
   // How dark or bright ("in a dark misty place and music is too light we need lots of different granularity",
   // 2026-11-16). A place has a shade from -3 (grim) to 3 (radiant), which the server works out from what the
   // place is called, the hour and the weather; a piece has one too, from the mode it is written in, whether it is
@@ -124,7 +126,8 @@
   // written for the place's second kind and not its first).
   const SHADE = 0.18;
   const MODE_SHADE = { lydian: 2, major: 2, mixolydian: 1, dorian: 0, minor: -1, "phrygian dominant": -1.5, phrygian: -2, locrian: -3 };
-  const KIND_SHADE = { pastoral: 0.5, regal: 0.5, highland: 0, mystic: 0, desert: 0, jungle: -0.5, haunted: -1, infernal: -1 };
+  const KIND_SHADE = { pastoral: 0.5, regal: 0.5, highland: 0, mystic: 0, desert: 0, jungle: -0.5, haunted: -1, infernal: -1,
+                       marsh: -0.5, coast: 0.5, frozen: 0 };
   const FOLLOW_BY = 0.25;      // the music moves for a place only when another piece suits it this much better
   const SETTLE = 4.0;          // seconds in another kind of place (or in a cave, an inn) before the music follows: a step over a border and back changes nothing
   const PLACE_STAY = 20.0;     // ...and the music does not move for a place twice within this long
@@ -792,7 +795,12 @@
     _mood(meta) {
       const kinds = this.target.kinds || [];
       if (!kinds.length || !meta.moods.length) return 0.5;
-      if (meta.moods.includes(kinds[0])) return 0;
+      // A piece written for this kind of place first comes before one that also lists it ("it only matters if those new
+      // categories have different families of songs", 2026-11-17): the marsh hears its own families before the jungle's
+      // that suit it too. A piece for every kind of place (five or more) is written for none first.
+      const own = meta.moods.length < 5 ? meta.moods[0] : null;
+      if (own === kinds[0]) return 0;
+      if (meta.moods.includes(kinds[0])) return 0.2;
       if (meta.moods.some((mood) => kinds.includes(mood))) return 0.3;
       return meta.moods.some((mood) => (NEAR[kinds[0]] || []).includes(mood)) ? 0.6 : 1;
     }

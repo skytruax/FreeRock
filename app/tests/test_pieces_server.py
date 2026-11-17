@@ -83,7 +83,8 @@ def test_every_zone_has_a_kind_and_a_place_with_no_name_has_none():
     # A place's own name comes before the country it is in ("in a dark misty place and music is too light",
     # 2026-11-16: Shadowgale Forest, on an island that is bright and breezy)...
     assert atlas.kinds_for("Zephras Isle", "Shadowgale Forest") == (["haunted", "pastoral"], False)
-    assert atlas.kinds_for("Ashenvale", "Nightsong Woods")[0][0] == "mystic" and atlas.kinds_for("Dun Morogh", "Frostmane Hold")[0][0] == "highland"
+    # (Frostmane Hold was highland until the snowfields became a kind of their own, 2026-11-17, evening.)
+    assert atlas.kinds_for("Ashenvale", "Nightsong Woods")[0][0] == "mystic" and atlas.kinds_for("Dun Morogh", "Frostmane Hold")[0][0] == "frozen"
     # ...read from the beginnings of its words only: an orchard is not charred, nor a grotto rotten, nor a pilgrim grim.
     from freerock import kinds
     assert kinds.named("Sunnyglade Orchard") == ["pastoral"] and kinds.named("Pilgrim's Grotto") == [] and kinds.named("Shadowgale Forest") == ["haunted"]

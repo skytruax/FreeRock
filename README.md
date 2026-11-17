@@ -224,8 +224,8 @@ told by another band each time.
 
 ### Where you are, and what is going on
 
-A track says what it is for. There are **eight kinds of place**: pastoral, highland, haunted,
-desert, jungle, infernal, regal and mystic. Every zone and named subzone belongs to one or two of
+A track says what it is for. There are **eleven kinds of place**: pastoral, highland, haunted,
+desert, jungle, infernal, regal, mystic, marsh, coast and frozen. Every zone and named subzone belongs to one or two of
 them, read from its profile (`app/freerock/kinds.py`, `atlas/`). There are also **kinds of
 moment**, and the director picks one, first match wins:
 

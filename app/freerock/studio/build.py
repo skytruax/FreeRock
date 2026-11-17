@@ -60,7 +60,23 @@ FLOOR = {"open": {"rhythm": 1.0, "bass": 0.85, "drums": 0.6}, "theme": {"rhythm"
 
 # Characters written after the camps were named, kept to the end of the plan so that no family made before is given
 # another title: the dungeon bosses of 2026-11-17's afternoon.
-LAST_ADDED = ("deep tide", "fallen crusade")
+LAST_ADDED = ("deep tide", "fallen crusade",
+              # (the same evening, for the new kinds of place: the marsh, the coast, the snowfields)
+              "bog lights", "grey fen", "sea breeze", "salt road", "lighthouse", "ice fields", "white waste",
+              # (and their own music for every moment: "it only matters if those new categories have different families of songs")
+              "frog chorus", "bog inn", "drowned grotto", "reed fire", "bog beast", "sailors rest", "tide cave", "driftwood fire",
+              "sea king", "sea storm", "aurora", "mead hall", "ice cave", "frost camp", "frost wyrm", "whiteout",
+              # (Knight Rock's for the new kinds)
+              "bayou boogie", "sea dog", "frost hammer")
+
+
+def _shapes_last(character) -> list[int]:
+    """The takes of each family of a character named last: as the others of its sort have them, all at once."""
+    if character.role == "wander":
+        return [3, 2]
+    if character.role in ("town", "battleground"):
+        return [3, 3]
+    return [2, 2]
 
 
 def plan() -> list[tuple[Family, int]]:
@@ -120,8 +136,8 @@ def plan() -> list[tuple[Family, int]]:
     # Dungeon bosses for the kinds of place that had only the titan's (2026-11-17, afternoon: "we want lots of options of
     # inns camping, caves dungeons"): two families of two for each, named after every family made before them.
     for index, character in last:
-        for number in (0, 1):
-            add(index, character, number, 2)
+        for number, takes in enumerate(_shapes_last(character)):
+            add(index, character, number, takes)
     return out
 
 
@@ -130,11 +146,12 @@ def plan() -> list[tuple[Family, int]]:
 # piece had a choir and a bell at its moments, so every moment sounded alike.) Music for every kind of place, the
 # fights and the storms keep the choir and the bell.
 CROWNS = {"haunted": ("choir", True), "mystic": ("choir", True), "regal": ("choir", True), "infernal": ("choir", False),
-          "highland": ("horns", True), "pastoral": ("horns", False), "desert": ("", False), "jungle": ("", False)}
+          "highland": ("horns", True), "pastoral": ("horns", False), "desert": ("", False), "jungle": ("", False),
+          "marsh": ("oohs", False), "coast": ("horns", False), "frozen": ("choir", True)}
 
 
 CROWNS_LIGHT = {"pastoral": "horns", "highland": "horns", "regal": "horns", "mystic": "oohs", "haunted": "oohs", "jungle": "oohs",
-                "desert": "", "infernal": ""}
+                "desert": "", "infernal": "", "marsh": "oohs", "coast": "horns", "frozen": "oohs"}
 
 
 def crown_of(character) -> tuple[str, bool]:
@@ -155,7 +172,7 @@ def project_of(fam: Family, take: int) -> Path:
     return PROJECTS / fam.character.style / fam.name / str(take) / "track.rpp"
 
 
-def tamed_tone(name: str, instrument: str, band: bool = False) -> str | None:
+def tamed_tone(name: str, instrument: str, band: bool = False, channel: str = "") -> str | None:
     """The top of a voice that comes out bright against the liked stems, taken down (2026-11-17, midday, the morning's
     storms, inns, bosses and battles: the brass stabs and the tubular bells at the moments had the accompaniment 12 to
     16 dB over from 3.5 kHz up, and the harmonica that plays the accordion had the inns' texture 20 to 24 dB over)."""
@@ -180,6 +197,12 @@ def tamed_tone(name: str, instrument: str, band: bool = False) -> str | None:
     if name == "trombone tutti":
         # (...and a trombone doubling a battle's bass line had the bass 9 to 13 dB over at the top.)
         return sounds.equalise(high_shelf=(1500.0, -6.0))
+    if band and channel in ("texture", "lead"):
+        # (Knight Rock's second families that evening, with its organs taken down: the rest of the band's texture and lead,
+        # the lead guitar, the shenai, the pan flute, the whistle and the fiddle, still 12 to 22 dB over the liked band stems
+        # from 7 kHz up. In a rock mix the cymbals own the top, and a guitar's cabinet, a keyboard's speaker and a reed fall
+        # away above it. Their bite at 2 to 4 kHz is kept.)
+        return sounds.equalise(high_cut=7500.0, high_shelf=(4000.0, -6.0))
     return None
 
 
@@ -290,7 +313,7 @@ def stage(fam: Family, take: int) -> dict:
                 continue
             taste = INSTRUMENTS[voice.instrument].level if voice.instrument in INSTRUMENTS else 1.0
             made = sounds.lines(voice, name, fam.bpm, taste=taste, room=room, seed=fam.seed * 31 + take)
-            tamed = tamed_tone(name, voice.instrument, band=character.band)
+            tamed = tamed_tone(name, voice.instrument, band=character.band, channel=channel)
             if tamed:
                 for line in made:
                     line.effects = list(line.effects) + [tamed]
