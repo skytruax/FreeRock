@@ -158,30 +158,74 @@ def _loud(levels: list[float]) -> list[float]:
     return [min(max(0.9 * math.sqrt(level / top), 0.08), 1.0) for level in levels]
 
 
-def voices(heard: Heard) -> list[tuple[str, str, str, str, float, list[Note], float]]:
+def _bar_of(at: float) -> int:
+    """The bar a note is struck in (one struck a hair early, as a player does, belongs to the bar it is early for)."""
+    return int((at + 0.02) // house.BAR)
+
+
+def _bars(notes: list[tuple[float, float, float, float, float, float]]) -> dict[int, float]:
+    """How loud the writer has a voice in each bar it plays in: the mean of the notes struck there."""
+    struck: dict[int, list[float]] = defaultdict(list)
+    for at, _, _, level, _, _ in notes:
+        struck[_bar_of(at)].append(level)
+    return {bar: float(np.mean(levels)) for bar, levels in struck.items()}
+
+
+def _ride(bars: dict[int, float]) -> list[tuple[float, float]]:
+    """A voice's levels from bar to bar as its track's volume moves ((beat, gain)), its loudest bar
+    at full. (2026-11-17, morning: the house tracks came out all but level from their first bar to
+    their last, 2 to 9 dB between their quietest part and their loudest. Surge XT's patches play a
+    note alike however hard it is struck, so what the writer wrote softer was not: a breakdown's
+    pad written 5 dB under the drop's came out 5 dB over it. Muse Sounds' instruments do play
+    softer, and keep their velocities.)"""
+    top = max(bars.values())
+    moves: list[tuple[float, float]] = []
+    before = None
+    for bar in sorted(bars):
+        gain = bars[bar] / top
+        if before is not None and abs(gain - before) < 0.01:
+            continue
+        at = bar * 4.0
+        if before is not None:
+            moves.append((at - 0.1, before))           # a tenth of a beat to get there: nothing held over the bar line clicks
+        moves.append((at, gain))
+        before = gain
+    return moves
+
+
+def voices(heard: Heard) -> list[tuple[str, str, str, str, float, list[Note], float, list[tuple[float, float]]]]:
     """Every line the desk plays, worked out once (so that what MuseScore is asked to perform ahead
     is what the desk then lays down): (channel, the writer's table, its sound, the instrument that
-    plays it, the cut at its top in Hz or 0, the notes in beats, how far it is turned down)."""
+    plays it, the cut at its top in Hz or 0, the notes in beats, how far it is turned down, and the
+    volume moves that play its bars as loud as they were written, if its instrument does not)."""
+    bars = {key: _bars(notes) for key, notes in heard.notes.items()}
     most: dict[str, float] = defaultdict(float)
-    for (channel, table, name), notes in heard.notes.items():
-        most[channel] = max(most[channel], float(np.mean([level for _, _, _, level, _, _ in notes])))
+    for (channel, _, _), levels in bars.items():
+        most[channel] = max(most[channel], max(levels.values()))
     out = []
     for (channel, table, name), notes in sorted(heard.notes.items()):
         written = PLAYED[(table, name)]
-        taste = min(max(float(np.mean([level for _, _, _, level, _, _ in notes])) / most[channel], 0.35), 1.0)
-        hard = _loud([level for _, _, _, level, _, _ in notes])
+        levels = bars[(channel, table, name)]
+        # Each voice of a channel to the others as the writer has them where each is loudest (its quieter bars are the
+        # volume moves' business, or its velocities').
+        taste = min(max(max(levels.values()) / most[channel], 0.35), 1.0)
+        if written in muse.PARTS and muse.available():
+            hard, ride = _loud([level for _, _, _, level, _, _ in notes]), []
+        else:
+            # The bars ride the track's volume; how hard a note is struck says only how it stands out in its bar.
+            hard, ride = _loud([level / levels[_bar_of(at)] for at, _, _, level, _, _ in notes]), _ride(levels)
         bands: dict[float, list[Note]] = defaultdict(list)
         for (at, length, pitch, _, _, bright), loud in zip(notes, hard):
             cut = next(cut for under, cut in BRIGHT if bright < under)
             bands[cut].append(Note(at / BEAT, max(length / BEAT, 0.05), int(round(pitch)), loud))
         for cut, mine in sorted(bands.items()):
-            out.append((channel, table, name, written, cut, mine, taste))
+            out.append((channel, table, name, written, cut, mine, taste, ride))
         if written == "house sub":
             # (2026-11-17, night: against the liked house stems the bass was 30 dB short in its middle and 44 at its top: a
             # sine under 100 Hz, which a small loudspeaker does not play at all.) A sawtooth on the same notes, closed
             # above 900 Hz and well under the sub, is the part of the bass that is heard; the sub is the part that is felt.
             every = [note for _, mine in sorted(bands.items()) for note in mine]
-            out.append((channel, table, name + " growl", "house bass saw", 900.0, every, taste * 0.45))
+            out.append((channel, table, name + " growl", "house bass saw", 900.0, every, taste * 0.45, ride))
     return out
 
 
@@ -213,9 +257,15 @@ def lines(heard: Heard, track: house.Take, work: Path) -> tuple[dict[str, list[d
             effects, send, volume = chains[which]
             out["drums"].append(desk.Line("house %s" % which, template, notes, volume=volume, send=send, effects=effects))
     # ----- the voices: each sound of each channel, its notes shared out by how bright they are asked for
-    for channel, table, name, written, cut, mine, taste in voices(heard):
+    for channel, table, name, written, cut, mine, taste, ride in voices(heard):
             title = "%s %s%s" % (table, name, " (to %d Hz)" % cut if cut else "")
-            for line in sounds.lines(Voice(0, notes=mine, instrument=written), title, house.BPM, taste=taste, room=1.0, seed=seed):
+            # (MuseScore's players measured to the level the studio's own are, 2026-11-17, morning: they were laid in
+            # 6 dB up as the orchestra has them, and a channel that had one of each had no level between them, a
+            # haunted piece's theme sung by the Wurlitzer 7 dB over its drops sung by Surge's sine.)
+            for line in sounds.lines(Voice(0, notes=mine, instrument=written), title, house.BPM, taste=taste, room=1.0, seed=seed,
+                                     muse_level=sounds.LEVEL):
+                if ride:
+                    line.moves = list(ride)
                 if cut:
                     line.effects = list(line.effects) + [sounds.equalise(high_cut=cut)]
                 if channel == "bass":
@@ -314,7 +364,7 @@ def stage(name: str, take: int) -> dict:
     heard = listen(track)
     if muse.available():
         # MuseScore performs its instruments' lines several at a time before the project is put together.
-        muse.prepare([(written, mine, float(house.BPM), []) for _, _, _, written, _, mine, _ in voices(heard) if written in muse.PARTS],
+        muse.prepare([(written, mine, float(house.BPM), []) for _, _, _, written, _, mine, _, _ in voices(heard) if written in muse.PARTS],
                      seed=track.seed, workers=4)
     under, strokes = lines(heard, track, work)
     folders = []

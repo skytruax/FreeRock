@@ -330,3 +330,68 @@ def test_the_air_is_played_in_reaper_by_the_studios_instrument_each_sound_a_note
     assert all(later - earlier > 0 for earlier, later in zip(starts, starts[1:]))
     assert len(wind.notes) < sum(1 for air in airs if air.kind == "wind") + 1
     assert all(0.0 < note.loud <= 1.0 for line in lines for note in line.notes)
+
+
+def test_a_synth_voice_plays_its_bars_as_loud_as_they_were_written_and_its_notes_only_stand_out_in_them(monkeypatch):
+    # (2026-11-17, morning: Surge XT's patches play a note alike however hard it is struck, and the house tracks came out
+    # level from end to end: a breakdown's pad written 5 dB under the drop's came out over it.)
+    from freerock.studio import club
+    monkeypatch.setattr(club.muse, "available", lambda: True)
+    heard = club.Heard()
+    bar = house.BAR
+    for index in range(4):                       # two bars of the drop's groove, then two of a soft breakdown
+        level = 0.5 if index < 2 else 0.25
+        for step in range(4):
+            accent = 1.0 if step == 0 else 0.8
+            heard.notes[("bass", "bass", "saw")].append((index * bar + step * bar / 4, bar / 8, 40.0, level * accent, 0.0, 1.0))
+    heard.notes[("lead", "lead", "keys")].append((0.0, bar, 64.0, 0.5, 0.0, 1.0))       # the Wurlitzer: MuseScore's
+    heard.notes[("lead", "lead", "keys")].append((2 * bar, bar, 64.0, 0.25, 0.0, 1.0))
+    found = {(channel, name): (mine, taste, ride) for channel, _, name, _, _, mine, taste, ride in club.voices(heard)}
+    notes, taste, ride = found[("bass", "saw")]
+    assert taste == 1.0
+    assert ride[0] == (0.0, 1.0) and ride[-1] == (8.0, pytest.approx(0.5))        # the third bar (beat 8) at half
+    assert ride[-2] == (pytest.approx(7.9), 1.0)                                 # got to over a tenth of a beat
+    # The same accent in a loud bar and in a soft one is struck as hard: the bar's level is the volume's.
+    assert notes[0].loud == pytest.approx(notes[8].loud) and notes[1].loud == pytest.approx(notes[9].loud)
+    assert notes[1].loud < notes[0].loud
+    wurly, _, wurly_ride = found[("lead", "keys")]
+    assert wurly_ride == [] and wurly[1].loud < wurly[0].loud                  # Muse Sounds play softer when struck softer
+
+
+def test_the_voices_of_a_channel_are_set_against_each_other_where_each_is_loudest(monkeypatch):
+    from freerock.studio import club
+    monkeypatch.setattr(club.muse, "available", lambda: False)
+    heard = club.Heard()
+    bar = house.BAR
+    # The drop's tune at 0.6 for one bar of eight; the theme's softer voice at 0.4 all through.
+    heard.notes[("lead", "lead", "saw")].append((0.0, bar, 64.0, 0.6, 0.0, 1.0))
+    heard.notes[("lead", "lead", "saw")] += [(index * bar, bar, 64.0, 0.06, 0.0, 1.0) for index in range(1, 8)]
+    heard.notes[("lead", "lead", "hollow")] += [(index * bar, bar, 64.0, 0.4, 0.0, 1.0) for index in range(8)]
+    found = {name: taste for _, _, name, _, _, _, taste, _ in club.voices(heard)}
+    assert found["saw"] == 1.0 and found["hollow"] == pytest.approx(0.4 / 0.6)
+
+
+def test_a_performance_is_measured_where_it_is_played_firmest():
+    from freerock.studio import sounds
+    from freerock.studio.score import Note
+    rate, bpm = 48000, 120.0
+    seconds = np.arange(8 * rate) / rate
+    tone = np.sin(2 * np.pi * 440.0 * seconds).astype(np.float32)
+    audio = np.stack([tone, tone], axis=1)
+    audio[4 * rate:] *= 0.5                              # its last four seconds played 6 dB softer (20 would be gated out anyway)
+    notes = [Note(0.0, 8.0, 69, 0.9), Note(8.0, 8.0, 69, 0.3)]          # beats: four seconds each at 120
+    firm = sounds.firm_loudness(audio, rate, notes, bpm)
+    from freerock import analysis
+    assert firm == pytest.approx(analysis.loudness_lufs(audio[:4 * rate], rate), abs=0.2)
+    assert firm > analysis.loudness_lufs(audio, rate) + 1.0
+
+
+def test_a_house_tracks_two_drops_are_both_its_moment(staged):
+    folder, _ = staged
+    meta, parts = studio.read_track(folder)
+    two = dict(meta, sections=meta["sections"] + [dict(section) for section in meta["sections"]])
+    doubled = {channel: np.concatenate([audio[:-int(meta["post_s"] * RATE)], audio]) for channel, audio in parts.items()}
+    found = house.measure(two, doubled)
+    once = house.measure(meta, parts)
+    assert found["sections"]["moment"] == pytest.approx(once["sections"]["moment"], abs=0.5)
+    assert not any("outside the moment" in problem for problem in found["problems"])

@@ -958,9 +958,11 @@ class Take:
                         synth.play(out, sound, self.at(bar, step), length * STEP * 0.92, pitch, loud * 0.5 * (0.85 + rng.random() * 0.15),
                                    seed=self.seed + bar * 16 + int(step), bright=bright)
                 elif story == "close" or self.broken(story, first) or (story == "open" and early and inside >= count // 2):
-                    # One long note to a bar, far down (the breakdown's too).
+                    # One long note to a bar, far down (the breakdown's too). (2026-11-17, morning: at a third of full it
+                    # came out louder than the drops' bass, a held note being loud all through its bar where a groove is
+                    # loud on its notes, and the groove ducked under the kick: now 8 to 10 dB under the groove.)
                     held = sound if not isinstance(sound, Patch) or sound.sustain > 0.5 else BASS["sub"]
-                    synth.play(out, held, self.at(bar, 0), 15 * STEP, self.bass_note(chord, "R"), trim(held, 40) * 0.34 * (0.5 + energy),
+                    synth.play(out, held, self.at(bar, 0), 15 * STEP, self.bass_note(chord, "R"), trim(held, 40) * 0.16 * (0.5 + energy),
                                seed=self.seed + bar, bright=0.35)
                 elif story == "rise" and builds and inside >= count - build:
                     # Eighths on one note, opening up, through the build.
@@ -1341,21 +1343,25 @@ def measure(meta: dict[str, Any], parts: dict[str, np.ndarray]) -> dict[str, Any
     mix = sum(parts.values())
     found: dict[str, Any] = {"peak": round(float(np.max(np.abs(mix))), 3), "sections": {}}
     problems: list[str] = []
-    for section, first, last in zip(meta["sections"], edges, edges[1:]):
-        found["sections"][section["story"]] = round(analysis.loudness_lufs(mix[first:last], RATE), 1)
+    spans = [(section["story"], first, last) for section, first, last in zip(meta["sections"], edges, edges[1:])]
+    for story, first, last in spans:
+        # Each part of the story at its loudest: a house track tells its theme, its rise and its drop twice.
+        loud = round(analysis.loudness_lufs(mix[first:last], RATE), 1)
+        found["sections"][story] = max(loud, found["sections"].get(story, loud))
     loudest = max(found["sections"], key=lambda story: found["sections"][story])
     if found["sections"]["moment"] < found["sections"][loudest] - 0.5:
         problems.append("its %s is louder than its moment" % loudest)
     if found["peak"] > 0.98 or any(float(np.max(np.abs(audio))) > 0.98 for audio in parts.values()):
         problems.append("it clips")
-    where = [section["story"] for section in meta["sections"]].index("moment")
-    first, last = edges[where], edges[where + 1]
+    drops = [(first, last) for story, first, last in spans if story == "moment"]
+    first, last = drops[-1]                       # the last drop, by which the desk places every part
+    where = max(index for index, (story, _, _) in enumerate(spans) if story == "moment")
     # No part may be much louder anywhere else than it is where the track is fullest: the parts
     # are balanced by how loud they are there, and one that shouted elsewhere would force the
     # whole track down to make room for it.
     for channel, audio in parts.items():
-        at_moment = synth.level_of(audio[first:last])
-        elsewhere = max(synth.level_of(audio[a:b]) for a, b in zip(edges, edges[1:]))
+        at_moment = max(synth.level_of(audio[a:b]) for a, b in drops)
+        elsewhere = max(synth.level_of(audio[a:b]) for story, a, b in spans if story != "moment")
         if elsewhere - at_moment > 5.0:
             problems.append("the %s is %.0f dB louder outside the moment than in it" % (channel, elsewhere - at_moment))
     count = meta["sections"][where]["bars"]

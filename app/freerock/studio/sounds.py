@@ -1236,14 +1236,41 @@ MUSE_TONE = {"Muse Guitars Vol 1/Electric LP - Heavy": dict(low_shelf=(170.0, 3.
 MUSE_NARROW = {"Muse Guitars Vol 1/Electric Bass": 0.35, "Muse Keys/Hammond Organ": 0.4}       # how much of what differs between left and right is kept
 
 
-def _muse(voice: Voice, title: str, bpm: float, taste: float, room: float, seed: int) -> list[desk.Line]:
+def firm_loudness(audio: np.ndarray, rate: int, notes: list[Note], bpm: float) -> float:
+    """How loud a performance is where it is played firmest (LUFS): the stretches of its notes
+    struck within about 4 dB of its hardest, laid end to end (all of it, where those come to less
+    than a second)."""
+    from .. import analysis
+    top = max(note.loud for note in notes)
+    spans: list[list[float]] = []
+    for note in sorted(notes, key=lambda each: each.start):
+        if note.loud < 0.8 * top:
+            continue
+        first, last = note.start * 60.0 / bpm, (note.start + note.length) * 60.0 / bpm
+        if spans and first <= spans[-1][1]:
+            spans[-1][1] = max(spans[-1][1], last)
+        else:
+            spans.append([first, last])
+    pieces = [audio[int(first * rate):int(last * rate)] for first, last in spans]
+    firm = np.concatenate(pieces) if pieces else audio[:0]
+    return analysis.loudness_lufs(firm if len(firm) >= rate else audio, rate)
+
+
+def _muse(voice: Voice, title: str, bpm: float, taste: float, room: float, seed: int, level: float | None = None) -> list[desk.Line]:
     """The tracks of a voice that MuseScore plays (studio.muse): for each part that has some
     of its notes, MuseScore's recording of that part laid on a track of its own. Which Muse
-    Sound plays a part that has several is drawn from the piece's `seed`."""
+    Sound plays a part that has several is drawn from the piece's `seed`. With `level` (LUFS),
+    each recording is turned to play at it where it is played firmest, as the other players are
+    measured to (LEVEL); without, Muse Sounds keep their balance among themselves."""
     import soundfile
     out = []
     for part, way, notes, sound in muse.shared(voice.instrument, voice.notes, seed):
         made = muse.perform(part, notes, bpm=bpm, way=way, sound=sound, swells=voice.swells or None)
+        if level is None:
+            volume = _db(MUSE_LEVEL + MUSE_TRIM.get(sound or "", 0.0))
+        else:
+            audio, rate = soundfile.read(str(made), dtype="float32", always_2d=True)
+            volume = _db(level - firm_loudness(audio, rate, notes, bpm))
         effects = [equalise(low_cut=MUSE_CUT.get(sound or "", MUSE_CUT.get(part, 28.0)), high_cut=MUTED_TOP if part == "Muted Guitar" else 0.0, **MUSE_TONE.get(sound or "", {}))]
         if sound in MUSE_NARROW:
             effects.append(wide(MUSE_NARROW[sound]))
@@ -1256,7 +1283,7 @@ def _muse(voice: Voice, title: str, bpm: float, taste: float, room: float, seed:
         if part in ("Rhythm Guitar", "Muted Guitar", "Bass Guitar"):
             effects.append(warm(0.2))
         late = MUSE_LATE.get(sound or "", 0.0)
-        out.append(desk.Line("%s: %s" % (title, part), desk.bare(part, []), volume=_db(MUSE_LEVEL + MUSE_TRIM.get(sound or "", 0.0)) * taste,
+        out.append(desk.Line("%s: %s" % (title, part), desk.bare(part, []), volume=volume * taste,
                              pan=MUSE_SEATS.get(sound or "", 0.0),
                              clips=[(late, soundfile.info(str(made)).duration, str(made))], send=_db(MUSE_SENDS.get(part, MUSE_SEND)) * room,
                              effects=effects))
@@ -1266,13 +1293,15 @@ def _muse(voice: Voice, title: str, bpm: float, taste: float, room: float, seed:
     return out
 
 
-def lines(voice: Voice, title: str, bpm: float, *, taste: float = 1.0, room: float = 1.0, seed: int = 0) -> list[desk.Line]:
+def lines(voice: Voice, title: str, bpm: float, *, taste: float = 1.0, room: float = 1.0, seed: int = 0,
+          muse_level: float | None = None) -> list[desk.Line]:
     """The REAPER tracks that play one written voice. `taste` turns it up or down as a whole;
     `room` is how much hall the piece has (1 is the usual). Where MuseScore's orchestra is
     there (studio.muse), it plays the instruments it has; the drums, and whatever it has not,
-    are the studio's own."""
+    are the studio's own. `muse_level` measures MuseScore's recordings to a level (see `_muse`):
+    for a voice that shares its channel with the studio's own players."""
     if not voice.drums and voice.instrument in muse.PARTS and muse.available():
-        return _muse(voice, title, bpm, taste, room, seed)
+        return _muse(voice, title, bpm, taste, room, seed, muse_level)
     if voice.drums:
         if not voice.instrument.startswith("kit "):
             raise ValueError("The drum voice %s does not say which kit it is" % title)
