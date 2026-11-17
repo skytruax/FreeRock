@@ -52,6 +52,37 @@ _LIGHT = ("sunny", "hopeful", "peaceful", "cheerful", "easy-going", "bright", "s
           "merry", "breezy", "calm pride", "crisp, quiet", "pastoral", "warm")
 
 
+# What a place's own name says ("Shadowgale Forest", "Blightwood", "Emberfall"): the kind of place the beginning
+# of each of its words points to. A zone's profile speaks for the whole zone; its corners are told apart by their
+# names, and a dark wood on a sunny island is a dark wood ("in a dark misty place and music is too light",
+# 2026-11-16). Only the beginning of a word is read: inside a word the same letters turn up by chance (an orchard
+# has "char" in it, a grotto "rot", a pilgrim "grim"). The words that darken count double.
+_IN_NAMES = {
+    "haunted": ("shadow", "dark", "gloom", "dread", "grave", "crypt", "tomb", "ghost", "wraith", "haunt", "raven", "blight", "plague",
+                "wither", "dead", "death", "bone", "skull", "curse", "dusk", "web", "widow", "sorrow", "wail", "bleak", "murk", "gallow",
+                "coffin", "corpse", "nightmare", "doom", "terror", "scourge", "lich", "fel", "black", "grim"),
+    "mystic": ("mist", "fog", "moon", "star", "elder", "shrine", "temple", "spirit", "dream", "whisper", "veil", "twilight", "crystal",
+               "rune", "arcane", "fae", "enchant", "glimmer", "oracle", "eternal", "night", "ancient"),
+    "infernal": ("fire", "flame", "ember", "cinder", "lava", "magma", "scorch", "burn", "forge", "furnace", "brimstone", "blaze", "molten",
+                 "smolder", "slag", "searing"),
+    "jungle": ("swamp", "marsh", "bog", "mire", "tangle", "jungle", "serpent", "raptor", "moss", "mud", "venom"),
+    "highland": ("frost", "snow", "ice", "icy", "frozen", "winter", "chill", "glacier", "crag", "eagle", "gryphon"),
+    "desert": ("sand", "dune", "dust", "dry", "salt", "mesa", "canyon", "gulch", "barren", "waste", "bleach", "parch", "scorpid"),
+    "pastoral": ("gold", "sunny", "meadow", "bloom", "blossom", "honey", "apple", "berry", "willow", "brook", "clover", "barley", "wheat"),
+    "regal": ("king", "queen", "crown", "throne", "royal", "lion", "noble", "court", "cathedral", "garrison", "bastion", "valor", "honor"),
+}
+_DARKENING = ("haunted", "infernal")
+
+
+def named(name: str | None) -> list[str]:
+    """The kinds of place a place's own name points to, the strongest first: none for a name
+    that says nothing ("Goldshire" says pastoral; "The Crossroads" says nothing)."""
+    words = "".join(letter if letter.isalpha() else " " for letter in (name or "").lower()).split()
+    scores = {kind: sum((2 if kind in _DARKENING else 1) for part in parts if any(word.startswith(part) for word in words))
+              for kind, parts in _IN_NAMES.items()}
+    return sorted((kind for kind in KINDS if scores[kind] > 0), key=lambda kind: (-scores[kind], KINDS.index(kind)))
+
+
 def kinds_of(words: list[str] | tuple[str, ...]) -> list[str]:
     """The kinds of place a set of profile words describes: the best fit first, two at most.
     None for words that say nothing about it."""

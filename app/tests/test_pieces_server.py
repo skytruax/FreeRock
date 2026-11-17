@@ -79,6 +79,17 @@ def test_every_zone_has_a_kind_and_a_place_with_no_name_has_none():
     # A dark place in light country is not a light one; a plain one is.
     assert atlas.kinds_for("Elwynn Forest", "Fargodeep Mine")[1] is False
     assert atlas.kinds_for("Elwynn Forest", "Northshire Valley")[1] is True
+    # A place's own name comes before the country it is in ("in a dark misty place and music is too light",
+    # 2026-11-16: Shadowgale Forest, on an island that is bright and breezy)...
+    assert atlas.kinds_for("Zephras Isle", "Shadowgale Forest") == (["haunted", "pastoral"], False)
+    assert atlas.kinds_for("Ashenvale", "Nightsong Woods")[0][0] == "mystic" and atlas.kinds_for("Dun Morogh", "Frostmane Hold")[0][0] == "highland"
+    # ...read from the beginnings of its words only: an orchard is not charred, nor a grotto rotten, nor a pilgrim grim.
+    from freerock import kinds
+    assert kinds.named("Sunnyglade Orchard") == ["pastoral"] and kinds.named("Pilgrim's Grotto") == [] and kinds.named("Shadowgale Forest") == ["haunted"]
+    # A road or a camp colours the country it is in and does not replace it; a graveyard does.
+    assert atlas.kinds_for("The Barrens", "The Crossroads")[0][0] == "desert"
+    assert atlas.kinds_for("Stranglethorn Vale", "Grom'gol Base Camp")[0][0] == "jungle"
+    assert atlas.kinds_for("Elwynn Forest", "Eastvale Graveyard")[0][0] == "haunted"
 
 
 async def test_love_and_ban_are_for_the_whole_piece(tmp_path):

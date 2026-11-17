@@ -123,13 +123,22 @@ def kinds_for(zone_name: str | None, place_name: str | None = None) -> tuple[lis
     zone = profile_for(zone_name)
     found = kinds.kinds_of(list(zone.mood) + list(zone.colours))
     light = kinds.is_light(zone.mood)
-    flavour = place_flavour(place_name) if place_name and slug(place_name) != slug(zone_name) else None
+    if not place_name or slug(place_name) == slug(zone_name):
+        return found, light
+    # In this order: what the place's own name says ("Shadowgale Forest" is a dark wood, whatever island it is on);
+    # a place of the dead (a crypt, a graveyard); the country round it; and last what sort of place it is otherwise
+    # (a road, a lake, a village, a camp, a mine), which colours the country and does not replace it.
+    own = kinds.named(place_name)
+    flavour = place_flavour(place_name)
+    mood: list[str] = []
+    sort: list[str] = []
     if flavour is not None:
         colours, mood = flavour
-        own = kinds.kinds_of(mood + colours)
-        found = (own + [kind for kind in found if kind not in own])[:2]
-        light = kinds.is_light(mood) or (light and not any(kind in _HEAVY_KINDS for kind in own))
-    return found, light
+        sort = kinds.kinds_of(mood + colours)
+    dead = [kind for kind in sort if kind == "haunted"]
+    ordered = list(dict.fromkeys(own + dead + found + sort))
+    light = (kinds.is_light(mood) or light) and not any(kind in _HEAVY_KINDS for kind in own + sort)
+    return ordered[:2], light
 
 
 def slug(name: str) -> str:
