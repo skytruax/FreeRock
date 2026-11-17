@@ -96,6 +96,10 @@ PARTS: dict[str, tuple[tuple, ...]] = {
     "bass clarinet": (("Clarinet in B♭", 0, 127, "", "Muse Woodwinds/Bass Clarinet"),),
     "handbells": (("Tubular Bells", 0, 127, "", "Muse Handbells/Handbells"),),
     "euphonium": (("Tuba", 0, 127, "", "Muse Brass/Euphonium"),),
+    # For the house desk (studio/club.py): a grand that is always the grand, and the two electric pianos.
+    "house piano": (("Piano", 0, 127, "", "Muse Keys/Piano"),),
+    "electric piano": (("Piano", 0, 127, "", "Muse Keys/Suitcase Piano"),),
+    "wurly": (("Piano", 0, 127, "", "Muse Keys/Wurly 200A"),),
     # The band. The riff is played twice, as a record is made: a Les Paul on one side and a Stratocaster on the
     # other, each through its own amplifier (two parts with the same notes; `sounds` seats them). The Les Paul has
     # the weight (its low strings are all there), the Stratocaster the bite. The tune is the Les Paul's lead tone:

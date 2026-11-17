@@ -49,11 +49,11 @@ PLAYED = {
     ("bass", "fm"): "house bass fm", ("bass", "reese"): "house bass wide", ("bass", "organ"): "house bass organ",
     ("keys", "piano"): "house piano", ("keys", "keys"): "electric piano", ("keys", "organ"): "house organ", ("keys", "stab"): "house stab",
     ("keys", "pluck"): "house pluck", ("keys", "bell"): "house bell", ("keys", "glass"): "house glass", ("keys", "harp"): "harp",
-    ("keys", "marimba"): "marimba", ("keys", "oud"): "guitar", ("keys", "string"): "pizzicato", ("keys", "brass"): "brass",
+    ("keys", "marimba"): "marimba", ("keys", "oud"): "guitar", ("keys", "string"): "guitar", ("keys", "brass"): "brass",
     ("lead", "saw"): "house lead saw", ("lead", "super"): "house lead super", ("lead", "hollow"): "house lead hollow", ("lead", "pipe"): "pan flute",
     ("lead", "whistle"): "house lead sine", ("lead", "flute"): "flute", ("lead", "bell"): "house bell", ("lead", "glass"): "house glass",
     ("lead", "keys"): "wurly", ("lead", "pluck"): "house pluck", ("lead", "marimba"): "marimba", ("lead", "harp"): "harp", ("lead", "oud"): "guitar",
-    ("lead", "string"): "violin", ("lead", "brass"): "trumpet",
+    ("lead", "string"): "harp", ("lead", "brass"): "trumpet",
     ("pad", "warm"): "house pad warm", ("pad", "strings"): "strings slow", ("pad", "super"): "house pad super", ("pad", "glass"): "house pad glass",
     ("pad", "hollow"): "house pad hollow", ("pad", "organ"): "house pad organ",
 }
@@ -62,7 +62,11 @@ BRIGHT = ((0.55, 900.0), (0.7, 2200.0), (0.85, 5000.0), (9.0, 0.0))
 KICKS = ("kick", "kick2", "punch", "boom")
 # How far each channel is turned down under a stroke of the kick, as a part of its level (studio.build.DUCK is the
 # orchestra's: 0.56 for its bass). The writer's own pump took 55 to 75% of the bass away and half of the pad.
-DUCK = {"bass": 0.4, "texture": 0.5, "rhythm": 0.7, "lead": 0.88}
+DUCK = {"bass": 0.5, "texture": 0.55, "rhythm": 0.72, "lead": 0.9}
+# ...and how long each takes to come back, in beats. The bass is back in a third of a beat (about 150 ms at 110 BPM,
+# where the records studied put it), so the low end is clear for the kick and full again before the off-beat; the
+# pad takes three quarters of one, which is the pump that is heard.
+RECOVER = {"bass": 0.33, "texture": 0.75, "rhythm": 0.6, "lead": 0.5}
 # Where each channel sits where the track is fullest (LUFS), as the writer's own mix had them.
 PLACE = {"drums": -14.0, "bass": -16.5, "rhythm": -20.0, "lead": -19.0, "texture": -22.0}
 CALM = {"drums": -18.0, "bass": -18.0, "lead": -18.0, "texture": -20.0}        # an inn, the night
@@ -85,28 +89,42 @@ def listen(track: house.Take) -> Heard:
     """Has a take written, taking down every note and stroke instead of playing it. The
     writer's own synthesiser is stood in for while it writes, and put back."""
     heard = Heard()
+    # The writer's tables share some sounds (the same plucked string is a key and a lead), so a sound is looked up in
+    # the table of the channel playing it first.
+    tables = {"bass": house.BASS, "keys": house.KEYS, "lead": house.LEADS, "pad": house.PADS}
+    own = {"bass": "bass", "rhythm": "keys", "lead": "lead", "texture": "pad"}
     names: dict[int, tuple[str, str]] = {}
-    for table, sound_names in (("bass", house.BASS), ("keys", house.KEYS), ("lead", house.LEADS), ("pad", house.PADS)):
+    for table, sound_names in tables.items():
         for name, made in sound_names.items():
             names.setdefault(id(made), (table, name))
+
+    def named(patch) -> tuple[str, str]:
+        table = own.get(channel[0], "")
+        for name, made in tables.get(table, {}).items():
+            if made is patch:
+                return table, name
+        return names[id(patch)]
     channel = [""]
-    rooms: list[int] = []                          # the buffers the drums are struck into, in the order they first appear
+    synth = house.synth
+    kept = {name: getattr(synth, name) for name in ("play", "hit", "drum", "hall", "chorus", "echo")}
 
     def play(out, patch, at, length, pitch, level=0.5, pan=0.0, seed=0, glide_from=None, bright=1.0):
-        table, name = names[id(patch)]
+        if id(patch) not in names:
+            # A sound of the weather's own (the drips in a cave): it stays in the recording of the air.
+            return kept["play"](out, patch, at, length, pitch, level, pan, seed, glide_from, bright)
+        table, name = named(patch)
         heard.notes[(channel[0], table, name)].append((float(at), float(length), float(pitch), float(level), float(pan), float(bright)))
 
     def drum(name, machine="909"):
         return _Drum(name, machine)
 
     def hit(out, sound, at, level=0.8, pan=0.0, speed=1.0):
-        if id(out) not in rooms:
-            rooms.append(id(out))
-        heard.hits.append((sound.name, sound.machine, float(at), float(level), float(pan), rooms.index(id(out)) > 0))
+        if not isinstance(sound, _Drum):
+            return kept["hit"](out, sound, at, level, pan, speed)          # the crackle of a fire: part of the air
+        # The writer strikes its kick dry and everything else into a small room.
+        heard.hits.append((sound.name, sound.machine, float(at), float(level), float(pan), sound.name not in KICKS))
 
     same = lambda audio, *told, **more: audio      # noqa: E731  (the echo, the chorus and the hall are the desk's now)
-    synth = house.synth
-    kept = {name: getattr(synth, name) for name in ("play", "hit", "drum", "hall", "chorus", "echo")}
     kept_trim = house.trim
     synth.play, synth.hit, synth.drum, synth.hall, synth.chorus, synth.echo = play, hit, drum, same, same, same
     house.trim = lambda sound, pitch: 1.0          # every instrument is brought to one level at the desk
@@ -127,7 +145,7 @@ def kit_file(machine: str, drums: list[str]) -> tuple[Path, dict[str, int]]:
     """The sampler's instrument for a drum machine: one key for each drum the take uses."""
     keys = {name: 36 + index for index, name in enumerate(sorted(drums))}
     rows = ["// Written by FreeRock's studio (studio/club.py): MckAudio's TR-8 recordings (CC0), one drum to a key.",
-            "<control>", "default_path=%s/" % house.synth.TR8, "<global>", "loop_mode=one_shot ampeg_release=0.08 pitch_keytrack=0"]
+            "<control>", "default_path=%s/" % house.synth.TR8.resolve(), "<global>", "loop_mode=one_shot ampeg_release=0.08 pitch_keytrack=0"]
     for name, key in keys.items():
         have = house.synth._FILES[name]
         rows.append("<region> key=%d sample=%s.wav" % (key, have.get(machine) or next(iter(have.values()))))
@@ -138,6 +156,27 @@ def _loud(levels: list[float]) -> list[float]:
     """The writer's levels (a part of full strength) as how hard a note is struck: the hardest of a voice is 0.9."""
     top = max(max(levels), 1e-9)
     return [min(max(0.9 * math.sqrt(level / top), 0.08), 1.0) for level in levels]
+
+
+def voices(heard: Heard) -> list[tuple[str, str, str, str, float, list[Note], float]]:
+    """Every line the desk plays, worked out once (so that what MuseScore is asked to perform ahead
+    is what the desk then lays down): (channel, the writer's table, its sound, the instrument that
+    plays it, the cut at its top in Hz or 0, the notes in beats, how far it is turned down)."""
+    most: dict[str, float] = defaultdict(float)
+    for (channel, table, name), notes in heard.notes.items():
+        most[channel] = max(most[channel], float(np.mean([level for _, _, _, level, _, _ in notes])))
+    out = []
+    for (channel, table, name), notes in sorted(heard.notes.items()):
+        written = PLAYED[(table, name)]
+        taste = min(max(float(np.mean([level for _, _, _, level, _, _ in notes])) / most[channel], 0.35), 1.0)
+        hard = _loud([level for _, _, _, level, _, _ in notes])
+        bands: dict[float, list[Note]] = defaultdict(list)
+        for (at, length, pitch, _, _, bright), loud in zip(notes, hard):
+            cut = next(cut for under, cut in BRIGHT if bright < under)
+            bands[cut].append(Note(at / BEAT, max(length / BEAT, 0.05), int(round(pitch)), loud))
+        for cut, mine in sorted(bands.items()):
+            out.append((channel, table, name, written, cut, mine, taste))
+    return out
 
 
 def lines(heard: Heard, track: house.Take, work: Path) -> tuple[dict[str, list[desk.Line]], list[tuple[float, float]]]:
@@ -169,18 +208,7 @@ def lines(heard: Heard, track: house.Take, work: Path) -> tuple[dict[str, list[d
             effects, send, volume = chains[which]
             out["drums"].append(desk.Line("house %s" % which, template, notes, volume=volume, send=send, effects=effects))
     # ----- the voices: each sound of each channel, its notes shared out by how bright they are asked for
-    most = defaultdict(float)
-    for (channel, table, name), notes in heard.notes.items():
-        most[channel] = max(most[channel], float(np.mean([level for _, _, _, level, _, _ in notes])))
-    for (channel, table, name), notes in sorted(heard.notes.items()):
-        written = PLAYED[(table, name)]
-        taste = min(max(float(np.mean([level for _, _, _, level, _, _ in notes])) / most[channel], 0.35), 1.0)
-        hard = _loud([level for _, _, _, level, _, _ in notes])
-        bands: dict[float, list[Note]] = defaultdict(list)
-        for (at, length, pitch, _, _, bright), loud in zip(notes, hard):
-            cut = next(cut for under, cut in BRIGHT if bright < under)
-            bands[cut].append(Note(at / BEAT, max(length / BEAT, 0.05), int(round(pitch)), loud))
-        for cut, mine in sorted(bands.items()):
+    for channel, table, name, written, cut, mine, taste in voices(heard):
             title = "%s %s%s" % (table, name, " (to %d Hz)" % cut if cut else "")
             for line in sounds.lines(Voice(0, notes=mine, instrument=written), title, house.BPM, taste=taste, room=1.0, seed=seed):
                 if cut:
@@ -195,7 +223,7 @@ def lines(heard: Heard, track: house.Take, work: Path) -> tuple[dict[str, list[d
                     line.effects = list(line.effects) + [sounds.equalise(low_cut=180.0), sounds.echo(house.BPM, 0.24, left=3, right=4, again=0.34)]
                     line.send = max(line.send, 0.2)
                 elif channel == "texture":
-                    line.effects = list(line.effects) + [sounds.equalise(low_cut=160.0), sounds.ensemble(0.35)]
+                    line.effects = list(line.effects) + [sounds.equalise(low_cut=200.0), sounds.ensemble(0.35)]
                     line.send = max(line.send, 0.28)
                 out[channel].append(line)
     # ----- the risers and the air: the writer's own, as a recording
@@ -218,8 +246,8 @@ def stage(name: str, take: int) -> dict:
     work.mkdir(parents=True, exist_ok=True)
     heard = listen(track)
     if muse.available():
-        muse.prepare([(PLAYED[(table, sound)], [Note(at / BEAT, max(length / BEAT, 0.05), int(round(pitch)), 0.7) for at, length, pitch, *_ in notes],
-                       float(house.BPM), []) for (_, table, sound), notes in heard.notes.items() if PLAYED[(table, sound)] in muse.PARTS],
+        # MuseScore performs its instruments' lines several at a time before the project is put together.
+        muse.prepare([(written, mine, float(house.BPM), []) for _, _, _, written, _, mine, _ in voices(heard) if written in muse.PARTS],
                      seed=track.seed, workers=4)
     under, strokes = lines(heard, track, work)
     folders = []
@@ -231,9 +259,10 @@ def stage(name: str, take: int) -> dict:
             if at <= last:
                 continue
             down = 1.0 - (1.0 - DUCK[channel]) * min(loud / 0.8, 1.0)
-            # Down just before the stroke, held for a sixteenth, back over the rest of the beat.
-            moves += [(at - 0.02, 1.0), (at, down), (at + 0.12, down), (at + 0.62, 1.0)]
-            last = at + 0.62
+            # Down just before the stroke, held for a moment, back over the channel's own time.
+            back = RECOVER[channel]
+            moves += [(at - 0.02, 1.0), (at, down), (at + 0.08, down), (at + back, 1.0)]
+            last = at + back
         folders.append((desk.Line(channel, desk.bare(channel, []), effects=sounds.bus(channel), moves=moves), under[channel]))
     seconds = track.bars * house.BAR
     rpp = work / "track.rpp"
