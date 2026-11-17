@@ -819,7 +819,8 @@ chorus and the hall are the desk's now*.
 - **The under line.** In a synth voice, notes written under 0.6 of their four bars' loudest (`UNDER`)
   go to a track of their own, as far under as they were written.
 - **Sub and growl.** Under the plucked and sawtooth basses (`SUBBED`) a sine sub plays their own notes
-  at 0.7: *an octave under, tried the same morning, put the sub at 25 to 45 Hz*. Beside the sub and
+  at 0.8 (0.7 until the third pass: the liked basses had 3 to 7 dB more at 28 to 57 Hz): *an octave
+  under, tried the same morning, put the sub at 25 to 45 Hz*. Beside the sub and
   the FM bass a sawtooth growl closed at 900 Hz plays at 0.45: *the part of the bass that is heard;
   the sub is the part that is felt*.
 - **The kit** (`club.kit_file`). The TR-8 recordings the writer used become an SFZ instrument for
@@ -830,11 +831,14 @@ chorus and the hall are the desk's now*.
   its own time: the bass to 0.5, back in a third of a beat (*about 150 ms at 110 BPM, where the records
   studied put it*); the pad to 0.55 over three quarters of a beat, *the pump that is heard*; the chords
   to 0.72 over 0.6; the lead to 0.9 over 0.5.
-- **Tone.** Bass closed above 2.5 kHz with its top shelved down, narrowed, dry. Chords cut under
-  110 Hz, closed from 7 kHz, with an echo of three and four sixteenths. Lead cut under 120 Hz with
-  the same echo, Surge's taken down at 2.5 kHz and MuseScore's lifted at 1.2 kHz. Pads cut under
-  200 Hz, closed at 4 kHz (Surge) or 5 kHz (Muse), with a chorus. Each setting is dated in the code
-  with what the ear measured.
+- **Tone.** Bass closed above 1.8 kHz with its top shelved down from 800 Hz, narrowed, dry. Chords
+  cut under 110 Hz, shelved down 16 dB from 2.5 kHz and closed from 6 kHz, with an echo of three
+  and four sixteenths. Lead cut under 120 Hz with the same echo, Surge's taken down at 2.5 kHz and
+  shelved 8 dB from 3.5 kHz, MuseScore's lifted at 1.2 kHz. Pads cut under 200 Hz, shelved 12 dB
+  down and closed at 3.5 kHz (Surge) or 4.5 kHz (Muse), with a chorus; the air closed at 5 kHz.
+  House's hall is darker than the orchestra's (nothing above 6 kHz). Each setting is dated in the
+  code with what the ear measured: three passes so far, each bringing the tops nearer the liked
+  stems (the third, 4 to 9 dB nearer in the pads).
 - **The air** (`club.air_lines`) is played by the studio's own JSFX instrument (`studio/jsfx/air`):
   each sound a note, its sweep on controller 1 and its swell on controller 11.
 - **Levels.** Each voice is set against the others of its channel by where each is loudest (its

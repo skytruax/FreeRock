@@ -162,7 +162,7 @@ def _loud(levels: list[float]) -> list[float]:
 SPAN = 4            # bars: a voice's level is read four at a time (a house phrase is eight, every part a whole number of them)
 UNDER = 0.6         # a note written under this part of the loudest in its four bars is a line under the tune: a doubling, an echo
 SUBBED = ("house bass pluck", "house bass saw")      # the basses that are heard more than felt: a sine goes under them
-SUB_UNDER = 0.7     # ...this far under the bass it holds up
+SUB_UNDER = 0.8     # ...this far under the bass it holds up (0.7 until the third pass: the liked basses have 3 to 7 dB more at 28 to 57 Hz)
 
 
 def _span_of(at: float) -> int:
@@ -309,22 +309,29 @@ def lines(heard: Heard, track: house.Take, work: Path) -> tuple[dict[str, list[d
                 if channel == "bass":
                     # (Against the liked house stems the sawtooth and wide basses were 13 to 34 dB bright above 2.5 kHz,
                     # 2026-11-17, night: a house bass is closed well down. The growl beside the sub has its own cut.)
-                    line.effects = list(line.effects) + [sounds.equalise(low_cut=30.0, high_cut=2500.0, high_shelf=(1200.0, -6.0)),
+                    # (Third pass, 2026-11-17, midday, twenty tracks: still 7 to 13 dB heavy from 450 Hz to 1.8 kHz: closed
+                    # from 1.8 kHz, the shelf down from 800 Hz.)
+                    line.effects = list(line.effects) + [sounds.equalise(low_cut=30.0, high_cut=1800.0, high_shelf=(800.0, -6.0)),
                                                          sounds.wide(0.25)]
                     line.send = 0.0
                 elif channel == "rhythm":
                     # (Measured against the house stems that were liked: the plucks had 11 to 24 dB too much above 3 kHz.)
                     # (Still 13 dB bright there on 2026-11-17, night: 4 dB more; then still 11: 4 more and closed from 7 kHz.)
-                    tone = ((2000.0, -4.0, 1.0),) if synth_played else ()
-                    line.effects = list(line.effects) + [sounds.equalise(low_cut=110.0, high_cut=7000.0, bands=tone, high_shelf=(4500.0, -16.0)),
+                    # (Third pass, midday, twenty tracks: still 11 dB over at 1.8 kHz, 19 to 23 at 3.5 kHz: the shelf from
+                    # 2.5 kHz, closed from 6 kHz.)
+                    tone = ((1800.0, -4.0, 1.0),) if synth_played else ()
+                    line.effects = list(line.effects) + [sounds.equalise(low_cut=110.0, high_cut=6000.0, bands=tone, high_shelf=(2500.0, -16.0)),
                                                          sounds.echo(house.BPM, 0.2, left=3, right=4, again=0.32)]
                     line.send = max(line.send, 0.16)
                 elif channel == "lead":
                     # (The night's leads, MuseScore's, were 6 dB dull at their top and 3 in their middle against the liked house
                     # stems: lifted. The Surge leads are the other way about: taken down from 2.5 kHz. Open from 120 Hz, since
                     # the tunes sit a fifth lower.)
+                    # (Third pass, midday: Surge's leads still 8 to 20 dB over from 1.8 to 7 kHz: taken down further, which
+                    # brought them 4 to 5 dB nearer. MuseScore's keep their lift: given back, a pastoral lead went 3 dB further
+                    # under the liked ones at the top.)
                     if synth_played:
-                        toned = sounds.equalise(low_cut=120.0, bands=((2500.0, -3.0, 1.0),), high_shelf=(5000.0, -4.0))
+                        toned = sounds.equalise(low_cut=120.0, bands=((2500.0, -5.0, 1.0),), high_shelf=(3500.0, -8.0))
                     else:
                         toned = sounds.equalise(low_cut=120.0, bands=((1200.0, 3.0, 1.5),), high_shelf=(4000.0, 6.0))
                     line.effects = list(line.effects) + [toned, sounds.echo(house.BPM, 0.24, left=3, right=4, again=0.34)]
@@ -332,8 +339,9 @@ def lines(heard: Heard, track: house.Take, work: Path) -> tuple[dict[str, list[d
                 elif channel == "texture":
                     # (...and the pad 15 to 35 dB too much there: its glass is kept, its glare taken away; 16 dB bright still on
                     # 2026-11-17, night, with the risers tamed: 4 dB more off, and closed from 5 kHz.)
-                    closed = sounds.equalise(low_cut=200.0, high_cut=4000.0, high_shelf=(2500.0, -10.0)) if synth_played \
-                        else sounds.equalise(low_cut=200.0, high_cut=5000.0, high_shelf=(3500.0, -10.0))
+                    # (Third pass, midday: the pads alone, in the open and the themes, still 7 to 20 dB over at 3.5 to 7 kHz.)
+                    closed = sounds.equalise(low_cut=200.0, high_cut=3500.0, high_shelf=(2000.0, -12.0)) if synth_played \
+                        else sounds.equalise(low_cut=200.0, high_cut=4500.0, high_shelf=(3000.0, -12.0))
                     line.effects = list(line.effects) + [closed, sounds.ensemble(0.35)]
                     line.send = max(line.send, 0.28)
                 out[channel].append(line)
@@ -395,7 +403,7 @@ def air_lines(airs: list) -> list[desk.Line]:
         name = "air %s%s" % (kind, " %d-%d Hz" % (low, high) if kind == "sweep" else "")
         effect = desk.js("freerock/air", number, low or 20.0, high or 20000.0, resonance, 24, 0.6, 0.0)
         lines.append(desk.Line(name, desk.bare(name, [effect]), notes, volume=0.3, controls=controls, send=0.25,
-                               effects=[sounds.equalise(low_cut=150.0, high_cut=7000.0, high_shelf=(2500.0, -9.0))]))
+                               effects=[sounds.equalise(low_cut=150.0, high_cut=5000.0, high_shelf=(2000.0, -12.0))]))
     return lines
 
 
@@ -435,7 +443,7 @@ def stage(name: str, take: int) -> dict:
         folders.append((desk.Line(channel, desk.bare(channel, []), effects=bus, moves=moves), under[channel]))
     seconds = track.bars * house.BAR
     rpp = work / "track.rpp"
-    rpp.write_text(desk.project(folders, bpm=float(house.BPM), seconds=seconds, out=work, tail=forever.POST_S, hall=sounds.hall(1.5)), encoding="utf-8")
+    rpp.write_text(desk.project(folders, bpm=float(house.BPM), seconds=seconds, out=work, tail=forever.POST_S, hall=sounds.hall(1.5, top=6000.0)), encoding="utf-8")       # a darker room than the orchestra's
     with reaper.Display() as display:
         desk.render(rpp, display=display, timeout=300.0 + 12.0 * seconds)       # (see build.stage)
     parts = desk.stems(work, [bus.name for bus, _ in folders], track.frames)

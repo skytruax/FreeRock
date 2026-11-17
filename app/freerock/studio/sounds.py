@@ -873,13 +873,14 @@ def bus(channel: str, style: str = "") -> list[str]:
     return [equalise(low_cut=28.0, high_shelf=(5000.0, 1.0)), squeeze(-14.0, 2.0, 30.0, 250.0, 1.0), warm(0.15), ceiling(-1.5, push=0.5)]
 
 
-def hall(seconds: float) -> str:
+def hall(seconds: float, *, top: float = 10000.0) -> str:
     """The hall at the foot of a channel's folder (Dragonfly's hall reverb, giving only what
-    the room adds): a concert hall that rings `seconds`."""
+    the room adds): a concert hall that rings `seconds`, nothing in it above `top` Hz."""
     # Its "Large Bright Hall", with less ring in the bass and less wobble (its maker's advice for an orchestra).
     return desk.bare("hall", [desk.lv2("Dragonfly Hall Reverb", dry_level=0.0, early_level=0.0, late_level=100.0, size=min(24.0 + 7.5 * seconds, 58.0),
-                                       width=100.0, delay=28.0, diffuse=90.0, low_cut=80.0, low_xo=400.0, low_mult=1.2, high_cut=10000.0,
-                                       high_xo=5800.0, high_mult=0.5, spin=1.0, wander=15.0, decay=seconds, early_send=20.0, modulation=10.0)])
+                                       width=100.0, delay=28.0, diffuse=90.0, low_cut=80.0, low_xo=400.0, low_mult=1.2, high_cut=top,
+                                       high_xo=min(5800.0, top * 0.58), high_mult=0.5, spin=1.0, wander=15.0, decay=seconds, early_send=20.0,
+                                       modulation=10.0)])
 
 
 # ---------------------------------------------------------------------------------------------
