@@ -3,7 +3,8 @@
 Every place and moment the game tells FreeRock about, what the director makes of it, and what
 music there is for it. Counts are families (a family is one piece's changes, key and tempo,
 heard as two or three takes) in `studio/build.plan()`; "takes" are what can be rendered.
-Written 2026-11-16, night, for "Dont forget caves inns pvp ect you make a list".
+Written 2026-11-16, night, for "Dont forget caves inns pvp ect you make a list"; corrected 2026-11-17 against the
+code. How each signal moves each channel is in `docs/signals-and-channels.md`.
 
 ## The places (`director.PLACES`)
 
@@ -11,16 +12,16 @@ Written 2026-11-16, night, for "Dont forget caves inns pvp ect you make a list".
 |---|---|---|---|---|---|---|
 | Walking about outdoors, by day | the default | wander | (in a dungeon: depths; lingering: ember) | 156 families, 390 takes | 20 / 50 | by kind of place |
 | Out of doors at night | `IsDayTime()` false, not in a dungeon | night (walking music counts 0.12 against itself) | wander, and ember when lingering | 24 / 48 | 2 / 4 | night palettes |
-| A cave, a mine, a crypt, a building (a few seconds inside) | `IsIndoors()`, not resting, not in an instance | depths | wander | 22 / 44 | 2 / 4 | depths palettes |
+| A cave, a mine, a crypt, a building (a second inside) | `IsIndoors()`, not resting, not in a dungeon (a battleground's buildings count) | depths | wander | 22 / 44 | 2 / 4 | depths palettes |
 | An inn (resting under a roof) | resting and indoors | ember, 4 dB down, no bass | wander | 16 / 32 | 2 / 4 | ember palettes |
 | A town, a city, an Alliance base (resting out of doors) | resting and not indoors | town | wander | 4 / 12 (alliance town, town square) | none: walking music | 2 (lanterns on the square, harbour lights) |
 | A battleground or an arena | instance of kind battleground or arena | battleground, through its fights and deaths | wander | 4 / 12 (battleground, siege line) | none: battle music | 2 (hold the line, capture the flag) |
 | A dungeon or a raid | instance of kind party, raid or scenario | wander | depths | walking and cave music of the zone's kind | same | same |
 | A dungeon boss | `ENCOUNTER_START` | boss | battle | 6 / 12 | 2 / 4 | moment |
 | The boss is dead, the fight is not | encounter over, still in combat | battle | storm, boss | 8 / 16 | 4 / 8 | moment |
-| A fight in the open (also world PvP) | combat | the same piece, layered: bass, drums and the fight's stems come up | | (every piece) | | |
-| After a fight | combat over for the hold time | ember for the afterglow | | ember | ember | ember |
-| A rain storm that has set in, out of doors | weather rain at storm strength for 10 s | storm | wander | 4 / 8 (tempest, blizzard) | 2 / 4 | storm |
+| A fight in the open | combat (world PvP is not told apart) | the same piece: its drums and bass come up to full; its parts stay as they are (a piece has one strength) | | (every piece) | | |
+| After a fight | combat over: held 3 to 13 s, then easing back | the same piece; after a boss fight of 10 s or more, 8 s of ember (the afterglow) | | ember | ember | ember |
+| A rain storm that has set in, out of doors | weather rain at storm strength (0.6) for 4 s, over when under 0.4 for 20 s | storm | wander | 4 / 8 (tempest, blizzard) | 2 / 4 | storm |
 | Full tilt (a long ride, rolling from pull to pull) | the drive rule | storm | wander | storm | storm | storm |
 | Dead, a ghost | dead flag | ember, filtered, slow and far | wander | ember | ember | ember |
 
@@ -37,7 +38,7 @@ Written 2026-11-16, night, for "Dont forget caves inns pvp ect you make a list".
 | Inn | 4 dB down, no bass |
 | Flight path | high-pass 150 Hz, airy, no bass |
 | Stealth | the bass line alone with quiet drums |
-| Mounted | drums up, brighter |
+| Mounted (moving) | the intensity rises from 0.60 to 0.75 over 25 s: drums and bass up; no change of tone |
 | Standing still | the bed (pads and accompaniment) to 85%; lingering in one spot 65% |
 | Loading screen, cinematic | ducked, or out |
 
@@ -91,7 +92,7 @@ mystic       .    3    .    5    1    .    9
   piece except bosses; fights in the open bring up the layers of what is playing).
 - **Raids** use the dungeon rule (walking and cave music, boss music at encounters). No raid music
   of its own.
-- **Swimming, flying, stealth** are tints, not pieces.
+- **Under water and stealth** are tints, not pieces; swimming on the surface and flying change nothing yet.
 - **Rendered so far tonight**: see `var/passes/` for each pass's list and log; the coverage queue
   (`var/passes/coverage-warcraft.txt`) renders one take of every night, cave, inn, town and
   battleground family, then walking pieces that fill the grids above.
