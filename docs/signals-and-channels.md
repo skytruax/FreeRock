@@ -109,11 +109,12 @@ The first match wins (`director.py:465-526`). Ordinary fights do not change the 
 | 9 | in a town (resting, out of doors) | town | wander |
 | 10 | a rain storm for 4 s, out of doors | storm | wander |
 | 11 | full tilt | storm | wander |
+| 11a | camping: still for 45 s out of doors, not on a flight path, in a dungeon or a fight (added 2026-11-17) | camp | wander, ember; night at night |
 | 12 | night, out of doors and not in a dungeon | night | wander; ember when lingering |
 | 13 | anything else | wander | depths in a dungeon; ember when lingering |
 
 "Also allowed" pieces can be chosen too, at a small cost (0.12 for walking music at night).
-Places 3, 7, 8 and 9 are "sited": the player follows a change into or out of them even in the middle of a piece.
+Places 3, 7, 8, 9 and 11a are "sited": the player follows a change into or out of them even in the middle of a piece.
 
 ## The mixing desk: from the director to each channel
 
@@ -206,6 +207,7 @@ and a fight adds the rest. The cost is P1.
 | riding | 0.60 → 0.75 over 25 s; full tilt at 0.70 | bed | bed | bed | 0.75 → 0.95 | 0.75 → 0.95 | |
 | standing still | 0.25 | 0.85 | 0.85 | off | 0 | 0 | down over 5-6 s |
 | lingering | 0.10; ember allowed | 0.65 | 0.65 | off | 0 | 0 | |
+| camping (45 s still, out of doors) | 0.10; camp music, every strength calm | 0.65 | 0.65 | off | 0 | 0 | |
 | dungeon | floor +0.15 | | | | 0.55 standing | 0.70-0.90 walking | depths allowed |
 | cave | depths after 1 s | | | | | | low-pass 2500 Hz, reverb 0.40 |
 | inn | at most 0.30, ember | 1.0 | 1.0 | only when walking | 0 | 0 | 4 dB down, plus the cave tint |
@@ -295,7 +297,7 @@ Still to be seen in the game:
 
 | Knob | Value | Where |
 |---|---|---|
-| moving after / still after / lingering after | 0.2 s / 1.5 s / 15 s | `director.py` rules (`moving_after_s`, `still_after_s`, `linger_after_s`) |
+| moving after / still after / lingering after / camping after | 0.2 s / 1.5 s / 15 s / 45 s | `director.py` rules (`moving_after_s`, `still_after_s`, `linger_after_s`, `camp_after_s`) |
 | floors: lingering, standing, on foot, riding, dungeon | 0.10, 0.25, 0.40 (+0.17 over 20 s), 0.60 (+0.15 over 25 s), +0.15 | `director.py:303-348` |
 | sizing up, company, inn ceiling | 0.57 / 0.68, 0.44 + 0.03 per foe (up to 0.62), 0.30 | same |
 | fight: start, climb, crowd, elite, boss | 0.80 (+0.08 roll), 0.006/s to 0.90, 0.85-0.96, 0.92, 1.0 | `director.py:351-402` |

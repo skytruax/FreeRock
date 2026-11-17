@@ -26,7 +26,7 @@ from dataclasses import dataclass, field
 from .state import GameState
 
 # The kinds of moment, most urgent first: what a written piece's role is one of.
-PLACES = ("boss", "battle", "battleground", "town", "depths", "storm", "night", "ember", "wander")
+PLACES = ("boss", "battle", "battleground", "town", "depths", "storm", "camp", "night", "ember", "wander")
 
 OPEN_HZ = 20000.0     # a low-pass up here does nothing
 FLOOR_HZ = 20.0       # a high-pass down here does nothing
@@ -146,6 +146,7 @@ class Rules:
     moving_after_s: float = 0.2       # on the move this long before it counts
     still_after_s: float = 1.5        # stopped this long before it counts
     linger_after_s: float = 15.0      # stopped this long and the calm part joins the rotation
+    camp_after_s: float = 45.0        # stood this long out of doors and it is a camp: waiting on a spawn, a rare, a friend
     # Standing still quiets the music ("and standing still should quiet the tracks", 2026-11-16): every channel at
     # this much of its level on stopping, and at this much once stood a while. Moving brings it straight back.
     still_bed: float = 0.85           # about 1.4 dB down
@@ -232,10 +233,11 @@ class Director:
             m.swell_until, m.swell_level, m.swell_name = now + seconds, level, name
         return True
 
-    def _movement(self, state: GameState, now: float) -> tuple[bool | None, bool, float]:
+    def _movement(self, state: GameState, now: float) -> tuple[bool | None, bool, bool, float]:
         """Whether the player is on the move (None when there is no telling: an older addon in
         a dungeon, where the game gives no position), whether they have stood still for a good
-        while, and for how long they have been going."""
+        while, whether long enough out of the saddle of a flight path to be camping, and for how
+        long they have been going."""
         rules, m = self.rules, self._m
         if state.speed is not None:
             # The addon says how fast the player is going. That works in dungeons too.
@@ -244,7 +246,7 @@ class Director:
         elif state.position is None:
             m.position = m.moved_at = m.moving_since = m.still_since = None
             m.on_the_move = False
-            return None, False, 0.0
+            return None, False, False, 0.0
         else:
             here = (state.map_id, state.position[0], state.position[1])
             before, m.position = m.position, here
@@ -264,8 +266,9 @@ class Director:
                 m.on_the_move = False
                 m.moving_since = None        # a real stop: the next run builds from the beginning
         lingering = not moving and now - m.still_since >= rules.linger_after_s
+        camping = not moving and not state.on_taxi and now - m.still_since >= rules.camp_after_s
         going = now - m.moving_since if m.on_the_move and m.moving_since is not None else 0.0
-        return m.on_the_move, lingering, going
+        return m.on_the_move, lingering, camping, going
 
     def update(self, state: GameState, now: float) -> Target:
         """Call whenever the state changes, and a few times a second in between."""
@@ -292,7 +295,7 @@ class Director:
         # songs", 2026-11-16); and a battleground or an arena ("or in a battleground, a family").
         town = state.resting and not state.indoors
         battleground = state.in_instance and state.instance_kind in ("battleground", "arena")
-        on_the_move, lingering, going = self._movement(state, now)
+        on_the_move, lingering, camping, going = self._movement(state, now)
 
         # A roll is how far beyond one fight the heat has got: nothing after a single fight, full
         # after three close together.
@@ -508,6 +511,15 @@ class Director:
             place = "storm"
             also.append("wander")
             why.append("at full tilt")
+        elif camping and not dungeon and not state.indoors and not state.in_combat and m.combat_since is None:
+            # Camping ("camping should get its own tunes", 2026-11-17): stood a long while out of doors, waiting on a
+            # spawn, a rare or a friend, with no fight (the spawn has come) and no storm. A place of its own, followed into at once; the
+            # walking music and an inn's calm take turns with it, and the night's at night.
+            place, sited = "camp", True
+            also += ["wander", "ember"]
+            if state.daytime is False:
+                also.append("night")
+            why.append("camping")
         elif state.daytime is False and not dungeon:
             # Night out of doors is a place of its own: its music first, the walking music when that has been heard.
             place, lean = "night", NIGHT_LEAN

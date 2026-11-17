@@ -951,6 +951,28 @@ CHARACTERS = (
       plucks=("handbells", "handchimes", "harp"), figures=("arp", "toll"), basses=("celli slow",), kit="folk", drums=(),
       grooves=("sparkle", "none"), hall=(4.0, 0.42), lift=0.0,
       titles=(("Moon", "Elune's", "Silver", "Starlight", "Veiled", "Dreaming"), ("Choir", "Vespers", "Chant", "Song", "Canticle", "Prayer"))),
+    # --- camping (2026-11-17: "camping should get its own tunes"): a long wait in one spot out of doors, for a spawn, a --
+    # --- rare or a friend. Patient music: a single line over a drone, a slow tick under it, never a climb to a crash. ---
+    C("watchfire", ("pastoral", "highland", "regal"), role="camp", light=True, modes=("dorian", "mixolydian", "major"), bpm=(60, 72),
+      metres=("3/4", "6/8", "4/4"), busy=0.3, weight=0.4, leads=("flute", "guitar", "english horn"), strong=("violins slow", "horns"),
+      under=("celli",), pads=("strings slow", "oohs"), pad_ways=("drone", "pad"), plucks=("guitar", "harp"), figures=("arp", "rock"),
+      basses=("celli slow", "basses pizz"), kit="folk", drums=(), grooves=("tick", "none"), hall=(2.2, 0.26), lift=0.0,
+      titles=(("Watchfire", "Patient", "Lantern", "Long", "Quiet", "Woodsmoke"), ("Watch", "Vigil", "Wait", "Camp", "Hours", "Fire"))),
+    C("still hunt", ("jungle", "desert", "mystic"), role="camp", modes=("dorian", "phrygian dominant", "minor"), bpm=(64, 76),
+      metres=("4/4", "5/4"), busy=0.35, weight=0.55, leads=("bass flute", "shenai", "marimba"), strong=("violins slow", "oohs"),
+      under=("bassoon",), pads=("strings slow", "basses slow"), pad_ways=("drone",), plucks=("marimba", "dulcimer", "harp"),
+      figures=("pattern", "pulse"), basses=("basses pizz", "fretless"), kit="hands", drums=(), grooves=("heat", "canopy"), hall=(2.6, 0.3),
+      lift=0.0, titles=(("Still", "Patient", "Hidden", "Crouching", "Watchful", "Silent"), ("Hunt", "Blind", "Wait", "Watch", "Lair", "Ambush"))),
+    C("uneasy vigil", ("haunted", "infernal"), role="camp", modes=("minor", "phrygian"), bpm=(56, 66), metres=("4/4", "3/4"), busy=0.25,
+      weight=0.6, leads=("cello", "bass clarinet", "oohs"), strong=("choir", "violins slow"), under=("celli",), pads=("tremolo", "organ"),
+      pad_ways=("drone", "tremolo"), plucks=("harp", "celesta", "church bell"), figures=("toll", "arp"), basses=("basses slow",),
+      kit="orchestra", drums=(), grooves=("dirge", "drip"), hall=(3.2, 0.34), lift=0.0,
+      titles=(("Uneasy", "Sleepless", "Wary", "Cold", "Ashen", "Hollow"), ("Vigil", "Watch", "Wait", "Hours", "Camp", "Night"))),
+    C("campfire", KINDS_ALL, role="camp", light=True, style="knight", band=True, modes=("mixolydian", "dorian", "major"), bpm=(84, 100),
+      busy=0.45, weight=0.4, leads=("harmonica", "steel guitar", "fiddle"), strong=("harmonica", "fiddle"), under=(), pads=("accordion",),
+      pad_ways=("drone", "pad"), plucks=("guitar", "mandolin", "banjo"), figures=("strum",), basses=("picked bass",), kit="rock", drums=(),
+      grooves=("brushes",), hall=(1.4, 0.15), lift=0.0,
+      titles=(("Campfire", "Starlit", "Bedroll", "Woodsmoke", "Coffee Pot", "Saddle"), ("Blues", "Strum", "Jam", "Song", "Ballad", "Ramble"))),
 )
 
 METRES = {"4/4": (4.0, (2.0, 2.0)), "3/4": (3.0, (3.0,)), "6/8": (3.0, (1.5, 1.5)), "5/4": (5.0, (3.0, 2.0)),
@@ -1108,7 +1130,7 @@ def _levels(role: str, heavy: float) -> dict[str, tuple[float, float]]:
                 "valley": (0.58, 0.66), "climb": (0.68, 1.0), "summit": (1.0, 1.0), "close": (0.9, 0.65)}
     # (2026-11-16, night: "rewrite all music to be more dynamic". The quiet parts are quieter and the top is as high: an
     # opening and a valley at pianissimo to piano, the summit at fortissimo, a close that dies away.)
-    if role in ("night", "ember", "depths"):
+    if role in ("night", "ember", "depths", "camp"):
         top, under = 0.45 + 0.4 * heavy, 0.4 + 0.26 * heavy
         return {"open": (0.14, 0.26), "first": (0.34, 0.44), "second": (0.3, 0.42), "build": (0.36, 0.38 + 0.2 * heavy),
                 "arrival": (under, under), "valley": (0.18, 0.16), "climb": (0.26, 0.42 + 0.3 * heavy), "summit": (top, top),
@@ -1848,7 +1870,7 @@ class Take:
         self.tam_tam = not ch.band and ((self.heavy and (bool(kinds & {"haunted", "infernal"}) or ch.role == "boss"))
                                         or (ch.role == "depths" and not ch.light))
         self.tree = not ch.band and (ch.light or "mystic" in kinds) and ch.role not in FIGHTS
-        self.soft_roll = not ch.band and not self.has_swell and ch.role in ("wander", "night", "town", "ember") and ch.weight >= 0.4
+        self.soft_roll = not ch.band and not self.has_swell and ch.role in ("wander", "night", "town", "ember", "camp") and ch.weight >= 0.4
         self.field = not ch.band and ch.role in ("wander", "town", "battleground", "battle", "boss") and \
             ("regal" in kinds or ch.role == "battleground" or "march" in ch.grooves)
         self.taikos = not ch.band and self.heavy and (bool(kinds & {"jungle", "infernal", "desert"}) or ch.role in ("battle", "boss", "battleground"))

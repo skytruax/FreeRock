@@ -21,6 +21,7 @@ code. How each signal moves each channel is in `docs/signals-and-channels.md`.
 | The boss is dead, the fight is not | encounter over, still in combat | battle | storm, boss | 8 / 16 | 4 / 8 | moment |
 | A fight in the open | combat (world PvP is not told apart) | the same piece: its drums and bass come up to full; its parts stay as they are (a piece has one strength) | | (every piece) | | |
 | After a fight | combat over: held 3 to 13 s, then easing back | the same piece; after a boss fight of 10 s or more, 8 s of ember (the afterglow) | | ember | ember | ember |
+| Camping: standing 45 s out of doors (waiting on a spawn, a rare, a friend) | still for 45 s, not on a flight path, not in a dungeon, a cave, an inn or a town, no fight | camp | wander, ember; night at night | 6 / 12 (watchfire, still hunt, uneasy vigil) | 2 / 4 (campfire) | 3 (embers under stars, the long wait, heat haze) |
 | A rain storm that has set in, out of doors | weather rain at storm strength (0.6) for 4 s, over when under 0.4 for 20 s | storm | wander | 4 / 8 (tempest, blizzard) | 2 / 4 | storm |
 | Full tilt (a long ride, rolling from pull to pull) | the drive rule | storm | wander | storm | storm | storm |
 | Dead, a ghost | dead flag | ember, filtered, slow and far | wander | ember | ember | ember |

@@ -71,7 +71,7 @@ GEARS = {"lead": (0.52, 0.83), "rhythm": (0.52, 0.74), "drums": (0.52, 0.74), "b
 # are 0.85 and three 0.90, each 0.02 past its line), or that enemy would change nothing.
 GEAR_SLACK = 0.015
 RHYTHM_FROM = 0.30             # the rhythm part plays once the player is on the move
-CALM_PLACES = ("ember",)       # an inn, the moment after a fight, a death: everything plays calm
+CALM_PLACES = ("ember", "camp")       # an inn, the moment after a fight, a death, a camp: everything plays calm
 
 # Pieces: written music, kept as its parts. See Bucket.add_piece.
 PIECE_LEVEL = -13.0            # how loud a piece is with every part playing (LUFS): what five decks of phrases come to

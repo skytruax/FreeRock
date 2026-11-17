@@ -111,6 +111,24 @@ def test_standing_still_for_a_while_lets_the_calm_part_in():
     assert at(41).also == () and at(41).drums == 0.55, "moving again: the riffs alone, drums in"
 
 
+def test_a_long_wait_out_of_doors_is_a_camp_with_music_of_its_own():
+    # (2026-11-17: "camping should get its own tunes": waiting on a spawn, a rare or a friend.)
+    at = play([(100, {"speed": 7.0})], 110, start=STANDING)
+    assert at(30).place == "wander" and at(44.5).place == "wander"
+    camp = at(46)
+    assert camp.place == "camp" and camp.sited and set(camp.also) == {"wander", "ember"} and "camping" in camp.why
+    assert camp.bed == pytest.approx(0.65), "as quiet as standing a while"
+    assert at(101).place == "wander", "moving again: the walking music"
+    night = play([], 60, start=dataclasses.replace(STANDING, daytime=False))(50)
+    assert night.place == "camp" and "night" in night.also
+    # Not on a flight path, in a dungeon, in an inn or a town, nor once a fight has begun (what was waited for has come).
+    assert play([(0, {"on_taxi": True})], 60, start=STANDING)(50).place != "camp"
+    assert play([], 60, start=dataclasses.replace(STANDING, in_instance=True, instance_kind="party"))(50).place != "camp"
+    assert play([], 60, start=dataclasses.replace(STANDING, resting=True, indoors=True))(50).place == "ember"
+    assert play([], 60, start=dataclasses.replace(STANDING, resting=True))(50).place == "town"
+    assert play([(50, FIGHT)], 60, start=STANDING)(55).place == "wander"
+
+
 def walking(start, end, origin=(0.40, 0.60), map_id=1429):
     """Position changes every quarter of a second from `start` to `end`, for an addon that does
     not say how fast the player is going."""

@@ -79,8 +79,11 @@ def plan() -> list[tuple[Family, int]]:
         name = "%s-%s-%d" % (place, character.name.replace(" ", "-"), number + 1)
         out.append((family(character, seed, name, title), takes))
 
-    later = []
+    later, camps = [], []
     for index, character in enumerate(CHARACTERS):
+        if character.role == "camp":
+            camps.append((index, character))          # (see below)
+            continue
         if character.role == "wander":
             shapes = [3, 2] if character.light or character.band else [3]
             if not (character.light or character.band):
@@ -101,6 +104,11 @@ def plan() -> list[tuple[Family, int]]:
     # another title.
     for index, character in later:
         add(index, character, 1, 2)
+    # Camping (2026-11-17: "camping should get its own tunes"): two families of two for each, named after every family
+    # made before them, so that none of those is given another title.
+    for index, character in camps:
+        for number in (0, 1):
+            add(index, character, number, 2)
     return out
 
 

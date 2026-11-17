@@ -122,7 +122,10 @@ ARCS = {
     "battle": {"open": (0.8, 0.88), "theme": (0.86, 0.9), "rise": (0.6, 1.0), "moment": (1.0, 1.0), "close": (0.9, 0.7)},
 }
 BREAKDOWN = (0.3, 0.5)          # the breakdown's energy, from its first bar to its last (see Take.breakdown)
-ARC_OF = {"wander": "wander", "night": "wander", "depths": "wander", "ember": "ember", "storm": "storm",
+# The calm moments: an inn, the night, a camp. They have no drop to speak of, no roll into one and no line doubled over the
+# tune, and they play under the usual level.
+CALM_ROLES = ("ember", "night", "camp")
+ARC_OF = {"wander": "wander", "night": "wander", "depths": "wander", "ember": "ember", "camp": "ember", "storm": "storm",
           "battle": "battle", "boss": "battle", "town": "wander", "battleground": "battle"}
 
 # ---------------------------------------------------------------------------------------------
@@ -428,6 +431,11 @@ PLAN: tuple[Family, ...] = (
     Family("town-02", "Harbour Lights", ("desert", "jungle", "mystic", "haunted", "infernal"), "town", S01, True, 9, "X3", (8, 16, 8, 16, 8), "broken2", 0.1, "606", "desert"),
     Family("battleground-01", "Hold the Line", ANY, "battleground", S012, False, 7, "N1", (4, 16, 8, 16, 8), "four", 0.0, "909", "battle"),
     Family("battleground-02", "Capture the Flag", ANY, "battleground", S012, False, 0, "P2", (4, 16, 8, 24, 8), "broken2", 0.0, "808", "battle"),
+    # Camping (2026-11-17: "camping should get its own tunes"): a long wait in one spot out of doors. Deep and slow, the
+    # kick at half time or none, as the inn's and the night's music are.
+    Family("camp-01", "Embers under Stars", ("pastoral", "regal", "highland"), "camp", S01, True, 2, "L2", (8, 16, 8, 16, 8), "half", 0.08, "606", "ember"),
+    Family("camp-02", "The Long Wait", ("haunted", "infernal", "mystic"), "camp", S01, False, 9, "D3", (8, 16, 8, 16, 8), "none", 0.0, "808", "night"),
+    Family("camp-03", "Heat Haze", ("desert", "jungle", "mystic"), "camp", S01, True, 6, "X1", (8, 16, 8, 16, 8), "half", 0.12, "707", "ember"),
 )
 TAKES = (1, 2, 3)
 NUMERALS = {1: "I", 2: "II", 3: "III", 4: "IV", 5: "V"}
@@ -818,7 +826,7 @@ class Take:
         machine = fam.kit
         kick = "punch" if fam.hard else self.pick("kick", ("kick", "kick2", "kick"))
         kick_speed = 0.96 + 0.08 * ((fam.seed % 100) / 100.0)
-        backbeat = self.pick("backbeat", (("clap",), ("clap", "snare"), ("snare2",)) if fam.groove != "half" and fam.role != "ember"
+        backbeat = self.pick("backbeat", (("clap",), ("clap", "snare"), ("snare2",)) if fam.groove != "half" and fam.role not in ("ember", "camp")
                              else (("snap",), ("rim",), ("clap",)))
         back_steps = (8,) if fam.groove in ("half", "none") else (4, 12)
         hats = HATS[self.pick("hats", self.palette["hats"])]
@@ -828,8 +836,8 @@ class Take:
         clap_in = self.pick("clap-in", (0, 4, 8)) if not fam.hard else 0
         perc_in = self.pick("perc-in", (8, 4, 0)) if not fam.hard else 0
         fill = self.pick("fill", ("snare", "toms", "lift"))
-        roll = self.pick("roll", ("snare", "clap", "crack")) if fam.role not in ("ember", "night") else self.pick("roll", ("maracas", "rim", "hat"))
-        roll_level = 1.0 if fam.role not in ("ember", "night") else 0.45       # an inn has no drum roll: a shaker stirs
+        roll = self.pick("roll", ("snare", "clap", "crack")) if fam.role not in CALM_ROLES else self.pick("roll", ("maracas", "rim", "hat"))
+        roll_level = 1.0 if fam.role not in CALM_ROLES else 0.45       # an inn has no drum roll: a shaker stirs
         pause = self.pick("pause", (True, False, True))
         sneak = self.pick("sneak", (True, True, False))
 
@@ -1067,7 +1075,7 @@ class Take:
         chosen = self.pick("lead", names)
         main = LEADS[chosen]
         soft = LEADS[names[(names.index(chosen) + 1) % len(names)]]      # the same tune in a gentler voice, for the quiet places
-        doubled = self.pick("lead-double", ("octave", "third", "octave")) if fam.role not in ("ember", "night") else ""
+        doubled = self.pick("lead-double", ("octave", "third", "octave")) if fam.role not in CALM_ROLES else ""
         tune = self.tune
 
         def say(notes: list[Tone], bar: int, sound: Any, level: float, bright: float, shift: int = 0, echo_of: float = 0.0) -> None:
@@ -1170,7 +1178,7 @@ class Take:
         fam = self.family
         out: list[Air] = []
         tonal = self.pick("riser", (True, False, True))
-        gentle = 0.4 if fam.role in ("ember", "night") else 1.0         # an inn does not have a drop
+        gentle = 0.4 if fam.role in CALM_ROLES else 1.0         # an inn does not have a drop
         for story, first, count in self.sections:
             start = self.at(first, 0)
             if story == "rise":
@@ -1251,7 +1259,7 @@ class Take:
     def meta(self) -> dict[str, Any]:
         fam = self.family
         groove = {"drums": 0.6, "bass": 0.5} if not fam.hard else {"drums": 0.9, "bass": 0.85}
-        if fam.role == "ember":
+        if fam.role in ("ember", "camp"):
             groove = {"drums": 0.5, "bass": 0.4}
         floor = {"theme": groove, "moment": groove}
         if fam.hard:
@@ -1265,7 +1273,7 @@ class Take:
             # How far under a track's usual level this one is meant to play: music for an inn or
             # for the night should not be as loud at its fullest as a drop. (The studio's import
             # does not read this yet; it is here for when it does.)
-            "level_db": {"ember": -4.0, "night": -2.0}.get(fam.role, 0.0),
+            "level_db": {"ember": -4.0, "camp": -3.0, "night": -2.0}.get(fam.role, 0.0),
             "credit": "Written and played by FreeRock's studio (studio.house): its own synthesiser, and drum-machine recordings "
                       "released into the public domain (MckAudio's TR-8 set, CC0).",
             "seed": self.seed,
@@ -1279,7 +1287,7 @@ class Take:
         story, first, count = next(section for section in reversed(self.sections) if section[0] == "moment")     # the last drop
         a, b = int(round(first * BAR_FRAMES)), int(round((first + count) * BAR_FRAMES))
         want = {"drums": -14.0, "bass": -16.5, "rhythm": -20.0, "lead": -19.0, "texture": -22.0}
-        if self.family.role in ("ember", "night"):
+        if self.family.role in CALM_ROLES:
             want.update(drums=-18.0, bass=-18.0, lead=-18.0, texture=-20.0)
         if not self.kick:
             want.update(drums=-27.0)             # with no kick the drums are a shaker and a rim: in the corner, not in front
@@ -1369,7 +1377,7 @@ def measure(meta: dict[str, Any], parts: dict[str, np.ndarray]) -> dict[str, Any
             problems.append("the %s is %.0f dB louder outside the moment than in it" % (channel, elsewhere - at_moment))
     count = meta["sections"][where]["bars"]
     whole = int(round(count * bar))
-    if "drums" in parts and synth.level_of(parts["drums"][first:last]) > -60 and meta["role"] != "ember":
+    if "drums" in parts and synth.level_of(parts["drums"][first:last]) > -60 and meta["role"] not in ("ember", "camp"):
         drums = forever.measure(parts["drums"][first:first + whole], RATE, meta["tempo"], "drums", count)
         found["drums"] = {key: drums.get(key) for key in ("tempo_off", "beat_ms", "dense")}
         problems += ["the drums: " + problem for problem in drums["problems"]]
@@ -1394,7 +1402,7 @@ def measure(meta: dict[str, Any], parts: dict[str, np.ndarray]) -> dict[str, Any
     found["bass_lows_db"], found["drum_highs_db"] = round(lows, 1), round(highs, 1)
     if lows < 0.0:
         problems.append("the bass has more above 200 Hz than below")
-    if highs < -40.0 and meta["role"] != "ember":
+    if highs < -40.0 and meta["role"] not in ("ember", "camp"):
         problems.append("the drums have no top")
     found["problems"] = problems
     return found
