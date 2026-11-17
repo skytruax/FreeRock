@@ -126,10 +126,19 @@ def page(style: str, rows: list[tuple[str, dict]]) -> str:
 
 
 def main(styles: list[str]) -> int:
+    wrong = []
     for style in styles:
         folders = studio.staged(VAR, style)
-        with ProcessPoolExecutor(max_workers=min(16, os.cpu_count() or 4)) as pool:      # the encoding is what takes the time
-            rows = list(pool.map(mixed, folders, chunksize=4))
+        rows = []
+        # As many at once as there are processors it may use (by day only a quarter of them: taskset), at most sixteen.
+        with ProcessPoolExecutor(max_workers=min(16, len(os.sched_getaffinity(0)))) as pool:      # the encoding is what takes the time
+            for folder, done in [(folder, pool.submit(mixed, folder)) for folder in folders]:
+                try:
+                    rows.append(done.result())
+                except (ValueError, KeyError, OSError, soundfile.SoundFileError) as problem:
+                    # A track that cannot be put together now (one being made again while this runs, a file that cannot
+                    # be read) is named and left off its list; the rest are written, and the command ends with 1.
+                    wrong.append((folder, "%s: %s" % (type(problem).__name__, problem)))
         out = VAR / "listen" / style
         out.mkdir(parents=True, exist_ok=True)
         (out / "index.html").write_text(page(style, rows), encoding="utf-8")
@@ -146,7 +155,9 @@ def main(styles: list[str]) -> int:
             html.escape(name, quote=True), html.escape(name), html.escape(ABOUT.get(name, "the newest: played in REAPER")))
                   for name in have)
         + "</ul></body></html>\n", encoding="utf-8")
-    return 0
+    for folder, problem in wrong:
+        print("NOT written: %s: %s" % (folder, problem))
+    return 1 if wrong else 0
 
 
 if __name__ == "__main__":

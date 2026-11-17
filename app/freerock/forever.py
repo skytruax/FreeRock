@@ -76,7 +76,7 @@ CALM_PLACES = ("ember",)       # an inn, the moment after a fight, a death: ever
 # Pieces: written music, kept as its parts. See Bucket.add_piece.
 PIECE_LEVEL = -13.0            # how loud a piece is with every part playing (LUFS): what five decks of phrases come to
 POST_S = 6.0                   # how much of what follows is kept after each stretch of a part, for fading out under what comes next
-ENCODERS = min(16, os.cpu_count() or 4)        # how many parts of a piece are written at once
+ENCODERS = min(16, len(os.sched_getaffinity(0)))     # how many parts of a piece are written at once (on the processors it may use)
 WINDOW_S = 52.0                # a part is kept in stretches no longer than this, so that no one of them is slow to fetch
 FREE_SHARE = 0.12              # how often a stretch of loose phrases comes between two tracks, where there are enough of them
 STORY = ("open", "theme", "rise", "moment", "close")       # where in a story a piece belongs; "" for one that is a story in itself

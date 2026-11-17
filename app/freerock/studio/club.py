@@ -158,34 +158,41 @@ def _loud(levels: list[float]) -> list[float]:
     return [min(max(0.9 * math.sqrt(level / top), 0.08), 1.0) for level in levels]
 
 
-def _bar_of(at: float) -> int:
-    """The bar a note is struck in (one struck a hair early, as a player does, belongs to the bar it is early for)."""
-    return int((at + 0.02) // house.BAR)
+SPAN = 4            # bars: a voice's level is read four at a time (a house phrase is eight, every part a whole number of them)
+UNDER = 0.6         # a note written under this part of the loudest in its four bars is a line under the tune: a doubling, an echo
 
 
-def _bars(notes: list[tuple[float, float, float, float, float, float]]) -> dict[int, float]:
-    """How loud the writer has a voice in each bar it plays in: the mean of the notes struck there."""
-    struck: dict[int, list[float]] = defaultdict(list)
+def _span_of(at: float) -> int:
+    """The four bars a note is struck in (one struck a hair early, as a player does, belongs to the bar it is early for)."""
+    return int((at + 0.02) // house.BAR) // SPAN
+
+
+def _spans(notes: list[tuple[float, float, float, float, float, float]]) -> dict[int, float]:
+    """How loud the writer has a voice in each four bars it plays in: the loudest note struck there.
+    (Not their mean: the drop's second time round has a quieter line over the tune, and with it a
+    mean took the whole drop 5 dB down where it should have grown, 2026-11-17, morning.)"""
+    loudest: dict[int, float] = defaultdict(float)
     for at, _, _, level, _, _ in notes:
-        struck[_bar_of(at)].append(level)
-    return {bar: float(np.mean(levels)) for bar, levels in struck.items()}
+        span = _span_of(at)
+        loudest[span] = max(loudest[span], level)
+    return dict(loudest)
 
 
-def _ride(bars: dict[int, float]) -> list[tuple[float, float]]:
-    """A voice's levels from bar to bar as its track's volume moves ((beat, gain)), its loudest bar
-    at full. (2026-11-17, morning: the house tracks came out all but level from their first bar to
-    their last, 2 to 9 dB between their quietest part and their loudest. Surge XT's patches play a
-    note alike however hard it is struck, so what the writer wrote softer was not: a breakdown's
-    pad written 5 dB under the drop's came out 5 dB over it. Muse Sounds' instruments do play
-    softer, and keep their velocities.)"""
-    top = max(bars.values())
+def _ride(spans: dict[int, float]) -> list[tuple[float, float]]:
+    """A voice's levels, four bars at a time, as its track's volume moves ((beat, gain)), its
+    loudest four bars at full. (2026-11-17, morning: the house tracks came out all but level from
+    their first bar to their last, 2 to 9 dB between their quietest part and their loudest. Surge
+    XT's patches play a note alike however hard it is struck, so what the writer wrote softer was
+    not: a breakdown's pad written 5 dB under the drop's came out 5 dB over it. Muse Sounds'
+    instruments do play softer, and keep their velocities.)"""
+    top = max(spans.values())
     moves: list[tuple[float, float]] = []
     before = None
-    for bar in sorted(bars):
-        gain = bars[bar] / top
+    for span in sorted(spans):
+        gain = spans[span] / top
         if before is not None and abs(gain - before) < 0.01:
             continue
-        at = bar * 4.0
+        at = span * SPAN * 4.0
         if before is not None:
             moves.append((at - 0.1, before))           # a tenth of a beat to get there: nothing held over the bar line clicks
         moves.append((at, gain))
@@ -198,34 +205,49 @@ def voices(heard: Heard) -> list[tuple[str, str, str, str, float, list[Note], fl
     is what the desk then lays down): (channel, the writer's table, its sound, the instrument that
     plays it, the cut at its top in Hz or 0, the notes in beats, how far it is turned down, and the
     volume moves that play its bars as loud as they were written, if its instrument does not)."""
-    bars = {key: _bars(notes) for key, notes in heard.notes.items()}
+    spans = {key: _spans(notes) for key, notes in heard.notes.items()}
     most: dict[str, float] = defaultdict(float)
-    for (channel, _, _), levels in bars.items():
+    for (channel, _, _), levels in spans.items():
         most[channel] = max(most[channel], max(levels.values()))
     out = []
     for (channel, table, name), notes in sorted(heard.notes.items()):
         written = PLAYED[(table, name)]
-        levels = bars[(channel, table, name)]
+        levels = spans[(channel, table, name)]
         # Each voice of a channel to the others as the writer has them where each is loudest (its quieter bars are the
         # volume moves' business, or its velocities').
         taste = min(max(max(levels.values()) / most[channel], 0.35), 1.0)
         if written in muse.PARTS and muse.available():
-            hard, ride = _loud([level for _, _, _, level, _, _ in notes]), []
+            ride: list[tuple[float, float]] = []
+            parts = [("", notes, _loud([level for _, _, _, level, _, _ in notes]), taste)]
         else:
-            # The bars ride the track's volume; how hard a note is struck says only how it stands out in its bar.
-            hard, ride = _loud([level / levels[_bar_of(at)] for at, _, _, level, _, _ in notes]), _ride(levels)
-        bands: dict[float, list[Note]] = defaultdict(list)
-        for (at, length, pitch, _, _, bright), loud in zip(notes, hard):
-            cut = next(cut for under, cut in BRIGHT if bright < under)
-            bands[cut].append(Note(at / BEAT, max(length / BEAT, 0.05), int(round(pitch)), loud))
-        for cut, mine in sorted(bands.items()):
-            out.append((channel, table, name, written, cut, mine, taste, ride))
+            # The four bars ride the track's volume; how hard a note is struck says only how it stands out in them. What is
+            # written well under the tune there (the drop's line over it the second time round) is a track of its own, as
+            # far under as it was written: an instrument that plays every note alike would play it as loud as the tune.
+            ride = _ride(levels)
+            share = [level / levels[_span_of(at)] for at, _, _, level, _, _ in notes]
+            tune = [(note, part) for note, part in zip(notes, share) if part >= UNDER]
+            under = [(note, part) for note, part in zip(notes, share) if part < UNDER]
+            parts = []
+            if tune:
+                parts.append(("", [note for note, _ in tune], _loud([part for _, part in tune]), taste))
+            if under:
+                parts.append((" under", [note for note, _ in under], _loud([part for _, part in under]),
+                              taste * float(np.median([part for _, part in under]))))
+        every: list[Note] = []
+        for suffix, mine_notes, hard, level in parts:
+            bands: dict[float, list[Note]] = defaultdict(list)
+            for (at, length, pitch, _, _, bright), loud in zip(mine_notes, hard):
+                cut = next(cut for under_bright, cut in BRIGHT if bright < under_bright)
+                bands[cut].append(Note(at / BEAT, max(length / BEAT, 0.05), int(round(pitch)), loud))
+            for cut, mine in sorted(bands.items()):
+                out.append((channel, table, name + suffix, written, cut, mine, level, ride))
+                every += mine
         if written == "house sub":
             # (2026-11-17, night: against the liked house stems the bass was 30 dB short in its middle and 44 at its top: a
             # sine under 100 Hz, which a small loudspeaker does not play at all.) A sawtooth on the same notes, closed
             # above 900 Hz and well under the sub, is the part of the bass that is heard; the sub is the part that is felt.
-            every = [note for _, mine in sorted(bands.items()) for note in mine]
-            out.append((channel, table, name + " growl", "house bass saw", 900.0, every, taste * 0.45, ride))
+            out.append((channel, table, name + " growl", "house bass saw", 900.0, sorted(every, key=lambda note: note.start),
+                        taste * 0.45, ride))
     return out
 
 

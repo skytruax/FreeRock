@@ -339,23 +339,42 @@ def test_a_synth_voice_plays_its_bars_as_loud_as_they_were_written_and_its_notes
     monkeypatch.setattr(club.muse, "available", lambda: True)
     heard = club.Heard()
     bar = house.BAR
-    for index in range(4):                       # two bars of the drop's groove, then two of a soft breakdown
-        level = 0.5 if index < 2 else 0.25
+    for index in range(8):                       # four bars of the drop's groove, then four of a soft breakdown
+        level = 0.5 if index < 4 else 0.25
         for step in range(4):
             accent = 1.0 if step == 0 else 0.8
             heard.notes[("bass", "bass", "saw")].append((index * bar + step * bar / 4, bar / 8, 40.0, level * accent, 0.0, 1.0))
     heard.notes[("lead", "lead", "keys")].append((0.0, bar, 64.0, 0.5, 0.0, 1.0))       # the Wurlitzer: MuseScore's
-    heard.notes[("lead", "lead", "keys")].append((2 * bar, bar, 64.0, 0.25, 0.0, 1.0))
+    heard.notes[("lead", "lead", "keys")].append((4 * bar, bar, 64.0, 0.25, 0.0, 1.0))
     found = {(channel, name): (mine, taste, ride) for channel, _, name, _, _, mine, taste, ride in club.voices(heard)}
     notes, taste, ride = found[("bass", "saw")]
-    assert taste == 1.0
-    assert ride[0] == (0.0, 1.0) and ride[-1] == (8.0, pytest.approx(0.5))        # the third bar (beat 8) at half
-    assert ride[-2] == (pytest.approx(7.9), 1.0)                                 # got to over a tenth of a beat
-    # The same accent in a loud bar and in a soft one is struck as hard: the bar's level is the volume's.
-    assert notes[0].loud == pytest.approx(notes[8].loud) and notes[1].loud == pytest.approx(notes[9].loud)
+    assert taste == 1.0 and ("bass", "saw under") not in found
+    assert ride[0] == (0.0, 1.0) and ride[-1] == (16.0, pytest.approx(0.5))       # the fifth bar (beat 16) at half
+    assert ride[-2] == (pytest.approx(15.9), 1.0)                                # got to over a tenth of a beat
+    # The same accent in a loud bar and in a soft one is struck as hard: the four bars' level is the volume's.
+    assert notes[0].loud == pytest.approx(notes[16].loud) and notes[1].loud == pytest.approx(notes[17].loud)
     assert notes[1].loud < notes[0].loud
     wurly, _, wurly_ride = found[("lead", "keys")]
     assert wurly_ride == [] and wurly[1].loud < wurly[0].loud                  # Muse Sounds play softer when struck softer
+
+
+def test_a_line_written_under_the_tune_is_a_track_of_its_own_and_does_not_take_the_tune_down(monkeypatch):
+    # (2026-11-17, morning: the drop's second time round has a line over the tune at 0.26 to its 0.62; read by their mean,
+    # the four bars it was in were played 5 dB down, the drop shrinking where it should grow.)
+    from freerock.studio import club
+    monkeypatch.setattr(club.muse, "available", lambda: True)
+    heard = club.Heard()
+    bar = house.BAR
+    for index in range(8):
+        heard.notes[("lead", "lead", "saw")].append((index * bar, bar / 2, 72.0, 0.62, 0.0, 1.0))
+        if index >= 4:                           # the second time round, an octave over it
+            heard.notes[("lead", "lead", "saw")].append((index * bar, bar / 2, 84.0, 0.26, 0.0, 1.0))
+    found = {name: (mine, taste, ride) for _, _, name, _, _, mine, taste, ride in club.voices(heard)}
+    tune, taste, ride = found["saw"]
+    over, quiet, over_ride = found["saw under"]
+    assert ride == [(0.0, 1.0)] and over_ride == ride                    # the tune as loud the second time as the first
+    assert len(tune) == 8 and len(over) == 4 and all(note.pitch == 84 for note in over)
+    assert quiet == pytest.approx(taste * 0.26 / 0.62)
 
 
 def test_the_voices_of_a_channel_are_set_against_each_other_where_each_is_loudest(monkeypatch):
