@@ -251,7 +251,7 @@ def stage(fam: Family, take: int) -> dict:
                 beat_s = 60.0 / fam.bpm
                 moves += [(at - 0.012 / beat_s, 1.0), (at, down), (at + 0.06 / beat_s, down), (at + 0.26 / beat_s, 1.0)]
                 last = at + 0.26 / beat_s
-            folders.append((desk.Line(channel, desk.bare(channel, []), effects=sounds.bus(channel), moves=moves), under))
+            folders.append((desk.Line(channel, desk.bare(channel, []), effects=sounds.bus(channel, style=character.style), moves=moves), under))
     rpp = project_of(fam, take)
     work = rpp.parent
     work.mkdir(parents=True, exist_ok=True)

@@ -838,6 +838,23 @@ def bus(channel: str, style: str = "") -> list[str]:
         if channel == "lead":
             return [equalise(low_cut=28.0), squeeze(-14.0, 2.0, 30.0, 250.0, 1.0), excite(0.25), warm(0.12), ceiling(-1.5, push=0.5)]
         return [equalise(low_cut=28.0), squeeze(-14.0, 2.0, 30.0, 250.0, 1.0), warm(0.15), ceiling(-1.5, push=0.5)]
+    if style == "knight":
+        # The band's channels (2026-11-17, night, the first Knight Rock piece held against the band stems that were liked:
+        # the lead guitar 10 dB short in its middle, the pads 7 dB heavy there; the liked stems have next to nothing above
+        # 2.5 kHz, 30 to 60 dB under their middle, more than any guitar or organ, so their top is not followed far).
+        if channel == "drums":
+            return [equalise(low_cut=28.0, high_shelf=(6000.0, -2.0)), drum_room(), squeeze(-12.0, 2.5, 25.0, 180.0, 1.0), warm(0.3),
+                    ceiling(-1.5, push=1.0)]
+        if channel == "bass":
+            return [equalise(low_cut=28.0, low_shelf=(90.0, 2.5), high_shelf=(2000.0, -4.0)), enhance(0.25), squeeze(-14.0, 2.0, 30.0, 250.0, 1.0),
+                    warm(0.3), ceiling(-1.5, push=1.0)]
+        if channel == "texture":
+            return [equalise(low_cut=28.0, bands=((500.0, -3.0, 1.5),), high_shelf=(3000.0, -6.0)), wide(1.25), squeeze(-14.0, 2.0, 30.0, 250.0, 1.0),
+                    warm(0.15), ceiling(-1.5, push=0.5)]
+        if channel == "lead":
+            return [equalise(low_cut=28.0, bands=((900.0, 5.0, 1.6),), high_shelf=(4000.0, -4.0)), squeeze(-14.0, 2.0, 30.0, 250.0, 1.0),
+                    warm(0.2), ceiling(-1.5, push=0.5)]
+        return [equalise(low_cut=28.0, high_shelf=(4000.0, -2.0)), squeeze(-14.0, 2.0, 30.0, 250.0, 1.0), warm(0.2), ceiling(-1.5, push=0.5)]
     # (2026-11-17, night: the first pieces of the night held against the stems that were liked, studio/ear.py: the pads
     # 5 to 9 dB too bright from 2.5 to 10 kHz, the tune 3 to 6 dB too bright and short of its middle, the drums 2 to 7 dB
     # too bright, the accompaniment 1 to 3 dB dull. Half of each is taken back here, and after the second pass (pads still 3 dB
