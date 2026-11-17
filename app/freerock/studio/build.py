@@ -84,6 +84,8 @@ def plan() -> list[tuple[Family, int]]:
             shapes = [3, 2] if character.light or character.band else [3]
             if not (character.light or character.band):
                 later.append((index, character))
+        elif character.role in ("town", "battleground"):
+            shapes = [3, 3]                 # a family of songs for a town or a battleground: two families of three
         elif character.role in ("battle", "ember", "storm", "boss"):
             shapes = [2, 2]
         else:

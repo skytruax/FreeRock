@@ -324,7 +324,30 @@ def test_an_inn_is_calm_and_quieter_and_a_citys_streets_are_not():
     running_in = play([(1, {"indoors": True, "resting": True, "speed": 7.0})], 30, start=STANDING)(30)
     assert running_in.intensity == pytest.approx(0.30) and running_in.bass == 0.0, "nothing but a fight rises in an inn"
     streets = play([(1, {"resting": True, "speed": 7.0})], 30, start=STANDING)(30)
-    assert streets.place == "wander" and streets.volume == 1.0 and streets.bass > 0 and streets.drums > 0.7
+    assert streets.place == "town" and streets.volume == 1.0 and streets.bass > 0 and streets.drums > 0.7
+
+
+def test_a_towns_streets_have_the_towns_own_music():
+    """("like whenever in an alliance base should be a family of songs", 2026-11-16.)"""
+    streets = play([(1, {"resting": True})], 12, start=STANDING)(10)
+    assert streets.place == "town" and streets.sited and streets.also == ("wander",) and "in a town" in streets.why
+    inn = play([(1, {"resting": True, "indoors": True})], 12, start=STANDING)(10)
+    assert inn.place == "ember", "the town's inn is still an inn"
+    out = play([(1, {"resting": True}), (6, {"resting": False})], 12, start=STANDING)(10)
+    assert out.place == "wander", "out of the town, the walking music again"
+
+
+def test_a_battleground_has_its_own_music_through_its_fights_and_its_deaths():
+    """("or in a battleground, a family", 2026-11-16.)"""
+    field = GameState(daytime=True, in_instance=True, instance_kind="battleground")
+    calm = play([], 10, start=field)(8)
+    assert calm.place == "battleground" and calm.sited and "a battleground" in calm.why
+    fight = play([(3, FIGHT)], 10, start=field)(6)
+    assert fight.place == "battleground" and fight.bass == 1.0, "a fight there brings the band up in the same music"
+    dead = play([(3, {"dead": True})], 10, start=field)(6)
+    assert dead.place == "battleground", "dying there does not change the song"
+    arena = play([], 10, start=dataclasses.replace(field, instance_kind="arena"))(8)
+    assert arena.place == "battleground"
 
 
 def test_a_dungeon_is_tenser_and_is_not_treated_as_a_cave():

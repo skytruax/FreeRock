@@ -733,7 +733,9 @@ def test_the_plan_has_a_band_for_knight_rock_beside_the_orchestra():
     assert styles == {"warcraft", "knight"}
     knight = [fam for fam, _ in families if fam.character.style == "knight"]
     assert {kind for fam in knight for kind in fam.character.kinds} == set(kinds.KINDS)
-    assert {fam.character.role for fam in knight} == set(studio.ROLES)
+    # (A town's streets and a battleground have Warcraft music first, 2026-11-16; where a style has nothing written for a
+    # kind of moment the player plays its walking music.)
+    assert {fam.character.role for fam in knight} == set(studio.ROLES) - {"town", "battleground"}
     assert all(build.folder_of(fam, 1).parts[-3] == "knight" for fam in knight)
 
 

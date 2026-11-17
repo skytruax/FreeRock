@@ -774,6 +774,29 @@ CHARACTERS = (
       figures=("gallop", "hammer"), basses=("basses", "tuba"), kit="hands", drums=("taiko", "timpani"), grooves=("war drums", "hunt"),
       hall=(2.6, 0.28), lift=0.5,
       titles=(("Wild", "Beast", "Savage", "Primal", "Fang", "Thunder"), ("King", "Chieftain", "Brute", "Alpha", "Warlord", "Lord"))),
+    # --- a town's streets and a battleground (2026-11-16, played: "like whenever in an alliance base should be a ------
+    # --- family of songs", "or in a battleground, a family"). The town's songs are one family of heraldry: brass and ---
+    # --- strings over a courtly march, in every kind of country; the battleground's, war drums from end to end. --------
+    C("alliance town", KINDS_ALL, role="town", light=True, modes=("major", "mixolydian", "lydian"), bpm=(96, 108), metres=("4/4", "3/4"),
+      busy=0.55, weight=0.7, leads=("trumpet", "horns", "violin"), strong=("trumpet", "violins"), under=("horns", "celli"),
+      pads=("strings", "brass"), pad_ways=("pad",), plucks=("harp", "pizzicato", "glock"), figures=("arp", "pulse"),
+      basses=("celli pizz", "basses pizz"), kit="march", drums=("timpani",), grooves=("courtly", "march"), hall=(2.2, 0.24), lift=0.35,
+      titles=(("Lion's", "Banner", "Bell Tower", "Gatehouse", "Herald's", "Crown"), ("Square", "Gate", "Town", "Welcome", "Muster", "Hall"))),
+    C("town square", KINDS_ALL, role="town", light=True, modes=("major", "mixolydian"), bpm=(100, 112), metres=("6/8", "4/4"), busy=0.65,
+      weight=0.55, leads=("fiddle", "flute", "clarinet"), strong=("fiddle", "flute"), under=("bassoon",), pads=("accordion", "strings"),
+      pad_ways=("pad",), plucks=("guitar", "mandolin", "harp"), figures=("strum", "oompah"), basses=("acoustic bass", "celli pizz"),
+      kit="folk", drums=(), grooves=("claps", "jig"), hall=(1.6, 0.17), lift=0.25,
+      titles=(("Fountain", "Cobbled", "Lantern Post", "Well", "Baker's", "Cooper's"), ("Square", "Lane", "Morning", "Bustle", "Errand", "Corner"))),
+    C("battleground", KINDS_ALL, role="battleground", serves=(0, 1, 2), modes=("minor", "dorian"), bpm=(132, 148), metres=("4/4", "6/8"),
+      busy=0.6, weight=1.0, leads=("horns", "trumpet", "violins"), strong=("brass", "violins"), under=("trombone", "horns"),
+      pads=("tremolo", "strings"), pad_ways=("tremolo", "pad"), plucks=("strings", "pizzicato"), figures=("gallop", "hammer"),
+      basses=("celli", "basses"), kit="march", drums=("timpani", "taiko"), grooves=("battle", "ride"), hall=(2.0, 0.22), lift=0.45,
+      titles=(("Rallying", "Banner", "Flag", "Contested", "Front Line", "Standard"), ("Charge", "Clash", "Struggle", "Rally", "Field", "Line"))),
+    C("siege line", KINDS_ALL, role="battleground", serves=(0, 1, 2), modes=("phrygian", "minor"), bpm=(120, 132), busy=0.5, weight=1.0,
+      leads=("trombone", "choir", "horns"), strong=("brass", "choir"), under=("tuba", "trombone"), pads=("choir", "tremolo"),
+      pad_ways=("pad", "tremolo"), plucks=("strings", "bells"), figures=("hammer", "pulse"), basses=("basses", "tuba"), kit="orchestra",
+      drums=("taiko", "great drum", "timpani"), grooves=("war drums", "colossus"), hall=(2.4, 0.26), lift=0.5,
+      titles=(("Iron", "Siege", "Burning", "Last", "Broken", "Thundering"), ("Line", "Wall", "Bridge", "Ramparts", "Stand", "Breach"))),
 )
 
 METRES = {"4/4": (4.0, (2.0, 2.0)), "3/4": (3.0, (3.0,)), "6/8": (3.0, (1.5, 1.5)), "5/4": (5.0, (3.0, 2.0)),
@@ -823,7 +846,7 @@ PARTS = ("open", "first", "second", "build", "arrival", "valley", "climb", "summ
 WORD = {"open": "open", "first": "theme", "second": "theme", "build": "rise", "arrival": "moment", "valley": "theme",
         "climb": "rise", "summit": "moment", "close": "close"}
 THEMATIC = ("first", "second", "arrival", "valley", "summit")      # the parts in which a theme is sung whole
-FIGHTS = ("battle", "boss", "storm")
+FIGHTS = ("battle", "boss", "storm", "battleground")
 LONG = 480.0                   # seconds: about how long a track is
 SHORTEST, LONGEST = 455.0, 505.0
 # How the time is shared out. The summit is the longest part and the opening and the close the

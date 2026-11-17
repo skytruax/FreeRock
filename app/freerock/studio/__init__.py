@@ -54,7 +54,7 @@ import soundfile
 from .. import analysis, forever
 
 RATE = forever.RATE
-ROLES = ("wander", "night", "ember", "depths", "storm", "battle", "boss")
+ROLES = ("wander", "night", "ember", "depths", "storm", "battle", "boss", "town", "battleground")
 LIFT = 1.0                     # the loudest part of a track is this much over a bucket's usual level: it is the moment
 QUIET = 10 ** (-72 / 20)       # a part that never rises above this in a piece is not playing in it
 

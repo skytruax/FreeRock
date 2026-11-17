@@ -28,7 +28,7 @@ from .state import GameState
 
 # Kinds of section, most urgent first. A zone's music may not have every kind; `FALLBACK` says
 # what to play instead.
-PLACES = ("boss", "battle", "depths", "storm", "night", "ember", "wander")
+PLACES = ("boss", "battle", "battleground", "town", "depths", "storm", "night", "ember", "wander")
 FALLBACK = {"boss": "battle", "battle": "wander", "storm": "wander", "night": "ember",
             "depths": "ember", "ember": "wander", "arrival": "wander"}
 
@@ -303,6 +303,10 @@ class Director:
         dungeon = state.in_instance and state.instance_kind in ("party", "raid", "scenario")
         fallen = state.dead or state.ghost
         inn = state.resting and state.indoors      # a city's streets are not an inn
+        # A town or a city: resting out of doors, in its streets ("whenever in an alliance base should be a family of
+        # songs", 2026-11-16); and a battleground or an arena ("or in a battleground, a family").
+        town = state.resting and not state.indoors
+        battleground = state.in_instance and state.instance_kind in ("battleground", "arena")
         on_the_move, lingering, going = self._movement(state, now)
 
         # A roll is how far beyond one fight the heat has got: nothing after a single fight, full
@@ -481,6 +485,12 @@ class Director:
             place, cut = "battle", "beat"
             also += ["storm", "boss"]
             why.append("a fight")
+        elif battleground:
+            # A battleground's own music, through its fights and its deaths alike: one dies often there, and the
+            # music of the dead every time would be a different song every minute.
+            place, sited = "battleground", True
+            also.append("wander")
+            why.append("a battleground")
         elif fallen:
             place = "ember"
             also.append("wander")
@@ -498,6 +508,10 @@ class Director:
             place, sited = "ember", True
             also.append("wander")
             why.append("resting")
+        elif town:
+            place, sited = "town", True
+            also.append("wander")
+            why.append("in a town")
         elif m.in_storm and not state.indoors:
             place, cut = "storm", "beat"
             also.append("wander")
