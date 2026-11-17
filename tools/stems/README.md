@@ -79,9 +79,9 @@ by the Muse Sounds Manager (`https://muse-cdn.com/Muse_Sounds_Manager_x64.deb`, 
 with `sudo apt install`) into `~/Muse Sounds`, which is a link to `musesounds` on the assets
 drive: Muse Strings, Brass, Woodwinds, Percussion, Choir, Harp, Keys, Guitars Vol. 1,
 Drumline, Handbells and Music Box, 117 instruments, 16 GB. The sampler itself is
-`~/.local/share/MuseSampler/lib/libMuseSamplerCoreLib.so`. Muse Sounds are free of charge;
-their licence terms have not been read here, which is fine for music that is only listened
-to at home and has to be settled before anything is shared. The paid packs sold on MuseHub
+`~/.local/share/MuseSampler/lib/libMuseSamplerCoreLib.so`. Muse Sounds are free of charge and
+licensed for making music: what is made with them is its maker's (musescore.org/en/node/344132);
+the sounds themselves may not be passed on, and nothing here does. The paid packs sold on MuseHub
 (Spitfire and others) install only through MuseHub on Windows and macOS.
 
 `app/freerock/studio/muse.py` says how a voice becomes a score and how a part is given a
@@ -98,7 +98,7 @@ Under `var/samples` (on the assets drive), each fetched from GitHub as a tarball
 | `big-rusty-drums` | Very large drums: 24-inch kick, a 22-inch kick hung as a tom, 18-inch floor tom | sfzinstruments/karoryfer.big-rusty-drums | CC0 |
 | `swirly-drums`, `black-and-green-guitars`, `pastabass`, `growlybass`, `meatbass`, `emilyguitar`, `shinyguitar` | A drum kit, electric guitars recorded clean, basses, guitars (for the band; not used yet) | sfzinstruments/karoryfer.* | CC0 |
 | `salamander-piano` | A grand piano (not used yet) | sfzinstruments/SalamanderGrandPiano | CC BY 3.0 (Alexander Holm) |
-| `tinysol` | Horn, trumpet, trombone, tuba, clarinet and bassoon (and flute, oboe, saxophone and solo strings, not used yet): every semitone played soft, medium and loud, one close microphone | TinySOL, zenodo.org/records/3685367 (Carmine Emanuele Cella, Daniele Ghisi, Vincent Lostanlen, Fabien Lévy, Joshua Fineberg and Yan Maresz; recorded at IRCAM) | CC BY 4.0 on the download page. IRCAM's paper on the same recordings says "free for non-commercial usage": fine for music that is only listened to at home, to be settled before anything is shared |
+| `tinysol` | Horn, trumpet, trombone, tuba, clarinet and bassoon (and flute, oboe, saxophone and solo strings, not used yet): every semitone played soft, medium and loud, one close microphone | TinySOL, zenodo.org/records/3685367 (Carmine Emanuele Cella, Daniele Ghisi, Vincent Lostanlen, Fabien Lévy, Joshua Fineberg and Yan Maresz; recorded at IRCAM) | CC BY 4.0 (zenodo.org/records/3685367; the "free for non-commercial usage" wording seen beside it belongs to IRCAM's other set, OrchideaSOL) |
 | `naked-drums` | A drum kit with five toms, ten takes of every stroke and a far-room microphone: its bass drum's inside, outside and room microphones are the kick (`sounds.NAKED`); the rest is not used yet | sfzinstruments/WilkinsonAudio.NakedDrums | CC BY 4.0 (Wilkinson Audio) |
 
 `studio/samples.py` reads a folder of single notes into zones (measuring each recording's pitch),

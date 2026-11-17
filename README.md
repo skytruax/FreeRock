@@ -21,6 +21,7 @@
 </p>
 
 <p align="center">
+  <a href="#listen">Listen</a> ·
   <a href="#get-started">Get started</a> ·
   <a href="#how-it-works">How it works</a> ·
   <a href="#the-music">The music</a> ·
@@ -52,15 +53,29 @@ against stems that were liked by ear, and kept lossless. The studio writes more 
   <img src="docs/images/demo.gif" alt="Two minutes of play: standing, walking, a wolf in your sights, the fight, a mine, riding, nightfall, the inn. Each channel's level moves as it happens." width="900">
 </p>
 
+## Listen
+
+A minute or less of each style, as the studio rendered it (the whole mix, every channel up):
+
+| | | |
+|---|---|---|
+| **Warcraft** | [Twilight Song](docs/samples/twilight-song.mp3) | the build into its first arrival: harp, strings, horns and a wordless choir |
+| **Knight Rock** | [Lightning Runner](docs/samples/lightning-runner.mp3) | a storm piece climbing into its moment: riff guitars, a twin lead, the Hammond and the kit |
+| **House** | [The King's Road](docs/samples/the-kings-road.mp3) | the breakdown, the build and the drop |
+| **Warcraft, camping** | [Watchfire Wait](docs/samples/watchfire-wait.mp3) | what plays while you wait out of doors: a classical guitar, English horn and flute over hushed strings |
+
+In the game you never hear a track quite like this: the five channels move with what you do.
+
 ## What you get
 
 <table>
   <tr>
     <td width="50%" valign="top">
       <img src="docs/images/story.png" alt="One track's nine sections and every channel's loudness through them">
-      <b>Tracks that tell a story.</b> About eight minutes each, in nine sections: an opening, two
-      themes, a build, an arrival, a valley, a climb, a summit and a close. The quiet stretches
-      breathe, the big ones land, and the song never stops to loop.
+      <b>Tracks that tell a story.</b> A Warcraft or Knight Rock track runs about eight minutes in
+      nine sections: an opening, two themes, a build, an arrival, a valley, a climb, a summit and a
+      close (House builds and drops in eight). The quiet stretches breathe, the big ones land, and
+      the song never stops to loop.
     </td>
     <td width="50%" valign="top">
       <img src="docs/images/signals.png" alt="A chart of each channel's level in fourteen situations, from standing still to a dungeon boss">
@@ -296,26 +311,28 @@ each section. `house.py` writes the House tracks: grooves, chords, plucks, riser
 
 **2. Play.** Every part is performed by recorded instruments. The orchestra is MuseScore Studio
 with Muse Sounds: 117 recorded instruments covering strings, brass, woodwinds, choir, harp,
-keys, guitars and percussion. Sample libraries fill in around it, played by sfizz inside REAPER:
-VSCO-2 CE and VCSL, Karoryfer's big drums, TinySOL's brass, and Naked Drums for a kick. The war
-drums and the rock kits are the AVL drum kits. House's synths are Surge XT patches, each at
+keys, guitars and percussion. Sample libraries fill in what MuseScore does not play, through
+sfizz inside REAPER: VCSL's mallets, bells and world percussion, Karoryfer's very large drums and
+Naked Drums for a kick (VSCO-2 CE and TinySOL stand in where MuseScore is missing). The war drums
+and the rock kits are the AVL drum kits. House's synths are Surge XT patches, each at
 the octave it was measured to need, and its drums are a TR-8's own recordings.
 
 **3. Mix.** `desk.py` builds a REAPER project for each track and renders every channel on its
 own. Each source gets its own equaliser, and there is compression, a hall and a room from
-Dragonfly Reverb, parallel compression on the drums and a limiter over them. House's desk
-(`club.py`) also rides each voice's level in four-bar spans from its loudest notes, puts a sine
-sub under the plucked basses on their own notes, and lets the bass and pads give way under every
-kick.
+Dragonfly Reverb, parallel compression on the drums, and a limiter at the end of every channel.
+House's desk (`club.py`) also rides each synth voice's level in four-bar spans from its loudest
+notes, puts a sine sub under the plucked and sawtooth basses on their own notes, and lets the
+bass, the pads, the chords and the tune give way under every kick.
 
 **4. Measure.** The studio has no ears, so it measures. `ear.py` takes each channel's balance in
-octaves from 28 Hz to 14 kHz and sets it against the stems that were liked. House tracks are also
-checked as they render: the moment has to be the loudest part, nothing may clip, and every
-channel has to be in tune and in the key.
+ten octaves from 20 Hz to 20 kHz and sets it against the stems that were liked. House tracks are
+also checked as they render: the moment has to be the loudest part, nothing may clip, the chords
+and the tune have to be in tune and in the key, and the drums on time.
 
-**5. Keep.** A finished track is written as five 24-bit FLAC stems with its sections, its kinds
-of place and moment, its key and its tempo (`track.json`). `freerock pieces add` cuts it into
-pieces and puts them in its style's bucket as 16-bit FLAC. `tools/listen.py` makes a listening
+**5. Keep.** A finished track is written as a 24-bit FLAC stem for each channel that plays, with
+its sections, its kinds of place and moment, its key and its tempo (`track.json`). `freerock
+pieces add` cuts new tracks into pieces and puts them in its style's bucket as 16-bit FLAC
+(`tools/fresh_bucket.py` rebuilds a bucket from everything staged, takes made again included). `tools/listen.py` makes a listening
 page for every track: the whole mix to play, and a mixer with a fader for each channel.
 
 **6. Overnight.** Rendering is heavy (REAPER, MuseScore and the sampler for every channel of
@@ -400,6 +417,7 @@ var/               everything made at run time: buckets, staged tracks, logs (no
 
 | Read more | |
 |---|---|
+| [docs/songwriting.md](docs/songwriting.md) | The songwriting handbook: the brief, how each style is written, played, mixed and checked, and how to make more |
 | [docs/signals-and-channels.md](docs/signals-and-channels.md) | Every signal, rule and knob from the game to the five channels, and what is still to be argued over |
 | [docs/places.md](docs/places.md) | Every kind of place and moment, and how many tracks each style has for it |
 | [protocol/beacon.md](protocol/beacon.md) | The strip, square by square |
@@ -412,10 +430,11 @@ The pictures in this file are drawn from the real code and a real track by
 ## Credits and licences
 
 FreeRock's code and documents are under the [MIT licence](LICENSE). The music is not in the
-repository: every studio writes and plays its own, for listening at home. It is played on
-instruments that others recorded and gave away: MuseScore Studio and Muse Sounds; VSCO-2 CE,
-VCSL and Karoryfer's instruments (CC0); the AVL drum kits (CC BY-SA 3.0); Naked Drums (CC BY
-4.0); TinySOL (IRCAM); the TR-8 recordings from MckAudio (CC0); Surge XT, sfizz, Dragonfly
-Reverb, x42, Calf and the other free plug-ins in REAPER. Each one, and its licence, is listed in
-[tools/stems/README.md](tools/stems/README.md). Muse Sounds' and TinySOL's terms are still to be
-read before anything is shared beyond home listening.
+repository, apart from the four short samples above: every studio writes and plays its own. It is
+played on instruments that others recorded and gave away: MuseScore Studio and Muse Sounds (Muse
+Group; music made with them is its maker's, and the sounds themselves are never shared here);
+VSCO-2 CE, VCSL and Karoryfer's instruments (CC0); the AVL drum kits by Glen MacArthur (CC BY-SA
+3.0); Naked Drums by Wilkinson Audio (CC BY 4.0); TinySOL by Cella, Ghisi, Lostanlen, Lévy,
+Fineberg and Maresz at IRCAM (CC BY 4.0); the TR-8 recordings from MckAudio (CC0); Surge XT,
+sfizz, Dragonfly Reverb, x42, Calf and the other free plug-ins in REAPER. Each one, and its
+licence, is listed in [tools/stems/README.md](tools/stems/README.md).
