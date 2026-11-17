@@ -117,6 +117,8 @@ CROWNS_LIGHT = {"pastoral": "horns", "highland": "horns", "regal": "horns", "mys
 
 
 def crown_of(character) -> tuple[str, bool]:
+    if character.role in ("boss", "battleground") and not character.band:
+        return "full choir", True                    # the whole choir, every voice, where the fight is greatest
     if character.light:
         return (CROWNS_LIGHT[character.kinds[0]] if len(character.kinds) < 5 else "oohs"), False
     if len(character.kinds) >= 5:
@@ -215,7 +217,7 @@ def stage(fam: Family, take: int) -> dict:
         # A layer on top, where the story comes to its moments: a choir sings the pad's chords with the strings (the
         # horns, in the open country and the hills). Light music has it too, softly (2026-11-16, played: "not enough
         # instruments in each track").
-        low, high = (43, 79) if crown in ("choir", "oohs") else (41, 74)
+        low, high = (43, 79) if crown in ("choir", "oohs", "full choir") else (41, 74)
         sung = [note for voice in written.voices["texture"].values() if voice.instrument in ("tremolo", "strings", "strings slow")
                 for note in voice.notes if any(first <= note.start < last for first, last in spans) and low <= note.pitch <= high]
         if sung and crown not in {voice.instrument for voice in written.voices["texture"].values()}:

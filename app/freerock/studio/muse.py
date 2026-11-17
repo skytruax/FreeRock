@@ -96,6 +96,12 @@ PARTS: dict[str, tuple[tuple, ...]] = {
     "bass clarinet": (("Clarinet in B♭", 0, 127, "", "Muse Woodwinds/Bass Clarinet"),),
     "handbells": (("Tubular Bells", 0, 127, "", "Muse Handbells/Handbells"),),
     "euphonium": (("Tuba", 0, 127, "", "Muse Brass/Euphonium"),),
+    "contrabassoon": (("Bassoon", 0, 127, "", "Muse Woodwinds/Contrabassoon"),),
+    "contrabass flute": (("Flute", 0, 127, "", "Muse Woodwinds/Contrabass Flute"),),
+    "eb clarinet": (("Clarinet in B♭", 0, 127, "", "Muse Woodwinds/Clarinet in Eb"),),
+    "full choir": (("Women", 0, 127, "", "Muse Choir/Full Choir"),),
+    "handchimes": (("Tubular Bells", 0, 127, "", "Muse Handbells/Handchimes"),),
+    "dream piano": (("Piano", 0, 127, "", "Muse Keys/Dream Piano"),),
     # For the house desk (studio/club.py): a grand that is always the grand, and the two electric pianos.
     "house piano": (("Piano", 0, 127, "", "Muse Keys/Piano"),),
     "electric piano": (("Piano", 0, 127, "", "Muse Keys/Suitcase Piano"),),

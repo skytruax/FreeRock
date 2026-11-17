@@ -1194,7 +1194,9 @@ MUSE_CUT = {"Violins 1": 170.0, "Violin": 170.0, "Violas": 115.0, "Viola": 115.0
             "Clarinet in B♭": 130.0, "Women": 150.0, "Celesta": 200.0, "Glockenspiel": 400.0,
             "Rhythm Guitar": 85.0, "Muted Guitar": 85.0, "Electric Guitar": 110.0, "Hammond Organ": 90.0,       # under the guitars and the organ is the bass guitar's
             # A sound given to a part of another size: its own cut, not the part's (a bass flute is not a flute's 230 Hz).
-            "Muse Woodwinds/Bass Flute": 90.0, "Muse Woodwinds/Bass Clarinet": 45.0, "Muse Brass/Euphonium": 40.0, "Muse Handbells/Handbells": 180.0}
+            "Muse Woodwinds/Bass Flute": 90.0, "Muse Woodwinds/Bass Clarinet": 45.0, "Muse Brass/Euphonium": 40.0, "Muse Handbells/Handbells": 180.0,
+            "Muse Woodwinds/Contrabassoon": 22.0, "Muse Woodwinds/Contrabass Flute": 40.0, "Muse Choir/Full Choir": 70.0,
+            "Muse Handbells/Handchimes": 180.0, "Muse Keys/Dream Piano": 35.0}
 MUTED_TOP = 3200.0             # Hz: a muted string has nothing above this
 # Where the two rhythm guitars sit (one each side, as a record is made), and how far the second is behind the
 # first: two takes are never together to the sample, and that is what makes two guitars sound like two.

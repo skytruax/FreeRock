@@ -102,6 +102,11 @@ INSTRUMENTS = {
     "handbells": I(0, 14, 60, 93, 74, held=False, level=0.85),
     # (Muse's euphonium under C3 was found to sound an octave up and 18 dB soft, played alone: it is kept above it.)
     "euphonium": I(0, 58, 48, 72, 58),
+    # The rest of what Muse Sounds has (2026-11-17, night: "revisit it see if you left good ones out"), each heard played
+    # alone first: the two low winds at the written pitch, every note.
+    "contrabassoon": I(0, 70, 22, 50, 34, level=1.6), "contrabass flute": I(0, 73, 36, 62, 48, level=1.6),
+    "eb clarinet": I(0, 71, 62, 91, 76), "full choir": I(0, 52, 43, 81, 62, early=0.05),
+    "handchimes": I(0, 14, 60, 96, 74, held=False), "dream piano": I(0, 0, 36, 96, 64, held=False),
     # The big drums and what marks an arrival. These are found by name alone (their bank and
     # program stand for nothing). A war drum's or a frame drum's pitch is its size: 36 is the
     # biggest war drum, 45 the lowest frame drum. The others have one note each.
@@ -150,6 +155,7 @@ LOUD = {
     "violins slow": -26.5, "violas": -25.3, "celli slow": -28.0, "basses slow": -31.0, "celli pizz": -28.9,
     "basses pizz": -29.5, "twelve string": -32.4,
     "piano": -28.0, "bass flute": -26.0, "bass clarinet": -24.4, "handbells": -27.0, "euphonium": -21.4,
+    "contrabassoon": -22.6, "contrabass flute": -26.0, "eb clarinet": -24.4, "full choir": -26.8, "handchimes": -27.0, "dream piano": -28.0,
     "war drums": -30.0, "frame drums": -30.0, "boom": -30.0, "gong": -30.0, "swell": -30.0, "anvil": -30.0,
     "taikos": -30.0, "tam-tam": -30.0, "mark tree": -30.0, "field drum": -30.0, "field drum roll": -30.0, "cymbal roll": -30.0,
     "piatti": -30.0, "concert drum roll": -30.0,
@@ -195,7 +201,7 @@ KINDS_ALL = ("pastoral", "highland", "haunted", "desert", "jungle", "infernal", 
 CHARACTERS = (
     # --- pastoral ---------------------------------------------------------------------------
     C("village dance", ("pastoral",), light=True, modes=("major", "mixolydian"), bpm=(150, 168), metres=("6/8",), busy=0.75,
-      weight=0.6, leads=("fiddle", "whistle", "recorder"), strong=("fiddle", "flute"), under=("clarinet",),
+      weight=0.6, leads=("fiddle", "whistle", "eb clarinet"), strong=("fiddle", "flute"), under=("clarinet",),
       pads=("accordion", "strings"), pad_ways=("drone", "pad"), plucks=("steel guitar", "mandolin", "pizzicato"),
       figures=("strum", "oompah"), basses=("acoustic bass", "celli pizz"), kit="folk", drums=(), grooves=("jig", "claps"),
       hall=(1.4, 0.16), lift=0.2,
@@ -374,7 +380,7 @@ CHARACTERS = (
     # --- the kinds of moment that are not walking about -------------------------------------------
     C("lullaby", ("pastoral", "highland", "regal"), role="night", light=True, modes=("major", "lydian"), bpm=(58, 70),
       metres=("3/4", "4/4"), busy=0.3, weight=0.4, leads=("flute", "clarinet", "celesta"), strong=("violins slow", "flute"),
-      under=("celli",), pads=("strings slow", "oohs"), pad_ways=("pad",), plucks=("harp", "celesta"), figures=("arp", "rock"),
+      under=("celli",), pads=("strings slow", "oohs"), pad_ways=("pad",), plucks=("harp", "dream piano", "celesta"), figures=("arp", "rock"),
       basses=("celli slow",), kit="folk", drums=(), grooves=("none",), hall=(3.0, 0.32), lift=0.0,
       titles=(("Night", "Sleeping", "Starry", "Shuttered", "Candle", "Crescent"), ("Lullaby", "Watch", "Fields", "Windows", "Hour", "Nocturne"))),
     C("nocturne", ("haunted", "mystic", "jungle"), role="night", modes=("minor", "dorian"), bpm=(56, 68), busy=0.3, weight=0.45,
@@ -406,7 +412,7 @@ CHARACTERS = (
       titles=(("Deep", "Dripping", "Lightless", "Echoing", "Buried", "Cold"), ("Cavern", "Tunnels", "Dark", "Roots", "Hollow", "Stone"))),
     C("crystal cave", KINDS_ALL, role="depths", light=True, modes=("lydian", "dorian"), bpm=(60, 72), busy=0.35, weight=0.45,
       leads=("celesta", "vibes", "flute"), strong=("glock", "violins slow"), under=("celli",), pads=("oohs", "strings slow"),
-      pad_ways=("pad", "arp"), plucks=("vibes", "harp", "kalimba"), figures=("arp", "toll"), basses=("celli slow",), kit="wood",
+      pad_ways=("pad", "arp"), plucks=("vibes", "harp", "kalimba"), figures=("arp", "toll"), basses=("celli slow", "contrabass flute"), kit="wood",
       drums=(), grooves=("drip",), hall=(4.2, 0.45), lift=0.0,
       titles=(("Crystal", "Glowing", "Glimmering", "Underground", "Blue"), ("Cave", "Lake", "Grotto", "Veins", "Pool"))),
     C("tempest", KINDS_ALL, role="storm", serves=(1, 2), modes=("minor", "phrygian"), bpm=(126, 142), busy=0.6, weight=1.0,
@@ -693,7 +699,7 @@ CHARACTERS = (
       basses=("celli slow", "basses pizz"), kit="folk", drums=(), grooves=("sparkle", "rain"), hall=(3.0, 0.32), lift=0.2,
       titles=(("Lakeside", "Still Water", "Reed", "Heron", "Mirror", "Lily Pad"), ("Reverie", "Dream", "Hour", "Mere", "Ripples", "Shallows"))),
     C("harvest home", ("pastoral",), light=True, modes=("major", "mixolydian"), bpm=(100, 112), metres=("3/4", "6/8"), busy=0.6, weight=0.65,
-      leads=("violin", "clarinet", "whistle"), strong=("violins", "horns"), under=("celli", "bassoon"), pads=("strings",), pad_ways=("pad",),
+      leads=("violin", "eb clarinet", "whistle"), strong=("violins", "horns"), under=("celli", "bassoon"), pads=("strings",), pad_ways=("pad",),
       plucks=("harp", "glock", "pizzicato"), figures=("arp", "oompah"), basses=("celli pizz", "basses pizz"), kit="folk", drums=("timpani",),
       grooves=("waltz", "jig"), hall=(2.0, 0.22), lift=0.45,
       titles=(("Harvest", "Sheaf", "Hayrick", "Lammas", "Gleaner's", "Bonfire"), ("Home", "Feast", "Supper", "Round", "Thanks", "Ring"))),
@@ -701,7 +707,7 @@ CHARACTERS = (
     C("glowworm grotto", ("mystic", "jungle", "pastoral"), role="depths", light=True, modes=("lydian", "dorian"), bpm=(60, 72),
       metres=("3/4", "4/4"), busy=0.3, weight=0.45, leads=("celesta", "bass flute", "vibes"), strong=("vibes", "oohs"), under=("celli",),
       pads=("oohs", "strings slow"), pad_ways=("pad",), plucks=("harp", "vibes", "celesta"), figures=("arp", "toll"),
-      basses=("celli slow", "basses pizz"), kit="wood", drums=(), grooves=("drip",), hall=(4.0, 0.42), lift=0.0,
+      basses=("celli slow", "contrabass flute", "basses pizz"), kit="wood", drums=(), grooves=("drip",), hall=(4.0, 0.42), lift=0.0,
       titles=(("Glowworm", "Lantern", "Starry", "Hidden", "Firefly"), ("Grotto", "Hollow", "Cave", "Chamber", "Den"))),
     C("old mine", ("highland", "infernal", "regal"), role="depths", modes=("minor", "dorian", "phrygian"), bpm=(72, 84), busy=0.35, weight=0.7,
       leads=("bass clarinet", "euphonium", "english horn"), strong=("horns", "violins slow"), under=("trombone",),
@@ -897,7 +903,7 @@ CHARACTERS = (
     # --- and had three pieces. One for each kind of place and its ground, quiet, slow and far off. -----------------------
     C("starlit meadow", ("pastoral", "highland"), role="night", light=True, modes=("lydian", "major"), bpm=(56, 68), metres=("3/4", "4/4"),
       busy=0.3, weight=0.4, leads=("flute", "celesta", "clarinet"), strong=("violins slow", "flute"), under=("celli",),
-      pads=("strings slow", "oohs"), pad_ways=("pad",), plucks=("harp", "celesta"), figures=("arp", "rock"), basses=("celli slow",),
+      pads=("strings slow", "oohs"), pad_ways=("pad",), plucks=("harp", "dream piano", "celesta"), figures=("arp", "rock"), basses=("celli slow",),
       kit="folk", drums=(), grooves=("none", "sparkle"), hall=(3.2, 0.34), lift=0.0,
       titles=(("Starlit", "Dew-Wet", "Sleeping", "Moonbright", "Silver", "Hushed"), ("Meadow", "Fields", "Furrows", "Hay", "Pasture", "Grass"))),
     C("owl wood", ("pastoral", "haunted", "mystic"), role="night", light=True, modes=("dorian", "minor"), bpm=(58, 70), metres=("3/4", "4/4"),
@@ -907,17 +913,17 @@ CHARACTERS = (
       titles=(("Owl", "Moth", "Badger's", "Hollow Oak", "Night", "Bramble"), ("Wood", "Hollow", "Thicket", "Copse", "Boughs", "Path"))),
     C("moonlit shore", ("pastoral", "mystic", "jungle"), role="night", light=True, modes=("lydian", "dorian"), bpm=(56, 68), metres=("6/8", "3/4"),
       busy=0.3, weight=0.4, leads=("harp", "flute", "oohs"), strong=("oohs", "violins slow"), under=("celli",), pads=("strings slow", "oohs"),
-      pad_ways=("pad",), plucks=("harp", "vibes"), figures=("arp", "rock"), basses=("celli slow",), kit="folk", drums=(),
+      pad_ways=("pad",), plucks=("harp", "handchimes", "vibes"), figures=("arp", "rock"), basses=("celli slow",), kit="folk", drums=(),
       grooves=("none", "sparkle"), hall=(3.6, 0.38), lift=0.0,
       titles=(("Moonlit", "Low Tide", "Silver", "Sleeping", "Night", "Gentle"), ("Shore", "Sands", "Tide", "Harbour", "Waves", "Cove"))),
     C("village asleep", ("pastoral", "regal", "highland"), role="night", light=True, modes=("major", "dorian"), bpm=(60, 72), metres=("3/4",),
       busy=0.35, weight=0.4, leads=("music box", "celesta", "cello"), strong=("violins slow", "celesta"), under=("cello",),
-      pads=("strings slow",), pad_ways=("pad",), plucks=("harp", "celesta"), figures=("oompah", "arp"), basses=("celli pizz",),
+      pads=("strings slow",), pad_ways=("pad",), plucks=("harp", "dream piano", "celesta"), figures=("oompah", "arp"), basses=("celli pizz",),
       kit="folk", drums=(), grooves=("tick", "none"), hall=(2.6, 0.28), lift=0.0,
       titles=(("Shuttered", "Lamp-Out", "Chimney", "Cradle", "Sleeping", "Curfew"), ("Village", "Rooftops", "Lane", "Bells", "Windows", "Square"))),
     C("frost night", ("highland", "mystic"), role="night", light=True, modes=("lydian", "dorian"), bpm=(54, 66), metres=("4/4", "3/4"),
       busy=0.3, weight=0.4, leads=("celesta", "flute", "handbells"), strong=("violins slow", "glock"), under=("celli",),
-      pads=("strings slow", "oohs"), pad_ways=("pad",), plucks=("celesta", "harp"), figures=("arp", "toll"), basses=("celli slow",),
+      pads=("strings slow", "oohs"), pad_ways=("pad",), plucks=("celesta", "handchimes", "harp"), figures=("arp", "toll"), basses=("celli slow",),
       kit="folk", drums=(), grooves=("none", "sparkle"), hall=(3.8, 0.4), lift=0.0,
       titles=(("Frost", "Star", "Northern", "Crystal", "Snow-Lit", "Aurora"), ("Night", "Sky", "Peaks", "Hush", "Lights", "Silence"))),
     C("jungle night", ("jungle", "mystic"), role="night", modes=("dorian", "minor"), bpm=(64, 76), busy=0.35, weight=0.5,
@@ -937,7 +943,7 @@ CHARACTERS = (
       titles=(("Cooling", "Ember", "Ashen", "Smouldering", "Banked", "Red"), ("Night", "Forge", "Glow", "Embers", "Hours", "Coals"))),
     C("moon choir", ("mystic", "regal"), role="night", light=True, modes=("lydian", "dorian"), bpm=(54, 64), busy=0.3, weight=0.45,
       leads=("handbells", "oohs", "flute"), strong=("oohs", "violins slow"), under=("celli",), pads=("oohs", "strings slow"), pad_ways=("pad",),
-      plucks=("handbells", "harp", "celesta"), figures=("arp", "toll"), basses=("celli slow",), kit="folk", drums=(),
+      plucks=("handbells", "handchimes", "harp"), figures=("arp", "toll"), basses=("celli slow",), kit="folk", drums=(),
       grooves=("sparkle", "none"), hall=(4.0, 0.42), lift=0.0,
       titles=(("Moon", "Elune's", "Silver", "Starlight", "Veiled", "Dreaming"), ("Choir", "Vespers", "Chant", "Song", "Canticle", "Prayer"))),
 )
@@ -1816,6 +1822,7 @@ class Take:
             ("regal" in kinds or ch.role == "battleground" or "march" in ch.grooves)
         self.taikos = not ch.band and self.heavy and (bool(kinds & {"jungle", "infernal", "desert"}) or ch.role in ("battle", "boss", "battleground"))
         self.rumble = not ch.band and ch.role == "storm"
+        self.grim = not ch.band and not ch.light and (bool(kinds & {"haunted", "infernal"}) or ch.role in ("boss", "depths"))
 
     def voice(self, channel: str, name: str, tag: str = "") -> Voice:
         have = self.voices[channel]
@@ -2584,6 +2591,8 @@ class Take:
                     way = BUSIER.get(way, way)          # the second time round a theme the bass moves more, as it does in the scores
                 if way == "long":
                     low(bar_at, beats, here, loud)
+                    if self.grim and part == "valley":
+                        self.put("bass", "contrabassoon", bar_at, beats, here - 12, loud * 0.85)     # an octave under, the deepest wind there is
                 elif way == "two":
                     # The bar's note, and on the way to the next: a passing note, or the chord's other note.
                     for index, on in enumerate(starts):
@@ -2630,6 +2639,8 @@ class Take:
                         self.put("bass", "celli", bar_at, beats, upper, weight, tag=" tutti")
                     if name not in ("basses", "basses slow"):
                         self.put("bass", "basses", bar_at, beats, lower, weight, tag=" tutti")
+                    if self.grim and part == "summit":
+                        self.put("bass", "contrabassoon", bar_at, beats, lower, weight * 0.9, tag=" tutti")
                     if part == "summit":
                         if "tuba" in ch.basses + ch.under and name != "tuba":
                             self.put("bass", "tuba", bar_at, beats, lower, weight, tag=" tutti")
