@@ -27,7 +27,6 @@ import numpy as np
 import soundfile
 
 from freerock import studio
-from freerock.audio import write_mp3
 
 VAR = Path(__file__).resolve().parents[1] / "var"
 STYLES = ("warcraft", "knight", "house")
@@ -51,14 +50,18 @@ def names(meta: dict) -> tuple[str, str]:
 
 def channels(desk: Path, meta: dict, parts: dict[str, np.ndarray], peak: float) -> None:
     """Writes a track's channels for the mixer page: each channel as pieces of PIECE seconds
-    (<channel>-<number>.mp3), and track.json, which says what there is and is written last."""
+    (<channel>-<number>.flac), and track.json, which says what there is and is written last.
+    (FLAC since 2026-11-17, morning, "these sounds shitty good thing were going back to flac":
+    as MP3 they were a second encoding of the night's MP3 channels, and every MP3 piece begins
+    with the encoder's padding, which a browser that does not take it off plays as a gap.)"""
     desk.mkdir(parents=True, exist_ok=True)
     frames = max(len(audio) for audio in parts.values())
     size = int(PIECE * studio.RATE)
     count = -(-frames // size)
     for channel, audio in parts.items():
         for index in range(count):
-            write_mp3(desk / ("%s-%03d.mp3" % (channel, index)), audio[index * size:(index + 1) * size], studio.RATE)
+            soundfile.write(str(desk / ("%s-%03d.flac" % (channel, index))), np.clip(audio[index * size:(index + 1) * size], -1.0, 1.0),
+                            studio.RATE, format="FLAC", subtype="PCM_16")
     at, sections = 0.0, []
     for section in meta["sections"]:
         long = section["bars"] * meta["bar_frames"] / studio.RATE
@@ -67,7 +70,7 @@ def channels(desk: Path, meta: dict, parts: dict[str, np.ndarray], peak: float) 
     sections[-1]["end"] = round(frames / studio.RATE, 3)          # what rings on after the last bar belongs to the close
     told = {"title": "%s (take %s)" % (meta["title"], meta["take"]),
             "about": "%s, %s; %s; %.0f beats a minute" % (meta["role"], ", ".join(meta["moods"]), meta["tonic"], meta["tempo"]),
-            "channels": [channel for channel in ORDER if channel in parts], "rate": studio.RATE, "piece": PIECE, "pieces": count,
+            "channels": [channel for channel in ORDER if channel in parts], "rate": studio.RATE, "piece": PIECE, "pieces": count, "kind": "flac",
             "seconds": round(frames / studio.RATE, 3), "gain": round(0.89 / peak, 4), "sections": sections, "floor": meta.get("floor", {})}
     (desk / "track.json").write_text(json.dumps(told), encoding="utf-8")
 
@@ -126,6 +129,10 @@ def page(style: str, rows: list[tuple[str, dict]]) -> str:
 
 
 def main(styles: list[str]) -> int:
+    # The mixer page first, so that every row's channels link works while the rest is still being written (2026-11-17,
+    # morning: "the channels poages dont work": it was copied in only once every style was done).
+    (VAR / "listen").mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(Path(__file__).resolve().parent / "mixer.html", VAR / "listen" / "mixer.html")
     wrong = []
     for style in styles:
         folders = studio.staged(VAR, style)
@@ -143,7 +150,6 @@ def main(styles: list[str]) -> int:
         out.mkdir(parents=True, exist_ok=True)
         (out / "index.html").write_text(page(style, rows), encoding="utf-8")
         print("%s: %d tracks to listen to in %s" % (style, len(rows), out))
-    shutil.copyfile(Path(__file__).resolve().parent / "mixer.html", VAR / "listen" / "mixer.html")
     # A front page for whatever styles have been written out so far.
     have = sorted((folder.name for folder in (VAR / "listen").iterdir() if (folder / "index.html").is_file()),
                   key=lambda name: (name in ABOUT, name))
