@@ -1,4 +1,4 @@
-"""The music side of the server: from game state on the hub to messages and phrases for the player."""
+"""The music side of the server: from game state on the hub to messages and music for the player."""
 import asyncio
 import json
 import types
@@ -12,11 +12,7 @@ from freerock import state as game
 from freerock.director import Target
 from freerock.server import ServerConfig, create_app
 from freerock.settings import Settings
-from test_forever import fill
-
-# A loose phrase for each pool the music cannot start without: a drone, a tune, a rhythm part,
-# drums and bass.
-STARTING = [("texture", 0), ("lead", 0), ("rhythm", 1), ("drums", 1), ("bass", 1)]
+from test_forever import stock
 
 
 class Clock:
@@ -69,14 +65,14 @@ async def until(condition, timeout=5.0):
 async def test_a_player_is_told_the_bucket_and_the_target(tmp_path):
     client, app, conductor = await running(tmp_path)
     try:
-        fill(conductor.buckets.get("Elwynn Forest", "knight"), STARTING)
+        stock(conductor.buckets.get("Elwynn Forest", "knight"))
         socket = await client.ws_connect("/ws/player")
         assert (await next_of(socket, "hello"))["type"] == "hello"
         publish(app, zone_name="Elwynn Forest", subzone_name="Goldshire")
         described = (await next_of(socket, "bucket"))["bucket"]
         assert described["key"] == "knight/elwynn-forest" and described["style"] == "Knight Rock"
         assert described["rate"] == 48000 and described["bar_frames"] == 48000 * 240 // described["bpm"]
-        assert [clip["channel"] for clip in described["clips"]] == [channel for channel, _ in STARTING]
+        assert sorted(clip["channel"] for clip in described["clips"]) == sorted(forever.CHANNELS)
         target = await next_of(socket, "target")
         assert target["target"]["place"] == "wander" and target["target"]["bass"] == 0.0
         assert set(target["target"]["channels"]) == set(forever.CHANNELS)
@@ -84,7 +80,7 @@ async def test_a_player_is_told_the_bucket_and_the_target(tmp_path):
         assert target["link"] == "live"
         assert any("Playing the Knight Rock song" in note for note in conductor.notes)
 
-        # A fight against an elite: the bass and the drums come up whole, and play their hard phrases.
+        # A fight against an elite: the bass and the drums come up whole, and play hard.
         publish(app, zone_name="Elwynn Forest", in_combat=True, target_class="elite")
         fight = (await next_of(socket, "target"))["target"]
         assert fight["bass"] == 1.0 and fight["drums"] == 1.0 and fight["intensity"] >= 0.8
@@ -97,7 +93,7 @@ async def test_a_player_is_told_the_bucket_and_the_target(tmp_path):
 async def test_a_player_that_joins_late_is_brought_up_to_date(tmp_path):
     client, app, conductor = await running(tmp_path)
     try:
-        fill(conductor.buckets.get("Elwynn Forest", "knight"), STARTING)
+        stock(conductor.buckets.get("Elwynn Forest", "knight"))
         publish(app, zone_name="Elwynn Forest", indoors=True)
         await until(lambda: conductor.target is not None and conductor.bucket is not None)
         socket = await client.ws_connect("/ws/player")
@@ -111,14 +107,14 @@ async def test_a_player_that_joins_late_is_brought_up_to_date(tmp_path):
         await client.close()
 
 
-async def test_the_phrases_and_parts_are_there_to_be_fetched_whole(tmp_path):
+async def test_the_parts_are_there_to_be_fetched_whole(tmp_path):
     client, app, conductor = await running(tmp_path)
     try:
         bucket = conductor.buckets.get("Elwynn Forest", "knight")
-        fill(bucket, STARTING)
+        stock(bucket)
         clip = bucket.clips[0]
         response = await client.get("/phrase/knight/elwynn-forest/" + clip.id)
-        assert response.status == 200 and len(await response.read()) == clip.frames * 4
+        assert response.status == 200 and len(await response.read()) == (clip.frames + clip.post) * 4
         assert (await client.get("/phrase/knight/elwynn-forest/nothing")).status == 404
         assert (await client.get("/phrase/knight/nowhere/nothing")).status == 404
     finally:
@@ -165,7 +161,7 @@ async def test_losing_sight_of_the_game_fades_the_music_out(tmp_path):
 async def test_the_pretend_game_moves_the_music_like_the_real_one(tmp_path):
     client, app, conductor = await running(tmp_path)
     try:
-        fill(conductor.buckets.get("Elwynn Forest", "knight"), STARTING)
+        stock(conductor.buckets.get("Elwynn Forest", "knight"))
         socket = await client.ws_connect("/ws/player")
         answer = await client.post("/api/pretend", json={"zone_name": "Elwynn Forest", "daytime": True, "indoors": True})
         assert answer.status == 200
@@ -288,7 +284,7 @@ async def test_the_player_is_told_how_often_the_song_falls_silent_and_for_how_lo
     settings = Settings(var_dir=tmp_path / "var", rest_every_minutes=9.0, rest_seconds=45.0)
     client, app, conductor = await running(tmp_path, settings=settings)
     try:
-        fill(conductor.buckets.get("Elwynn Forest", "knight"), STARTING)
+        stock(conductor.buckets.get("Elwynn Forest", "knight"))
         socket = await client.ws_connect("/ws/player")
         publish(app, zone_name="Elwynn Forest")
         described = (await next_of(socket, "bucket"))["bucket"]
@@ -301,23 +297,23 @@ async def test_the_player_is_told_how_often_the_song_falls_silent_and_for_how_lo
 async def test_the_player_says_what_it_has_heard_and_it_is_counted(tmp_path):
     client, app, conductor = await running(tmp_path)
     try:
-        fill(conductor.buckets.get("Elwynn Forest", "knight"), STARTING)
+        stock(conductor.buckets.get("Elwynn Forest", "knight"))
         socket = await client.ws_connect("/ws/player")
         publish(app, zone_name="Elwynn Forest")
         described = (await next_of(socket, "bucket"))["bucket"]
         clip = described["clips"][0]["id"]
         await socket.send_str(json.dumps({"type": "status", "forever": True, "started": True, "context": "running",
                                           "bucket": described["key"], "heard": [clip],
-                                          "playing": {"texture": {"id": clip, "tier": 0}}}))
+                                          "playing": {"texture": {"id": clip, "tier": 1}}}))
         bucket = conductor.buckets.by_key(described["key"])
         await until(lambda: next(kept for kept in bucket.clips if kept.id == clip).plays == 1)
         assert conductor.heard() == {"connected": 1, "playing": 1}
-        # /rock ban is about what is playing at this moment.
+        # /rock ban is about what is playing at this moment: the whole piece.
         app["hub"].publish(game.CommandReceived(name="ban", count=1))
         gone = await next_of(socket, "retired")
-        assert gone == {"type": "retired", "key": described["key"], "ids": [clip]}
-        assert clip not in [kept.id for kept in bucket.live()]
-        assert "The 1 phrases playing are banned." in conductor.notes
+        assert gone["key"] == described["key"] and sorted(gone["ids"]) == sorted(each["id"] for each in described["clips"])
+        assert not bucket.live()
+        assert "The piece Made Up is banned." in conductor.notes
     finally:
         await client.close()
 
@@ -326,7 +322,7 @@ async def test_the_bucket_goes_with_the_player_across_a_border(tmp_path):
     client, app, conductor = await running(tmp_path)
     try:
         bucket = conductor.buckets.get("Elwynn Forest", "knight")
-        fill(bucket, STARTING)
+        stock(bucket)
         socket = await client.ws_connect("/ws/player")
         publish(app, zone_name="Elwynn Forest", speed=7.0)
         assert (await next_of(socket, "bucket"))["bucket"]["key"] == "knight/elwynn-forest"
@@ -339,7 +335,7 @@ async def test_the_bucket_goes_with_the_player_across_a_border(tmp_path):
         assert conductor.bucket is bucket and not (tmp_path / "var" / "buckets" / "knight" / "westfall").exists()
         status = await (await client.get("/api/music")).json()
         assert status["genre"] == "knight" and status["forever"]["bucket"] == "knight/elwynn-forest"
-        assert status["forever"]["phrases"] == 5 and status["forever"]["pools"]["drums steady"] == 1
+        assert (status["forever"]["pieces"], status["forever"]["parts"]) == (1, 5)
         await socket.close()
     finally:
         await client.close()
@@ -348,8 +344,8 @@ async def test_the_bucket_goes_with_the_player_across_a_border(tmp_path):
 async def test_a_new_style_takes_over_as_soon_as_it_has_anything(tmp_path):
     client, app, conductor = await running(tmp_path)
     try:
-        fill(conductor.buckets.get("Elwynn Forest", "knight"), STARTING)
-        fill(conductor.buckets.get("Elwynn Forest", "house"), [("texture", 0)])
+        stock(conductor.buckets.get("Elwynn Forest", "knight"))
+        stock(conductor.buckets.get("Elwynn Forest", "house"), channels=("texture",))
         socket = await client.ws_connect("/ws/player")
         publish(app, zone_name="Elwynn Forest")
         assert (await next_of(socket, "bucket"))["bucket"]["genre"] == "knight"
@@ -361,9 +357,6 @@ async def test_a_new_style_takes_over_as_soon_as_it_has_anything(tmp_path):
         assert (described["genre"], described["bpm"], described["style"]) == ("house", 110, "Progressive House")
         assert described["bar_frames"] == pytest.approx(48000 * 240 / 110)
         assert Settings.load(tmp_path / "var").genre == "house", "the style asked for is kept"
-        # Written pieces switched off: the page is told again, of the loose phrases only.
-        assert (await client.post("/api/style", json={"pieces": "off"})).status == 200
-        assert (await next_of(socket, "bucket"))["bucket"]["pieces"] == {}
         assert (await client.post("/api/style", json={"genre": "polka"})).status == 400
         await socket.close()
     finally:

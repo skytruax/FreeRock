@@ -1,7 +1,7 @@
 // The FreeRock player page: connects the forever song's engine (forever.js) to the FreeRock server.
 //
 // The server says which bucket to play from and what the target is; this page fetches the
-// phrases the engine asks for and shows what is going on. If the server cannot be reached the
+// parts of pieces the engine asks for and shows what is going on. If the server cannot be reached the
 // music that is playing carries on, and after a minute it fades out under a notice.
 (function () {
   "use strict";
@@ -41,7 +41,7 @@
     $("banner").textContent = text || "";
   }
 
-  // One whole phrase from a bucket, or one stretch of a part of a piece.
+  // One stretch of a part of a piece, from a bucket.
   async function phraseLoader(key, clipId) {
     const response = await fetch("/phrase/" + key + "/" + clipId);
     if (!response.ok) throw new Error("The server would not give the phrase " + clipId + " (" + response.status + "): " + await response.text());
@@ -97,22 +97,14 @@
     await engine.start();
   }
 
-  // What the bucket holds: written pieces (each kept as its parts) and loose phrases.
+  // What the bucket holds: written pieces, each kept as its parts.
   function musicLine() {
     if (!playing) return;
     const clips = engine && engine.bucket ? Array.from(engine.bucket.clips.values()) : playing.clips;
-    const loose = clips.filter((clip) => !clip.piece).length;
     const pieces = new Set(clips.filter((clip) => clip.piece).map((clip) => clip.piece)).size;
     const style = playing.style || playing.genre;
-    if (pieces) {
-      $("music").textContent = "A song that never ends (" + style + "): " + pieces + " written pieces, strung together"
-        + " for the kind of place you are in and what is happening there"
-        + (loose ? ", with " + loose + " loose phrases (" + playing.bpm + " BPM, " + playing.tonic + ") to play between them." : ".");
-      return;
-    }
-    $("music").textContent = "A song that never ends (" + style + ", " + playing.bpm + " BPM, "
-      + playing.tonic + "), put together as it goes from " + loose + " phrases, each a verse, a build-up and a chorus"
-      + " for one instrument.";
+    $("music").textContent = "A song that never ends (" + style + "): " + pieces + " written pieces, strung together"
+      + " for the kind of place you are in and what is happening there.";
   }
 
   function show(message) {
@@ -199,7 +191,6 @@
       button.addEventListener("click", () => chooseStyle(genre.key));
       return button;
     }));
-    $("pieces").checked = styles.pieces !== "off";
     const chosen = styles.genres.find((genre) => genre.key === styles.genre);
     $("styleAbout").textContent = chosen ? chosen.label + ": " + chosen.about + "." : "";
   }
@@ -214,13 +205,6 @@
     if (!response.ok) { problem("The style was not changed: " + await response.text()); return; }
     drawStyles(await response.json());
   }
-  // Written pieces on or off: the server tells every page at once what there now is to play from.
-  $("pieces").addEventListener("change", async () => {
-    const response = await fetch("/api/style", { method: "POST", headers: { "Content-Type": "application/json" },
-                                                 body: JSON.stringify({ pieces: $("pieces").checked ? "on" : "off" }) });
-    if (!response.ok) { problem("Written pieces were not switched: " + await response.text()); return; }
-    drawStyles(await response.json());
-  });
   loadStyles().catch((error) => problem(String(error)));
 
   // --- the pretend game ----------------------------------------------------------------------

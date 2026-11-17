@@ -3,10 +3,10 @@
 The conductor listens to the game's state on the hub, asks the director what should be heard,
 and tells every connected player page: the bucket to play from (a style has one, its song, which
 goes wherever the player goes), how the five channels are mixed, and what kind of place the
-player is in. It also hands the player the phrases and the parts of pieces it asks for.
+player is in. It also hands the player the parts of pieces it asks for.
 
-Add it to the server with `attach(app)`. It adds the player page, the phrase route and the
-player's WebSocket, and starts its own loop when the server starts.
+Add it to the server with `attach(app)`. It adds the player page, the route the parts are fetched
+from and the player's WebSocket, and starts its own loop when the server starts.
 """
 from __future__ import annotations
 
@@ -54,7 +54,7 @@ class Conductor:
         self.players: set[web.WebSocketResponse] = set()
         self.target: Target | None = None
         self.statuses: dict[int, dict[str, Any]] = {}   # what each player page last reported
-        self.notes: list[str] = []       # things worth showing on the control page
+        self.notes: list[str] = []       # things worth saying in the music's status (/api/music)
         self._task: asyncio.Task | None = None
         self._told: tuple | None = None      # what the players were last told
         self.buckets = forever.Buckets(self.settings.var_dir / "buckets")
@@ -188,10 +188,8 @@ class Conductor:
         here = self.buckets.home(self.genre, self.place_name(state))
         if here is not None and here is not self.bucket and here.live():
             self.bucket = here
-            loose = sum(1 for clip in here.live() if not clip.piece)
-            self.notes.append("Playing the %s song: %d written pieces and %d loose phrases in its bucket "
-                              "(%d BPM, %s)." % (composer.GENRES[here.genre]["label"], len(here.live_pieces()),
-                                                 loose, here.bpm, here.tonic))
+            self.notes.append("Playing the %s song: %d written pieces in its bucket."
+                              % (composer.GENRES[here.genre]["label"], len(here.live_pieces())))
         if self.bucket is not None and self._sent_bucket != self.bucket.key:
             self._sent_bucket = self.bucket.key
             await self._broadcast(self._bucket_message())
@@ -207,14 +205,11 @@ class Conductor:
 
     def _bucket_message(self) -> dict[str, Any]:
         told = self.bucket.describe()
-        if self.settings.pieces == "off":
-            # Written pieces are switched off: the player is told of the loose phrases only.
-            told = {**told, "pieces": {}, "clips": [clip for clip in told["clips"] if "piece" not in clip]}
         return {"type": "bucket", "bucket": {**told, "rest": self._silences,
                                              "style": composer.GENRES[self.bucket.genre]["label"]}}
 
-    def _count_phrases(self, report: dict[str, Any]) -> None:
-        """Notes the phrases a player says have come in since it last said."""
+    def _count_plays(self, report: dict[str, Any]) -> None:
+        """Notes the parts a player says have come in since it last said."""
         heard, key = report.get("heard"), report.get("bucket")
         if not heard or not key:
             return
@@ -224,8 +219,8 @@ class Conductor:
             # The page is playing from a bucket this server does not have. Nothing to count.
             log.warning("a player is playing from the bucket %s, which is not here", key)
 
-    def _playing_phrases(self) -> tuple[forever.Bucket, list[str]] | None:
-        """The bucket and the phrases a player is playing right now: what love and ban apply to."""
+    def _playing_parts(self) -> tuple[forever.Bucket, list[str]] | None:
+        """The bucket and the parts a player is playing right now: what love and ban apply to."""
         for status in self.statuses.values():
             playing, key = status.get("playing"), status.get("bucket")
             if playing and key:
@@ -240,16 +235,15 @@ class Conductor:
             if event.name == "skip":
                 await self._broadcast({"type": "skip"})
             elif event.name in ("love", "ban"):
-                # Love and ban are about the phrases playing at this moment. Banned ones are not
-                # played again, and the decks playing them move on. A piece of written music is
-                # loved or banned whole, every part of it.
-                found = self._playing_phrases()
+                # Love and ban are about the piece playing at this moment, whole, every part of it.
+                # A banned one is not played again, and the decks playing it move on.
+                found = self._playing_parts()
                 if found:
                     bucket, ids = found
                     marked = bucket.mark(ids, loved=True) if event.name == "love" else bucket.mark(ids, banned=True)
-                    titles = sorted({bucket.pieces[clip.piece]["title"] for clip in marked if clip.piece})
-                    what = ("The piece %s is" % " and ".join(titles)) if titles \
-                        else "The %d phrases playing are" % len(marked)
+                    if not marked:
+                        return
+                    what = "The piece %s is" % " and ".join(sorted({bucket.pieces[clip.piece]["title"] for clip in marked}))
                     if event.name == "love":
                         self.notes.append("%s marked as loved." % what)
                     else:
@@ -322,7 +316,7 @@ class Conductor:
                 report = json.loads(message.data)
                 if report.get("type") == "status":
                     self.statuses[id(socket)] = report
-                    self._count_phrases(report)
+                    self._count_plays(report)
                 elif report.get("type") == "problem":
                     note = "The player page reported a problem: %s" % report.get("message")
                     log.error(note)
@@ -335,15 +329,15 @@ class Conductor:
         return socket
 
     async def phrase(self, request: web.Request) -> web.Response:
-        """One whole phrase from a bucket, as 16-bit stereo."""
+        """One stretch of a part of a piece, and what the music went on to, as 16-bit stereo."""
         key = "%s/%s" % (request.match_info["genre"], request.match_info["zone"])
         try:
-            # Read to one side: a part of a piece is decoded from its MP3, which takes a moment
-            # the game should not have to wait for.
+            # Read to one side: a stretch is decoded from its FLAC, which takes a moment the game
+            # should not have to wait for.
             data = await asyncio.to_thread(self.buckets.by_key(key).samples, request.match_info["clip"])
         except KeyError as error:
-            raise web.HTTPNotFound(text="Cannot give that phrase: %s" % error)
-        # A phrase never changes once it is made, so the browser may keep it for good.
+            raise web.HTTPNotFound(text="Cannot give that part: %s" % error)
+        # A part never changes once it is made, so the browser may keep it for good.
         return web.Response(body=data, content_type="application/octet-stream",
                             headers={"Cache-Control": "max-age=31536000, immutable"})
 
@@ -377,30 +371,23 @@ class Conductor:
         return web.json_response({"ok": True})
 
     def _styles(self) -> dict[str, Any]:
-        return {"genre": self.genre, "pieces": self.settings.pieces,
+        return {"genre": self.genre,
                 "genres": [{"key": key, "label": recipe["label"], "about": recipe["about"]}
                            for key, recipe in composer.GENRES.items()]}
 
     async def style(self, request: web.Request) -> web.Response:
-        """Which style is in force and which there are, and whether the written pieces are
-        played; a POST changes either. The change is kept (var/settings.json) and takes effect at
-        once: the new style's bucket is played as soon as it has anything in it."""
+        """Which style is in force and which there are; a POST changes it. The change is kept
+        (var/settings.json) and takes effect at once: the new style's bucket is played as soon as it
+        has anything in it."""
         if request.method == "POST":
             asked = await request.json()
-            try:
-                for name in ("genre", "pieces"):
-                    if name in asked:
-                        self.settings.change(name, asked[name])
-            except ValueError as error:
-                raise web.HTTPBadRequest(text=str(error))
-            self.settings.save()
             if "genre" in asked:
+                try:
+                    self.settings.change("genre", asked["genre"])
+                except ValueError as error:
+                    raise web.HTTPBadRequest(text=str(error))
+                self.settings.save()
                 self.notes.append("The style is now %s." % composer.GENRES[self.genre]["label"])
-            if "pieces" in asked:
-                # The players are told at once what there now is to play from.
-                self.notes.append("Written pieces are switched %s." % self.settings.pieces)
-                if self.bucket is not None:
-                    await self._broadcast(self._bucket_message())
         return web.json_response(self._styles())
 
     async def zones(self, request: web.Request) -> web.Response:
@@ -414,7 +401,7 @@ class Conductor:
             "genre": self.genre, "forever": self._forever_status(), "notes": self.notes[-20:]})
 
     def _forever_status(self) -> dict[str, Any]:
-        """The forever song for the control page: the bucket in play, what it holds, the piece a
+        """The forever song for the status page: the bucket in play, what it holds, the piece a
         player is in the middle of, and where the player is."""
         bucket = self.bucket
         live = bucket.live() if bucket else []
@@ -422,23 +409,18 @@ class Conductor:
         piece = next((status["piece"] for status in self.statuses.values() if status.get("piece")), None)
         found, light = self.kinds_here(self.hub.state)
         return {"bucket": bucket.key if bucket else None,
-                "bpm": bucket.bpm if bucket else None, "tonic": bucket.tonic if bucket else None,
-                # Loose phrases (each one instrument alone, any with any) and written pieces
-                # (each kept as its parts, which are counted apart from the phrases).
-                "phrases": sum(1 for clip in live if not clip.piece),
+                # The written pieces in play, and the stretches of their parts the player fetches.
                 "pieces": len(bucket.live_pieces()) if bucket else 0,
-                "parts": sum(1 for clip in live if clip.piece),
+                "parts": len(live),
                 "playing_piece": piece,
                 "kinds": found, "light": light, "shade": self.shade_here(self.hub.state), "setting": self.setting_here(self.hub.state),
-                "kept": len(bucket.clips) if bucket else 0,
-                "pools": bucket.counts() if bucket else {},
                 "mix": self.mix}
 
 
 def _ended(conductor: Conductor, task: asyncio.Task) -> None:
     """The conductor's loop is meant to run for as long as the server does. If it stops with an
-    error the music would freeze without a word, so the error is logged and kept for the control
-    page."""
+    error the music would freeze without a word, so the error is logged and kept in the music's
+    status (/api/music)."""
     if task.cancelled():
         return
     error = task.exception()

@@ -1,8 +1,8 @@
 """The real player page in headless Chrome against a real server with made-up music.
 
 This is the whole music path short of the speakers: the game's state goes onto the hub, the
-conductor tells the page, the page fetches the phrases and starts its engine, and reports back
-what it is playing. Skipped where Chrome is not installed.
+conductor tells the page, the page fetches the parts of a piece and starts its engine, and reports
+back what it is playing. Skipped where Chrome is not installed.
 """
 import asyncio
 import shutil
@@ -14,8 +14,7 @@ from freerock import conductor as music
 from freerock import state as game
 from freerock.server import ServerConfig, create_app
 from freerock.settings import Settings
-from test_conductor import STARTING
-from test_forever import fill
+from test_forever import stock
 
 CHROME = next((path for path in (shutil.which(name) for name in
                                  ("google-chrome", "google-chrome-stable", "chromium", "chromium-browser"))
@@ -44,13 +43,12 @@ async def until(condition, what, timeout=30.0):
 
 
 async def test_the_page_plays_the_forever_song_from_a_bucket(tmp_path):
-    """The page is sent a bucket of phrases, fetches the ones its five decks start with, plays
-    them, changes gear in a fight, and says what it has heard."""
+    """The page is sent a bucket with a piece in it, fetches the parts its five decks start with,
+    plays them, changes to the hard parts in a fight, and says what it has heard."""
     app = create_app(ServerConfig(var_dir=tmp_path / "var", keep_log=False))
     conductor = music.attach(app, settings=Settings(var_dir=tmp_path / "var"))
     bucket = conductor.buckets.get("Duskwood", "knight")
-    hard = [("drums", 2), ("bass", 2), ("rhythm", 2), ("lead", 2)]
-    fill(bucket, STARTING + hard)
+    stock(bucket, tiers=(1, 2), bars=16)
     server = TestServer(app)
     await server.start_server()
     say(app, zone_name="Duskwood", speed=7.0)
@@ -67,17 +65,17 @@ async def test_the_page_plays_the_forever_song_from_a_bucket(tmp_path):
         assert {"texture", "lead"} <= set(status["playing"])
         assert not [note for note in conductor.notes if "problem" in note], conductor.notes
 
-        # A fight against an elite: every deck that plays changes to its hard phrase.
+        # A fight against an elite: every deck that plays changes to its hard part.
         say(app, zone_name="Duskwood", speed=7.0, in_combat=True, has_target=True, target_class="elite")
 
         def fighting():
             return next((s for s in conductor.statuses.values() if s.get("forever") and all(
                 s["playing"].get(channel, {}).get("tier") == 2 for channel in ("drums", "bass", "rhythm", "lead"))), None)
 
-        fight = await until(fighting, "the decks to change to their hard phrases")
+        fight = await until(fighting, "the decks to change to their hard parts")
         assert fight["late"] == 0
         # What it has played has been counted, for choosing what comes next.
-        await until(lambda: sum(clip.plays for clip in bucket.clips) >= 5, "the phrases heard to be counted")
+        await until(lambda: sum(clip.plays for clip in bucket.clips) >= 5, "the parts heard to be counted")
         before = fight["time"]
         later = await until(lambda: next((s for s in conductor.statuses.values() if s.get("time", 0) > before + 3), None),
                             "the audio clock to move on")

@@ -418,7 +418,7 @@ class Subscription:
 class Hub:
     """The one place inside the program where the game's state is published.
 
-    The server feeds it; anything else (the director, the control page) reads `hub.state` and
+    The server feeds it; anything else (the director, the music's status) reads `hub.state` and
     `hub.link` for where things stand and calls `hub.subscribe()` for what happens next.
     """
 

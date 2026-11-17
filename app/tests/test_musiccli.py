@@ -24,16 +24,16 @@ def var(tmp_path, monkeypatch):
 def test_settings_can_be_shown_and_changed(var, capsys):
     assert cli.main(["settings"]) == 0
     out = capsys.readouterr().out
-    for line in ("rest_every_minutes  6", "rest_seconds        60", "genre               knight", "pieces              on"):
+    for line in ("rest_every_minutes  6", "rest_seconds        60", "genre               knight"):
         assert line in out
     assert cli.main(["settings", "rest_seconds", "40"]) == 0
     assert "rest_seconds        40" in capsys.readouterr().out
     assert Settings.load(var).rest_seconds == 40 and Settings.load(var).rest_every_minutes == 6
     assert cli.main(["settings", "rest_every_minutes", "0"]) == 0          # no moments of silence
     assert cli.main(["settings", "genre", "warcraft"]) == 0
-    assert cli.main(["settings", "pieces", "off"]) == 0
+    assert cli.main(["settings", "pieces", "off"]) == 1 and "is not a setting" in capsys.readouterr().err
     again = Settings.load(var)
-    assert (again.rest_every_minutes, again.rest_seconds, again.genre, again.pieces) == (0, 40, "warcraft", "off")
+    assert (again.rest_every_minutes, again.rest_seconds, again.genre) == (0, 40, "warcraft")
     capsys.readouterr()
     assert cli.main(["settings", "rest_seconds", "-3"]) == 1 and "less than nothing" in capsys.readouterr().err
     assert cli.main(["settings", "genre", "polka"]) == 1 and "genre must be one of" in capsys.readouterr().err
@@ -47,13 +47,13 @@ def test_a_settings_file_with_something_wrong_in_it_is_an_error(tmp_path):
     with pytest.raises(ValueError):
         Settings.load(tmp_path)
     (tmp_path / "settings.json").write_text('{"rest_seconds": 20, "genre": "trance"}')
-    loaded = Settings.load(tmp_path)
-    assert loaded.rest_seconds == 20 and loaded.genre == "house" and loaded.rest_every_minutes == 6
+    with pytest.raises(ValueError):
+        Settings.load(tmp_path)
 
 
 def test_a_settings_file_written_for_buying_and_for_the_songs_is_read_without_them(tmp_path):
     (tmp_path / "settings.json").write_text('{"monthly_minutes": 100000.0, "daily_minutes": 100000.0, "mode": "songs", '
-                                            '"rock": 0.2, "hours_per_month": 60, "genre": "warcraft"}')
+                                            '"rock": 0.2, "hours_per_month": 60, "pieces": "on", "genre": "warcraft"}')
     loaded = Settings.load(tmp_path)
     assert loaded.genre == "warcraft"
     loaded.save()

@@ -63,7 +63,7 @@ class Target:
     volume: float = 1.0               # 0 to 1, on top of the player's own volume control
     silent: bool = False              # fade right out (a cinematic, or FreeRock switched off in game)
     fade_s: float = 0.4               # how long the levels and tone take to get there
-    intensity: float = 0.0            # 0 to 1, for the log and the control page
+    intensity: float = 0.0            # 0 to 1, for the log and the music's status
     why: tuple[str, ...] = ()         # the rules in force, for the log
 
     def as_dict(self) -> dict:

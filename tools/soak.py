@@ -143,7 +143,7 @@ async def evening(http: aiohttp.ClientSession, style: str, script: list | None =
                 playing = "+".join(sorted(player.get("playing", {})))
                 line = ("%s [%s%s] with %s" % (piece["title"], piece.get("role"), "" if not piece.get("story") else ", " + piece["story"],
                                                playing or "nothing")
-                        if piece else ("a moment of silence" if player.get("resting") else "loose phrases: %s" % (playing or "nothing")))
+                        if piece else ("a moment of silence" if player.get("resting") else "no piece: %s" % (playing or "nothing")))
                 if not playing and not player.get("resting"):
                     silent += 1
                 if line != said:

@@ -1,19 +1,11 @@
 """The forever song: a bucket of music for each style, and the mixing desk for its five channels.
 
-The music for a style is not a set of songs. It is a bucket of written pieces and loose phrases,
-played as one song that never ends. A written piece is music written as a whole and kept as its
-parts, one recording for each channel (see Bucket.add_piece). A loose phrase is one instrument
-alone: drums, bass, a rhythm part, a tune or a drone. The player keeps one part or phrase of each
-channel going and changes them a few at a time, like a DJ with five decks, so the music never
-stops and never comes round again as a whole. What the player is doing in the game decides
-which channels are up and how hard they play.
-
-A loose phrase is one turn of the song's form: a verse, a build-up and a chorus, about three
-quarters of a minute in all. The three are the same lengths for every channel, and every loose
-phrase in a bucket is on the same tempo and the same tonal centre, so whichever five phrases are
-playing, the whole band builds up together and reaches the chorus together. The loose phrases
-there are were made by ElevenLabs while the game was played; the written pieces come from the
-studio (app/freerock/studio).
+The music for a style is not a set of songs. It is a bucket of written pieces, played as one song
+that never ends. A piece is music written as a whole by the studio (app/freerock/studio) and kept
+as its parts, one recording for each channel: the texture, the tune, the rhythm part, the drums
+and the bass (see Bucket.add_piece). The player plays a piece's parts together on five decks, each
+as loud as the game asks for its channel, and strings the pieces into tracks that tell a story.
+What the player is doing in the game decides which channels are up and how hard they play.
 """
 from __future__ import annotations
 
@@ -22,7 +14,7 @@ import os
 import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
@@ -36,21 +28,12 @@ RATE, CHANNELS_OUT = 48000, 2
 # The channels: the drone, the tune, the rhythm part, the drums and the bass.
 CHANNELS = ("texture", "lead", "rhythm", "drums", "bass")
 TIERS = (0, 1, 2)                       # calm, steady, hard
-TIER_WORDS = ("calm", "steady", "hard")
-# Every pool of loose phrases: a channel at a strength. The drone has only its calm one.
-POOLS = tuple((channel, tier) for channel in CHANNELS for tier in ((0,) if channel == "texture" else TIERS))
-SECTIONS = ("verse", "build", "chorus")
-# How loud each channel is brought to before the player mixes them (LUFS).
-LEVEL = {"texture": -26.0, "lead": -19.0, "rhythm": -20.0, "drums": -17.0, "bass": -18.0}
+# How far a stretch of a part may be from the beat (measure).
 MAX_TEMPO_OFF = 0.2            # percent, by the fit of a beat grid
-MAX_REPEAT_OFF = 0.3           # percent, by how the phrase repeats itself two bars later
-MAX_BEAT_OFF_MS = 45.0         # further than this from the beat and the phrase is not fit to be played
-MAX_TUNING_CENTS = 20.0
-# A calm tune is given more room: a slow melody a quarter of a percent behind the pulse cannot
-# be heard to be late.
-LOOSE = 2.5                    # how many times wider the lines are for a calm tune
-DENSE = 0.6                    # a phrase with something struck on this share of its beats can be timed by them
-REPEATS = 0.45                 # a phrase that is this like itself two bars later can be timed by that
+MAX_REPEAT_OFF = 0.3           # percent, by how the stretch repeats itself two bars later
+MAX_BEAT_OFF_MS = 45.0         # further than this from the beat and the stretch is out of time
+DENSE = 0.6                    # a stretch with something struck on this share of its beats can be timed by them
+REPEATS = 0.45                 # a stretch that is this like itself two bars later can be timed by that
 CHANGES = 2                    # how many decks may take a new phrase each time the form comes round
 # How the player shapes each turn of the form on top of what the phrases do themselves, by
 # style: how far the verse is held back (dB), and how high the lows of the drums and the bass
@@ -74,7 +57,7 @@ RHYTHM_FROM = 0.30             # the rhythm part plays once the player is on the
 CALM_PLACES = ("ember", "camp")       # an inn, the moment after a fight, a death, a camp: everything plays calm
 
 # Pieces: written music, kept as its parts. See Bucket.add_piece.
-PIECE_LEVEL = -13.0            # how loud a piece is with every part playing (LUFS): what five decks of phrases come to
+PIECE_LEVEL = -13.0            # how loud a piece is with every part playing at its middle strength (LUFS)
 POST_S = 6.0                   # how much of what follows is kept after each stretch of a part, for fading out under what comes next
 ENCODERS = min(16, len(os.sched_getaffinity(0)))     # how many parts of a piece are written at once (on the processors it may use)
 WINDOW_S = 52.0                # a part is kept in stretches no longer than this, so that no one of them is slow to fetch
@@ -180,20 +163,11 @@ def _timing(audio: np.ndarray, rate: int, bpm: int, bars: int, room: float = 1.0
     return found
 
 
-def measure(audio: np.ndarray, rate: int, bpm: int, channel: str,
-            sections: int | tuple[int, ...], tier: int = 1) -> dict[str, Any]:
-    """What a phrase is: its length, level, timing and tuning, and in `problems` everything that
-    makes it unfit for the bucket (empty when it is fit). `sections` is the bars of its verse,
-    build-up and chorus, or one number for a phrase that is a single stretch.
-
-    The verse and the chorus are each held to the tempo and to the beat on their own, since each
-    starts at an exact moment and is what the other channels play against. The build-up is not:
-    fills and rolls that speed up are what a build-up is."""
-    sections = (sections,) if isinstance(sections, int) else tuple(sections)
-    bars = sum(sections)
-    bar_s = 240.0 / bpm
-    asked = bars * bar_s
-    room = LOOSE if channel == "lead" and tier == 0 else 1.0
+def measure(audio: np.ndarray, rate: int, bpm: int, channel: str, bars: int) -> dict[str, Any]:
+    """How a stretch of a part keeps time: its length, level and timing, and in `problems`
+    everything wrong with it (empty when nothing is). It is `bars` bars long at `bpm`. A texture
+    is not held to a beat. (The studio's House tracks have their drums checked with it.)"""
+    asked = bars * 240.0 / bpm
     found: dict[str, Any] = {"seconds": round(len(audio) / rate, 3), "lufs": round(analysis.loudness_lufs(audio, rate), 1),
                              "peak": round(analysis.peak(audio), 3)}
     problems: list[str] = []
@@ -202,25 +176,9 @@ def measure(audio: np.ndarray, rate: int, bpm: int, channel: str,
     if found["lufs"] < -50.0:
         problems.append("it is all but silent (%.0f LUFS)" % found["lufs"])
     if channel != "texture" and not problems:
-        if len(sections) == 1:
-            timing = _timing(audio, rate, bpm, bars, room)
-            problems += timing.pop("problems")
-            found.update(timing)
-        else:
-            start = 0
-            for name, length in zip(SECTIONS, sections):
-                first, last = int(round(start * bar_s * rate)), int(round((start + length) * bar_s * rate))
-                start += length
-                if name == "build":
-                    continue
-                timing = _timing(audio[first:last], rate, bpm, length, room)
-                problems += ["in the %s %s" % (name, problem) for problem in timing.pop("problems")]
-                found[name] = timing
-    if channel != "drums":
-        key = analysis.estimate_key(audio, rate)
-        found.update(tuning_cents=round(key.tuning_cents, 1), strongest_note=analysis.PITCH_NAMES[int(np.argmax(key.chroma))])
-        if abs(key.tuning_cents) > MAX_TUNING_CENTS:
-            problems.append("it is %.0f cents out of tune" % key.tuning_cents)
+        timing = _timing(audio, rate, bpm, bars)
+        problems += timing.pop("problems")
+        found.update(timing)
     found["problems"] = problems
     return found
 
@@ -230,46 +188,43 @@ def measure(audio: np.ndarray, rate: int, bpm: int, channel: str,
 # ---------------------------------------------------------------------------------------------
 @dataclass
 class Clip:
+    """One stretch of one part of a piece: what the player fetches and lays on a deck."""
     id: str
     channel: str
-    tier: int
-    variant: int
+    tier: int                      # the strength it was written at (0 calm, 1 steady, 2 hard)
     bars: int
     frames: int
-    gain_db: float                 # brings it to its channel's level
+    gain_db: float                 # the piece's gain: it keeps the balance its parts were written with
     created: float
-    words: list[str] = field(default_factory=list)
-    measured: dict[str, Any] = field(default_factory=dict)
     plays: int = 0
-    # Worn: set aside to make room for a newer phrase while phrases were being bought. With no
-    # new ones coming, the worn ones are played again.
-    retired: bool = False
-    banned: bool = False           # never played again (/rock ban)
+    banned: bool = False           # never played again (/rock ban): the whole piece is
     loved: bool = False            # marked with /rock love
-    source: str = "elevenlabs"     # where it came from: ElevenLabs made every loose phrase there is
-    seed: int | None = None        # the seed it was asked for with, for anyone studying what came back
-    place: str = ""                # the place whose colours and mood it was asked for in
-    piece: str = ""                # the piece it is a part of; none for a phrase that stands alone
+    source: str = "written"        # where it came from
+    piece: str = ""                # the piece it is a part of
     order: int = 0                 # which stretch of that piece it is, counting from nought
     post: int = 0                  # samples kept after its end: what the music went on to
 
+    # What a clip kept in the days of loose phrases bought from ElevenLabs: a bucket written then may still hold these,
+    # and they are passed over when it is read (and left out when it is next written).
+    FORMER = ("variant", "words", "measured", "retired", "seed", "place")
+
 
 class Bucket:
-    """One style's music on disk: its loose phrases and its written pieces. It is named for the
-    place it was begun in, whose tempo and key its loose phrases have."""
+    """One style's music on disk: its written pieces, each kept as the stretches of its parts.
+    It is named for the place it was begun in."""
 
     def __init__(self, root: Path, zone: str, genre: str, bpm: int, tonic: str):
         self.root, self.zone, self.genre, self.bpm, self.tonic = Path(root), zone, genre, bpm, tonic
         self.folder = self.root / genre / zone
         self.clips: list[Clip] = []
         self.pieces: dict[str, dict[str, Any]] = {}       # written music: what each piece is, by its id
-        self._loose_for, self._loose_kept = -1, []
         self.version = 0
         index = self.folder / "bucket.json"
         if index.is_file():
             kept = json.loads(index.read_text(encoding="utf-8"))
             self.bpm, self.tonic = kept["bpm"], kept["tonic"]      # what its phrases were made at
-            self.clips = [Clip(**clip) for clip in kept["clips"]]
+            self.clips = [Clip(**{name: value for name, value in clip.items() if name not in Clip.FORMER})
+                          for clip in kept["clips"]]
             self.pieces = kept.get("pieces", {})
             self.version = kept.get("version", len(self.clips))
 
@@ -282,36 +237,15 @@ class Bucket:
         """How long a bar is, in samples. At most tempos a whole number; at some (110) not."""
         return RATE * 240.0 / self.bpm
 
-    def frames_of(self, bars: int) -> int:
-        """How many samples a phrase of so many bars is, to the nearest one."""
-        return int(round(bars * self.bar_frames))
-
     @property
     def cycle(self) -> int:
         """The length of every phrase in play, in bars: one turn of the form at this tempo."""
         return cycle_bars(self.bpm)
 
     def _in_play(self, clip: Clip) -> bool:
-        if clip.piece:
-            # A part of a piece is in play for as long as the piece is: a ban is on the whole piece.
-            piece = self.pieces.get(clip.piece)
-            return piece is not None and not piece.get("banned") and not clip.banned
-        # Phrases of another length were made before phrases were a whole turn of the form.
-        # They are kept on disk and left out of the music.
-        return clip.bars == self.cycle and not clip.banned
-
-    def pool(self, channel: str, tier: int) -> list[Clip]:
-        """The phrases that stand alone, for one channel at one strength. The parts of pieces are
-        not in any pool: they are played as the piece they belong to."""
-        return [clip for clip in self._loose() if clip.channel == channel and clip.tier == tier and self._in_play(clip)]
-
-    def _loose(self) -> list[Clip]:
-        """The phrases that are not parts of pieces. Kept, since a bucket may hold thousands of
-        parts and the pools are looked at many times a second."""
-        if self._loose_for != len(self.clips):
-            self._loose_kept = [clip for clip in self.clips if not clip.piece]
-            self._loose_for = len(self.clips)
-        return self._loose_kept
+        """A part of a piece is in play for as long as the piece is: a ban is on the whole piece."""
+        piece = self.pieces.get(clip.piece)
+        return piece is not None and not piece.get("banned") and not clip.banned
 
     def live(self) -> list[Clip]:
         return [clip for clip in self.clips if self._in_play(clip)]
@@ -324,31 +258,6 @@ class Bucket:
         scratch = self.folder / "bucket.json.new"
         scratch.write_text(json.dumps(index, indent=1) + "\n", encoding="utf-8")
         scratch.replace(self.folder / "bucket.json")
-
-    def add(self, audio: np.ndarray, *, channel: str, tier: int, source: str, variant: int = 0,
-            words: list[str] | None = None, measured: dict[str, Any] | None = None, seed: int | None = None,
-            place: str = "") -> Clip:
-        """Puts a loose phrase in the bucket. `audio` is stereo at 48 kHz and exactly a whole
-        number of bars long, beat on the start. `source` says where it was made, `words` what it
-        was asked for with, and `place` the place whose colours it has."""
-        bars = int(round(len(audio) / self.bar_frames))
-        if not bars or len(audio) != self.frames_of(bars):
-            raise ValueError("A phrase is a whole number of bars: %d frames is not, at %.2f a bar" % (len(audio), self.bar_frames))
-        measured = dict(measured or {})
-        lufs = measured.get("lufs")
-        if lufs is None:
-            lufs = measured["lufs"] = round(analysis.loudness_lufs(audio, RATE), 1)
-        # Never more than full scale after the gain, whatever the level says.
-        gain = min(LEVEL[channel] - lufs, -20.0 * float(np.log10(max(analysis.peak(audio), 1e-6))) - 1.0)
-        clip = Clip(id=uuid.uuid4().hex[:10], channel=channel, tier=tier, variant=variant, bars=bars, frames=len(audio),
-                    gain_db=round(gain, 2), created=time.time(), words=list(words or []), measured=measured, source=source,
-                    seed=seed, place=place)
-        (self.folder / "clips").mkdir(parents=True, exist_ok=True)
-        np.save(self.folder / "clips" / (clip.id + ".npy"),
-                np.round(np.clip(audio, -1.0, 32767 / 32768) * 32768).astype("<i2"))
-        self.clips.append(clip)
-        self._save()
-        return clip
 
     def add_piece(self, parts: dict[tuple[str, int], np.ndarray], *, title: str, bar_frames: float, bars: int,
                   post: int = 0, tonic: str = "", story: str = "", moods: tuple[str, ...] | list[str] = (),
@@ -431,17 +340,14 @@ class Bucket:
         for (channel, tier), audio in sorted(parts.items()):
             for order, (first, last) in enumerate(zip(edges, edges[1:])):
                 stretch = audio[first:min(last + keep, len(audio))]
-                made.append((Clip(id=uuid.uuid4().hex[:10], channel=channel, tier=tier, variant=0,
+                made.append((Clip(id=uuid.uuid4().hex[:10], channel=channel, tier=tier,
                                   bars=max(int(round((last - first) / bar_frames)), 1), frames=last - first,
-                                  gain_db=round(float(gain_db), 2), created=time.time(), words=[title], source=source or "written",
+                                  gain_db=round(float(gain_db), 2), created=time.time(), source=source or "written",
                                   piece=piece_id, order=order, post=len(stretch) - (last - first)), stretch))
 
         def keep_clip(job: tuple[Clip, np.ndarray]) -> None:
             # The parts of pieces are kept losslessly, as FLAC (2026-11-17, morning: "Make sure the mp3s arent losing
-            # quality"). They are cut from tracks staged as MP3, and encoding them as MP3 a second time changed what is
-            # above 2 kHz at only 19 to 24 dB under the music (measured); kept as FLAC, what is played is what was
-            # staged, to 16 bits (96 dB down, far under the MP3's own noise; a third less room than 24). The loose
-            # phrases are kept raw.
+            # quality"): what is played is what was staged, to 16 bits (96 dB down; a third less room than 24).
             clip, stretch = job
             scratch = self.folder / "clips" / (clip.id + ".part.flac")
             soundfile.write(str(scratch), np.clip(stretch, -1.0, 1.0), RATE, format="FLAC", subtype="PCM_16")
@@ -483,10 +389,8 @@ class Bucket:
         return {piece_id: piece for piece_id, piece in self.pieces.items() if not piece.get("banned")}
 
     def mark(self, clip_ids: list[str], *, banned: bool | None = None, loved: bool | None = None) -> list[Clip]:
-        """Bans phrases or marks them as loved. Returns the phrases it found.
-
-        A ban or a love that lands on a part of a piece is for the whole piece: every part of
-        it is marked and returned."""
+        """Bans the pieces these parts belong to, or marks them as loved: a ban or a love is for a
+        whole piece, and every part of it is marked and returned."""
         wanted, found = set(clip_ids), []
         pieces = {clip.piece for clip in self.clips if clip.id in wanted and clip.piece}
         for piece_id in pieces:
@@ -504,8 +408,8 @@ class Bucket:
         return found
 
     def played(self, clip_ids: list[str]) -> None:
-        """Counts one more play for each of these phrases. A phrase the bucket does not have (the
-        page is still playing another place's) is passed over."""
+        """Counts one more play for each of these parts. A part the bucket does not have (the
+        page is still playing another bucket's) is passed over."""
         wanted, found = set(clip_ids), False
         for clip in self.clips:
             if clip.id in wanted:
@@ -515,26 +419,18 @@ class Bucket:
             self._save()
 
     def samples(self, clip_id: str) -> bytes:
-        """A whole phrase as 16-bit little-endian stereo."""
+        """A stretch of a part, and what the music went on to, as 16-bit little-endian stereo."""
         if not any(clip.id == clip_id for clip in self.clips):
-            raise KeyError("No phrase %r in the bucket for %s" % (clip_id, self.key))
+            raise KeyError("No part %r in the bucket for %s" % (clip_id, self.key))
         return self.audio(clip_id).tobytes()
 
     def _file(self, clip_id: str) -> Path:
-        """Where a recording is kept: raw samples for a loose phrase, MP3 for the part of a piece (FLAC for one
-        put in before parts were kept as MP3)."""
-        clips = self.folder / "clips"
-        for name in (clip_id + ".npy", clip_id + ".mp3", clip_id + ".flac"):
-            if (clips / name).is_file():
-                return clips / name
-        return clips / (clip_id + ".mp3")
+        """Where a stretch of a part is kept: a FLAC file."""
+        return self.folder / "clips" / (clip_id + ".flac")
 
     def audio(self, clip_id: str) -> np.ndarray:
-        """A recording as 16-bit stereo samples: for a part of a piece, the stretch and then
-        what the music went on to."""
+        """A stretch of a part as 16-bit stereo samples, and then what the music went on to."""
         path = self._file(clip_id)
-        if path.suffix == ".npy":
-            return np.load(path)
         samples, rate = soundfile.read(str(path), dtype="int16", always_2d=True)
         if rate != RATE:
             raise ValueError("%s is at %d Hz, not %d" % (path, rate, RATE))
@@ -560,16 +456,10 @@ class Bucket:
 
     @staticmethod
     def brief(clip: Clip) -> dict[str, Any]:
-        """One phrase as the player is told of it."""
-        told = {"id": clip.id, "channel": clip.channel, "tier": clip.tier, "bars": clip.bars,
-                "frames": clip.frames, "gain_db": clip.gain_db, "new": clip.plays == 0}
-        if clip.piece:
-            told.update(piece=clip.piece, order=clip.order, post=clip.post, plays=clip.plays)
-        return told
-
-    def counts(self) -> dict[str, int]:
-        """How many phrases each pool has in play, for the control page: "drums hard": 4."""
-        return {"%s %s" % (channel, TIER_WORDS[tier]): len(self.pool(channel, tier)) for channel, tier in POOLS}
+        """A stretch of a part as the player is told of it."""
+        return {"id": clip.id, "channel": clip.channel, "tier": clip.tier, "bars": clip.bars,
+                "frames": clip.frames, "gain_db": clip.gain_db, "new": clip.plays == 0,
+                "piece": clip.piece, "order": clip.order, "post": clip.post, "plays": clip.plays}
 
 
 class Buckets:
@@ -590,11 +480,9 @@ class Buckets:
     def home(self, genre: str, place_name: str | None) -> Bucket | None:
         """The bucket a style's song is played from, wherever the player goes.
 
-        A style has one bucket: the song does not start again at a zone's border. Its tempo and
-        key are those of the place it was begun in, which its loose phrases were made at. It
-        is the bucket on disk with the most phrases in play for that style, or a new one for
-        `place_name` if the style has none yet; None if it has none and the place is not known
-        yet."""
+        A style has one bucket: the song does not start again at a zone's border. It is the
+        bucket on disk with the most in play for that style, or a new one for `place_name` if the
+        style has none yet; None if it has none and the place is not known yet."""
         if genre in self._home:
             return self._home[genre]
         best = None
@@ -620,5 +508,5 @@ class Buckets:
         return self._have[key]
 
 
-__all__ = ["Bucket", "Buckets", "Clip", "measure", "mix", "form", "cycle_bars", "CHANNELS", "TIERS", "POOLS", "STORY",
+__all__ = ["Bucket", "Buckets", "Clip", "measure", "mix", "form", "cycle_bars", "CHANNELS", "TIERS", "STORY",
            "PIECE_LEVEL"]

@@ -5,7 +5,6 @@
     freerock sim --list            the scenarios that come with FreeRock
     freerock read <picture>        read the strip out of a saved picture and say what it holds
     freerock settings [name value] show the settings, or change one
-    freerock stems                 keep every phrase and every part of every piece as an audio file
     freerock pieces add|list|drop  the written pieces in a style's bucket
 
 Other parts of FreeRock add their own commands by calling add_command() before main() runs.

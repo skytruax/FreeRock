@@ -1,12 +1,12 @@
 """The written pieces a style has: putting staged tracks in its bucket, and saying what is there.
 
-A style has one bucket, and its written music lives in it beside its loose phrases (see
-forever.Bucket.add_piece). Pieces are tracks written and played in the studio, which are staged
-under var/studio and put in the bucket from there. `freerock pieces` puts them in, lists what a
+A style has one bucket, and its written music lives in it (see forever.Bucket.add_piece).
+Pieces are tracks written and played in the studio, which are staged under var/studio and put in
+the bucket from there. `freerock pieces` puts them in, lists what a
 style has, and takes pieces out again.
 
 A bucket is written here while the server is stopped: the server keeps each bucket's list in
-memory and writes it back as phrases are played, so two programs writing one bucket would lose
+memory and writes it back as pieces are played, so two programs writing one bucket would lose
 one another's work.
 """
 from __future__ import annotations
@@ -30,8 +30,8 @@ def server_is_up(port: int, host: str = "127.0.0.1") -> bool:
 
 
 def home_bucket(var_dir: Path, style: str, zone: str | None = None) -> forever.Bucket:
-    """The one bucket a style plays from: the one it has, or a new one begun in `zone` (whose
-    tempo and key its loose phrases will have) if it has none yet."""
+    """The one bucket a style plays from: the one it has, or a new one begun in `zone` if it has
+    none yet."""
     if style not in composer.GENRES:
         raise ValueError("%r is not a style; the styles are %s" % (style, ", ".join(composer.GENRES)))
     bucket = forever.Buckets(Path(var_dir) / "buckets").home(style, zone)
@@ -60,9 +60,8 @@ def add_staged(bucket: forever.Bucket, var_dir: Path, style: str) -> list[tuple[
 
 def drop_from(bucket: forever.Bucket, source: str) -> int:
     """Takes out of a bucket, for good, every piece whose source begins with `source` (the
-    studio's tracks are "<style>/<family>/<take>"; pieces cut from the first design's songs,
-    where a bucket still has them, "song/<asset>/<bar>"). The staged tracks are left where they
-    are, so the studio's pieces can be put back. Returns how many pieces went."""
+    studio's tracks are "<style>/<family>/<take>"). The staged tracks are left where they are,
+    so the pieces can be put back. Returns how many pieces went."""
     if not source:
         raise ValueError("Say which pieces: an empty source would take every one")
     mine = [piece_id for piece_id, piece in bucket.pieces.items() if str(piece.get("source", "")).startswith(source)]
@@ -93,8 +92,8 @@ def summary(bucket: forever.Bucket) -> dict[str, Any]:
             light += 1
         else:
             heavy += 1
-    parts = [clip for clip in bucket.live() if clip.piece]
+    parts = bucket.live()
     return {"pieces": len(pieces), "tracks": len({piece["track"] or piece_id for piece_id, piece in pieces.items()}),
             "minutes": minutes, "parts": len(parts), "by_role": by_role, "by_kind": by_kind, "light": light, "heavy": heavy,
-            "banned": len(bucket.pieces) - len(pieces), "loose": sum(1 for clip in bucket.live() if not clip.piece),
+            "banned": len(bucket.pieces) - len(pieces),
             "families": len({piece["family"] for piece in pieces.values() if piece.get("family")})}

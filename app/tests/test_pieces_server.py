@@ -1,13 +1,13 @@
 """Written pieces on the server: the kind of place the player is told of, love and ban on a whole
-piece, and what the control page is told."""
+piece, and what the music's status says."""
 import json
 
 import numpy as np
 
 from freerock import atlas, forever
 from freerock import state as game
-from test_conductor import STARTING, next_of, publish, running, until
-from test_forever import fill
+from test_conductor import next_of, publish, running, until
+from test_forever import stock
 
 RATE = forever.RATE
 BAR = 2 * RATE                 # a two-second bar
@@ -41,7 +41,7 @@ async def told_of(socket, kinds):
 async def test_the_kind_of_place_goes_to_the_player_and_changes_at_a_border(tmp_path):
     client, app, conductor = await running(tmp_path)
     try:
-        fill(conductor.buckets.get("Duskwood", "knight"), STARTING)
+        stock(conductor.buckets.get("Duskwood", "knight"))
         socket = await client.ws_connect("/ws/player")
         publish(app, zone_name="Duskwood")
         target = await told_of(socket, ["haunted"])
@@ -131,7 +131,6 @@ async def test_love_and_ban_are_for_the_whole_piece(tmp_path):
     client, app, conductor = await running(tmp_path)
     try:
         bucket = conductor.buckets.get("Duskwood", "knight")
-        fill(bucket, STARTING)
         piece = add_piece(bucket)
         other = add_piece(bucket, title="Another")
         parts = [clip.id for clip in bucket.clips if clip.piece == piece]
@@ -157,22 +156,21 @@ async def test_love_and_ban_are_for_the_whole_piece(tmp_path):
         assert set(bucket.live_pieces()) == {other}
         assert not [clip for clip in bucket.live() if clip.piece == piece]
         assert any("The piece The Long Dark is banned." in note for note in conductor.notes)
-        # The loose phrases and the other piece are untouched.
-        assert len([clip for clip in bucket.live() if not clip.piece]) == 5
+        # The other piece is untouched.
+        assert {clip.piece for clip in bucket.live()} == {other}
     finally:
         await client.close()
 
 
-async def test_the_control_page_is_told_of_pieces_apart_from_phrases(tmp_path):
+async def test_the_music_status_tells_of_the_pieces_and_the_one_playing(tmp_path):
     client, app, conductor = await running(tmp_path)
     try:
         bucket = conductor.buckets.get("Duskwood", "knight")
-        fill(bucket, STARTING)
         piece = add_piece(bucket)
         socket = await client.ws_connect("/ws/player")
         publish(app, zone_name="Duskwood")
         described = (await next_of(socket, "bucket"))["bucket"]
-        assert any("1 written pieces and 5 loose phrases" in note for note in conductor.notes)
+        assert any("1 written pieces in its bucket" in note for note in conductor.notes)
         # The audio of a part is there to be fetched whole: its stretch and what the music went on to.
         part = next(clip for clip in described["clips"] if clip.get("piece") == piece and clip["order"] == 0)
         response = await client.get("/phrase/knight/duskwood/" + part["id"])
@@ -182,9 +180,8 @@ async def test_the_control_page_is_told_of_pieces_apart_from_phrases(tmp_path):
                                           "bucket": described["key"], "heard": [], "playing": {}, "piece": said, "pieces": 1}))
         await until(lambda: any(status.get("piece") for status in conductor.statuses.values()))
         status = (await (await client.get("/api/music")).json())["forever"]
-        assert (status["phrases"], status["pieces"], status["parts"]) == (5, 1, 6)
+        assert (status["pieces"], status["parts"]) == (1, 6)
         assert status["playing_piece"] == said
-        assert status["pools"]["drums steady"] == 1, "a pool counts loose phrases, not the parts of pieces"
     finally:
         await client.close()
 
@@ -192,7 +189,7 @@ async def test_the_control_page_is_told_of_pieces_apart_from_phrases(tmp_path):
 async def test_a_page_that_connects_is_told_where_the_player_is_before_it_is_given_the_music(tmp_path):
     client, app, conductor = await running(tmp_path)
     try:
-        fill(conductor.buckets.get("Duskwood", "knight"), STARTING)
+        stock(conductor.buckets.get("Duskwood", "knight"))
         first = await client.ws_connect("/ws/player")
         publish(app, zone_name="Duskwood")
         await next_of(first, "bucket")

@@ -6,9 +6,8 @@
 
 When the way the studio's tracks are played changes for the better, the bucket should hold
 only the new ones: this takes every written piece whose source begins with "<style>/" out of
-the style's bucket for good (the studio's own tracks and the real scores; the loose phrases,
-and any pieces cut from the first design's songs, stay), then puts every staged track of the
-style in, and makes the style the one in force (with `--keep-style` the style in force is left
+the style's bucket for good, then puts every staged track of the style in, and makes the style
+the one in force (with `--keep-style` the style in force is left
 as it is: a second style is made ready while the first goes on being played). `freerock pieces
 drop` does the first part too, but saves the bucket after every piece, which for two thousand
 pieces is minutes; here it is saved once.
@@ -30,8 +29,7 @@ def main(argv: list[str]) -> int:
     argv = [each for each in argv if each != "--keep-style"]
     zone = None
     if "--zone" in argv:
-        # A style with no bucket yet (the drive was cleared, 2026-11-16, night) begins one; the zone is only where its
-        # loose phrases would take their tempo and key from.
+        # A style with no bucket yet (the drive was cleared, 2026-11-16, night) begins one, named for this zone.
         at = argv.index("--zone")
         zone = argv[at + 1]
         argv = argv[:at] + argv[at + 2:]

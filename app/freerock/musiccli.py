@@ -23,7 +23,7 @@ def _settings() -> Settings:
 # -- settings -----------------------------------------------------------------------------------
 def _settings_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("name", nargs="?", help="one of: " + ", ".join(Settings.CHANGEABLE))
-    parser.add_argument("value", nargs="?", help="the new value (a number; for genre one of %s; for pieces on or off)"
+    parser.add_argument("value", nargs="?", help="the new value (a number; for genre one of %s)"
                         % ", ".join(Settings.GENRES))
 
 
@@ -33,11 +33,13 @@ def _show_settings(arguments: argparse.Namespace) -> int:
         if arguments.value is None:
             print("Give a value as well, for example: freerock settings %s 40" % arguments.name, file=sys.stderr)
             return 1
-        try:
-            value = arguments.value if arguments.name in Settings.WORDS else float(arguments.value)
-        except ValueError:
-            print("%s takes a number, not %r" % (arguments.name, arguments.value), file=sys.stderr)
-            return 1
+        value = arguments.value
+        if arguments.name in Settings.CHANGEABLE and arguments.name not in Settings.WORDS:
+            try:
+                value = float(arguments.value)
+            except ValueError:
+                print("%s takes a number, not %r" % (arguments.name, arguments.value), file=sys.stderr)
+                return 1
         try:
             settings.change(arguments.name, value)
         except ValueError as problem:
@@ -48,7 +50,6 @@ def _show_settings(arguments: argparse.Namespace) -> int:
     print("rest_every_minutes  %g   about this much music between moments of silence (0: none)" % settings.rest_every_minutes)
     print("rest_seconds        %g   about this long a moment of silence lasts" % settings.rest_seconds)
     print("genre               %s   the style played: %s" % (settings.genre, ", ".join(Settings.GENRES)))
-    print("pieces              %s   whether the written pieces are played (off: only the loose phrases)" % settings.pieces)
     return 0
 
 
@@ -71,10 +72,10 @@ def _print_summary(bucket: forever.Bucket) -> None:
     found = pieces.summary(bucket)
     label = composer.GENRES[bucket.genre]["label"]
     if not found["pieces"]:
-        print("%s (%s) has no written pieces. It has %d loose phrases." % (label, bucket.key, found["loose"]))
+        print("%s (%s) has no written pieces." % (label, bucket.key))
         return
-    print("%s (%s): %d written pieces in %d tracks, %.1f minutes, kept as %d parts; %d loose phrases beside them."
-          % (label, bucket.key, found["pieces"], found["tracks"], found["minutes"], found["parts"], found["loose"]))
+    print("%s (%s): %d written pieces in %d tracks, %.1f minutes, kept as %d parts."
+          % (label, bucket.key, found["pieces"], found["tracks"], found["minutes"], found["parts"]))
     print("  for the kind of moment:  " + ",  ".join(
         "%s %d (%.1f min)" % (role, count, minutes) for role, (count, minutes) in sorted(found["by_role"].items())))
     print("  for the kind of place:   " + ",  ".join(
@@ -102,7 +103,7 @@ def _pieces(arguments: argparse.Namespace) -> int:
         return 1
     if arguments.what == "drop":
         if not arguments.source:
-            print("Say which pieces: what their source begins with, such as knight/ or warcraft/real- or song/.", file=sys.stderr)
+            print("Say which pieces: what their source begins with, such as knight/ or warcraft/pastoral-.", file=sys.stderr)
             return 1
         gone = pieces.drop_from(bucket, arguments.source)
         print("%d pieces whose source begins with %r taken out of %s for good." % (gone, arguments.source, bucket.key))
