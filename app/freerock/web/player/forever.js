@@ -111,6 +111,7 @@
   const WORN_FOR = 5400;       // seconds a track counts as lately heard (an hour and a half: "been hearing the same thing over and over")
   const WORN = 0.45;           // ...and how much each time it began in that while counts against choosing it again
   const SISTER = 0.8;          // ...and how much a sister family's beginning counts (see _worn)
+  const SETTING = 0.35;        // how much a piece written for other ground than the player's counts against it (see _setting)
   // The kinds of place whose music sits well in each other's: what is reached for before a track is heard a third time.
   const NEAR = { pastoral: ["highland", "regal", "mystic"], highland: ["pastoral", "regal"], regal: ["pastoral", "highland", "infernal"],
                  haunted: ["mystic", "jungle"], mystic: ["haunted", "jungle", "pastoral"], jungle: ["mystic", "haunted", "desert"],
@@ -841,7 +842,18 @@
       }
       // Then how dark or bright: the further a piece's shade from the place's, the less it suits.
       const shade = typeof this.target.shade === "number" ? SHADE * Math.abs(this._shade(meta) - this.target.shade) : 0;
-      return strength * 100 + role * 10 + this._mood(meta) + shade;
+      return strength * 100 + role * 10 + this._mood(meta) + shade + this._setting(meta);
+    }
+
+    // Then the sort of ground ("granularity in locations on all the kinds", 2026-11-16): by a lake, in the woods, on the
+    // heights, the piece written for that ground before the others of the same kind of place. A place nothing is said
+    // of, and a piece written for no ground in particular, are neither here nor there.
+    _setting(meta) {
+      const here = this.target.setting;
+      if (!here) return 0;
+      const mine = meta.settings || [];
+      if (!mine.length) return SETTING / 2;
+      return mine.includes(here) ? 0 : SETTING;
     }
 
     _nextItem(bucket, options) {
@@ -1893,7 +1905,8 @@
       const darker = typeof before.shade === "number" && typeof this.target.shade === "number"
         && Math.abs(before.shade - this.target.shade) >= 1;                  // night has fallen, a storm has come, a darker corner
       if (String(before.kinds) !== String(this.target.kinds) || before.light !== this.target.light
-          || before.place !== this.target.place || before.sited !== this.target.sited || darker) this.followDue = this.ctx.currentTime + SETTLE;
+          || before.place !== this.target.place || before.sited !== this.target.sited || darker
+          || (before.setting || "") !== (this.target.setting || "")) this.followDue = this.ctx.currentTime + SETTLE;
       this._levels(before, wasQuiet);
       return this._serial(async () => {
         if (!this.started || !this.bucket) return;

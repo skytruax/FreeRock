@@ -25,7 +25,7 @@ import numpy as np
 
 from .. import analysis, forever
 from . import RATE, desk, muse, reaper, sounds, stage_root, write_track
-from .orchestra import CHANNELS, CHARACTERS, INSTRUMENTS, Family, Take, family
+from .orchestra import CHANNELS, CHARACTERS, INSTRUMENTS, Family, Take, family, settings_of
 from .score import humanise
 
 VAR = Path(__file__).resolve().parents[3] / "var"
@@ -316,7 +316,8 @@ def stage(fam: Family, take: int) -> dict:
     meta = {
         "style": character.style, "family": fam.name, "take": take, "title": fam.title, "tempo": fam.bpm, "beats": fam.beats,
         "bar_frames": bar_frames, "tonic": fam.key.name, "moods": list(character.kinds), "role": character.role,
-        "serves": list(character.serves), "light": character.light, "sections": sections, "floor": FLOOR,
+        "serves": list(character.serves), "light": character.light, "settings": list(settings_of(character)),
+        "sections": sections, "floor": FLOOR,
         "follow": {"rhythm": ["lead"], "texture": ["lead"]}, "post_s": forever.POST_S,
         "credit": "Written by FreeRock's studio (%s, %s); %sput together in REAPER, with the sfizz sampler on the VSCO 2 Community "
                   "Edition and VCSL recordings (Versilian Studios, CC0), the TinySOL recordings (Cella, Ghisi, Lostanlen, Levy, "

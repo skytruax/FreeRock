@@ -602,7 +602,7 @@ function makePieces(key, pieces, free) {
     base.pieces[piece.id] = { title: piece.id, track: piece.track || piece.id, next: piece.then || "", story: piece.story || "",
       moods: piece.moods || [], role: piece.role || "wander", serves: piece.serves || [0, 1], bar_frames: BAR, bars,
       frames: windows * bars * BAR, windows, tonic: piece.tonic || "A minor", follow: piece.follow || {}, floor: piece.floor || {},
-      family: piece.family || "", light: piece.light === true };
+      family: piece.family || "", light: piece.light === true, settings: piece.settings || [] };
     if (piece.place !== undefined) base.pieces[piece.id].place = piece.place;
   }
   if (free !== undefined) base.free_share = 1;
@@ -886,6 +886,22 @@ tests.pieceShade2 = async () => {
            shades: [dusk.engine._shade({ tonic: "G major", moods: ["pastoral"], light: true }),
                     dusk.engine._shade({ tonic: "A minor", moods: ["haunted"], light: false }),
                     dusk.engine._shade({ tonic: "F dorian", moods: ["haunted"], light: true })] };
+};
+
+// Among pieces for one kind of place, the one written for the ground the player stands on (a lake, a farm) comes first,
+// and the music follows when the ground changes.
+tests.pieceSetting = async () => {
+  const pieces = () => makePieces("ground", [{ id: "lake", windows: 6, moods: ["pastoral"], settings: ["water"] },
+                                             { id: "farm", windows: 6, moods: ["pastoral"], settings: ["fields"] },
+                                             { id: "any", windows: 6, moods: ["pastoral"] }]);
+  const water = await render(10, { bucket: pieces(), target: Object.assign(mix(1), { kinds: ["pastoral"], setting: "water" }) });
+  const fields = await render(10, { bucket: pieces(), target: Object.assign(mix(1), { kinds: ["pastoral"], setting: "fields" }) });
+  const walk = await render(30, { bucket: pieces(), target: Object.assign(mix(1), { kinds: ["pastoral"], setting: "water" }),
+                                  script: [[8.5, (engine) => engine.setTarget({ setting: "fields" })]] });
+  const log = [...walk.engine.log].sort((a, b) => a.at - b.at);
+  const moved = log.find((entry) => pieceOf(entry) === "farm");
+  return { water: [...new Set(water.engine.log.map(pieceOf))], fields: [...new Set(fields.engine.log.map(pieceOf))],
+           first: pieceOf(log[0]), movedAt: moved ? moved.at : null };
 };
 
 // Six loudspeakers: the music is laid over all of them (the front pair as it is, some in the

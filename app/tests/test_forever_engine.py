@@ -500,6 +500,14 @@ async def test_among_pieces_for_one_kind_of_place_the_nearest_in_shade_is_chosen
     assert shade["first"] == "sunny" and shade["movedAt"] == pytest.approx(ORIGIN + 14.0, abs=1e-6), shade
 
 
+async def test_among_pieces_for_one_kind_of_place_the_one_written_for_its_ground_comes_first_and_the_music_follows_it(results):
+    """("make sure by tomorroow morning we have granularity in locations on all the kinds", 2026-11-16.)"""
+    ground = of(results, "pieceSetting")
+    assert ground["water"] == ["lake"] and ground["fields"] == ["farm"], ground
+    # The ground changes at 8.5 s: four seconds to be sure, then the next bar line.
+    assert ground["first"] == "lake" and ground["movedAt"] == pytest.approx(ORIGIN + 14.0, abs=1e-6), ground
+
+
 async def test_light_and_heavy_take_turns(results):
     shade = of(results, "pieceShade")
     assert len(shade["order"]) >= 12

@@ -109,6 +109,64 @@ def place_profile(zone_name: str | None, place_name: str | None) -> ZoneProfile:
 # A named place of one of these kinds is not a light one, whatever the country round it is.
 _HEAVY_KINDS = ("haunted", "infernal")
 
+# The setting of a place: what sort of ground the player stands on, finer than its kind (2026-11-16, played: "make sure
+# by tomorroow morning we have granularity in locations on all the kinds"). A lake in the open country and a farm in it
+# are both pastoral; one wants the music written by water, the other the music of the fields. Read from the words of a
+# place's own name, and failing that from its zone's name and profile; the first setting that fits, in this order (the
+# nouns of a name before its adjectives: "Fallen Sky Lake" is water, "Ruins of Ban'aethal" ruins).
+SETTINGS = (
+    ("graves", ("graveyard", "cemetery", "crypt", "tomb", "barrow", "necropolis", "ossuary", "grave", "cairn", "catacomb", "mausoleum")),
+    ("sacred", ("temple", "shrine", "monastery", "abbey", "cathedral", "chapel", "sanctum", "altar", "sanctuary", "stones", "moonwell",
+                "circle", "oracle")),
+    ("fort", ("tower", "keep", "castle", "citadel", "stronghold", "fortress", "bastion", "garrison", "barracks", "fort", "rampart",
+              "wall", "gate", "spire")),
+    ("works", ("forge", "foundry", "furnace", "smithy", "quarry", "mine", "excavation", "dig", "lumber", "sawmill", "refinery",
+               "works", "workshop")),
+    ("settlement", ("village", "town", "hamlet", "shire", "landing", "haven", "refuge", "outpost", "camp", "post", "market", "square",
+                    "lodge", "city", "port", "harbor", "harbour", "dock")),
+    ("road", ("road", "bridge", "crossing", "crossroads", "path", "trail", "station", "tram", "way")),
+    ("water", ("lake", "loch", "mere", "pond", "pool", "river", "falls", "brook", "stream", "ford", "bay", "cove", "coast", "shore",
+               "beach", "sea", "tide", "lagoon", "reef", "strand", "spring", "marsh", "marshy", "wetland", "fen", "swamp", "bog", "mire",
+               "water", "creek")),
+    ("heights", ("peak", "summit", "ridge", "mountain", "cliff", "pass", "crag", "height", "overlook", "highland", "hill", "bluff",
+                 "plateau", "tor", "range", "foothill")),
+    ("woods", ("forest", "wood", "woods", "grove", "glade", "thicket", "copse", "timber", "pine", "weald", "bough", "jungle", "canopy")),
+    ("fields", ("farm", "field", "fields", "orchard", "mill", "vineyard", "pasture", "homestead", "meadow", "acre", "grange", "barn",
+                "ranch", "plain", "lowland", "grassland", "garden", "croft", "paddock", "steading", "vale", "valley", "glen")),
+    ("wastes", ("barren", "barrens", "waste", "wastes", "dune", "sand", "sands", "flat", "flats", "salt", "badland", "steppe", "desert",
+                "savanna", "scrub", "expanse")),
+    ("ruins", ("ruins", "ruin", "remnant", "wreck", "fallen", "lost", "forgotten", "abandoned", "broken", "shattered", "crumbling",
+               "sunken")),
+)
+SETTING_NAMES = tuple(name for name, _ in SETTINGS)
+
+
+def setting_of(text: str | None) -> str:
+    """The setting the words of a name (or of a profile's mood) point to, or "" for none. A word
+    counts where it is a setting's word, or begins or ends with one of at least four letters
+    ("Millpond", "Deepwater", "Stonewatch Keep"), its plural too."""
+    if not text:
+        return ""
+    words = set(slug(text).split("-"))
+    words |= {word[:-1] for word in words if word.endswith("s") and len(word) > 3}
+    for setting, keys in SETTINGS:
+        for key in keys:
+            if any(word == key or (len(key) >= 4 and (word.startswith(key) or word.endswith(key))) for word in words):
+                return setting
+    return ""
+
+
+def setting_for(zone_name: str | None, place_name: str | None = None) -> str:
+    """The setting of where the player is: its own name's, or the zone's name's, or what the
+    zone's profile says of it (Westfall's "golden fields"); "" where nothing says."""
+    if place_name and slug(place_name) != slug(zone_name or ""):
+        own = setting_of(place_name)
+        if own:
+            return own
+    if not zone_name or not slug(zone_name):
+        return ""
+    return setting_of(zone_name) or setting_of(" ".join(profile_for(zone_name).mood))
+
 
 def kinds_for(zone_name: str | None, place_name: str | None = None) -> tuple[list[str], bool]:
     """The kinds of place the player is in (kinds.KINDS: the best fit first, two at most), and

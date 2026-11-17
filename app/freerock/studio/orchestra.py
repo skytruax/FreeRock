@@ -1474,6 +1474,37 @@ DESKS = {
     "strings slow": {2: (("celli slow", ""), ("violas", "")), 3: (("celli slow", ""), ("violas", ""), ("violins slow", "")),
                      4: (("celli slow", ""), ("violas", ""), ("violins slow", " seconds"), ("violins slow", ""))},
 }
+# The sorts of ground each character's music was written for (atlas.SETTINGS), finer than its kinds of place (2026-11-16,
+# played: "make sure by tomorroow morning we have granularity in locations on all the kinds"). The player prefers, among
+# pieces for the same kind of place, those written for the ground the player stands on. Music for a moment (a cave, an
+# inn, the night, a storm, a fight, a town) is for the moment, not the ground: it has none.
+SETTINGS_OF: dict[str, tuple[str, ...]] = {
+    "village dance": ("settlement", "fields"), "morning fields": ("fields",), "riverside waltz": ("water", "fields"),
+    "long road home": ("road", "fields"), "highland reel": ("heights", "settlement"), "snowfall": ("heights", "woods"),
+    "mountain pass": ("heights", "road"), "moorland ride": ("heights", "road"), "requiem": ("graves", "sacred"),
+    "music box": ("ruins", "settlement"), "danse macabre": ("graves", "woods"), "moonlit graves": ("graves",),
+    "caravan": ("road", "settlement"), "mirage": ("wastes",), "sun anvil": ("wastes", "heights"), "sandstorm ride": ("wastes", "road"),
+    "canopy": ("woods",), "river spirits": ("water", "woods"), "prowl": ("woods",), "swamp fever": ("water", "woods"),
+    "the forge": ("works",), "ash march": ("wastes", "road"), "embers": ("works", "settlement"), "lava fields": ("wastes",),
+    "court dance": ("settlement", "fort"), "coronation": ("fort", "sacred"), "city gates": ("settlement", "fort"),
+    "cathedral": ("sacred",), "moonwell": ("sacred", "water", "woods"), "fireflies": ("woods", "water"), "ancient ruins": ("ruins",),
+    "twilight forest": ("woods",), "sea shanty": ("water", "settlement"), "elven hymn": ("sacred", "woods"),
+    "dwarven hall": ("fort", "works", "heights"), "plague wind": ("fields", "ruins", "graves"), "oasis dance": ("water", "settlement"),
+    "troll drums": ("woods", "ruins"), "frost giant": ("heights", "ruins"), "pilgrim road": ("road",), "forge song": ("works", "settlement"),
+    "bazaar": ("settlement",), "drowned bell": ("water", "ruins"),
+    "shadowed wood": ("woods",), "fallen farmstead": ("fields", "ruins"), "border keep": ("fort", "road"),
+    "rain on the roof": ("settlement", "fields"), "forsaken parlour": ("ruins", "settlement"), "witch hollow": ("woods", "water"),
+    "spirit grove": ("woods", "sacred"), "barrow kings": ("graves", "heights"), "cliffside wind": ("heights", "water"),
+    "dark ritual": ("sacred",), "savanna": ("wastes", "fields"), "temple steps": ("sacred",), "night market": ("settlement",),
+    "high pasture": ("heights", "fields"), "orchard morning": ("fields",), "sunset hills": ("heights", "fields"),
+    "lakeside reverie": ("water",), "harvest home": ("fields", "settlement"),
+}
+
+
+def settings_of(character: Character) -> tuple[str, ...]:
+    return SETTINGS_OF.get(character.name, ())
+
+
 # Families whose two themes came to the same changes and had a take made before that was mended (see `family`).
 SAME_THEMES_KEPT = ("mystic-fireflies-1",)
 # The small percussion: what may join a theme the second time round without crowding it.

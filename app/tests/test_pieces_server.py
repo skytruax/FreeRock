@@ -92,6 +92,19 @@ def test_every_zone_has_a_kind_and_a_place_with_no_name_has_none():
     assert atlas.kinds_for("Elwynn Forest", "Eastvale Graveyard")[0][0] == "haunted"
 
 
+def test_a_place_has_a_setting_from_its_own_name_or_else_its_zones():
+    """The sort of ground the player stands on: finer than its kind ("granularity in locations on all the kinds")."""
+    read = lambda zone, place=None: atlas.setting_for(zone, place)      # noqa: E731
+    assert read("Zephras Isle", "Windsong Lake") == "water" and read("Zephras Isle", "Shadowgale Forest") == "woods"
+    assert read("Zephras Isle", "Gustberry Lowlands") == "fields" and read("Zephras Isle", "Shen'dar Highlands") == "heights"
+    assert read("Zephras Isle", "Ruins of Ban'aethal") == "ruins" and read("Ashenvale", "Fallen Sky Lake") == "water", "nouns before adjectives"
+    assert read("Duskwood", "Raven Hill Cemetery") == "graves" and read("Elwynn Forest", "Goldshire") == "settlement"
+    assert read("Westfall") == "fields" and read("Wetlands") == "water" and read("The Barrens") == "wastes", "the zone's own words"
+    assert read("Elwynn Forest", "Somewhere Unnamed") == "woods", "a place that says nothing has its zone's"
+    assert read("Zephras Isle", "Valanaar") == "" and read(None) == "" and atlas.setting_of(None) == ""
+    assert all(name in atlas.SETTING_NAMES for name in {read("Westfall", "Sentinel Hill"), read("Dun Morogh", "Ironforge")})
+
+
 def test_a_place_has_a_shade_from_grim_to_radiant_and_the_hour_the_rain_and_a_cave_darken_it(tmp_path):
     """("in a dark misty place and music is too light we need lots of different granularity", 2026-11-16.)"""
     assert atlas.shade_for("Zephras Isle") > 1.0 and atlas.shade_for("Zephras Isle", "Shadowgale Forest") <= -1.5

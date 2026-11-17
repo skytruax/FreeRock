@@ -175,6 +175,12 @@ class Conductor:
             return [], False
         return atlas.kinds_for(self.place_name(state), self.spot_name(state))
 
+    def setting_here(self, state: game.GameState | None) -> str:
+        """What sort of ground the player is on (atlas.SETTINGS: woods, water, heights, fields...), or ""."""
+        if state is None:
+            return ""
+        return atlas.setting_for(self.place_name(state), self.spot_name(state))
+
     def shade_here(self, state: game.GameState | None) -> float:
         """How dark or bright it is where the player is (-3 grim to 3 radiant), to the half
         step: the place itself, darker by night, in the rain and under a roof of rock."""
@@ -281,6 +287,8 @@ class Conductor:
             target["kinds"], target["light"] = self.kinds_here(state) if state is not None else ([], False)
             # ...and how dark or bright it is there: among pieces for the same kind of place, the nearest in shade.
             target["shade"] = self.shade_here(state)
+            # ...and what sort of ground it is (by a lake, in the woods, on the heights): among those, the piece written for it.
+            target["setting"] = self.setting_here(state)
             zone = self.bucket.zone if self.bucket else None
         else:
             zone = self.asset.zone if self.asset else None
@@ -388,7 +396,8 @@ class Conductor:
             await self._broadcast(self._bucket_message())
         mixed = forever.mix(target, self.mix)
         found, light = self.kinds_here(state)
-        told = (target, state.volume, self._sent_bucket, json.dumps(mixed, sort_keys=True), tuple(found), light, self.shade_here(state))
+        told = (target, state.volume, self._sent_bucket, json.dumps(mixed, sort_keys=True), tuple(found), light, self.shade_here(state),
+                self.setting_here(state))
         if told != self._told:
             self.target, self.mix, self._volume, self._told = target, mixed, state.volume, told
             await self._broadcast(self._target_message())
@@ -1028,7 +1037,7 @@ class Conductor:
                 "pieces": len(bucket.live_pieces()) if bucket else 0,
                 "parts": sum(1 for clip in live if clip.piece),
                 "playing_piece": piece,
-                "kinds": found, "light": light, "shade": self.shade_here(self.hub.state),
+                "kinds": found, "light": light, "shade": self.shade_here(self.hub.state), "setting": self.setting_here(self.hub.state),
                 "kept": len(bucket.clips) if bucket else 0,
                 "pools": bucket.counts() if bucket else {},
                 "mix": self.mix,

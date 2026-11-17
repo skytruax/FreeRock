@@ -149,5 +149,5 @@ def import_track(bucket: forever.Bucket, folder: Path) -> list[str]:
             moods=meta["moods"], role=meta["role"], serves=meta["serves"], follow=meta.get("follow") or {},
             floor=(meta.get("floor") or {}).get(section["story"], {}), track=source, after=ids[-1] if ids else "",
             gain_db=gain, source=source, credit=meta.get("credit", ""), family="%s/%s" % (meta["style"], meta["family"]),
-            light=bool(meta.get("light"))))
+            light=bool(meta.get("light")), settings=meta.get("settings") or []))
     return ids
