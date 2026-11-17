@@ -88,7 +88,7 @@ def plan() -> list[tuple[Family, int]]:
             shapes = [2, 2]
         else:
             shapes = [2]
-            if character.role == "depths":
+            if character.role in ("depths", "night"):
                 later.append((index, character))
         for number, takes in enumerate(shapes):
             add(index, character, number, takes)

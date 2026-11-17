@@ -217,13 +217,17 @@ def lines(heard: Heard, track: house.Take, work: Path) -> tuple[dict[str, list[d
                     line.effects = list(line.effects) + [sounds.equalise(low_cut=30.0), sounds.wide(0.25)]
                     line.send = 0.0
                 elif channel == "rhythm":
-                    line.effects = list(line.effects) + [sounds.equalise(low_cut=140.0), sounds.echo(house.BPM, 0.2, left=3, right=4, again=0.32)]
+                    # (Measured against the house stems that were liked: the plucks had 11 to 24 dB too much above 3 kHz.)
+                    line.effects = list(line.effects) + [sounds.equalise(low_cut=140.0, high_cut=9000.0, high_shelf=(4500.0, -8.0)),
+                                                         sounds.echo(house.BPM, 0.2, left=3, right=4, again=0.32)]
                     line.send = max(line.send, 0.16)
                 elif channel == "lead":
                     line.effects = list(line.effects) + [sounds.equalise(low_cut=180.0), sounds.echo(house.BPM, 0.24, left=3, right=4, again=0.34)]
                     line.send = max(line.send, 0.2)
                 elif channel == "texture":
-                    line.effects = list(line.effects) + [sounds.equalise(low_cut=200.0), sounds.ensemble(0.35)]
+                    # (...and the pad 15 to 35 dB too much there: its glass is kept, its glare taken away.)
+                    line.effects = list(line.effects) + [sounds.equalise(low_cut=200.0, high_cut=6500.0, high_shelf=(3500.0, -6.0)),
+                                                         sounds.ensemble(0.35)]
                     line.send = max(line.send, 0.28)
                 out[channel].append(line)
     # ----- the risers and the air: the writer's own, as a recording
@@ -263,7 +267,14 @@ def stage(name: str, take: int) -> dict:
             back = RECOVER[channel]
             moves += [(at - 0.02, 1.0), (at, down), (at + 0.08, down), (at + back, 1.0)]
             last = at + back
-        folders.append((desk.Line(channel, desk.bare(channel, []), effects=sounds.bus(channel), moves=moves), under[channel]))
+        bus = sounds.bus(channel)
+        if channel == "drums":
+            # A drum machine on a dance floor is not a kit in a hall: no room around it and no tape on it, only the box
+            # at 250 Hz taken down and a compressor slow enough to let every stroke through (measured against the liked
+            # house stems: the strokes rose a third as fast as theirs through the orchestra's drum bus).
+            bus = [sounds.equalise(low_cut=28.0, bands=((250.0, -3.0, 1.2),)), sounds.squeeze(-16.0, 2.5, 12.0, 120.0, 1.5),
+                   sounds.ceiling(-1.0, push=1.5)]
+        folders.append((desk.Line(channel, desk.bare(channel, []), effects=bus, moves=moves), under[channel]))
     seconds = track.bars * house.BAR
     rpp = work / "track.rpp"
     rpp.write_text(desk.project(folders, bpm=float(house.BPM), seconds=seconds, out=work, tail=forever.POST_S, hall=sounds.hall(1.5)), encoding="utf-8")
@@ -286,7 +297,16 @@ def stage(name: str, take: int) -> dict:
             del parts[channel]                       # it plays nothing to speak of in this take
             continue
         parts[channel] = (parts[channel] * 10.0 ** ((want[channel] - have) / 20.0)).astype(np.float32)
+    # What is still ringing two seconds before the recording ends is eased away to nothing (as the writer's own render does).
+    last = int(2.0 * RATE)
+    ease = (0.5 * (1.0 + np.cos(np.linspace(0.0, np.pi, last)))).astype(np.float32)[:, None]
+    for channel in parts:
+        parts[channel][-last:] *= ease
     parts = house.master(parts, a, b)
+    peak = max(float(np.max(np.abs(audio))) for audio in parts.values())
+    if peak > 0.97:
+        # One channel alone over the top, the others pulling the other way in the mix: all come down together.
+        parts = {channel: (audio * (0.97 / peak)).astype(np.float32) for channel, audio in parts.items()}
     meta = track.meta()
     meta["credit"] = ("Written by FreeRock's studio (studio.house); played in REAPER by the Surge XT synth, MuseScore Studio's Muse Sounds "
                       "(Muse Group) and MckAudio's TR-8 drum-machine recordings (CC0), put together by studio.club.")
