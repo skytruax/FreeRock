@@ -176,6 +176,12 @@ def voices(heard: Heard) -> list[tuple[str, str, str, str, float, list[Note], fl
             bands[cut].append(Note(at / BEAT, max(length / BEAT, 0.05), int(round(pitch)), loud))
         for cut, mine in sorted(bands.items()):
             out.append((channel, table, name, written, cut, mine, taste))
+        if written == "house sub":
+            # (2026-11-17, night: against the liked house stems the bass was 30 dB short in its middle and 44 at its top: a
+            # sine under 100 Hz, which a small loudspeaker does not play at all.) A sawtooth on the same notes, closed
+            # above 900 Hz and well under the sub, is the part of the bass that is heard; the sub is the part that is felt.
+            every = [note for _, mine in sorted(bands.items()) for note in mine]
+            out.append((channel, table, name + " growl", "house bass saw", 900.0, every, taste * 0.45))
     return out
 
 
@@ -218,11 +224,14 @@ def lines(heard: Heard, track: house.Take, work: Path) -> tuple[dict[str, list[d
                     line.send = 0.0
                 elif channel == "rhythm":
                     # (Measured against the house stems that were liked: the plucks had 11 to 24 dB too much above 3 kHz.)
-                    line.effects = list(line.effects) + [sounds.equalise(low_cut=140.0, high_cut=9000.0, high_shelf=(4500.0, -8.0)),
+                    # (Still 13 dB bright there on 2026-11-17, night: 4 dB more.)
+                    line.effects = list(line.effects) + [sounds.equalise(low_cut=140.0, high_cut=9000.0, high_shelf=(4500.0, -12.0)),
                                                          sounds.echo(house.BPM, 0.2, left=3, right=4, again=0.32)]
                     line.send = max(line.send, 0.16)
                 elif channel == "lead":
-                    line.effects = list(line.effects) + [sounds.equalise(low_cut=180.0), sounds.echo(house.BPM, 0.24, left=3, right=4, again=0.34)]
+                    # (6 dB dull at its top and 3 in its middle against the liked house stems, 2026-11-17, night.)
+                    line.effects = list(line.effects) + [sounds.equalise(low_cut=180.0, bands=((1200.0, 2.0, 1.5),), high_shelf=(4000.0, 3.0)),
+                                                         sounds.echo(house.BPM, 0.24, left=3, right=4, again=0.34)]
                     line.send = max(line.send, 0.2)
                 elif channel == "texture":
                     # (...and the pad 15 to 35 dB too much there: its glass is kept, its glare taken away.)
@@ -236,8 +245,9 @@ def lines(heard: Heard, track: house.Take, work: Path) -> tuple[dict[str, list[d
         loud = analysis.loudness_lufs(air, RATE)
         file = work / "air.wav"
         soundfile.write(str(file), air * np.float32(10 ** ((-26.0 - loud) / 20.0)), RATE, subtype="FLOAT")
+        # (A noise riser is nearly all top: the texture came out 25 dB brighter than the liked house stems, 2026-11-17, night.)
         out["texture"].append(desk.Line("air and risers", desk.bare("air", []), clips=[(0.0, len(air) / RATE, str(file))], send=0.25,
-                                        effects=[sounds.equalise(low_cut=150.0)]))
+                                        effects=[sounds.equalise(low_cut=150.0, high_cut=7000.0, high_shelf=(2500.0, -9.0))]))
     return out, strokes
 
 
