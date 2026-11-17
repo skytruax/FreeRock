@@ -1664,6 +1664,18 @@ def settings_of(character: Character) -> tuple[str, ...]:
 
 # Families whose two themes came to the same changes and had a take made before that was mended (see `family`).
 SAME_THEMES_KEPT = ("mystic-fireflies-1",)
+# A rock band's lead plays the blues: the minor pentatonic of the key over its major chords, as the riff bands of the
+# late seventies did (2026-11-16, night: "acdc for knight rock"). A note off it goes to the nearest note on it.
+BLUES = (0, 3, 5, 7, 10)
+
+
+def blues(pitch: int, tonic: int) -> int:
+    for move in (0, -1, 1, -2, 2):
+        if (pitch + move - tonic) % 12 in BLUES:
+            return pitch + move
+    return pitch
+
+
 # The small percussion: what may join a theme the second time round without crowding it.
 SMALL = ("tamb", "shake", "jingle", "ting", "tick", "high", "clack", "conga", "conga low", "block", "block low", "guiro", "hat", "castanet", "bell")
 # Who doubles the bass line an octave away, by who has it: the neighbour in the orchestra, played the same way.
@@ -1857,6 +1869,8 @@ class Take:
             # `even`: how far the line keeps its strength from note to note (at the big moments the tune does not dip
             # to mezzo-forte between its accents).
             weight = weight + (1.0 - weight) * even
+            if self.ch.band and name == "lead guitar":
+                pitch = blues(pitch, key.tonic)
             self.voice(channel, name, tag).add(at + start, length * (0.96 if inst.held else 1.0), pitch, min(weight * loud, 1.0))
 
     def spots(self, where: str) -> list[tuple[float, float]]:
@@ -2365,6 +2379,14 @@ class Take:
                 # it is at least played a fourth higher.
                 raised = 5 if second and (self.pluck_b, self.figure_b) == (self.pluck, self.figure) else 0
                 bar_at = first + bar * beats
+                if ch.band and self.heavy and part in ("arrival", "summit") and bar == 0:
+                    # The band's arrival: one chord struck together on the downbeat and left to ring through the bar,
+                    # then the riff (a rock band's stop: the room it leaves is what makes the next bar hit).
+                    root = key.pitch(chord.root, 45)
+                    root += 12 if root < 40 else -12 if root > 52 else 0
+                    for pitch in (root, root + 7, root + 12):
+                        self.put("rhythm", "rhythm guitar", bar_at, beats * 0.95, pitch, self.hard(level, 0.9))
+                    continue
                 layer(name, figure, second, raised, 1.0, key, chord, bar, bar_at, level, density)
                 # (A band's riff guitars are the band's whole accompaniment; the unplugged band takes the second figure too.)
                 if not (ch.band and self.heavy) and fuller(part, bar, along):
@@ -2413,6 +2435,9 @@ class Take:
                 root = key.pitch(chord.root, inst.home - 5)
                 loud = self.hard(level, 0.9)
                 after = chords[bar + 1] if bar + 1 < bars else chord
+                if ch.band and self.heavy and part in ("arrival", "summit") and bar == 0:
+                    low(bar_at, beats * 0.95, root, loud)                 # the stop: one note with the chord, left to ring
+                    continue
                 if part == "open":
                     if self.heavy or bar >= bars // 2:
                         self.put("bass", name, bar_at, beats, key.pitch(0, inst.home - 5), loud * 0.8)      # the key note, held
@@ -2555,7 +2580,8 @@ class Take:
                             self.strike(roll, bar_at + index * step, (0.2 + 0.7 * done) * (0.6 + 0.4 * ch.weight), chord, key)
                 elif part in ("arrival", "summit"):
                     big = part == "summit"
-                    lay(main["moment"], bar, bar_at, level, 1.0 if big else 0.85, chord, key)
+                    if not (ch.band and self.heavy and bar == 0):          # a band's moment begins with a stop: the hit alone
+                        lay(main["moment"], bar, bar_at, level, 1.0 if big else 0.85, chord, key)
                     if bar == 0 and main["hit"]:
                         self.strike(main["hit"], bar_at, (0.6 + 0.35 * ch.weight) * (1.0 if big else 0.85), chord, key)
                         if self.heavy:
