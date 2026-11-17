@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import html
 import json
+import os
 import shutil
 import sys
 from urllib.parse import quote
@@ -117,7 +118,7 @@ def page(style: str, rows: list[tuple[str, dict]]) -> str:
 def main(styles: list[str]) -> int:
     for style in styles:
         folders = studio.staged(VAR, style)
-        with ProcessPoolExecutor(max_workers=6) as pool:
+        with ProcessPoolExecutor(max_workers=min(16, os.cpu_count() or 4)) as pool:      # the encoding is what takes the time
             rows = list(pool.map(mixed, folders, chunksize=4))
         out = VAR / "listen" / style
         out.mkdir(parents=True, exist_ok=True)
