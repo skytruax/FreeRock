@@ -97,6 +97,11 @@ INSTRUMENTS = {
     "lead guitar": I(0, 27, 52, 86, 67, wired=True), "picked bass": I(0, 34, 28, 55, 38, held=False),
     "rock organ": I(0, 18, 36, 84, 60, level=0.8), "harmonica": I(0, 22, 60, 84, 72),
     "fretless": I(0, 35, 28, 60, 40),
+    # Colours added for variety (2026-11-16, played: "need more variety in warcraft"). Muse Sounds plays all of these.
+    "piano": I(0, 0, 33, 100, 64, held=False), "bass flute": I(0, 73, 48, 84, 62), "bass clarinet": I(0, 71, 38, 77, 55),
+    "handbells": I(0, 14, 60, 93, 74, held=False, level=0.85),
+    # (Muse's euphonium under C3 was found to sound an octave up and 18 dB soft, played alone: it is kept above it.)
+    "euphonium": I(0, 58, 48, 72, 58),
     # The big drums and what marks an arrival. These are found by name alone (their bank and
     # program stand for nothing). A war drum's or a frame drum's pitch is its size: 36 is the
     # biggest war drum, 45 the lowest frame drum. The others have one note each.
@@ -138,6 +143,7 @@ LOUD = {
     # Not measured one by one: taken as their nearest relation.
     "violins slow": -26.5, "violas": -25.3, "celli slow": -28.0, "basses slow": -31.0, "celli pizz": -28.9,
     "basses pizz": -29.5, "twelve string": -32.4,
+    "piano": -28.0, "bass flute": -26.0, "bass clarinet": -24.4, "handbells": -27.0, "euphonium": -21.4,
     "war drums": -30.0, "frame drums": -30.0, "boom": -30.0, "gong": -30.0, "swell": -30.0, "anvil": -30.0,
 }
 LEVEL = -34.0                  # every instrument is brought to this, at the same setting of the player
@@ -587,6 +593,80 @@ CHARACTERS = (
       leads=("lead guitar",), strong=("lead guitar",), under=(), pads=("rock organ",), pad_ways=("drone",), plucks=("rhythm guitar",),
       figures=("riff",), basses=("picked bass",), kit="rock", drums=(), grooves=("anvil rock",), hall=(3.4, 0.38), lift=0.0,
       titles=(("Deep", "Pickaxe", "Shaft", "Lamp-Lit", "Cave-In"), ("Mine", "Blues", "Echo", "Dig", "Shift"))),
+    # --- more Warcraft colours (2026-11-16, played: "need more variety in warcraft"). The heavy music for walking ------
+    # --- about was the thinnest: a dark wood had three pieces of its own. New voices: a piano, a bass flute, a bass ------
+    # --- clarinet, handbells and a euphonium. ------------------------------------------------------------------------
+    C("shadowed wood", ("haunted", "pastoral"), modes=("dorian", "minor"), bpm=(72, 84), metres=("4/4", "6/8"), busy=0.4, weight=0.85,
+      leads=("bass flute", "clarinet", "viola"), strong=("violins", "horns"), under=("bass clarinet",),
+      pads=("strings slow", "oohs"), pad_ways=("pad", "drone"), plucks=("harp", "celesta", "pizzicato"), figures=("arp", "toll"),
+      basses=("celli slow", "basses pizz"), kit="folk", drums=("great drum",), grooves=("rain", "dirge"), hall=(2.8, 0.3), lift=0.25,
+      titles=(("Shadowed", "Gloomwood", "Thornbriar", "Ravenhollow", "Bleak", "Grey Bark"), ("Wood", "Thicket", "Path", "Boughs", "Glen", "Deeps"))),
+    C("fallen farmstead", ("pastoral", "haunted"), modes=("minor", "dorian"), bpm=(84, 96), metres=("3/4", "4/4"), busy=0.45, weight=0.8,
+      leads=("english horn", "cello", "fiddle"), strong=("violins", "horns"), under=("celli",), pads=("strings", "strings slow"),
+      pad_ways=("pad", "tremolo"), plucks=("guitar", "harp", "pizzicato"), figures=("rock", "arp"), basses=("celli", "basses pizz"),
+      kit="folk", drums=("timpani",), grooves=("waltz", "stately"), hall=(2.2, 0.24), lift=0.3,
+      titles=(("Burned", "Empty", "Fallow", "Abandoned", "Last", "Weedgrown"), ("Farmstead", "Furrows", "Barn", "Homestead", "Acre", "Fields"))),
+    C("border keep", ("pastoral", "regal", "highland"), modes=("mixolydian", "dorian", "major"), bpm=(100, 112), busy=0.55, weight=0.9,
+      leads=("horns", "fiddle", "trumpet"), strong=("trumpet", "violins"), under=("euphonium", "trombone"), pads=("strings", "brass"),
+      pad_ways=("pad",), plucks=("strings", "pizzicato", "harp"), figures=("pulse", "gallop"), basses=("celli", "basses"), kit="march",
+      drums=("timpani",), grooves=("march", "reel"), hall=(2.0, 0.22), lift=0.45,
+      titles=(("Border", "Watchtower", "Westbrook", "Sentinel", "Stonewall", "Bridgeguard"), ("Keep", "Patrol", "Garrison", "Muster", "Post", "Rampart"))),
+    C("rain on the roof", ("pastoral", "highland"), light=True, modes=("major", "lydian", "dorian"), bpm=(70, 84), metres=("4/4", "3/4"),
+      busy=0.45, weight=0.5, leads=("piano", "oboe", "clarinet"), strong=("violins slow", "piano"), under=("cello",), pads=("strings slow",),
+      pad_ways=("pad",), plucks=("piano", "harp"), figures=("arp", "rock"), basses=("celli slow", "basses pizz"), kit="folk", drums=(),
+      grooves=("rain", "tick"), hall=(2.4, 0.26), lift=0.2,
+      titles=(("Rainy", "Window", "Puddle", "Drizzle", "Grey Morning", "Thatch"), ("Lane", "Song", "Hours", "Roof", "Afternoon", "Pane"))),
+    C("forsaken parlour", ("haunted", "regal"), modes=("minor",), bpm=(66, 78), metres=("3/4", "4/4"), busy=0.4, weight=0.8,
+      leads=("piano", "cello", "violin"), strong=("violins", "piano"), under=("celli",), pads=("tremolo", "strings slow"),
+      pad_ways=("tremolo", "pad"), plucks=("piano", "harpsichord", "celesta"), figures=("arp", "toll"), basses=("celli", "basses slow"),
+      kit="orchestra", drums=("timpani",), grooves=("tick", "dirge"), hall=(2.8, 0.3), lift=0.25,
+      titles=(("Forsaken", "Dust-Sheet", "Candlelit", "Cracked", "Shuttered", "Widow's"), ("Parlour", "Manor", "Ballroom", "Portrait", "Nocturne", "Stair"))),
+    C("witch hollow", ("haunted", "jungle"), modes=("phrygian", "minor"), bpm=(96, 110), metres=("5/4", "7/8", "6/8"), busy=0.55, weight=0.8,
+      leads=("bass clarinet", "oboe", "fiddle"), strong=("violins", "clarinet"), under=("bassoon",), pads=("tremolo", "oohs"),
+      pad_ways=("tremolo", "drone"), plucks=("harpsichord", "pizzicato", "marimba"), figures=("pattern", "oompah"),
+      basses=("basses pizz", "bassoon"), kit="wood", drums=(), grooves=("bones", "bog"), hall=(2.2, 0.24), lift=0.3,
+      titles=(("Witch", "Hag's", "Toadstool", "Cauldron", "Black Cat", "Hex"), ("Hollow", "Brew", "Hut", "Circle", "Charm", "Ring"))),
+    C("spirit grove", ("mystic", "pastoral"), light=True, modes=("lydian", "major"), bpm=(76, 88), metres=("3/4", "6/8"), busy=0.4, weight=0.5,
+      leads=("pan flute", "handbells", "flute"), strong=("handbells", "violins slow"), under=("celli", "clarinet"), pads=("oohs", "strings slow"),
+      pad_ways=("pad",), plucks=("handbells", "celesta", "harp"), figures=("arp", "pattern"), basses=("celli slow", "celli pizz"),
+      kit="folk", drums=(), grooves=("sparkle", "waltz"), hall=(3.0, 0.32), lift=0.2,
+      titles=(("Spirit", "Dawnpetal", "Feather", "Wishing", "Sunlit", "Bright"), ("Grove", "Bells", "Spring", "Clearing", "Ring", "Glade"))),
+    C("barrow kings", ("highland", "haunted"), modes=("minor", "dorian", "phrygian"), bpm=(60, 72), busy=0.3, weight=1.0,
+      leads=("euphonium", "cello", "english horn"), strong=("brass", "choir"), under=("tuba", "trombone"), pads=("strings slow", "choir"),
+      pad_ways=("drone", "pad"), plucks=("harp", "church bell"), figures=("toll", "arp"), basses=("basses slow", "tuba"), kit="orchestra",
+      drums=("great drum", "timpani"), grooves=("dirge", "stately"), hall=(3.2, 0.34), lift=0.35,
+      titles=(("Barrow", "Cairn", "Old King's", "Stone Crown", "Long Sleep", "Howe"), ("Kings", "Mound", "Tomb", "Vigil", "Rest", "Lords"))),
+    C("cliffside wind", ("highland", "pastoral"), modes=("dorian", "mixolydian", "minor"), bpm=(108, 122), metres=("6/8",), busy=0.5, weight=0.9,
+      leads=("horns", "english horn", "violin"), strong=("violins", "horns"), under=("celli", "trombone"), pads=("strings", "tremolo"),
+      pad_ways=("pad", "tremolo"), plucks=("harp", "strings"), figures=("arp", "gallop"), basses=("celli", "basses"), kit="march",
+      drums=("timpani",), grooves=("ride", "stately"), hall=(2.6, 0.28), lift=0.45,
+      titles=(("Cliffside", "Windswept", "Seawall", "Gull's", "Salt", "Highcliff"), ("Wind", "Heights", "Reach", "Edge", "Bluff", "Lookout"))),
+    C("dark ritual", ("infernal", "haunted"), modes=("phrygian", "minor"), bpm=(88, 100), metres=("4/4", "5/4"), busy=0.4, weight=1.0,
+      leads=("choir", "trombone", "bass clarinet"), strong=("choir", "brass"), under=("trombone", "tuba"), pads=("organ", "choir"),
+      pad_ways=("drone", "pad"), plucks=("strings", "bells"), figures=("hammer", "toll"), basses=("basses", "tuba"), kit="orchestra",
+      drums=("taiko", "great drum"), grooves=("war camp", "dirge"), hall=(3.0, 0.32), lift=0.4,
+      titles=(("Dark", "Blood", "Shadow", "Cinder", "Black Candle", "Bone"), ("Ritual", "Rite", "Summoning", "Altar", "Pact", "Covenant"))),
+    C("savanna", ("desert", "jungle"), light=True, modes=("major", "mixolydian", "dorian"), bpm=(96, 110), metres=("6/8", "4/4"), busy=0.6,
+      weight=0.55, leads=("flute", "kalimba", "marimba"), strong=("marimba", "flute"), under=("clarinet",), pads=("strings", "oohs"),
+      pad_ways=("pad", "drone"), plucks=("kalimba", "marimba", "guitar"), figures=("pattern", "arp"), basses=("acoustic bass", "fretless"),
+      kit="hands", drums=(), grooves=("canopy", "caravan"), hall=(1.8, 0.2), lift=0.2,
+      titles=(("Savanna", "Golden", "Acacia", "Grassland", "Zebra", "Long Grass"), ("Morning", "Plains", "Run", "Horizon", "Herd", "Waterhole"))),
+    C("temple steps", ("regal", "mystic"), modes=("lydian", "major", "dorian"), bpm=(66, 78), busy=0.35, weight=0.95,
+      leads=("choir", "horns", "oboe"), strong=("choir", "trumpet"), under=("horns", "trombone"), pads=("organ", "strings slow"),
+      pad_ways=("pad",), plucks=("harp", "handbells"), figures=("toll", "arp"), basses=("basses slow", "organ"), kit="orchestra",
+      drums=("timpani",), grooves=("stately", "sparkle"), hall=(3.4, 0.36), lift=0.4,
+      titles=(("Temple", "Sunlit", "Marble", "High Altar", "Golden", "Dawnward"), ("Steps", "Light", "Procession", "Spire", "Dawn", "Sanctum"))),
+    C("night market", ("regal", "desert"), light=True, modes=("dorian", "mixolydian", "phrygian dominant"), bpm=(100, 114),
+      metres=("6/8", "4/4"), busy=0.65, weight=0.55, leads=("clarinet", "mandolin", "violin"), strong=("violin", "clarinet"),
+      under=("bassoon",), pads=("strings", "accordion"), pad_ways=("pad", "drone"), plucks=("guitar", "mandolin", "pizzicato"),
+      figures=("strum", "oompah"), basses=("acoustic bass", "celli pizz"), kit="hands", drums=(), grooves=("claps", "caravan"),
+      hall=(1.6, 0.17), lift=0.25,
+      titles=(("Lamplit", "Moonlit", "Back Alley", "Spice", "Lantern", "Late"), ("Market", "Stalls", "Square", "Street", "Crowd", "Lanes"))),
+    C("high pasture", ("highland", "pastoral"), light=True, modes=("mixolydian", "major", "dorian"), bpm=(88, 100), metres=("6/8", "3/4"),
+      busy=0.55, weight=0.6, leads=("whistle", "oboe", "fiddle"), strong=("violins", "whistle"), under=("horns", "celli"),
+      pads=("strings slow", "strings"), pad_ways=("pad", "drone"), plucks=("harp", "steel guitar", "celesta"), figures=("arp", "strum"),
+      basses=("celli pizz", "acoustic bass"), kit="folk", drums=(), grooves=("jig", "sleigh"), hall=(2.0, 0.22), lift=0.3,
+      titles=(("High", "Shepherd's", "Cloudy", "Bluebell", "Thistle", "Lark's"), ("Pasture", "Downs", "Slopes", "Fold", "Air", "Hills"))),
 )
 
 METRES = {"4/4": (4.0, (2.0, 2.0)), "3/4": (3.0, (3.0,)), "6/8": (3.0, (1.5, 1.5)), "5/4": (5.0, (3.0, 2.0)),
@@ -1255,6 +1335,11 @@ DESKS = {
     "strings slow": {2: (("celli slow", ""), ("violas", "")), 3: (("celli slow", ""), ("violas", ""), ("violins slow", "")),
                      4: (("celli slow", ""), ("violas", ""), ("violins slow", " seconds"), ("violins slow", ""))},
 }
+# The small percussion: what may join a theme the second time round without crowding it.
+SMALL = ("tamb", "shake", "jingle", "ting", "tick", "high", "clack", "conga", "conga low", "block", "block low", "guiro", "hat", "castanet", "bell")
+# Who doubles the bass line an octave away, by who has it: the neighbour in the orchestra, played the same way.
+PARTNERS = {"basses": "celli", "basses slow": "celli slow", "basses pizz": "celli pizz", "celli": "basses", "celli slow": "basses slow",
+            "celli pizz": "basses pizz", "acoustic bass": "celli pizz", "fretless": "celli pizz", "tuba": "basses", "bassoon": "basses pizz"}
 # Who doubles a tune an octave above it rather than where the tune is: high woodwinds and bells.
 HIGH = ("flute", "piccolo", "whistle", "recorder", "ocarina", "pan flute", "glock", "celesta", "xylophone")
 # The orchestra's own low drums: what the war drums stand in for while they play.
@@ -1569,6 +1654,12 @@ class Take:
                     else:
                         sing(solo, tune, bar, loud)
                         sing(mate, again, bar, loud * 0.9, octave=1 if mate != solo else -1)
+                    if full and index >= 1 and not ch.band and ch.under:
+                        # From its second statement the theme has a slower line under it (2026-11-16, played: "not
+                        # enough instruments in each track"): it is stated alone once, then the band fills in.
+                        below = ch.under[index % len(ch.under)]
+                        if below not in (solo, mate, third):
+                            sing(below, under, bar, loud * 0.7, tag=" under")
             elif part == "second":
                 # The second theme, from someone who sits well away from the first one's singer;
                 # the second time another has it and the first singer goes underneath.
@@ -1586,6 +1677,11 @@ class Take:
                     else:
                         sing(other, tune_b, bar, loud)
                         sing(partner, again_b, bar, loud * 0.9, octave=1 if partner != other else -1)
+                    already = index % 3 == 1 and INSTRUMENTS[other].held and other != partner
+                    if full and index >= 1 and not already and not ch.band and ch.under:
+                        below = ch.under[(index + 1) % len(ch.under)]
+                        if below not in (other, partner):
+                            sing(below, under_b, bar, loud * 0.7, tag=" under")
             elif part == "build":
                 # The first theme's first bar and its second, turn about, each time a little
                 # higher; more players as it goes, and closer together.
@@ -1609,7 +1705,7 @@ class Take:
                     use = (tune if index % 2 == 0 else again) if full else tune.cut(half, whole)
                     loud = self.hard(section.level[0])
                     sing(strong[0], use, bar, loud)
-                    if len(strong) > 1 and full and (index >= 1 or ch.weight >= 0.9):
+                    if len(strong) > 1 and full and (index >= 1 or ch.weight >= 0.9 or not ch.band):
                         # (In light music the second player has the tune a third above, not the same notes.)
                         sing(strong[1], use.moved(steps=2) if ch.light and not ch.band else use, bar, loud * 0.92,
                              octave=octave_of(strong[1], strong[0]))
@@ -1809,8 +1905,110 @@ class Take:
                 length = min(length, 0.2 * self.fam.bpm / 60.0)
             self.put("rhythm", who, at, length, pitch, loud, tag=tag)
 
-        before: list[int] | None = None
-        setup = None
+        # Each layer's last chord (by its instrument and how far it is raised), so that it moves to the next smoothly.
+        leading: dict[tuple[str, int], list[int]] = {}
+
+        def layer(name: str, figure: str, second: bool, raised: int, gain: float, key: Key, chord: Chord, bar: int, bar_at: float,
+                  level: float, density: float) -> None:
+            """One bar of an accompaniment's figure on one instrument."""
+            inst = INSTRUMENTS[name]
+            notes = voiced(key, chord, leading.get((name, raised)), 3, inst.home - 4 + raised)
+            leading[(name, raised)] = notes
+            ladder = notes + [notes[0] + 12]
+            loud = self.hard(level, 0.8) * gain
+            thin = density < 0.45
+            if figure == "pulse":
+                step = half if density >= 0.5 else pulse
+                if density > 0.85 and pulse == 1.0 and self.fam.bpm <= 112:
+                    step = 0.25
+                for index in range(int(round(beats / step))):
+                    on = index * step
+                    strong = on in starts
+                    for rank in ((0, 2) if strong or index % 2 == 0 else (1,)):
+                        pluck(name, rank, bar_at + on, step * 0.45, notes[rank], loud * (1.0 if strong else 0.72), short=True)
+            elif figure == "arp":
+                for index in range(slots):
+                    if thin and index % 2:
+                        continue
+                    order = (0, 1, 2, 3, 2, 1) if not second else (0, 2, 1, 3, 1, 2)
+                    pluck(name, order[index % 6], bar_at + index * half, half * 1.6, ladder[order[index % 6]],
+                          loud * (1.0 if index * half in starts else 0.75))
+            elif figure == "strum":
+                for index in range(slots):
+                    on = index * half
+                    down = on in starts
+                    if not down and (thin or index % 2 == 0 and pulse == 1.0 and density < 0.8):
+                        continue
+                    for string, rank in enumerate((0, 1, 2, 3) if down else (3, 2, 1)):
+                        pluck(name, rank, bar_at + on + string * 0.012, half * 0.9, ladder[rank], loud * (0.95 if down else 0.6))
+            elif figure == "oompah":
+                for index in range(int(round(beats / pulse))):
+                    on = index * pulse
+                    if on in starts:
+                        continue
+                    for rank in (1, 2, 3):
+                        pluck(name, rank, bar_at + on, pulse * 0.5, ladder[rank], loud * 0.8, short=True)
+            elif figure == "rock":
+                order = (0, 2, 1, 2) if not second else (0, 1, 2, 1)
+                for index in range(int(round(beats / pulse))):
+                    if thin and index % 2:
+                        continue
+                    pluck(name, order[index % 4], bar_at + index * pulse, pulse * 1.5, ladder[order[index % 4]], loud * 0.8)
+            elif figure == "toll":
+                if bar % 2 == 0 or density > 0.8:
+                    pluck(name, 3, bar_at, beats, notes[0] + 12, loud)
+                    pluck(name, 2, bar_at + (starts[1] if len(starts) > 1 else beats / 2), beats / 2, notes[2], loud * 0.6)
+            elif figure == "gallop":
+                for on, weight in self.spots("gallop" if not thin else "groups"):
+                    pluck(name, 0 if weight >= 1.0 else 1, bar_at + on, 0.22, notes[0] if weight >= 1.0 else notes[1], loud * weight,
+                          short=True)
+                    if weight >= 1.0:
+                        pluck(name, 2, bar_at + on, 0.22, notes[2], loud * 0.85, short=True)
+            elif figure == "hammer":
+                for on, weight in self.spots("three"):
+                    for rank, pitch in enumerate(notes):
+                        pluck(name, rank, bar_at + on, half * 0.6, pitch, loud * weight, short=True)
+                if not thin:
+                    # Underneath, the lowest note an octave down: from the basses where the strings are hammering.
+                    low = "basses" if name in DESKS else name
+                    for on, weight in self.spots("halves"):
+                        pluck(low, 0, bar_at + on, half * 0.4, notes[0] - 12, loud * 0.5 * weight, short=True)
+            elif figure in ("riff", "chug"):
+                # A riff: power chords with room between them, and the muted string chugging
+                # where the chords are not. Root, fifth and octave: the third is left to the tune.
+                root = key.pitch(chord.root, 45)
+                root += 12 if root < 40 else -12 if root > 52 else 0
+                power = (root, root + 7, root + 12)
+                hits: list[tuple[float, float | None]] = list(riff_b if second else self.riff)
+                if density > 0.85 or figure == "chug":
+                    hits = hits + [(on, None) for on in [index * half for index in range(slots)]
+                                   if not any(abs(on - at) < 1e-6 for at, _ in hits)]
+                for on, length in sorted(hits, key=lambda hit: hit[0]):
+                    if self.breathing(bar_at + on):
+                        continue
+                    if length is None:
+                        if thin:
+                            continue
+                        self.put("rhythm", "muted guitar", bar_at + on, 0.2, root, loud * (0.75 if on in starts else 0.6))
+                        self.put("rhythm", "muted guitar", bar_at + on, 0.2, root + 7, loud * 0.5)
+                    else:
+                        for pitch in power:
+                            self.put("rhythm", "rhythm guitar", bar_at + on, length * 0.92, pitch, loud * (1.0 if on in starts else 0.9))
+            elif figure == "pattern":
+                for slot, which in enumerate(pattern_b if second else pattern_a):
+                    if which is None or (thin and slot % 2):
+                        continue
+                    pluck(name, which, bar_at + slot * half, half * 1.2, ladder[which], loud * (1.0 if slot * half in starts else 0.75))
+            else:
+                raise ValueError("No such figure: %r" % figure)
+
+        def fuller(part: str, bar: int, along: float) -> bool:
+            """Where the other theme's figure plays as well: at the moments, from the second statement of
+            each theme, and through the second half of each rise. (2026-11-16, played: "not enough
+            instruments in each track".)"""
+            return part in ("arrival", "summit") or (part in ("first", "second") and bar >= self.fam.period) \
+                or (part in ("build", "climb") and along >= 0.5)
+
         for section, first, key, chords in self.spans:
             part, bars = section.part, section.bars
             for bar, chord in enumerate(chords):
@@ -1833,98 +2031,18 @@ class Take:
                 # Where the second theme has the same figure on the same instrument as the first,
                 # it is at least played a fourth higher.
                 raised = 5 if second and (self.pluck_b, self.figure_b) == (self.pluck, self.figure) else 0
-                if setup != (name, raised):
-                    before, setup = None, (name, raised)
-                notes = voiced(key, chord, before, 3, inst.home - 4 + raised)
-                before = notes
-                ladder = notes + [notes[0] + 12]
                 bar_at = first + bar * beats
-                loud = self.hard(level, 0.8)
-                thin = density < 0.45
-                if figure == "pulse":
-                    step = half if density >= 0.5 else pulse
-                    if density > 0.85 and pulse == 1.0 and self.fam.bpm <= 112:
-                        step = 0.25
-                    for index in range(int(round(beats / step))):
-                        on = index * step
-                        strong = on in starts
-                        for rank in ((0, 2) if strong or index % 2 == 0 else (1,)):
-                            pluck(name, rank, bar_at + on, step * 0.45, notes[rank], loud * (1.0 if strong else 0.72), short=True)
-                elif figure == "arp":
-                    for index in range(slots):
-                        if thin and index % 2:
-                            continue
-                        order = (0, 1, 2, 3, 2, 1) if not second else (0, 2, 1, 3, 1, 2)
-                        pluck(name, order[index % 6], bar_at + index * half, half * 1.6, ladder[order[index % 6]],
-                              loud * (1.0 if index * half in starts else 0.75))
-                elif figure == "strum":
-                    for index in range(slots):
-                        on = index * half
-                        down = on in starts
-                        if not down and (thin or index % 2 == 0 and pulse == 1.0 and density < 0.8):
-                            continue
-                        for string, rank in enumerate((0, 1, 2, 3) if down else (3, 2, 1)):
-                            pluck(name, rank, bar_at + on + string * 0.012, half * 0.9, ladder[rank], loud * (0.95 if down else 0.6))
-                elif figure == "oompah":
-                    for index in range(int(round(beats / pulse))):
-                        on = index * pulse
-                        if on in starts:
-                            continue
-                        for rank in (1, 2, 3):
-                            pluck(name, rank, bar_at + on, pulse * 0.5, ladder[rank], loud * 0.8, short=True)
-                elif figure == "rock":
-                    order = (0, 2, 1, 2) if not second else (0, 1, 2, 1)
-                    for index in range(int(round(beats / pulse))):
-                        if thin and index % 2:
-                            continue
-                        pluck(name, order[index % 4], bar_at + index * pulse, pulse * 1.5, ladder[order[index % 4]], loud * 0.8)
-                elif figure == "toll":
-                    if bar % 2 == 0 or density > 0.8:
-                        pluck(name, 3, bar_at, beats, notes[0] + 12, loud)
-                        pluck(name, 2, bar_at + (starts[1] if len(starts) > 1 else beats / 2), beats / 2, notes[2], loud * 0.6)
-                elif figure == "gallop":
-                    for on, weight in self.spots("gallop" if not thin else "groups"):
-                        pluck(name, 0 if weight >= 1.0 else 1, bar_at + on, 0.22, notes[0] if weight >= 1.0 else notes[1], loud * weight,
-                              short=True)
-                        if weight >= 1.0:
-                            pluck(name, 2, bar_at + on, 0.22, notes[2], loud * 0.85, short=True)
-                elif figure == "hammer":
-                    for on, weight in self.spots("three"):
-                        for rank, pitch in enumerate(notes):
-                            pluck(name, rank, bar_at + on, half * 0.6, pitch, loud * weight, short=True)
-                    if not thin:
-                        # Underneath, the lowest note an octave down: from the basses where the strings are hammering.
-                        low = "basses" if name in DESKS else name
-                        for on, weight in self.spots("halves"):
-                            pluck(low, 0, bar_at + on, half * 0.4, notes[0] - 12, loud * 0.5 * weight, short=True)
-                elif figure in ("riff", "chug"):
-                    # A riff: power chords with room between them, and the muted string chugging
-                    # where the chords are not. Root, fifth and octave: the third is left to the tune.
-                    root = key.pitch(chord.root, 45)
-                    root += 12 if root < 40 else -12 if root > 52 else 0
-                    power = (root, root + 7, root + 12)
-                    hits: list[tuple[float, float | None]] = list(riff_b if second else self.riff)
-                    if density > 0.85 or figure == "chug":
-                        hits = hits + [(on, None) for on in [index * half for index in range(slots)]
-                                       if not any(abs(on - at) < 1e-6 for at, _ in hits)]
-                    for on, length in sorted(hits, key=lambda hit: hit[0]):
-                        if self.breathing(bar_at + on):
-                            continue
-                        if length is None:
-                            if thin:
-                                continue
-                            self.put("rhythm", "muted guitar", bar_at + on, 0.2, root, loud * (0.75 if on in starts else 0.6))
-                            self.put("rhythm", "muted guitar", bar_at + on, 0.2, root + 7, loud * 0.5)
-                        else:
-                            for pitch in power:
-                                self.put("rhythm", "rhythm guitar", bar_at + on, length * 0.92, pitch, loud * (1.0 if on in starts else 0.9))
-                elif figure == "pattern":
-                    for slot, which in enumerate(pattern_b if second else pattern_a):
-                        if which is None or (thin and slot % 2):
-                            continue
-                        pluck(name, which, bar_at + slot * half, half * 1.2, ladder[which], loud * (1.0 if slot * half in starts else 0.75))
-                else:
-                    raise ValueError("No such figure: %r" % figure)
+                layer(name, figure, second, raised, 1.0, key, chord, bar, bar_at, level, density)
+                if not ch.band and fuller(part, bar, along):
+                    # The other figure, on its own instrument (another of the palette's, where both themes have the
+                    # same one), an octave up where the two would sit on each other, a little under the first.
+                    with_name, with_figure = (self.pluck, self.figure) if second else (self.pluck_b, self.figure_b)
+                    if with_name == name:
+                        with_name = ch.plucks[(self.take + 2) % len(ch.plucks)]
+                    if with_name != name or with_figure != figure:
+                        apart = abs(INSTRUMENTS[with_name].home - INSTRUMENTS[name].home)
+                        up = 12 if (with_name == name or apart < 7) else 0
+                        layer(with_name, with_figure, not second, up, 0.72, key, chord, bar, bar_at, level, max(density, 0.5))
                 if part in ("arrival", "summit") and self.heavy and not ch.band:
                     # The brass marks the chord: on the bar at the first arrival, on every strong beat
                     # at the summit. A line each for the trombones, the horns and the trumpets;
@@ -1940,14 +2058,24 @@ class Take:
         inst = INSTRUMENTS[name]
         one, two = self.bass_way, self.bass_way_b
         drive = "eight" if ch.band and self.heavy else "pulse"
+        # (2026-11-16, played: "not enough instruments in each track".) Where the music grows, the bass line is
+        # doubled an octave away by its neighbour in the orchestra: from each theme's second statement, through the
+        # second half of each rise, and at the moments (where a heavy piece's tutti has the low end, that is enough).
+        partner = None if ch.band else PARTNERS.get(name)
+        doubled = False
 
         def low(at: float, length: float, pitch: int, loud: float) -> None:
             if not self.breathing(at):                          # no new note in the breath before an arrival
                 self.put("bass", name, at, length, pitch, loud)
+                if doubled and partner:
+                    self.put("bass", partner, at, length, pitch + (12 if INSTRUMENTS[partner].home > inst.home else -12), loud * 0.8,
+                             tag=" doubled")
         for section, first, key, chords in self.spans:
             part, bars = section.part, section.bars
             for bar, chord in enumerate(chords):
                 level, bar_at, along = self.level(section, bar), first + bar * beats, bar / bars
+                doubled = (part in ("first", "second") and bar >= self.fam.period) or (part in ("build", "climb") and along >= 0.5) \
+                    or (part in ("arrival", "summit") and not self.heavy)
                 root = key.pitch(chord.root, inst.home - 5)
                 loud = self.hard(level, 0.9)
                 after = chords[bar + 1] if bar + 1 < bars else chord
@@ -2066,8 +2194,14 @@ class Take:
                             lay(main["theme"], bar, bar_at, level, 0.8, chord, key)
                 elif part == "first":
                     lay(main["theme"], bar, bar_at, level, 1.0, chord, key)
+                    if bar >= self.fam.period and not ch.band:
+                        # The second time round a theme, the moment's small percussion joins softly (2026-11-16,
+                        # played: "not enough instruments in each track").
+                        lay([each for each in main["moment"] if each[0] in SMALL and each not in main["theme"]], bar, bar_at, level, 0.55, chord, key)
                 elif part == "second":
                     lay(second, bar, bar_at, level, 1.0 if other is not main else 0.85, chord, key)
+                    if bar >= self.fam.period and not ch.band:
+                        lay([each for each in other["moment"] if each[0] in SMALL and each not in second], bar, bar_at, level, 0.55, chord, key)
                 elif part in ("build", "climb"):
                     # A rise begins on a theme's groove (the climb on the second theme's) and
                     # goes over to the moment's; its last bars are a roll, longer before the summit.

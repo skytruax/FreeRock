@@ -410,6 +410,30 @@ SOUNDS: dict[str, Sound] = {
 # ---------------------------------------------------------------------------------------------
 # Each recorded instrument as an instrument for the sampler
 # ---------------------------------------------------------------------------------------------
+# ---- The dance floor (studio.club). What the house writer calls its sounds, played by Surge XT's own patches: a
+# real synth in place of the studio's, which was turned down ("figure out how to make house music not suck",
+# 2026-11-16). Chosen by what each patch is; the ones that are real instruments (piano, marimba, harp, flute,
+# strings, brass) go to Muse Sounds instead (studio.club.PLAYED).
+_SURGE = "surge:patches_factory/"
+HOUSE = {
+    "house sub": "Basses/Sub 1", "house bass pluck": "Basses/Fingered", "house bass saw": "Basses/Lord Sawtooth",
+    "house bass square": "Basses/Squared", "house bass fm": "Basses/FM Bass 1", "house bass wide": "Basses/Wide Bassline",
+    "house bass organ": "Keys/House Organ", "house organ": "Keys/House Organ", "house stab": "Polysynths/Smooth Stabs",
+    "house pluck": "Plucks/Nice Pluck 1", "house bell": "Plucks/Bell 1", "house glass": "Plucks/Diamonds",
+    "house lead saw": "Leads/Classic Lead 1", "house lead super": "Polysynths/Super Jupiter", "house lead hollow": "Leads/Smoothy Hollow",
+    "house lead sine": "Leads/Sine Lead", "house pad warm": "Pads/MKS-70 Warm Pad", "house pad super": "Pads/Super",
+    "house pad glass": "Pads/Sparkly", "house pad hollow": "Pads/Ooh", "house pad organ": "Keys/Organ 1",
+}
+# How many octaves from where it is written each patch has to be played to sound where it is written. Measured
+# 2026-11-16 by playing C3, C4 and C5 on each alone and reading the pitch that came out: Surge's basses sound an
+# octave under the key (its wide bassline and its house organ two), as do its Super Jupiter and its MKS-70 pad.
+# (Its "Square Bass" does not follow the keys at all, and "Rubber Bass" does not die away as a plucked bass does:
+# "Squared" and "Fingered" are used in their places.)
+HOUSE_OCTAVE: dict[str, int] = {"house sub": 1, "house bass pluck": 1, "house bass saw": 1, "house bass square": 1, "house bass wide": 2,
+                                "house bass organ": 2, "house organ": 2, "house lead super": 1, "house pad warm": 1}
+SOUNDS.update({name: Sound((Player(_SURGE + patch + ".fxp", octave=HOUSE_OCTAVE.get(name, 0), seat=0.0),)) for name, patch in HOUSE.items()})
+
+
 def _file(name: str) -> str:
     return re.sub(r"[^A-Za-z0-9 _.-]+", " ", name).strip()
 
@@ -1146,7 +1170,9 @@ MUSE_SENDS = {"Horn in F": -9.0, "Trumpet in B♭": -10.0, "Trombone": -10.0, "T
 ECHOED = ("Harp", "Celesta", "Glockenspiel", "Marimba", "Vibraphone", "Classical Guitar", "Clean Guitar")       # parts that get a tempo echo from side to side
 MUSE_CUT = {"Violins 1": 170.0, "Violin": 170.0, "Violas": 115.0, "Viola": 115.0, "Flute": 230.0, "Piccolo": 480.0, "Oboe": 210.0, "Trumpet in B♭": 150.0,
             "Clarinet in B♭": 130.0, "Women": 150.0, "Celesta": 200.0, "Glockenspiel": 400.0,
-            "Rhythm Guitar": 85.0, "Muted Guitar": 85.0, "Electric Guitar": 110.0, "Hammond Organ": 90.0}       # under the guitars and the organ is the bass guitar's
+            "Rhythm Guitar": 85.0, "Muted Guitar": 85.0, "Electric Guitar": 110.0, "Hammond Organ": 90.0,       # under the guitars and the organ is the bass guitar's
+            # A sound given to a part of another size: its own cut, not the part's (a bass flute is not a flute's 230 Hz).
+            "Muse Woodwinds/Bass Flute": 90.0, "Muse Woodwinds/Bass Clarinet": 45.0, "Muse Brass/Euphonium": 40.0, "Muse Handbells/Handbells": 180.0}
 MUTED_TOP = 3200.0             # Hz: a muted string has nothing above this
 # Where the two rhythm guitars sit (one each side, as a record is made), and how far the second is behind the
 # first: two takes are never together to the sample, and that is what makes two guitars sound like two.
@@ -1179,7 +1205,7 @@ def _muse(voice: Voice, title: str, bpm: float, taste: float, room: float, seed:
     out = []
     for part, way, notes, sound in muse.shared(voice.instrument, voice.notes, seed):
         made = muse.perform(part, notes, bpm=bpm, way=way, sound=sound, swells=voice.swells or None)
-        effects = [equalise(low_cut=MUSE_CUT.get(part, 28.0), high_cut=MUTED_TOP if part == "Muted Guitar" else 0.0, **MUSE_TONE.get(sound or "", {}))]
+        effects = [equalise(low_cut=MUSE_CUT.get(sound or "", MUSE_CUT.get(part, 28.0)), high_cut=MUTED_TOP if part == "Muted Guitar" else 0.0, **MUSE_TONE.get(sound or "", {}))]
         if sound in MUSE_NARROW:
             effects.append(wide(MUSE_NARROW[sound]))
         if part in ECHOED or way == "pizz":

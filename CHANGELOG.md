@@ -1,5 +1,37 @@
 # Changelog
 
+## More Warcraft, and more of the band in each piece (2026-11-16, night)
+
+Said while playing: "need more variety in warcraft first before you actually print house", "write
+the most dynamic interesting music you can, look at where we are", "not enough instruments in
+each track", "prioritize warcraft for 3 hours then shift".
+
+- **Fourteen new kinds of Warcraft piece** (`studio/orchestra.py`, at the end of `CHARACTERS` so
+  every family made before keeps its seed): a shadowed wood, a fallen farmstead, a border keep,
+  rain on the roof, a forsaken parlour, a witch's hollow, a spirit grove, barrow kings, a
+  windswept cliff, a dark ritual, a savanna, temple steps, a night market and a high pasture.
+  They bring voices Warcraft had not had: a piano, a bass flute, a bass clarinet, handbells
+  and a euphonium (Muse Sounds, each played alone and checked for pitch first; the euphonium
+  is kept above C3, where Muse's sounds an octave up).
+- **The heavy music for walking about has a second family** (`studio/build.py` `plan`): a dark
+  wood had three pieces of its own. Second families are named after all the others, so no
+  title changed.
+- **Fuller writing.** The second theme's figure plays with the first one's where the music
+  grows (at the moments, from each theme's second statement, through the second half of each
+  rise); a slower line goes under a theme from its second statement; the bass is doubled an
+  octave away by its neighbour (`PARTNERS`); the second strong instrument joins the tune from
+  the first statement of a moment; the moment's small percussion joins a theme the second
+  time round. The opening, the valley and the close are left as bare as they were, so a piece
+  swells and falls further than before: three instruments at the opening, six to nine in the
+  themes, eight to eighteen at the moments.
+- **Moments that differ by place** (`studio/build.py` `CROWNS`): every heavy piece used to end
+  its moments with the same choir and bell. Now the haunted, mystic and regal places have the
+  choir and the bell, infernal ones the choir, the open country and the hills the horns, the
+  desert and the jungle neither; light pieces have a soft horn or voice chord at their moments.
+- **High ground is read from a place's name** (`kinds.py`): "Shen'dar Highlands" was heard as the
+  plain country round it. Highland, mountain, peak, ridge, summit, cliff, height, crest,
+  pinnacle and moor now say highland.
+
 ## Played for an evening: one song through a fight, fades on everything, no repeats, nothing bought (2026-11-16, late)
 
 The first evening on the new pieces, with the game. What was said while playing, and what was

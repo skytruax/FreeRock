@@ -63,27 +63,59 @@ def plan() -> list[tuple[Family, int]]:
     two, since light places hear nothing else); the rarer moments get fewer."""
     out: list[tuple[Family, int]] = []
     titles: set[str] = set()
+
+    def add(index: int, character, number: int, takes: int) -> None:
+        seed = MASTER * 100 + index * 10 + number
+        rng = random.Random(seed)
+        first, second = character.titles
+        title = None
+        for _ in range(50):
+            title = "%s %s" % (rng.choice(first), rng.choice(second))
+            if title not in titles:
+                break
+        titles.add(title)
+        place = character.kinds[0] if len(character.kinds) < 5 else "anywhere"
+        name = "%s-%s-%d" % (place, character.name.replace(" ", "-"), number + 1)
+        out.append((family(character, seed, name, title), takes))
+
+    later = []
     for index, character in enumerate(CHARACTERS):
         if character.role == "wander":
             shapes = [3, 2] if character.light or character.band else [3]
+            if not (character.light or character.band):
+                later.append((index, character))
         elif character.role in ("battle", "ember", "storm", "boss"):
             shapes = [2, 2]
         else:
             shapes = [2]
         for number, takes in enumerate(shapes):
-            seed = MASTER * 100 + index * 10 + number
-            rng = random.Random(seed)
-            first, second = character.titles
-            title = None
-            for _ in range(50):
-                title = "%s %s" % (rng.choice(first), rng.choice(second))
-                if title not in titles:
-                    break
-            titles.add(title)
-            place = character.kinds[0] if len(character.kinds) < 5 else "anywhere"
-            name = "%s-%s-%d" % (place, character.name.replace(" ", "-"), number + 1)
-            out.append((family(character, seed, name, title), takes))
+            add(index, character, number, takes)
+    # (2026-11-16, played: "need more variety in warcraft".) The heavy music for walking about has a second family too:
+    # its own key, pace, changes and tunes. These are named after all the others, so that no family made before is
+    # given another title.
+    for index, character in later:
+        add(index, character, 1, 2)
     return out
+
+
+# What crowns a heavy piece's moments, by the kind of place it is for: who sings the pad's chords with the strings, and
+# whether a bell is struck on the moment's first beat. (2026-11-16, played: "need more variety in warcraft". Every heavy
+# piece had a choir and a bell at its moments, so every moment sounded alike.) Music for every kind of place, the
+# fights and the storms keep the choir and the bell.
+CROWNS = {"haunted": ("choir", True), "mystic": ("choir", True), "regal": ("choir", True), "infernal": ("choir", False),
+          "highland": ("horns", True), "pastoral": ("horns", False), "desert": ("", False), "jungle": ("", False)}
+
+
+CROWNS_LIGHT = {"pastoral": "horns", "highland": "horns", "regal": "horns", "mystic": "oohs", "haunted": "oohs", "jungle": "oohs",
+                "desert": "", "infernal": ""}
+
+
+def crown_of(character) -> tuple[str, bool]:
+    if character.light:
+        return (CROWNS_LIGHT[character.kinds[0]] if len(character.kinds) < 5 else "oohs"), False
+    if len(character.kinds) >= 5:
+        return "choir", True
+    return CROWNS[character.kinds[0]]
 
 
 def folder_of(fam: Family, take: int) -> Path:
@@ -170,15 +202,20 @@ def stage(fam: Family, take: int) -> dict:
             under = [note for note in low if note.start <= first + 0.05 < note.start + note.length + 0.5] or [note for note in low if note.start >= first][:1]
             if under:
                 rung.append(Note(first, 4.0, 60 + under[0].pitch % 12, 0.8))
-        if rung and not any(voice.instrument in ("bells", "church bell") for voice in written.voices["rhythm"].values()):
+        if rung and crown_of(character)[1] and not any(voice.instrument in ("bells", "church bell") for voice in written.voices["rhythm"].values()):
             written.voices["rhythm"]["bell at the moments"] = Voice(0, notes=rung, instrument="bells")
-    if muse.available() and not character.light:
-        # A layer on top, where the story comes to its moments: a choir sings the pad's chords with the strings.
+    crown = crown_of(character)[0]
+    if muse.available() and crown and not character.band:
+        # A layer on top, where the story comes to its moments: a choir sings the pad's chords with the strings (the
+        # horns, in the open country and the hills). Light music has it too, softly (2026-11-16, played: "not enough
+        # instruments in each track").
+        low, high = (43, 79) if crown in ("choir", "oohs") else (41, 74)
         sung = [note for voice in written.voices["texture"].values() if voice.instrument in ("tremolo", "strings", "strings slow")
-                for note in voice.notes if any(first <= note.start < last for first, last in spans) and 43 <= note.pitch <= 79]
-        if sung and "choir" not in {voice.instrument for voice in written.voices["texture"].values()}:
-            written.voices["texture"]["choir at the moments"] = Voice(0, notes=[type(note)(note.start, note.length, note.pitch, 0.72) for note in sung],
-                                                                      instrument="choir")
+                for note in voice.notes if any(first <= note.start < last for first, last in spans) and low <= note.pitch <= high]
+        if sung and crown not in {voice.instrument for voice in written.voices["texture"].values()}:
+            soft = 0.55 if character.light else 0.72
+            written.voices["texture"]["%s at the moments" % crown] = Voice(0, notes=[type(note)(note.start, note.length, note.pitch, soft) for note in sung],
+                                                                           instrument=crown)
     if muse.available() and character.band:
         # A band's plain guitar is an electric one played clean (its steel-strung ones stay acoustic).
         for channel in CHANNELS:

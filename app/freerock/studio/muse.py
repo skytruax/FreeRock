@@ -91,6 +91,11 @@ PARTS: dict[str, tuple[tuple, ...]] = {
     "pan flute": (("Flute", 0, 127, "", "Muse Woodwinds/Alto Flute"),), "shakuhachi": (("Flute", 0, 127, "", "Muse Woodwinds/Alto Flute"),),
     "ocarina": (("Flute", 0, 127, "", "Muse Woodwinds/Flute 1"),),
     "shenai": (("Oboe", 0, 127, ""),), "bagpipe": (("English Horn", 0, 127, ""),),
+    # Colours added for variety (2026-11-16): sounds Muse has, given to a part of the nearest kind.
+    "bass flute": (("Flute", 0, 127, "", "Muse Woodwinds/Bass Flute"),),
+    "bass clarinet": (("Clarinet in B♭", 0, 127, "", "Muse Woodwinds/Bass Clarinet"),),
+    "handbells": (("Tubular Bells", 0, 127, "", "Muse Handbells/Handbells"),),
+    "euphonium": (("Tuba", 0, 127, "", "Muse Brass/Euphonium"),),
     # The band. The riff is played twice, as a record is made: a Les Paul on one side and a Stratocaster on the
     # other, each through its own amplifier (two parts with the same notes; `sounds` seats them). The Les Paul has
     # the weight (its low strings are all there), the Stratocaster the bite. The tune is the Les Paul's lead tone:

@@ -66,7 +66,9 @@ _IN_NAMES = {
     "infernal": ("fire", "flame", "ember", "cinder", "lava", "magma", "scorch", "burn", "forge", "furnace", "brimstone", "blaze", "molten",
                  "smolder", "slag", "searing"),
     "jungle": ("swamp", "marsh", "bog", "mire", "tangle", "jungle", "serpent", "raptor", "moss", "mud", "venom"),
-    "highland": ("frost", "snow", "ice", "icy", "frozen", "winter", "chill", "glacier", "crag", "eagle", "gryphon"),
+    # (2026-11-16, played: "Shen'dar Highlands" was heard as the plain country round it. The words for high ground itself.)
+    "highland": ("frost", "snow", "ice", "icy", "frozen", "winter", "chill", "glacier", "crag", "eagle", "gryphon", "highland", "mountain",
+                 "peak", "ridge", "summit", "cliff", "height", "crest", "pinnacle", "moor"),
     "desert": ("sand", "dune", "dust", "dry", "salt", "mesa", "canyon", "gulch", "barren", "waste", "bleach", "parch", "scorpid"),
     "pastoral": ("gold", "sunny", "meadow", "bloom", "blossom", "honey", "apple", "berry", "willow", "brook", "clover", "barley", "wheat"),
     "regal": ("king", "queen", "crown", "throne", "royal", "lion", "noble", "court", "cathedral", "garrison", "bastion", "valor", "honor"),
