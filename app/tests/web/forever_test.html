@@ -904,6 +904,17 @@ tests.pieceSetting = async () => {
            first: pieceOf(log[0]), movedAt: moved ? moved.at : null };
 };
 
+// Night is a place of its own: its music first, and the walking music once the night's has been heard a few times.
+tests.pieceNight = async () => {
+  const bucket = makePieces("night", [{ id: "walk", windows: 2, moods: ["pastoral"] },
+                                      { id: "owl", windows: 2, moods: ["pastoral"], role: "night" }]);
+  const run = await render(110, { bucket, tickEvery: 2.0,
+                                  target: Object.assign(mix(1), { kinds: ["pastoral"], place: "night", also: ["wander"], lean: 0.12 }) });
+  const order = [];
+  for (const entry of [...run.engine.log].sort((a, b) => a.at - b.at)) order.push(pieceOf(entry));
+  return { order };
+};
+
 // Six loudspeakers: the music is laid over all of them (the front pair as it is, some in the
 // centre, the low end to the sub, the rear pair late and soft), and the page's test sounds each
 // of them in turn and no other.

@@ -118,7 +118,7 @@ def test_a_place_has_a_shade_from_grim_to_radiant_and_the_hour_the_rain_and_a_ca
     day = game.GameState(zone_name="Elwynn Forest", daytime=True)
     here = music.shade_here(day)
     assert here == 1.5
-    assert music.shade_here(game.GameState(zone_name="Elwynn Forest", daytime=False)) == here - 1.0
+    assert music.shade_here(game.GameState(zone_name="Elwynn Forest", daytime=False)) == here - 1.5, "night is darker than a cloud"
     assert music.shade_here(game.GameState(zone_name="Elwynn Forest", daytime=True, weather="rain", weather_intensity=0.9)) == here - 1.0
     assert music.shade_here(game.GameState(zone_name="Elwynn Forest", daytime=True, indoors=True)) == here - 1.0
     assert music.shade_here(game.GameState(zone_name="Elwynn Forest", daytime=True, indoors=True, resting=True)) == here, "an inn is not a cave"

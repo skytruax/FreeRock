@@ -34,6 +34,10 @@ FALLBACK = {"boss": "battle", "battle": "wander", "storm": "wander", "night": "e
 
 OPEN_HZ = 20000.0     # a low-pass up here does nothing
 FLOOR_HZ = 20.0       # a high-pass down here does nothing
+NIGHT_LEAN = 0.12     # at night, a walking piece counts this much (in tenths of a kind of moment) against it
+NIGHT_TOP = 3800.0    # Hz: the top of the music at night
+NIGHT_GAIN = 0.89     # about 1 dB softer at night
+NIGHT_HUSH = 0.75     # and the drums' and the bass's least kept at three quarters
 
 
 @dataclass(frozen=True)
@@ -47,6 +51,12 @@ class Target:
     # going on (the calm after a fight): the forever song goes there within a few bars, and comes
     # back when the player leaves ("make sure our location changes CHANGE SONGS", 2026-11-16).
     sited: bool = False
+    # How much a piece for one of the `also` kinds counts against it beside one written for `place` itself: 0 is not
+    # at all (they take turns), and at night a little, so that night music comes first and the walking music still
+    # comes when the night's has been heard lately ("night should feel like night", 2026-11-16).
+    lean: float = 0.0
+    # How much of the least the drums and the bass are played at (a piece's floor) is kept: 1 all of it, at night less.
+    hush: float = 1.0
     scene: int = 0                    # goes up when the player crosses into another part of the zone
     cut: str = "bar"                  # how soon a change of place should land: bar | beat
     bed: float = 1.0                  # layer levels, 0 to 1
@@ -144,6 +154,10 @@ class Rules:
     moving_after_s: float = 0.2       # on the move this long before it counts
     still_after_s: float = 1.5        # stopped this long before it counts
     linger_after_s: float = 15.0      # stopped this long and the calm part joins the rotation
+    # Standing still quiets the music ("and standing still should quiet the tracks", 2026-11-16): every channel at
+    # this much of its level on stopping, and at this much once stood a while. Moving brings it straight back.
+    still_bed: float = 0.85           # about 1.4 dB down
+    linger_bed: float = 0.65          # about 3.7 dB down
     sizing_after_s: float = 0.2
     # A roll: fights close together keep the band in between them.
     heat_per_fight: float = 0.34      # what each fight adds, out of 1
@@ -425,6 +439,16 @@ class Director:
         drums = rules.drums_least + (1.0 - rules.drums_least) * _share(intensity, rules.drums_on, rules.combat_start) \
             if intensity >= rules.drums_on else 0.0
         bed = 1.0
+        # Standing still: quieter, a little at once and more after a while, every channel (the player brings them down
+        # over its slow fades, and back up the moment the player moves). Not in a fight, nor in a storm, nor in an inn,
+        # which is quiet already.
+        if not state.in_combat and m.combat_since is None and not fallen and not storming and not inn:
+            if lingering:
+                bed *= rules.linger_bed
+                why.append("stood a while: quieter")
+            elif on_the_move is False:
+                bed *= rules.still_bed
+                why.append("standing still: a little quieter")
 
         # --- which section -------------------------------------------------------------------
         if boss and m.combat_since is not None:
@@ -474,7 +498,7 @@ class Director:
 
         # `place` is where the music goes now; `also` is what takes turns with it for as long as
         # it lasts, so that one part is never left to loop.
-        cut, also, sited = "bar", [], False
+        cut, also, sited, lean = "bar", [], False, 0.0
         if boss and not fallen:
             place, cut = "boss", "beat"
             also.append("battle")
@@ -520,6 +544,13 @@ class Director:
             place = "storm"
             also.append("wander")
             why.append("at full tilt")
+        elif state.daytime is False and not dungeon:
+            # Night out of doors is a place of its own: its music first, the walking music when that has been heard.
+            place, lean = "night", NIGHT_LEAN
+            also.append("wander")
+            why.append("night")
+            if lingering:
+                also.append("ember")
         else:
             place = "wander"
             if dungeon:
@@ -560,9 +591,12 @@ class Director:
             drums *= 1.0 - 0.3 * strength
         elif state.weather == "sandstorm" and strength > 0:
             tint("sandstorm", low=3000.0 + 5000.0 * (1.0 - strength), high=300.0 * strength)
+        hush = 1.0
         if state.daytime is False and not storming:
-            tint("darker at night", low=5000.0)
+            # Night: darker, further off and softer, the drums and the bass well back ("night should feel like night").
+            tint("darker at night", low=NIGHT_TOP, wet=0.15, gain=NIGHT_GAIN)
             drums *= 0.7
+            hush = NIGHT_HUSH
         if inn:
             tint("quieter in an inn", gain=0.63)   # about 4 dB down
             bass = 0.0
@@ -622,7 +656,7 @@ class Director:
             fade = rules.rest_fade_s
             why.append("a rest, as the game has between pieces")
 
-        return Target(place=place, also=tuple(also), sited=sited, scene=m.scene, cut=cut, gap_s=rules.rest_for_s,
+        return Target(place=place, also=tuple(also), sited=sited, lean=lean, hush=hush, scene=m.scene, cut=cut, gap_s=rules.rest_for_s,
                       bed=round(bed, 3), drums=_step(drums), bass=_step(bass),
                       bed_highpass_hz=FLOOR_HZ if bass > 0 else 110.0,
                       lowpass_hz=round(lowpass, 1), highpass_hz=round(highpass, 1),

@@ -188,7 +188,7 @@ class Conductor:
             return 0.0
         shade = atlas.shade_for(self.place_name(state), self.spot_name(state))
         if state.daytime is False:
-            shade -= 1.0
+            shade -= 1.5                                  # night is darker than a cloud ("night should feel like night")
         if state.weather == "rain" and (state.weather_intensity or 0.0) > 0.0 and not state.indoors:
             shade -= 0.5 if (state.weather_intensity or 0.0) < 0.6 else 1.0
         if state.indoors and not state.resting and not state.in_instance:

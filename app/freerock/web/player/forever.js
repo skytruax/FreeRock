@@ -835,7 +835,9 @@
       // The kind of moment the game names comes first; the kinds that take turns with it are
       // as good, except in a fight, where a piece written for a fight is wanted before a storm.
       const fight = place === "battle" || place === "boss";
-      let role = meta.role === place ? 0 : also.includes(meta.role) ? (fight ? 0.3 : 0) : 1;
+      // (At night a walking piece counts a little against it beside a night piece: the director's `lean`.)
+      const lean = typeof this.target.lean === "number" ? this.target.lean : 0;
+      let role = meta.role === place ? 0 : also.includes(meta.role) ? (fight ? 0.3 : lean) : 1;
       if (follow && !fight) {
         if (this.target.sited === true) role = meta.role === place ? 0 : also.includes(meta.role) ? 0.5 : 1;
         else if (meta.role === "wander") role = 0;
@@ -976,7 +978,9 @@
       if (meta) {
         for (const other of (meta.follow && meta.follow[channel]) || []) level = Math.max(level, this._wanted(other).level);
         const floor = meta.floor ? meta.floor[channel] : 0;
-        if (floor > 0) level = Math.max(level, floor * this.target.bed);
+        // At night the drums and the bass keep less of their least (the director's `hush`).
+        const hush = (channel === "drums" || channel === "bass") && typeof this.target.hush === "number" ? this.target.hush : 1;
+        if (floor > 0) level = Math.max(level, floor * this.target.bed * hush);
       }
       return level;
     }

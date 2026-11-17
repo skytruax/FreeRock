@@ -51,10 +51,22 @@ def levels(target):
 
 def test_standing_is_a_riff_with_the_guitars_alone():
     calm = play([], 10, start=STANDING)(10)
-    assert calm.place == "wander" and calm.also == () and (calm.bed, calm.drums, calm.bass) == (1.0, 0.0, 0.0)
+    # (Standing still quiets every channel a little: "and standing still should quiet the tracks", 2026-11-16.)
+    assert calm.place == "wander" and calm.also == () and (calm.bed, calm.drums, calm.bass) == (0.85, 0.0, 0.0)
     assert calm.bed_highpass_hz == 110.0 and calm.lowpass_hz == 20000.0 and calm.reverb == 0.0
-    assert calm.intensity == pytest.approx(0.25) and calm.why == ("standing still",)
+    assert calm.intensity == pytest.approx(0.25) and calm.why == ("standing still", "standing still: a little quieter")
     assert not calm.silent and not calm.rest
+
+
+def test_standing_still_quiets_the_music_and_moving_brings_it_back():
+    """("and standing still should quiet the tracks", 2026-11-16.)"""
+    at = play([(5, {"speed": 7.0}), (15, {"speed": 0.0}), (40, {"speed": 7.0})], 45, start=STANDING)
+    assert at(10).bed == 1.0, "on the move: the whole of it"
+    assert at(17).bed == pytest.approx(0.85) and "standing still: a little quieter" in at(17).why
+    assert at(35).bed == pytest.approx(0.65) and "stood a while: quieter" in at(35).why
+    assert at(41).bed == 1.0, "moving brings it straight back"
+    fight = play([(5, FIGHT)], 8, start=STANDING)(8)
+    assert fight.bed == 1.0, "not in a fight, standing or not"
 
 
 def test_moving_brings_the_drums_in_at_once_and_stopping_takes_them_out():
@@ -143,7 +155,7 @@ def test_sizing_up_a_target_brings_the_band_in_before_the_pull():
 
 def test_a_friendly_target_or_an_addon_that_does_not_say_changes_nothing():
     friend = play([(5, {"has_target": True, "target_class": "normal", "target_hostile": False})], 8, start=STANDING)(8)
-    assert friend.bass == 0.0 and friend.why == ("standing still",)
+    assert friend.bass == 0.0 and friend.why == ("standing still", "standing still: a little quieter")
     old_addon = play([(5, {"has_target": True, "target_class": "normal", "target_hostile": None})], 8)(8)
     assert old_addon.bass == 0.0
     in_town = play([(5, {"has_target": True, "target_class": "elite", "target_hostile": True, "resting": True})], 8,
@@ -408,8 +420,12 @@ def test_snow_sandstorm_and_weather_the_game_does_not_report():
 
 def test_night_cinematic_and_switched_off():
     night = play([(1, {"daytime": False})], 3)(3)
-    # The Night part takes turns with the zone's riffs; it does not replace them.
-    assert night.place == "wander" and night.also == ("night",) and night.lowpass_hz == 5000.0
+    # Night out of doors is a place of its own ("night should feel like night", 2026-11-16): its music first, the walking
+    # music when that has been heard lately; darker, further off, softer, the drums and the bass well back.
+    assert night.place == "night" and night.also == ("wander",) and night.lean == pytest.approx(0.12) and not night.sited
+    assert night.lowpass_hz == 3800.0 and night.reverb >= 0.15 and night.volume == pytest.approx(0.89) and night.hush == 0.75
+    day = play([(1, {"daytime": True})], 3)(3)
+    assert day.place == "wander" and day.lean == 0.0 and day.hush == 1.0
     unknown = play([(1, {"daytime": None})], 3)(3)
     assert unknown.place == "wander" and unknown.lowpass_hz == 20000.0  # no day or night signal: leave it be
     assert play([(1, {"cinematic": True})], 2)(2).silent
@@ -441,7 +457,7 @@ def test_no_single_part_is_left_to_loop():
     assert play([(1, {"ghost": True})], 3)(3).also == ("wander",)
     assert play([(1, FIGHT)], 3)(3).also == (), "an ordinary fight names no other part: the song that is playing goes on"
     night_standing = play([(0, {"daytime": False})], 40, start=STANDING)(40)
-    assert night_standing.place == "wander" and night_standing.also == ("night", "ember")
+    assert night_standing.place == "night" and night_standing.also == ("wander", "ember")
 
 
 def test_crossing_into_another_part_of_the_zone_is_a_new_scene_but_not_at_every_step():

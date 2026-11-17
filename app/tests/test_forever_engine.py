@@ -508,6 +508,14 @@ async def test_among_pieces_for_one_kind_of_place_the_one_written_for_its_ground
     assert ground["first"] == "lake" and ground["movedAt"] == pytest.approx(ORIGIN + 14.0, abs=1e-6), ground
 
 
+async def test_at_night_the_night_music_comes_first_and_the_walking_music_still_comes(results):
+    """("night should feel like night", 2026-11-16.)"""
+    order = of(results, "pieceNight")["order"]
+    assert order[0] == "owl", "the night's own music did not come first: %s" % order
+    assert "walk" in order, "the walking music never came, however often the night's was heard: %s" % order
+    assert order.count("owl") > order.count("walk"), order
+
+
 async def test_light_and_heavy_take_turns(results):
     shade = of(results, "pieceShade")
     assert len(shade["order"]) >= 12
