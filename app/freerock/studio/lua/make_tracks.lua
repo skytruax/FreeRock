@@ -5,8 +5,6 @@
 --
 --   return { out = "<folder>", tracks = {
 --     { name = "violins long", fx = {
---         { kind = "sampler", files = { "<wav>", ... }, low = 55, high = 58, root = 57, soft = 1, hard = 64,
---           tune = -2.0, gain = 0.0, attack = 30, release = 250, held = true, floor = -6.0 },
 --         { kind = "clap", name = "CLAPi: Surge XT", chunk = "<base64 of the plug-in's own state>" },
 --         { kind = "fx", name = "ReaEQ", params = { [0] = 0.5 }, named = { { "BANDTYPE0", "1" } } },
 --     } },
@@ -18,39 +16,6 @@ local job = dofile(os.getenv("FREEROCK_JOB"))
 local log = io.open(job.out .. "/make_tracks.log", "w")
 local function say(text) log:write(tostring(text) .. "\n"); log:flush() end
 local failed = 0
-
-local function sampler(tr, spec)
-  local fx = reaper.TrackFX_AddByName(tr, "ReaSamplOmatic5000", false, -1)
-  if fx < 0 then error("REAPER's sampler could not be added") end
-  for index, file in ipairs(spec.files) do
-    reaper.TrackFX_SetNamedConfigParm(tr, fx, "FILE" .. (index - 1), file)
-  end
-  reaper.TrackFX_SetNamedConfigParm(tr, fx, "DONE", "")
-  -- 2: the recording follows the note in semitones. 1: it plays as it is, whatever the note.
-  reaper.TrackFX_SetNamedConfigParm(tr, fx, "MODE", spec.follow == false and "1" or "2")
-  local function set(index, value) reaper.TrackFX_SetParamNormalized(tr, fx, index, math.max(0, math.min(1, value))) end
-  set(0, 10 ^ ((spec.gain or 0) / 20) / 2)                 -- volume: 1.0 is +6 dB
-  set(2, 10 ^ ((spec.floor or -12) / 20) / 2)              -- how loud the softest strike is
-  set(3, spec.low / 127)
-  set(4, spec.high / 127)
-  set(5, (spec.low - spec.root + 80) / 160)                -- the pitch of the lowest note, in semitones from the recording
-  set(6, (spec.high - spec.root + 80) / 160)
-  set(15, ((spec.tune or 0) / 100 + 80) / 160)             -- fine tuning
-  set(8, ((spec.voices or 12) - 1) / 16 / 4)
-  set(9, (spec.attack or 1) / 2000)
-  set(10, (spec.release or 100) / 2000)
-  set(11, spec.held and 1 or 0)                            -- a held note ends when it is let go
-  set(17, spec.soft / 127)
-  set(18, spec.hard / 127)
-  set(20, #spec.files > 1 and 1 or 0)                      -- several recordings take turns
-  if spec.loop then
-    set(12, 1)                                             -- a held note goes round a stretch of the recording
-    set(23, spec.loop / 30000)                             -- from here, in milliseconds
-    set(14, spec["until"] or 1)                            -- to here, as a part of the whole recording
-    set(22, (spec.cross or 60) / 1000)                     -- blending this long where it joins
-  end
-  return fx
-end
 
 local function plugin(tr, spec)
   local fx = reaper.TrackFX_AddByName(tr, spec.name, false, -1)
@@ -83,7 +48,7 @@ for _, spec in ipairs(job.tracks) do
     local tr = reaper.GetTrack(0, index)
     reaper.GetSetMediaTrackInfo_String(tr, "P_NAME", spec.name, true)
     for _, each in ipairs(spec.fx) do
-      if each.kind == "sampler" then sampler(tr, each) else plugin(tr, each) end
+      plugin(tr, each)
     end
     if spec.describe then
       -- For finding out what a plug-in's settings are called.

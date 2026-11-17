@@ -19,6 +19,7 @@ Under each stroke of the kick the bass, the pad and the chords give way and come
 drawn volume curve of studio.build, deeper here: this is the music that curve comes from).
 
     cd app && uv run --no-sync --with numba python -m freerock.studio.club pastoral-01/1 [...]
+    cd app && uv run --no-sync --with numba python -m freerock.studio.club --list        what the plan holds
 
 (numba is asked for because studio.house still brings the old synthesiser in with it.)
 """
@@ -499,6 +500,13 @@ def main(argv: list[str] | None = None) -> int:
     if not names:
         print(__doc__)
         return 2
+    if names == ["--list"]:
+        for each in house.PLAN:
+            print("%-13s %-22s %-10s %-7s %-14s %s  %s bars  %s  swing %.2f  %s" % (
+                each.name, each.title, each.key, each.role, ",".join(each.moods), "light" if each.light else "heavy",
+                each.bars, each.groove, each.swing, each.palette))
+        print("%d families, takes %s of each" % (len(house.PLAN), ", ".join(str(take) for take in house.TAKES)))
+        return 0
     reaper.configure()
     for each in names:
         name, take = each.rsplit("/", 1)

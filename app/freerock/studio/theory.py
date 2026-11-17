@@ -20,7 +20,6 @@ MODES = {
     "phrygian": (0, 1, 3, 5, 7, 8, 10),
     "phrygian dominant": (0, 1, 4, 5, 7, 8, 10),
 }
-BRIGHT = ("major", "lydian", "mixolydian")
 
 
 @dataclass(frozen=True)

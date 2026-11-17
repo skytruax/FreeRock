@@ -1,8 +1,9 @@
 """The desk: a track of music as a REAPER project, and its stems as REAPER renders them.
 
-Everything that makes a sound is in REAPER. A sampled instrument is a REAPER track of REAPER's
-own sampler (ReaSamplOmatic5000), one sampler to each recording's zone; a synth is the Surge XT
-plug-in on a track with one of its patches; the effects are REAPER's and JSFX. Each instrument
+Everything that makes a sound is in REAPER. A sampled instrument is the sfizz sampler playing an
+instrument file the studio writes for it (sfz.py); the orchestra's voices come from MuseScore's
+Muse Sounds as recordings laid in (muse.py); a synth is the Surge XT plug-in on a track with one
+of its patches; the effects are LV2 plug-ins and JSFX. Each instrument
 is built once and kept as a track template (the same .RTrackTemplate file REAPER writes for
 "Save track as template"), in var/reaper/templates.
 
@@ -25,7 +26,6 @@ import numpy as np
 import soundfile
 
 from . import reaper
-from .samples import SAMPLES, Patch
 from .score import Note
 
 RATE = 48000
@@ -72,19 +72,6 @@ def lua(value: object, depth: int = 0) -> str:
     raise TypeError("Cannot write %r as Lua" % (value,))
 
 
-def sampler(patch: Patch, *, gain: float = 0.0, attack: float | None = None, release: float | None = None) -> list[dict]:
-    """A patch as what the track builder is told: one of REAPER's samplers for each zone."""
-    out = []
-    for zone in patch.zones:
-        out.append({"kind": "sampler", "files": [str(SAMPLES / file) for file in zone.files], "low": zone.low, "high": zone.high,
-                    "root": zone.root, "soft": zone.soft, "hard": zone.hard, "tune": zone.tune, "gain": zone.gain + gain,
-                    "attack": patch.attack if attack is None else attack, "release": patch.release if release is None else release,
-                    "held": patch.held, "floor": patch.floor, "follow": zone.low != zone.high or patch.held})
-        if zone.loop:
-            out[-1].update(loop=zone.loop, cross=min(400.0, zone.loop * 0.5), **{"until": zone.until})
-    return out
-
-
 def surge(patch: str) -> dict:
     """The Surge XT synth with one of its patches: `patch` is a file under Surge's patch
     folders, for example "patches_factory/Pads/Aurora.fxp"."""
@@ -94,28 +81,6 @@ def surge(patch: str) -> dict:
         raise ValueError("%s is not a Surge patch file" % path)
     # A patch file is a 60-byte wrapper around what the synth itself keeps as its state.
     return {"kind": "clap", "name": "CLAPi: Surge XT", "chunk": base64.b64encode(data[60:]).decode("ascii")}
-
-
-def effect(name: str, *, params: dict[int, float] | None = None, values: dict[int, float] | None = None,
-           named: list[tuple[str, object]] | None = None) -> dict:
-    """An effect by the name REAPER knows it by ("ReaEQ", "JS: Saturation"), with its settings
-    by number: `params` from 0 to 1, `values` in the effect's own units; and `named`, the
-    settings that have names instead, told in the order given."""
-    out: dict = {"kind": "fx", "name": name}
-    if params:
-        out["params"] = params
-    if values:
-        out["values"] = values
-    if named:
-        out["named"] = [[key, value] for key, value in named]
-    return out
-
-
-def reverb(impulse: Path) -> dict:
-    """REAPER's convolution reverb playing an impulse response, giving only what the hall adds
-    (whoever sends to it keeps their own sound on their own track)."""
-    return effect("ReaVerb", named=[("ITEM0", 'FILELDR "%s" 60' % impulse), ("DONE", "")],
-                  params={0: 0.5, 1: 0.0, 6: 0.0, 7: 0.0})      # wet at 0 dB, dry off, and the two low-latency modes off: nobody is playing live
 
 
 def js(name: str, *settings: float | str) -> str:

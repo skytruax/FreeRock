@@ -6,39 +6,30 @@ takes the profile in its own way (`for_genre`).
 """
 from __future__ import annotations
 
+import dataclasses
 from dataclasses import dataclass, field
 from typing import Any
 
-# The styles. For each: its name, a few words about it for the player page, and how it takes a
-# zone's profile ("colours"): Knight Rock whole, the orchestra without the instruments of a rock
-# band, and the house style with a tempo, a mode and a mood of its own, keeping only the zone's
-# key note, so that it is happy and laid back wherever the player is.
+# The styles. For each: its name and a few words about it for the player page; the house style
+# also has a tempo and a mode of its own, keeping only a zone's key note.
 KNIGHT = {
     "label": "Knight Rock",
     "about": "riff rock with lute and hurdy-gurdy",
-    "colours": "all",
 }
 
 WARCRAFT = {
     "label": "Warcraft",
     "about": "an orchestral fantasy score in the old style",
-    "colours": "acoustic",
 }
 
 HOUSE = {
     "label": "Progressive House",
     "about": "uplifting progressive house, happy and chill",
-    "colours": "none",
     "tempo": 110,
     "mode": "major",
-    "mood": ["happy and carefree", "warm and laid-back"],
 }
 
 GENRES = {"knight": KNIGHT, "warcraft": WARCRAFT, "house": HOUSE}
-DEFAULT_GENRE = "knight"
-
-# Words in a zone's colours that belong to a rock band and have no place in an orchestra.
-_BAND_WORDS = ("guitar", "riff", "chord", "wah", "palm-muted", "power", "twelve-string", "strum", "slide")
 
 
 @dataclass
@@ -58,17 +49,11 @@ def genre_of(key: str | None) -> dict[str, Any]:
     return GENRES[key]
 
 
-def for_genre(profile: ZoneProfile, genre: str = DEFAULT_GENRE) -> ZoneProfile:
-    """A zone's profile as one style uses it. Knight Rock takes it whole. The orchestra keeps the
-    zone's tempo, key and mood and those of its instruments that are not a rock band's. The house
-    style keeps only the zone's key note: its tempo, its mode and its mood are its own."""
+def for_genre(profile: ZoneProfile, genre: str) -> ZoneProfile:
+    """A zone's profile as one style's bucket takes it (its tempo and key are the bucket's): Knight
+    Rock and the orchestra take it as it is, the house style keeps only the zone's key note, at a
+    tempo and in a mode of its own."""
     recipe = genre_of(genre)
-    if recipe["colours"] == "all":
+    if "tempo" not in recipe:
         return profile
-    if recipe["colours"] == "acoustic":
-        colours = [colour for colour in profile.colours if not any(word in colour for word in _BAND_WORDS)]
-        return ZoneProfile(key=profile.key, bpm=profile.bpm, tonic=profile.tonic, colours=colours,
-                           mood=list(profile.mood))
-    return ZoneProfile(key=profile.key, bpm=recipe["tempo"],
-                       tonic="%s %s" % (profile.tonic.split()[0], recipe["mode"]), colours=[],
-                       mood=list(recipe["mood"]))
+    return dataclasses.replace(profile, bpm=recipe["tempo"], tonic="%s %s" % (profile.tonic.split()[0], recipe["mode"]))

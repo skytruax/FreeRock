@@ -12,18 +12,6 @@ from __future__ import annotations
 
 KINDS = ("pastoral", "highland", "haunted", "desert", "jungle", "infernal", "regal", "mystic")
 
-# What each kind sounds like to someone writing for it, in a line.
-ABOUT = {
-    "pastoral": "farmland and gentle woods: sunny, easy, a village dance",
-    "highland": "mountains, snow and open moor: wide, sturdy, wind and distance",
-    "haunted": "graveyards, plague and cursed woods: slow, minor, bells and organ",
-    "desert": "sand, red rock and dry wind: sparse, sun-struck, a bazaar far off",
-    "jungle": "rainforest and swamp: humid, prowling, drums and wood",
-    "infernal": "forge, ash and fire: heavy, hammering, low brass",
-    "regal": "cities, keeps and great halls: proud, bustling, fanfares",
-    "mystic": "ancient forest, moonlight and ruins by the sea: twilight, harp and chimes",
-}
-
 # Words in a place's profile (its moods and its instruments) that say which kinds it is.
 _WORDS = {
     "pastoral": ("pastoral", "sunny", "hopeful", "farmland", "golden fields", "lakeside", "cheerful", "rolling plains",

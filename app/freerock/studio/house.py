@@ -1,9 +1,10 @@
-"""The dance floor: FreeRock's own progressive house, written here and played by studio.synth.
+"""The dance floor: FreeRock's own progressive house, written here and played by studio.club.
 
 Nobody is asked for anything. A track is made up from a number: its drums, its bass line, its
-chords, its tune and its pads are written as notes by the code below and played by our own
-synthesiser, each alone, so that what is staged is a recording for each channel (see the studio's
-own notes for what a staged track is).
+chords, its tune and its pads are written as notes by the code below. The writer still calls the
+studio's own synthesiser (studio.synth) as it writes; studio.club stands in for those calls, takes
+every note down, and has real instruments play them in REAPER, each channel alone, so that what is
+staged is a recording for each channel (see the studio's own notes for what a staged track is).
 
 A FAMILY is a set of changes: a key, the chords bar by bar, where in the bar the kick falls, and
 the lengths of the five parts of the story. Every track tells that story:
@@ -30,26 +31,20 @@ under CEILING: see `master`), and measured, since nobody is listening while it i
 each part of the story is, whether the kick is on the beat, whether the parts are in tune and in
 the key. What it measured is kept beside it as measured.json.
 
-    uv run --no-sync --with numba python -m freerock.studio.house              the whole plan, eight at a time
-    uv run --no-sync --with numba python -m freerock.studio.house --again      ...making again what is already staged
-    uv run --no-sync --with numba python -m freerock.studio.house --remaster   bring what is staged to its level again
-    uv run --no-sync --with numba python -m freerock.studio.house --list       what the plan holds
-    uv run --no-sync --with numba python -m pytest tests/test_studio_house.py  its tests
+    uv run --no-sync --with numba python -m freerock.studio.club pastoral-01/1 [...]   write and play tracks (club.py)
+    uv run --no-sync --with numba python -m freerock.studio.club --list               what the plan holds
+    uv run --no-sync --with numba python -m pytest tests/test_studio_house.py          its tests
 
 (numba compiles the synthesiser's inner loops. It is not one of FreeRock's own requirements,
 which is why it is asked for on the command line.)
 """
 from __future__ import annotations
 
-import argparse
 import json
 import math
-import multiprocessing
-import os
 import random
 import time
 import zlib
-from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -1477,59 +1472,3 @@ def remaster(name: str, take: int, root: Path | None = None) -> dict[str, Any]:
     scratch.write_text(json.dumps(found, indent=1) + "\n", encoding="utf-8")
     scratch.replace(folder / "measured.json")
     return found
-
-
-def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="python -m freerock.studio.house", description="Writes and plays the house library.")
-    parser.add_argument("families", nargs="*", help="only these families (all of the plan if none are named)")
-    parser.add_argument("--workers", type=int, default=8, help="how many tracks to make at once (8)")
-    parser.add_argument("--again", action="store_true", help="make tracks again that are already staged")
-    parser.add_argument("--remaster", action="store_true", help="bring the staged tracks to their level again, without making them again")
-    parser.add_argument("--list", action="store_true", help="say what the plan holds and stop")
-    parser.add_argument("--to", type=Path, default=None, help="where to stage them (var/studio/house)")
-    args = parser.parse_args(argv)
-    wanted = [family(name) for name in args.families] or list(PLAN)
-    if args.list:
-        for each in wanted:
-            print("%-13s %-22s %-10s %-7s %-14s %s  %s bars  %s  swing %.2f  %s" % (
-                each.name, each.title, each.key, each.role, ",".join(each.moods), "light" if each.light else "heavy",
-                each.bars, each.groove, each.swing, each.palette))
-        print("%d families, %d takes each, %.0f minutes in all" % (
-            len(wanted), len(TAKES), sum(each.bars for each in wanted) * len(TAKES) * BAR / 60.0))
-        return 0
-    root = args.to or stage_root(VAR, "house")
-    if args.remaster:
-        jobs = [(each.name, take) for each in wanted for take in TAKES if (root / each.name / str(take) / "track.json").is_file()]
-        print("%d staged tracks to bring to their level" % len(jobs), flush=True)
-    else:
-        jobs = [(each.name, take) for each in wanted for take in TAKES
-                if args.again or not (root / each.name / str(take) / "track.json").is_file()]
-        print("%d tracks to make (%d already staged)" % (len(jobs), len(wanted) * len(TAKES) - len(jobs)), flush=True)
-    synth.warm_up()                    # the loops are compiled once here, and every worker finds them ready
-    failed, wrong, began = [], [], time.time()
-    # Each worker is a fresh Python with one thread to its arithmetic: left to themselves, eight
-    # workers would each start a thread for every core and spend the night in each other's way.
-    for name in ("OPENBLAS_NUM_THREADS", "OMP_NUM_THREADS", "MKL_NUM_THREADS", "NUMBA_NUM_THREADS"):
-        os.environ[name] = "1"
-    with ProcessPoolExecutor(max_workers=max(args.workers, 1), mp_context=multiprocessing.get_context("spawn")) as pool:
-        waiting = {pool.submit(remaster if args.remaster else stage, name, take, root): (name, take) for name, take in jobs}
-        for done in as_completed(waiting):
-            name, take = waiting[done]
-            error = done.exception()
-            if error is not None:
-                failed.append((name, take, repr(error)))
-                print("FAILED %s take %d: %r" % (name, take, error), flush=True)
-                continue
-            found = done.result()
-            if found["problems"]:
-                wrong.append((name, take, found["problems"]))
-            print("%-13s take %d  %5.1f s in %4.1f s  moment %5.1f LUFS  %s" % (
-                name, take, found["seconds"], found["took"], found["sections"]["moment"],
-                "; ".join(found["problems"]) or "ok"), flush=True)
-    print("%d made in %.0f s, %d failed, %d with something to look at" % (
-        len(jobs) - len(failed), time.time() - began, len(failed), len(wrong)), flush=True)
-    return 1 if failed else 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())

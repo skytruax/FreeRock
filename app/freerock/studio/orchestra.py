@@ -1143,10 +1143,10 @@ def family(character: Character, seed: int, name: str, title: str) -> Family:
     other = [one, one, two, two, three, three, away, home]
     for _ in range(8):
         # A second theme over the very changes of the first is no second theme (found 2026-11-16: in major, "6 4 1 5"
-        # and "6 4 1" come to the same eight bars). It is drawn again; the families that never met this are unchanged,
-        # and so is the one that met it and had a take made already (the player plays a family's takes channel by
-        # channel together, so its takes must keep one set of changes).
-        if other != eight or name in SAME_THEMES_KEPT:
+        # and "6 4 1" come to the same eight bars). It is drawn again; the families that never met this are unchanged.
+        # (The player plays a family's takes channel by channel together, so a family's takes must all be made with
+        # one set of changes.)
+        if other != eight:
             break
         one, two, three = rng.choice(SECONDS[mode]).split()
         other = [one, one, two, two, three, three, away, home]
@@ -1705,8 +1705,6 @@ def settings_of(character: Character) -> tuple[str, ...]:
     return SETTINGS_OF.get(character.name, ())
 
 
-# Families whose two themes came to the same changes and had a take made before that was mended (see `family`).
-SAME_THEMES_KEPT = ("mystic-fireflies-1",)
 # A rock band's lead plays the blues: the minor pentatonic of the key over its major chords, as the riff bands of the
 # late seventies did (2026-11-16, night: "acdc for knight rock"). A note off it goes to the nearest note on it.
 BLUES = (0, 3, 5, 7, 10)

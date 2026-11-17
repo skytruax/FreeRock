@@ -452,19 +452,6 @@ async def _snapshot(request: web.Request) -> web.Response:
     return web.json_response(request.app["link"].snapshot())
 
 
-async def _state(request: web.Request) -> web.Response:
-    link: LinkService = request.app["link"]
-    return web.json_response({
-        "link": link.tracker.link.value,
-        "state": link.tracker.state.as_dict() if link.tracker.state else None,
-    })
-
-
-async def _log(request: web.Request) -> web.Response:
-    limit = int(request.query.get("limit", "500"))
-    return web.json_response(list(request.app["link"].log)[-limit:])
-
-
 async def _strip_png(request: web.Request) -> web.Response:
     data = request.app["link"].strip_png()
     if data is None:
@@ -572,8 +559,6 @@ def create_app(config: ServerConfig | None = None, *, hub: state.Hub | None = No
     app.router.add_get("/ws/sensor", _sensor_socket)
     app.router.add_get("/ws/ui", _ui_socket)
     app.router.add_get("/api/snapshot", _snapshot)
-    app.router.add_get("/api/state", _state)
-    app.router.add_get("/api/log", _log)
     app.router.add_get("/api/strip.png", _strip_png)
     app.router.add_get("/sensor.py", _sensor_script)
     app.router.add_get("/addon.zip", _addon_zip)
@@ -583,9 +568,3 @@ def create_app(config: ServerConfig | None = None, *, hub: state.Hub | None = No
     app.on_cleanup.append(_stop)
     return app
 
-
-def serve(config: ServerConfig | None = None) -> None:
-    """Runs the server until it is stopped."""
-    config = config or ServerConfig()
-    print(f"FreeRock is listening on port {config.port}. On the gaming PC open http://<this machine>:{config.port}/")
-    web.run_app(create_app(config), host=config.host, port=config.port, print=None)

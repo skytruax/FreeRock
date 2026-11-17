@@ -31,10 +31,7 @@ from freerock import studio
 VAR = Path(__file__).resolve().parents[1] / "var"
 STYLES = ("warcraft", "knight", "house")
 # Older renders kept beside the newest, for comparing: folder under var/listen -> what it is.
-ABOUT = {"instruments": "every instrument alone: the bare recording, how it was, how it is now",
-         "second-reaper-try": "the second try in REAPER (16 November, midday): every instrument filtered dull, a chorus on the strings, war drums tuned an octave down",
-         "first-reaper-try": "the first try in REAPER (16 November): bare recordings, hardly any effects",
-         "general-midi": "the first night's renders (15 November): a General MIDI sound set"}
+ABOUT = {"instruments": "every instrument alone: the bare recording, how it was, how it is now"}
 
 
 PIECE = 12.0                   # seconds: for the mixer page a channel is kept as pieces this long, laid end to end by the page

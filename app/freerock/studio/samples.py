@@ -151,16 +151,6 @@ def pitch_of(audio: np.ndarray, rate: int, note: int | None = None) -> tuple[int
     return midi, float(cents), float(score)
 
 
-def loudness(audio: np.ndarray) -> float:
-    """dB of the loudest tenth of a second of a recording (full scale is 0)."""
-    mono = np.abs(audio).max(axis=1) if audio.ndim == 2 else np.abs(audio)
-    size = 4410
-    if len(mono) < size:
-        return float(20 * np.log10(max(np.sqrt(np.square(mono).mean()), 1e-9)))
-    frames = np.sqrt(np.square(mono[:len(mono) // size * size]).reshape(-1, size).mean(axis=1))
-    return float(20 * np.log10(max(frames.max(), 1e-9)))
-
-
 # ---------------------------------------------------------------------------------------------
 # A folder of recordings named by note, strength and turn
 # ---------------------------------------------------------------------------------------------
