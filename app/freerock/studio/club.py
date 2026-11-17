@@ -75,7 +75,7 @@ CALM = {"drums": -18.0, "bass": -18.0, "lead": -18.0, "texture": -20.0}        #
 class Heard:
     """What the writer asked to be played."""
     notes: dict[tuple[str, str, str], list[tuple[float, float, float, float, float, float]]] = field(default_factory=lambda: defaultdict(list))
-    hits: list[tuple[str, str, float, float, float, bool]] = field(default_factory=list)      # drum, machine, seconds, level, pan, in the room
+    hits: list[tuple[str, str, float, float, float]] = field(default_factory=list)      # drum, machine, seconds, level, pan
     airs: list = field(default_factory=list)       # what the texture is besides its notes: risers, wind, drips (house.Air)
 
 
@@ -121,7 +121,7 @@ def listen(track: house.Take) -> Heard:
         if not isinstance(sound, _Drum):
             return kept["hit"](out, sound, at, level, pan, speed)          # the crackle of a fire: part of the air
         # The writer strikes its kick dry and everything else into a small room.
-        heard.hits.append((sound.name, sound.machine, float(at), float(level), float(pan), sound.name not in KICKS))
+        heard.hits.append((sound.name, sound.machine, float(at), float(level), float(pan)))
 
     same = lambda audio, *told, **more: audio      # noqa: E731  (the echo, the chorus and the hall are the desk's now)
     kept_trim = house.trim
@@ -255,9 +255,10 @@ def voices(heard: Heard) -> list[tuple[str, str, str, str, float, list[Note], fl
             # (2026-11-17, morning: against the liked house stems the plucked and the sawtooth basses had 6 to 8 dB too much
             # in their middle and too little under 200 Hz.) The other way about: the sub on the same notes under the bass
             # that is heard, the weight a house bass has from a sine under it.
-            # An octave under them: the liked house basses have their weight at 40 to 80 Hz, these at 80 to 160.
-            under = [Note(note.start, note.length, note.pitch - 12, note.loud) for note in sorted(every, key=lambda note: note.start)]
-            out.append((channel, table, name + " sub", "house sub", 0.0, under, taste * SUB_UNDER, ride))
+            # On the same notes: the bass line is written from G1 to F#2, so its own notes are where the liked house basses
+            # have their weight (40 to 80 Hz), and that is where these patches are weak. (An octave under, tried the same
+            # morning, put the sub at 25 to 45 Hz: 12 dB over the liked there, and nothing more where it was wanted.)
+            out.append((channel, table, name + " sub", "house sub", 0.0, sorted(every, key=lambda note: note.start), taste * SUB_UNDER, ride))
     return out
 
 
@@ -265,16 +266,16 @@ def lines(heard: Heard, track: house.Take, work: Path) -> tuple[dict[str, list[d
     """The REAPER tracks of a take, by channel, and where its kick strikes ((beat, how hard))."""
     seed = track.seed
     out: dict[str, list[desk.Line]] = defaultdict(list)
-    # ----- drums: the kick by itself, the rest of the machine, and what is struck in the room
+    # ----- drums: the kick by itself, and everything else the machine strikes, in a small room
     used = sorted({name for name, *_ in heard.hits})
     strokes: list[tuple[float, float]] = []
     if used:
         machine = heard.hits[0][1]
         file, keys = kit_file(machine, used)
-        hard = _loud([level for _, _, _, level, _, _ in heard.hits])
+        hard = _loud([level for _, _, _, level, _ in heard.hits])
         sets: dict[str, list[Note]] = defaultdict(list)
-        for (name, _, at, level, pan, wet), loud in zip(heard.hits, hard):
-            which = "kick" if name in KICKS else "room" if wet else "kit"
+        for (name, _, at, level, pan), loud in zip(heard.hits, hard):
+            which = "kick" if name in KICKS else "room"           # the writer strikes its kick dry and everything else into a room
             sets[which].append(Note(at / BEAT, 0.25, keys[name], loud))
             if name in KICKS:
                 strokes.append((at / BEAT, loud))
@@ -283,8 +284,7 @@ def lines(heard: Heard, track: house.Take, work: Path) -> tuple[dict[str, list[d
             # The kick: its stroke brought out, what is under 30 Hz taken away, held together; nothing of it in the hall.
             "kick": ([sounds.punch(0.35, -0.1), sounds.equalise(low_cut=30.0, bands=((320.0, -2.5, 1.2), (3500.0, 2.0, 1.6))), sounds.smash(0.3)], 0.0, 1.0),
             # (The clap, the snare and the hats 4 to 10 dB short from 900 Hz to 3.5 kHz against the liked stems, 2026-11-17.)
-            "kit": ([sounds.equalise(low_cut=120.0, bands=((2000.0, 3.0, 0.8),), high_shelf=(9000.0, 1.5)), sounds.smash(0.25)], 0.06, 0.7),
-            "room": ([sounds.equalise(low_cut=180.0)], 0.22, 0.6),
+            "room": ([sounds.equalise(low_cut=180.0, bands=((2000.0, 3.0, 0.8),))], 0.22, 0.6),
         }
         for which, notes in sets.items():
             effects, send, volume = chains[which]
