@@ -474,6 +474,24 @@ SHAPES = {
 
 
 @dataclass
+class Air:
+    """One sound of a track's air, as the writer asks for it: a sweep of noise (between `low` and `high` Hz, `rising`
+    or falling), the climb into a drop (a sawtooth from `pitch`), the drop's thud, or weather (wind, sea, rain, fire,
+    drips, crickets) faded in and out over `fade` seconds. The house desk plays it in REAPER (studio/jsfx/air); the
+    writer's own render makes it here (`Take.air_audio`)."""
+    kind: str
+    at: float                      # seconds
+    seconds: float
+    level: float
+    low: float = 0.0
+    high: float = 0.0
+    rising: bool = True
+    pitch: int = 60
+    fade: float = 0.0
+    seed: int = 0
+
+
+@dataclass
 class Tone:
     """One note of a tune: where it begins and how long it is in sixteenths from the tune's own
     beginning, which step of the scale it is (0 is the key note in the tune's home octave), and
@@ -1126,7 +1144,61 @@ class Take:
             return out
         raise KeyError("No weather called %r" % kind)
 
-    def texture(self) -> np.ndarray:
+    def airs(self) -> list[Air]:
+        """Every sound of the track's air, in order: the risers into each drop (a sweep of noise, and in two takes of
+        three a note that climbs two octaves), the drop's thud and the air falling away from it, the small sweeps
+        that turn a theme, and the weather of the place in the gaps."""
+        fam = self.family
+        out: list[Air] = []
+        tonal = self.pick("riser", (True, False, True))
+        gentle = 0.4 if fam.role in ("ember", "night") else 1.0         # an inn does not have a drop
+        for story, first, count in self.sections:
+            start = self.at(first, 0)
+            if story == "rise":
+                build = (8 if count >= 16 else 4) * BAR
+                end = self.at(first + count, 0)
+                out.append(Air("sweep", end - build, build, 1.1 * gentle, 250.0, 9000.0, True, seed=self.seed + 1))
+                if tonal:
+                    out.append(Air("climb", end - build, build, 0.16 * gentle, 600.0, 5600.0, True, pitch=self.changes.pitch(0, 4)))
+            if story == "moment":
+                out.append(Air("thud", start, 2.5, 0.5 * gentle))
+                out.append(Air("sweep", start, 2 * BAR, 0.7 * gentle, 400.0, 9000.0, False, seed=self.seed + 2))
+            if story in ("theme", "close") and not fam.hard:
+                out.append(Air("sweep", start, BAR, 0.35, 500.0, 6000.0, False, seed=self.seed + 3 + first))
+                out.append(Air("sweep", start - 2 * BAR, 2 * BAR, 0.3, 300.0, 5000.0, True, seed=self.seed + 4 + first))
+            if self.palette["atmos"] and (story in ("open", "close") or (story == "rise" and count >= 16) or fam.role == "storm"):
+                seconds = count * BAR if story != "rise" else count * BAR / 2
+                out.append(Air(self.palette["atmos"], start, seconds + 2.0, 0.3 if fam.role != "storm" else 0.4, fade=1.5,
+                               seed=self.seed + 9 + first))
+        return sorted(out, key=lambda each: each.at)
+
+    def air_audio(self, air: Air) -> np.ndarray:
+        """One sound of the air, made by the writer's own synthesiser (the house desk plays it in REAPER instead)."""
+        if air.kind == "sweep":
+            count = synth.frames(air.seconds)
+            along = np.linspace(0.0, 1.0, count, dtype=np.float32)
+            corner = air.low * (air.high / air.low) ** (along ** 1.3 if air.rising else (1.0 - along) ** 1.3)
+            loud = (along ** 2.2 if air.rising else (1.0 - along) ** 1.6) * air.level
+            return synth.sweep(synth.noise(air.seconds, air.seed), corner, res=0.35, mode=BAND) * loud[:, None]
+        if air.kind == "climb":
+            frames = synth.frames(air.seconds)
+            along = np.linspace(0.0, 1.0, frames)
+            pitch = synth.hz(air.pitch) * 2.0 ** (2.0 * along)
+            phase = np.cumsum(pitch) / RATE
+            saw = (2.0 * (phase % 1.0) - 1.0) * (along ** 2) * air.level
+            return synth.sweep(np.stack([saw, saw], axis=1).astype(np.float32), (air.low + (air.high - air.low) * along).astype(np.float32), res=0.2)
+        if air.kind == "thud":
+            t = np.arange(synth.frames(air.seconds)) / RATE
+            thud = np.sin(2 * np.pi * np.cumsum(38.0 + 34.0 * np.exp(-t / 0.12)) / RATE) * np.exp(-t / 0.6) * air.level
+            return np.stack([thud, thud], axis=1).astype(np.float32)
+        weather = self._air(air.kind, air.seconds, air.seed)
+        edge = synth.frames(air.fade)
+        weather[:edge] *= np.linspace(0.0, 1.0, edge, dtype=np.float32)[:, None]
+        weather[-edge:] *= np.linspace(1.0, 0.0, edge, dtype=np.float32)[:, None]
+        return weather * air.level
+
+    def texture(self, air: bool = True) -> np.ndarray:
+        """The pad, and (with `air`) the writer's own making of the air (`airs`)."""
         fam, rng = self.family, self.rng("texture")
         pad, effects = self.blank(), self.blank()
         sound = PADS[self.pick("pad", self.palette["pad"])]
@@ -1147,52 +1219,13 @@ class Take:
                                pan=(index - (len(voiced) - 1) / 2.0) * 0.2, seed=self.seed + bar * 8 + index, bright=bright)
         pad = self.pumped(synth.hall(synth.chorus(pad, mix=0.4), seconds=1.8, wet=0.26), 0.5)
 
-        def lay(audio: np.ndarray, at: float) -> None:
-            start = synth.frames(at)
-            stop = min(start + len(audio), self.frames)
-            if stop > start:
-                effects[start:stop] += audio[:stop - start]
-
-        def swept(seconds: float, low: float, high: float, rising: bool, level: float, seed: int) -> np.ndarray:
-            count = synth.frames(seconds)
-            along = np.linspace(0.0, 1.0, count, dtype=np.float32)
-            corner = low * (high / low) ** (along ** 1.3 if rising else (1.0 - along) ** 1.3)
-            loud = (along ** 2.2 if rising else (1.0 - along) ** 1.6) * level
-            return synth.sweep(synth.noise(seconds, seed), corner, res=0.35, mode=BAND) * loud[:, None]
-
-        tonal = self.pick("riser", (True, False, True))
-        gentle = 0.4 if fam.role in ("ember", "night") else 1.0         # an inn does not have a drop
-        for story, first, count in self.sections:
-            start = self.at(first, 0)
-            if story == "rise":
-                build = (8 if count >= 16 else 4) * BAR
-                end = self.at(first + count, 0)
-                lay(swept(build, 250.0, 9000.0, True, 1.1 * gentle, self.seed + 1), end - build)
-                if tonal:
-                    # A note that climbs two octaves into the drop.
-                    frames = synth.frames(build)
-                    along = np.linspace(0.0, 1.0, frames)
-                    pitch = synth.hz(self.changes.pitch(0, 4)) * 2.0 ** (2.0 * along)
-                    phase = np.cumsum(pitch) / RATE
-                    saw = (2.0 * (phase % 1.0) - 1.0) * (along ** 2) * 0.16 * gentle
-                    climb = synth.sweep(np.stack([saw, saw], axis=1).astype(np.float32), (600.0 + 5000.0 * along).astype(np.float32), res=0.2)
-                    lay(climb, end - build)
-            if story == "moment":
-                # The drop: a thud far down, a burst of air, and the air falling away.
-                t = np.arange(synth.frames(2.5)) / RATE
-                thud = np.sin(2 * np.pi * np.cumsum(38.0 + 34.0 * np.exp(-t / 0.12)) / RATE) * np.exp(-t / 0.6) * 0.5 * gentle
-                lay(np.stack([thud, thud], axis=1).astype(np.float32), start)
-                lay(swept(2 * BAR, 400.0, 9000.0, False, 0.7 * gentle, self.seed + 2), start)
-            if story in ("theme", "close") and not fam.hard:
-                lay(swept(BAR, 500.0, 6000.0, False, 0.35, self.seed + 3 + first), start)
-                lay(swept(2 * BAR, 300.0, 5000.0, True, 0.3, self.seed + 4 + first), start - 2 * BAR)
-            if self.palette["atmos"] and (story in ("open", "close") or (story == "rise" and count >= 16) or fam.role == "storm"):
-                seconds = count * BAR if story != "rise" else count * BAR / 2
-                air = self._air(self.palette["atmos"], seconds + 2.0, self.seed + 9 + first)
-                edge = synth.frames(1.5)
-                air[:edge] *= np.linspace(0.0, 1.0, edge, dtype=np.float32)[:, None]
-                air[-edge:] *= np.linspace(1.0, 0.0, edge, dtype=np.float32)[:, None]
-                lay(air * (0.3 if fam.role != "storm" else 0.4), start)
+        if air:
+            for event in self.airs():
+                begin = synth.frames(event.at)
+                made = self.air_audio(event)
+                stop = min(begin + len(made), self.frames)
+                if stop > begin:
+                    effects[begin:stop] += made[:stop - begin]
         effects = synth.hall(effects, seconds=2.2, wet=0.3)
         return (pad + self.pumped(effects, 0.3)).astype(np.float32)
 

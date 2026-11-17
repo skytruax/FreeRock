@@ -1,0 +1,144 @@
+desc: FreeRock air (risers, sweeps, the drop's thud, and the weather: wind, sea, rain, fire, drips, crickets)
+// Part of FreeRock's studio: the sounds a house track makes out of noise, played in REAPER as an instrument
+// (2026-11-17, night: "remember to use reaper and plugins for effects and mixing"; the house writer made them in
+// Python and they were laid in as a recording). A MIDI note sounds it: its velocity is how loud, and for the tonal
+// climb its key is where the climb begins. Controller 1 is how far along its sweep it is (0 at the low corner, 127
+// at the high one; the tonal climb rises `Climb` semitones over it), controller 11 how loud it is now. The weather
+// moves by itself. Copied into REAPER's Effects folder by freerock.studio.reaper.configure.
+
+slider1:0<0,8,1{noise sweep,tonal climb,thud,wind,sea,rain,fire,drips,crickets}>Kind
+slider2:250<20,20000,1>Low corner (Hz)
+slider3:9000<20,20000,1>High corner (Hz)
+slider4:0.35<0,0.95,0.01>Resonance
+slider5:24<0,36,1>Climb (semitones over the sweep)
+slider6:0.6<0,1,0.01>Width
+slider7:0<-24,24,0.1>Gain (dB)
+
+in_pin:none
+out_pin:left output
+out_pin:right output
+
+@init
+ext_noinit = 1;
+gate = 0; velocity = 0; note = 60; t = 0;
+along_aim = 0; along = 0; level_aim = 1; level = 1; amp = 0;
+l1 = l2 = r1 = r2 = 0;            // the filters' state, left and right
+phase = 0; thud_phase = 0;
+slow_at = 0; slow_from = 0.6; slow_to = 0.6; swell_t = 0;
+patter_at = 0; patter_from = 0.7; patter_to = 0.7;
+click_left = 0; click_level = 0; click_pan = 0;
+ping_t = 10; ping_f = 1000; ping_level = 0; ping_pan = 0; ping_phase = 0; ping_mod = 0;
+chirp_t = 0;
+smooth = 1 - exp(-1 / (0.02 * srate));       // controllers glide over about twenty milliseconds
+release = 1 - exp(-1 / (0.05 * srate));
+
+// A state-variable filter (the trapezoidal form: steady right up to the top of the range), one for each side.
+function svf_set(hz res) (
+  g = tan($pi * min(max(hz, 20), srate * 0.45) / srate);
+  k = 2 - 2 * res;
+  a1 = 1 / (1 + g * (g + k)); a2 = g * a1; a3 = g * a2;
+);
+function svf_left(x) local(v1 v2 v3) (
+  v3 = x - l2; v1 = a1 * l1 + a2 * v3; v2 = l2 + a2 * l1 + a3 * v3;
+  l1 = 2 * v1 - l1; l2 = 2 * v2 - l2;
+  low_l = v2; band_l = v1; high_l = x - k * v1 - v2;
+);
+function svf_right(x) local(v1 v2 v3) (
+  v3 = x - r2; v1 = a1 * r1 + a2 * v3; v2 = r2 + a2 * r1 + a3 * v3;
+  r1 = 2 * v1 - r1; r2 = 2 * v2 - r2;
+  low_r = v2; band_r = v1; high_r = x - k * v1 - v2;
+);
+
+@slider
+kind = slider1; low = max(slider2, 20); high = max(slider3, low + 1); res = slider4; climb = slider5; width = slider6;
+gain = 10 ^ (slider7 / 20);
+
+@block
+while (midirecv(offset, msg1, msg2, msg3)) (
+  status = msg1 & 0xF0;
+  status == 0x90 && msg3 > 0 ? (
+    gate = 1; velocity = msg3 / 127; note = msg2; t = 0; thud_phase = 0;
+  ) : (status == 0x80 || (status == 0x90 && msg3 == 0)) ? (
+    msg2 == note ? gate = 0;
+  ) : status == 0xB0 && msg2 == 1 ? (
+    along_aim = msg3 / 127;
+  ) : status == 0xB0 && msg2 == 11 ? (
+    level_aim = msg3 / 127;
+  );
+);
+counter = 0;
+
+@sample
+along += (along_aim - along) * smooth;
+level += (level_aim - level) * smooth;
+amp += ((gate ? velocity * level : 0) - amp) * (gate ? smooth : release);
+t += 1 / srate;
+left = right = 0;
+amp > 0.00001 ? (
+  // Two noises, one for each side, drawn together as far as `width` says.
+  n0 = rand(2) - 1; n1 = rand(2) - 1;
+  nl = n0; nr = n0 * (1 - width) + n1 * width;
+  (counter += 1) >= 16 ? counter = 0;
+  kind == 0 ? (                                         // a sweep of noise between the corners
+    counter == 0 ? svf_set(low * (high / low) ^ along, res);
+    svf_left(nl); svf_right(nr);
+    left = band_l * k * 1.6; right = band_r * k * 1.6;
+  ) : kind == 1 ? (                                     // a sawtooth climbing from its key, opening as it goes
+    phase += 440 * 2 ^ ((note + climb * along - 69) / 12) / srate;
+    phase -= floor(phase);
+    counter == 0 ? svf_set(low + (high - low) * along, 0.2);
+    svf_left(2 * phase - 1); svf_right(2 * phase - 1);
+    left = low_l * 0.8; right = low_r * 0.8;
+  ) : kind == 2 ? (                                     // the drop's thud: a sine falling into the floor
+    thud_phase += (38 + 34 * exp(-t / 0.12)) / srate;
+    left = right = sin(2 * $pi * thud_phase) * exp(-t / 0.6) * 1.5;
+  ) : kind == 3 ? (                                     // wind: noise through a band that wanders
+    t >= slow_at ? ( slow_from = slow_to; slow_to = 0.25 + 0.75 * rand(1); slow_at = t + 2.5; );
+    slow = slow_to + (slow_from - slow_to) * (slow_at - t) / 2.5;
+    counter == 0 ? svf_set(350 + 900 * slow, 0.3);
+    svf_left(nl); svf_right(nr);
+    left = band_l * 0.7 * slow * 1.6; right = band_r * 0.7 * slow * 1.6;
+  ) : kind == 4 ? (                                     // the sea: low noise swelling every nine seconds
+    swell = 0.5 + 0.5 * sin(2 * $pi * t / 9);
+    counter == 0 ? svf_set(300 + 700 * swell, 0.05);
+    svf_left(nl); svf_right(nr);
+    left = low_l * swell * swell * 1.2; right = low_r * swell * swell * 1.2;
+  ) : kind == 5 ? (                                     // rain: the top of the noise, pattering
+    t >= patter_at ? ( patter_from = patter_to; patter_to = 0.4 + 0.6 * rand(1); patter_at = t + 1600 / srate; );
+    patter = patter_to + (patter_from - patter_to) * (patter_at - t) * srate / 1600;
+    counter == 0 ? svf_set(4500, 0.05);
+    svf_left(nl); svf_right(nr);
+    left = high_l * 0.5 * patter; right = high_r * 0.5 * patter;
+  ) : kind == 6 ? (                                     // a fire: crackles, one every eighth of a second or so
+    click_left <= 0 && rand(1) < 1 / (0.12 * srate) ? (
+      click_left = floor(0.004 * srate); click_level = 0.05 + 0.25 * rand(1); click_pan = rand(1);
+    );
+    click_left > 0 ? (
+      c = (rand(2) - 1) * click_level * exp(-(floor(0.004 * srate) - click_left) / 40) * 3;
+      left = c * cos(click_pan * $pi / 2); right = c * sin(click_pan * $pi / 2);
+      click_left -= 1;
+    );
+  ) : kind == 7 ? (                                     // drips in a cave: high pings now and then
+    ping_t > 0.6 && rand(1) < 1 / (1.7 * srate) ? (
+      ping_t = 0; r = rand(4); ping_f = 440 * 2 ^ (((r < 1 ? 84 : r < 2 ? 88 : r < 3 ? 91 : 96) - 69) / 12);
+      ping_level = 0.1 + 0.2 * rand(1); ping_pan = rand(1); ping_phase = 0; ping_mod = 0;
+    );
+    ping_t < 0.6 ? (
+      ping_mod += ping_f * 2.4 / srate; ping_phase += ping_f / srate;
+      p = sin(2 * $pi * ping_phase + 1.2 * exp(-ping_t / 0.03) * sin(2 * $pi * ping_mod)) * exp(-ping_t / 0.12) * ping_level;
+      left = p * cos(ping_pan * $pi / 2); right = p * sin(ping_pan * $pi / 2);
+    );
+    ping_t += 1 / srate;
+  ) : kind == 8 ? (                                     // crickets: three, chirping in their own time
+    chirp_t += 1 / srate;
+    pulse = sin(2 * $pi * 27 * chirp_t) > 0;
+    // (In this language % is a whole-number remainder: the chirps' clocks are worked out with floor.)
+    v0 = chirp_t - floor(chirp_t / 0.9) * 0.9 < 0.13; v1 = (chirp_t + 0.37) - floor((chirp_t + 0.37) / 1.3) * 1.3 < 0.13;
+    v2 = (chirp_t + 0.74) - floor((chirp_t + 0.74) / 2.1) * 2.1 < 0.13;
+    s0 = sin(2 * $pi * 4300 * chirp_t) * v0; s1 = sin(2 * $pi * 4750 * chirp_t) * v1; s2 = sin(2 * $pi * 3900 * chirp_t) * v2;
+    left = (s0 * 0.92 + s1 * 0.38 + s2 * 0.75) * pulse * 0.12;
+    right = (s0 * 0.38 + s1 * 0.92 + s2 * 0.66) * pulse * 0.12;
+  );
+);
+spl0 = left * amp * gain;
+spl1 = right * amp * gain;

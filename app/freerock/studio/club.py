@@ -77,7 +77,7 @@ class Heard:
     """What the writer asked to be played."""
     notes: dict[tuple[str, str, str], list[tuple[float, float, float, float, float, float]]] = field(default_factory=lambda: defaultdict(list))
     hits: list[tuple[str, str, float, float, float, bool]] = field(default_factory=list)      # drum, machine, seconds, level, pan, in the room
-    air: np.ndarray | None = None                  # what the texture is besides its notes: risers, wind, drips
+    airs: list = field(default_factory=list)       # what the texture is besides its notes: risers, wind, drips (house.Air)
 
 
 class _Drum:
@@ -133,7 +133,8 @@ def listen(track: house.Take) -> Heard:
             channel[0] = part
             getattr(track, part)()
         channel[0] = "texture"
-        heard.air = np.asarray(track.texture(), dtype=np.float32)
+        track.texture(air=False)                   # the pad's notes; its air is played by the desk (`air_lines`)
+        heard.airs = track.airs()
     finally:
         for name, real in kept.items():
             setattr(synth, name, real)
@@ -239,16 +240,66 @@ def lines(heard: Heard, track: house.Take, work: Path) -> tuple[dict[str, list[d
                                                          sounds.ensemble(0.35)]
                     line.send = max(line.send, 0.28)
                 out[channel].append(line)
-    # ----- the risers and the air: the writer's own, as a recording
-    air = heard.air
-    if air is not None and float(np.max(np.abs(air))) > 1e-5:
-        loud = analysis.loudness_lufs(air, RATE)
-        file = work / "air.wav"
-        soundfile.write(str(file), air * np.float32(10 ** ((-26.0 - loud) / 20.0)), RATE, subtype="FLOAT")
-        # (A noise riser is nearly all top: the texture came out 25 dB brighter than the liked house stems, 2026-11-17, night.)
-        out["texture"].append(desk.Line("air and risers", desk.bare("air", []), clips=[(0.0, len(air) / RATE, str(file))], send=0.25,
-                                        effects=[sounds.equalise(low_cut=150.0, high_cut=7000.0, high_shelf=(2500.0, -9.0))]))
+    # ----- the risers and the air: played in REAPER by the studio's own instrument (studio/jsfx/air)
+    out["texture"] += air_lines(heard.airs)
     return out, strokes
+
+
+# The air instrument's kinds (studio/jsfx/air), and its resonance for each.
+AIR_KINDS = {"sweep": (0, 0.35), "climb": (1, 0.2), "thud": (2, 0.0), "wind": (3, 0.3), "sea": (4, 0.05), "rain": (5, 0.05),
+             "fire": (6, 0.0), "drips": (7, 0.0), "crickets": (8, 0.0)}
+AIR_STEP = 0.125              # beats between two moves of its controllers
+
+
+def air_lines(airs: list) -> list[desk.Line]:
+    """A track's air as REAPER tracks (2026-11-17, night: "remember to use reaper and plugins for effects and mixing";
+    the writer made it in Python and it was laid in as a recording): one track for each kind of sound and each pair of
+    corners, the studio's air instrument on it, each sound a note (its velocity how loud it is asked to be) with
+    controller 1 drawing its sweep and controller 11 its swell, as the writer's own making draws them. Weather that
+    runs on into more weather of the same kind is one long sound. The hall and the tamed top are the texture's."""
+    groups: dict[tuple, list] = defaultdict(list)
+    for air in airs:
+        groups[(air.kind, air.low, air.high)].append(air)
+    beat = house.BPM / 60.0
+    lines = []
+    for (kind, low, high), mine in sorted(groups.items()):
+        number, resonance = AIR_KINDS[kind]
+        if kind not in ("sweep", "climb", "thud"):
+            joined: list = []
+            for air in sorted(mine, key=lambda each: each.at):
+                if joined and air.at <= joined[-1].at + joined[-1].seconds:
+                    last = joined[-1]
+                    last.seconds = max(last.seconds, air.at + air.seconds - last.at)
+                    last.level = max(last.level, air.level)
+                else:
+                    joined.append(house.Air(air.kind, air.at, air.seconds, air.level, air.low, air.high, air.rising, air.pitch, air.fade, air.seed))
+            mine = joined
+        notes, controls = [], []
+        for index, air in enumerate(sorted(mine, key=lambda each: each.at)):
+            first, length = max(air.at, 0.0) * beat, air.seconds * beat
+            # Every other sound on its own key, so that one's end never stops the next begun before it.
+            key = air.pitch if kind == "climb" else 60 + 2 * (index % 2)
+            notes.append(Note(first, max(length - 0.02, 0.05), key, min(max(air.level / 1.2, 0.02), 1.0)))
+            steps = max(int(length / AIR_STEP), 1)
+            for step in range(steps + 1):
+                along = step / steps
+                if kind == "sweep":
+                    sweep = along ** 1.3 if air.rising else (1.0 - along) ** 1.3
+                    swell = along ** 2.2 if air.rising else (1.0 - along) ** 1.6
+                elif kind == "climb":
+                    sweep, swell = along, along ** 2
+                elif kind == "thud":
+                    sweep, swell = 0.0, 1.0
+                else:
+                    seconds = along * air.seconds
+                    sweep, swell = 0.0, min(1.0, seconds / max(air.fade, 0.01), (air.seconds - seconds) / max(air.fade, 0.01))
+                at = first + along * length
+                controls += [(at, 1, int(round(127 * min(max(sweep, 0.0), 1.0)))), (at, 11, int(round(127 * min(max(swell, 0.0), 1.0))))]
+        name = "air %s%s" % (kind, " %d-%d Hz" % (low, high) if kind == "sweep" else "")
+        effect = desk.js("freerock/air", number, low or 20.0, high or 20000.0, resonance, 24, 0.6, 0.0)
+        lines.append(desk.Line(name, desk.bare(name, [effect]), notes, volume=0.5, controls=controls, send=0.25,
+                               effects=[sounds.equalise(low_cut=150.0, high_cut=7000.0, high_shelf=(2500.0, -9.0))]))
+    return lines
 
 
 def stage(name: str, take: int) -> dict:

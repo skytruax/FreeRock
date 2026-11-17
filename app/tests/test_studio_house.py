@@ -310,3 +310,23 @@ def test_a_staged_track_goes_into_a_bucket_as_five_pieces_in_a_row(staged, tmp_p
     channels = {clip.channel for clip in bucket.clips if clip.piece == ids[3]}
     assert channels == set(forever.CHANNELS), "the moment is missing a part"
     assert studio.import_track(bucket, folder) == [], "the same track went in twice"
+
+
+def test_the_air_is_played_in_reaper_by_the_studios_instrument_each_sound_a_note_and_its_sweep_a_controller():
+    from freerock.studio import club
+    track = house.Take(house.family("highland-01"), 1)           # wind in its gaps, risers into its drops
+    airs = track.airs()
+    assert {air.kind for air in airs} >= {"sweep", "thud", "wind"}
+    lines = club.air_lines(airs)
+    assert all('<JS freerock/air ""' in line.template for line in lines)
+    by_name = {line.name: line for line in lines}
+    rising = by_name["air sweep 250-9000 Hz"]
+    first = sorted(rising.controls)
+    sweep = [value for _, number, value in first if number == 1]
+    assert sweep[0] == 0 and max(sweep) == 127                      # from the low corner to the high one
+    # Weather that runs on into more of the same is one sound, faded in once and out once.
+    wind = by_name["air wind"]
+    starts = sorted(note.start for note in wind.notes)
+    assert all(later - earlier > 0 for earlier, later in zip(starts, starts[1:]))
+    assert len(wind.notes) < sum(1 for air in airs if air.kind == "wind") + 1
+    assert all(0.0 < note.loud <= 1.0 for line in lines for note in line.notes)
