@@ -1468,6 +1468,32 @@ def varied(rng: random.Random, line: Line) -> Line:
     return out
 
 
+def decorated(rng: random.Random, line: Line) -> Line:
+    """A tune the third time round (2026-11-17, night: at the moments the theme and its first variation took turns, so
+    that the third time round was the first again, note for note): its notes on the strong beats where they were, and
+    between them what a player adds who knows it well: the next note anticipated in the last eighth of a long one, a
+    turn round the longest note at its end, and here and there a passing note in a leap of a third."""
+    out = Line()
+    notes = line.notes
+    longest = max(range(len(notes)), key=lambda index: notes[index][1]) if notes else -1
+    for index, (start, length, step, weight) in enumerate(notes):
+        after = notes[index + 1][2] if index + 1 < len(notes) else None
+        if index == longest and length >= 1.5:
+            body = length - 1.0
+            out.notes.append((start, body, step, weight))
+            for number, (off, turn) in enumerate(((0.0, step + 1), (0.25, step), (0.5, step - 1), (0.75, step))):
+                out.notes.append((start + body + off, 0.25, turn, weight * (0.85 if number == 0 else 0.8)))
+        elif after is not None and after != step and length >= 1.0 and rng.random() < 0.6:
+            out.notes.append((start, length - 0.5, step, weight))
+            out.notes.append((start + length - 0.5, 0.5, after, weight * 0.8))
+        elif after is not None and abs(after - step) == 2 and length >= 0.5 and rng.random() < 0.5:
+            out.notes.append((start, length / 2, step, weight))
+            out.notes.append((start + length / 2, length / 2, (step + after) // 2, weight * 0.85))
+        else:
+            out.notes.append((start, length, step, weight))
+    return out
+
+
 def answer(rng: random.Random, fam: Family, chords: list[Chord], tune: Line) -> Line:
     """A slower line under a tune: a note or two to the bar, on the chord, moving the other way
     when the tune moves, an octave or so below it."""
@@ -1963,6 +1989,7 @@ class Take:
         # under each; and the second theme made to fit the first one's chords, for the summit.
         tune = theme(rng, fam, first_chords, ch.busy)
         again = varied(rng, tune)
+        adorned = decorated(random.Random(fam.seed * 17 + self.take * 3 + 1), tune)    # its own draw: the rest of the take's are as they were
         broad = ch.busy >= 0.5
         tune_b = theme(rng, fam, second_chords, ch.busy * 0.45 if broad else min(ch.busy + 0.55, 1.0), way="second", broad=broad,
                        unlike=tune)
@@ -2090,7 +2117,7 @@ class Take:
                 # The first arrival: the first theme from whoever is strongest, a second strong
                 # player joining for the second time round, and a slower line underneath.
                 for index, (bar, full) in enumerate(turns(bars)):
-                    use = (tune if index % 2 == 0 else again) if full else tune.cut(half, whole)
+                    use = (tune, again, adorned)[index % 3] if full else tune.cut(half, whole)
                     loud = self.hard(section.level[0])
                     sing(strong[0], use, bar, loud)
                     if len(strong) > 1 and full and (index >= 1 or ch.weight >= 0.9 or not ch.band):
@@ -2156,7 +2183,7 @@ class Take:
                 several = sum(1 for _, full in stated if full) > 1
                 below = ch.under or ((other,) if other not in strong else ())
                 for index, (bar, full) in enumerate(stated):
-                    use = (tune if index % 2 == 0 else again) if full else tune.cut(half, whole)
+                    use = (tune, again, adorned)[index % 3] if full else tune.cut(half, whole)
                     loud = self.hard(section.level[0])
                     sing(strong[0], use, bar, loud)
                     if len(strong) > 1:
