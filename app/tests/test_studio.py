@@ -204,6 +204,28 @@ def test_a_take_has_two_themes_that_can_be_told_apart():
             "%s: more than one line is sung in the valley" % character.name
 
 
+def test_a_bands_fight_breaks_down_in_its_valley_and_comes_back_before_the_climb():
+    # (2026-11-17, morning: the band's fight pieces went only 4 to 5 dB between their quietest part and their loudest,
+    # the whole band playing on through the valley.)
+    for name in ("storm rider", "battle cry", "war machine", "dragon"):
+        character = next(each for each in orchestra.CHARACTERS if each.name == name)
+        assert character.band and character.role in orchestra.FIGHTS
+        fam = orchestra.family(character, 21, "f", "F")
+        take = orchestra.Take(fam, 1)
+        first, last = spans_of(take)["valley"]
+        middle = first + (last - first) / 2
+        riff = [note for _, note in played(take, "rhythm", "valley")]
+        assert riff and all(note.start >= middle - 1e-6 for note in riff), "%s: the riff plays through the breakdown" % name
+        held = [note for _, note in played(take, "bass", "valley") if note.start < middle - 1e-6]
+        assert held and all(note.length >= fam.beats - 1e-6 for note in held), "%s: the bass does not hold its roots" % name
+        snare = orchestra.KITS[character.kit][1]["snare"]
+        kit = [note for player, note in played(take, "drums", "valley") if player == "kit"]
+        assert not any(note.pitch == snare for note in kit if note.start < middle - 1e-6), "%s: the backbeat goes on" % name
+        assert any(note.pitch == snare for note in kit if note.start >= middle - 1e-6), "%s: the groove does not come back" % name
+        # The clean guitar sings the theme over it.
+        assert {player for player, _ in played(take, "lead", "valley")} == {"guitar"}
+
+
 def test_the_second_theme_is_sung_under_the_first_at_the_summit():
     character = next(each for each in orchestra.CHARACTERS if each.name == "long road home")
     fam = orchestra.family(character, 11, "f", "F")

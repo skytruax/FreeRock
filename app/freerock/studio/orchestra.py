@@ -10,7 +10,8 @@ themes; the summit, the first theme with everyone playing and the second sung un
 sometimes lifted into a higher key; and the close. How big the summit is depends on what the
 track is for: a village dance comes to a merry tutti of fiddles and tambourine, a march through
 the mountains to horns and timpani. A fight does not wait to begin and its valley is only a
-breath; a night piece keeps the whole arc under its breath.
+breath (a band's fight breaks down in it: the riff stops, the clean guitar sings, and the band
+comes back in before the climb); a night piece keeps the whole arc under its breath.
 
 The drums. A fight has war drums nearly all the way (an ensemble of big drums, with an
 ostinato of the take's own), and heavy music for walking has them from each rise to the moment
@@ -2226,8 +2227,8 @@ class Take:
         for section, first, key, chords in self.spans:
             part, bars = section.part, section.bars
             pad, way = (self.pad_b, self.way_b) if part in ("second", "valley") else (self.pad, self.way)
-            if part == "valley" and not self.fight:
-                way = self.valley_way
+            if part == "valley" and (not self.fight or ch.band):
+                way = self.valley_way                  # (a band's fight breaks down in its valley too: see `drums`)
             name = "tremolo" if way == "tremolo" and part in ("open", "build", "climb") else pad
             count = {"open": 2, "first": 3, "second": 3, "build": 4, "arrival": 4, "valley": 2, "climb": 4, "summit": 4, "close": 3}[part]
             centre = {"open": 53, "first": 58, "second": second_centre, "build": 60, "arrival": 62, "valley": 56, "climb": 61,
@@ -2501,7 +2502,8 @@ class Take:
                 density = {"open": 0.15, "first": 0.5, "second": 0.45, "build": 0.5 + 0.5 * along, "arrival": 0.9,
                            "valley": 0.5 if self.fight else 0.2, "climb": 0.35 + 0.65 * along, "summit": 1.0,
                            "close": 0.4 * (1.0 - along)}[part]
-                bare = part == "open" or (part == "valley" and not self.fight)
+                # (A band's fight rests its riff through the first half of its valley: see `drums`.)
+                bare = part == "open" or (part == "valley" and (not self.fight or (ch.band and along < 0.5)))
                 if bare and not ch.band and (figure not in ("toll", "rock", "arp") or bar % 2 == 1 or bar == 0):
                     continue
                 if ch.band and part == "open":
@@ -2636,7 +2638,8 @@ class Take:
                 # One way of playing for the first theme and what is made of it, another for the
                 # second; long notes where the story is quiet; and at the top of the climb the
                 # root over and over, driving at the summit.
-                way = {"first": one, "second": two, "build": one, "arrival": one, "valley": two if self.fight else "long",
+                fight_valley = "long" if ch.band and along < 0.5 else two          # a band's fight: held roots under its breakdown
+                way = {"first": one, "second": two, "build": one, "arrival": one, "valley": fight_valley if self.fight else "long",
                        "climb": two if along < 0.5 else drive, "summit": one, "close": "long"}[part]
                 if part in ("first", "second") and bar >= self.fam.period and not ch.band:
                     way = BUSIER.get(way, way)          # the second time round a theme the bass moves more, as it does in the scores
@@ -2818,8 +2821,19 @@ class Take:
                         for index in range(4):                       # a fill into the next time round
                             self.strike(main["roll"], bar_at + beats - (4 - index) * 0.25, 0.45 + 0.12 * index, chord, key)
                 elif part == "valley":
-                    if fight and ch.band:
-                        lay(main["theme"], bar, bar_at, level, 0.65, chord, key)       # a band's fight keeps its pulse through the valley
+                    if fight and ch.band and along < 0.5:
+                        # A band's fight breaks down in its valley (2026-11-17, morning: its fight pieces went only 4 to
+                        # 5 dB between their quietest part and their loudest, the whole band playing on through the
+                        # valley): the riff stops under the clean guitar's theme, the bass holds its roots, and the
+                        # drummer keeps time on the cymbal with the bass drum on the bar.
+                        keeping = [layer for layer in main["theme"] if layer[0] in ("hat", "hat open", "ride")] or [("hat", "halves", 0.45)]
+                        lay(keeping + [("boom", "down", 0.7)], bar, bar_at, level, 0.6, chord, key)
+                    elif fight and ch.band:
+                        # ...then the groove is back, and a fill takes it into the climb.
+                        lay(main["theme"], bar, bar_at, level, 0.65, chord, key)
+                        if bar == bars - 1 and main["roll"]:
+                            for index in range(4):
+                                self.strike(main["roll"], bar_at + beats - (4 - index) * 0.25, 0.4 + 0.12 * index, chord, key)
                 else:
                     if along < 0.5 and bar % 2 == 0:
                         lay(main["theme"], bar, bar_at, level, 0.7, chord, key)
