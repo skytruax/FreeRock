@@ -2,6 +2,7 @@
 
     cd app && uv run --no-sync python ../tools/fresh_bucket.py warcraft          (the server must be stopped)
     cd app && uv run --no-sync python ../tools/fresh_bucket.py knight --keep-style
+    cd app && uv run --no-sync python ../tools/fresh_bucket.py house --zone "Elwynn Forest"   (a style with no bucket yet)
 
 When the way the studio's tracks are played changes for the better, the bucket should hold
 only the new ones: this takes every written piece whose source begins with "<style>/" out of
@@ -27,6 +28,13 @@ PORT = 8765
 def main(argv: list[str]) -> int:
     keep = "--keep-style" in argv
     argv = [each for each in argv if each != "--keep-style"]
+    zone = None
+    if "--zone" in argv:
+        # A style with no bucket yet (the drive was cleared, 2026-11-16, night) begins one; the zone is only where its
+        # loose phrases would take their tempo and key from.
+        at = argv.index("--zone")
+        zone = argv[at + 1]
+        argv = argv[:at] + argv[at + 2:]
     if len(argv) != 1:
         print(__doc__)
         return 2
@@ -34,7 +42,7 @@ def main(argv: list[str]) -> int:
     if pieces.server_is_up(PORT):
         print("The FreeRock server is running (port %d): stop it first, it keeps the buckets in memory." % PORT)
         return 1
-    bucket = pieces.home_bucket(VAR, style)
+    bucket = pieces.home_bucket(VAR, style, zone)
     before = pieces.summary(bucket)
     save = bucket._save
     bucket._save = lambda: None                    # saved once, when every piece is out
