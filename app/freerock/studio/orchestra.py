@@ -667,6 +667,28 @@ CHARACTERS = (
       pads=("strings slow", "strings"), pad_ways=("pad", "drone"), plucks=("harp", "steel guitar", "celesta"), figures=("arp", "strum"),
       basses=("celli pizz", "acoustic bass"), kit="folk", drums=(), grooves=("jig", "sleigh"), hall=(2.0, 0.22), lift=0.3,
       titles=(("High", "Shepherd's", "Cloudy", "Bluebell", "Thistle", "Lark's"), ("Pasture", "Downs", "Slopes", "Fold", "Air", "Hills"))),
+    # --- the open country, where most of an evening is spent (2026-11-16: "been hearing the same thing over and ---
+    # --- over"): each with a lead the country's other light music does not have. ------------------------------------
+    C("orchard morning", ("pastoral",), light=True, modes=("major", "mixolydian"), bpm=(96, 108), metres=("4/4", "6/8"), busy=0.65,
+      weight=0.55, leads=("oboe", "bassoon", "flute"), strong=("violins", "oboe"), under=("bassoon", "celli"), pads=("strings", "strings slow"),
+      pad_ways=("pad",), plucks=("pizzicato", "marimba", "harp"), figures=("pattern", "oompah"), basses=("basses pizz", "bassoon"),
+      kit="folk", drums=(), grooves=("tick", "claps"), hall=(1.8, 0.2), lift=0.25,
+      titles=(("Orchard", "Apple", "Cherry", "Hedgerow", "Bumblebee", "Picnic"), ("Morning", "Scherzo", "Caper", "Errand", "Romp", "Trot"))),
+    C("sunset hills", ("pastoral", "highland"), light=True, modes=("major", "lydian", "mixolydian"), bpm=(66, 78), metres=("3/4", "4/4"),
+      busy=0.35, weight=0.6, leads=("horns", "english horn", "violin"), strong=("violins slow", "horns"), under=("celli",),
+      pads=("strings slow", "oohs"), pad_ways=("pad",), plucks=("harp", "guitar"), figures=("arp", "rock"), basses=("celli slow", "basses pizz"),
+      kit="folk", drums=(), grooves=("sparkle", "waltz"), hall=(2.6, 0.28), lift=0.35,
+      titles=(("Sunset", "Amber", "Evening", "Long Shadow", "Homeward", "Golden"), ("Hills", "Vale", "Rise", "Glow", "Light", "Slope"))),
+    C("lakeside reverie", ("pastoral", "mystic"), light=True, modes=("lydian", "major", "dorian"), bpm=(60, 72), metres=("4/4", "3/4"),
+      busy=0.3, weight=0.5, leads=("piano", "flute", "cello"), strong=("violins slow", "flute"), under=("celli", "clarinet"),
+      pads=("strings slow", "oohs"), pad_ways=("pad",), plucks=("harp", "piano", "vibes"), figures=("arp", "rock"),
+      basses=("celli slow", "basses pizz"), kit="folk", drums=(), grooves=("sparkle", "rain"), hall=(3.0, 0.32), lift=0.2,
+      titles=(("Lakeside", "Still Water", "Reed", "Heron", "Mirror", "Lily Pad"), ("Reverie", "Dream", "Hour", "Mere", "Ripples", "Shallows"))),
+    C("harvest home", ("pastoral",), light=True, modes=("major", "mixolydian"), bpm=(100, 112), metres=("3/4", "6/8"), busy=0.6, weight=0.65,
+      leads=("violin", "clarinet", "whistle"), strong=("violins", "horns"), under=("celli", "bassoon"), pads=("strings",), pad_ways=("pad",),
+      plucks=("harp", "glock", "pizzicato"), figures=("arp", "oompah"), basses=("celli pizz", "basses pizz"), kit="folk", drums=("timpani",),
+      grooves=("waltz", "jig"), hall=(2.0, 0.22), lift=0.45,
+      titles=(("Harvest", "Sheaf", "Hayrick", "Lammas", "Gleaner's", "Bonfire"), ("Home", "Feast", "Supper", "Round", "Thanks", "Ring"))),
 )
 
 METRES = {"4/4": (4.0, (2.0, 2.0)), "3/4": (3.0, (3.0,)), "6/8": (3.0, (1.5, 1.5)), "5/4": (5.0, (3.0, 2.0)),
@@ -863,6 +885,15 @@ def family(character: Character, seed: int, name: str, title: str) -> Family:
     lift = rng.choice((2, 2, 3)) if rng.random() < character.lift else 0
     one, two, three = rng.choice(SECONDS[mode]).split()
     other = [one, one, two, two, three, three, away, home]
+    for _ in range(8):
+        # A second theme over the very changes of the first is no second theme (found 2026-11-16: in major, "6 4 1 5"
+        # and "6 4 1" come to the same eight bars). It is drawn again; the families that never met this are unchanged,
+        # and so is the one that met it and had a take made already (the player plays a family's takes channel by
+        # channel together, so its takes must keep one set of changes).
+        if other != eight or name in SAME_THEMES_KEPT:
+            break
+        one, two, three = rng.choice(SECONDS[mode]).split()
+        other = [one, one, two, two, three, three, away, home]
     rises = list(RISES[mode])
     rng.shuffle(rises)
     # In the valley the broader of the two themes is sung: the second where the first is busy
@@ -1335,6 +1366,8 @@ DESKS = {
     "strings slow": {2: (("celli slow", ""), ("violas", "")), 3: (("celli slow", ""), ("violas", ""), ("violins slow", "")),
                      4: (("celli slow", ""), ("violas", ""), ("violins slow", " seconds"), ("violins slow", ""))},
 }
+# Families whose two themes came to the same changes and had a take made before that was mended (see `family`).
+SAME_THEMES_KEPT = ("mystic-fireflies-1",)
 # The small percussion: what may join a theme the second time round without crowding it.
 SMALL = ("tamb", "shake", "jingle", "ting", "tick", "high", "clack", "conga", "conga low", "block", "block low", "guiro", "hat", "castanet", "bell")
 # Who doubles the bass line an octave away, by who has it: the neighbour in the orchestra, played the same way.
