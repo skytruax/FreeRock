@@ -15,8 +15,8 @@ __pycache__/
 dist/
 build/
 
-# Everything FreeRock generates or downloads at run time: the music library and its ledger,
-# captured strips, session logs and recordings. None of it belongs in the repository.
+# Everything FreeRock generates or downloads at run time: the buckets, the studio's tracks and
+# tools, captured strips, session logs and recordings. None of it belongs in the repository.
 var/
 
 # Output of the simulator run (tools/sim)
