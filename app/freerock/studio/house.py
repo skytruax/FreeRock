@@ -121,6 +121,7 @@ ARCS = {
     "storm": {"open": (0.45, 0.65), "theme": (0.75, 0.8), "rise": (0.5, 1.0), "moment": (1.0, 1.0), "close": (0.8, 0.4)},
     "battle": {"open": (0.8, 0.88), "theme": (0.86, 0.9), "rise": (0.6, 1.0), "moment": (1.0, 1.0), "close": (0.9, 0.7)},
 }
+BREAKDOWN = (0.3, 0.5)          # the breakdown's energy, from its first bar to its last (see Take.breakdown)
 ARC_OF = {"wander": "wander", "night": "wander", "depths": "wander", "ember": "ember", "storm": "storm",
           "battle": "battle", "boss": "battle", "town": "wander", "battleground": "battle"}
 
@@ -772,8 +773,10 @@ class Take:
         late = self.family.swing * STEP if float(step).is_integer() and int(step) % 2 == 1 else 0.0
         return (bar * 16 + step) * STEP + late
 
-    def energy(self, story: str, along: float) -> float:
-        first, last = self.arc[story]
+    def energy(self, story: str, along: float, first_bar: int = -1) -> float:
+        # (The breakdown lower than the theme, from little and growing: the kick's going was not enough on its own, a
+        # jungle piece's breakdown was a decibel under its theme, 2026-11-17, night.)
+        first, last = BREAKDOWN if self.broken(story, first_bar) else self.arc[story]
         if story == "rise":
             return first + (last - first) * along ** 1.8      # it holds back, then goes
         return first + (last - first) * along
@@ -842,7 +845,7 @@ class Take:
         for story, first, count in self.sections:
             build = 4 if count >= 16 else 2
             for inside in range(count):
-                bar, energy = first + inside, self.energy(story, inside / count)
+                bar, energy = first + inside, self.energy(story, inside / count, first)
                 groove = (story in ("theme", "moment") and not self.broken(story, first)) or (story == "close" and inside < count - 2) \
                     or (fam.hard and story == "open")
                 last = inside == count - 1
@@ -942,7 +945,7 @@ class Take:
         for story, first, count in self.sections:
             build = 4 if count >= 16 else 2
             for inside in range(count):
-                bar, energy = first + inside, self.energy(story, inside / count)
+                bar, energy = first + inside, self.energy(story, inside / count, first)
                 chord, after = self.changes.chord(inside), self.changes.chord(inside + 1)
                 bright = 0.4 + 0.6 * energy
                 if (story in ("theme", "moment") and not self.broken(story, first)) or (fam.hard and story in ("open", "close")) \
@@ -986,7 +989,7 @@ class Take:
         for story, first, count in self.sections:
             build = 4 if count >= 16 else 2
             for inside in range(count):
-                bar, energy = first + inside, self.energy(story, inside / count)
+                bar, energy = first + inside, self.energy(story, inside / count, first)
                 chord = self.changes.chord(inside)
                 voiced = self.changes.voicing(chord, 55, 76, voiced, spread)
                 notes = list(voiced)
@@ -1218,7 +1221,7 @@ class Take:
         for story, first, count in self.sections:
             for inside in range(0, count, slot):
                 bar, along = first + inside, inside / count
-                energy = self.energy(story, along)
+                energy = self.energy(story, along, first)
                 voiced = self.changes.voicing(self.changes.chord(inside), 48, 69, voiced, spread)
                 bright = {"open": 0.25 + 0.4 * along, "theme": 0.5, "rise": 0.45 + 0.5 * along, "moment": 0.92, "close": 0.75 - 0.45 * along}[story]
                 level = 0.2 * trim(sound, 60) * {"open": 0.75 + 0.25 * along, "theme": 0.7, "rise": 0.7 + 0.3 * along, "moment": 1.0,
