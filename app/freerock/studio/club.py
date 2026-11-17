@@ -225,18 +225,19 @@ def lines(heard: Heard, track: house.Take, work: Path) -> tuple[dict[str, list[d
                     line.send = 0.0
                 elif channel == "rhythm":
                     # (Measured against the house stems that were liked: the plucks had 11 to 24 dB too much above 3 kHz.)
-                    # (Still 13 dB bright there on 2026-11-17, night: 4 dB more.)
-                    line.effects = list(line.effects) + [sounds.equalise(low_cut=140.0, high_cut=9000.0, high_shelf=(4500.0, -12.0)),
+                    # (Still 13 dB bright there on 2026-11-17, night: 4 dB more; then still 11: 4 more and closed from 7 kHz.)
+                    line.effects = list(line.effects) + [sounds.equalise(low_cut=140.0, high_cut=7000.0, high_shelf=(4500.0, -16.0)),
                                                          sounds.echo(house.BPM, 0.2, left=3, right=4, again=0.32)]
                     line.send = max(line.send, 0.16)
                 elif channel == "lead":
-                    # (6 dB dull at its top and 3 in its middle against the liked house stems, 2026-11-17, night.)
-                    line.effects = list(line.effects) + [sounds.equalise(low_cut=180.0, bands=((1200.0, 2.0, 1.5),), high_shelf=(4000.0, 3.0)),
+                    # (6 dB dull at its top and 3 in its middle against the liked house stems, 2026-11-17, night; 5 dB dull after the first lift.)
+                    line.effects = list(line.effects) + [sounds.equalise(low_cut=180.0, bands=((1200.0, 3.0, 1.5),), high_shelf=(4000.0, 6.0)),
                                                          sounds.echo(house.BPM, 0.24, left=3, right=4, again=0.34)]
                     line.send = max(line.send, 0.2)
                 elif channel == "texture":
-                    # (...and the pad 15 to 35 dB too much there: its glass is kept, its glare taken away.)
-                    line.effects = list(line.effects) + [sounds.equalise(low_cut=200.0, high_cut=6500.0, high_shelf=(3500.0, -6.0)),
+                    # (...and the pad 15 to 35 dB too much there: its glass is kept, its glare taken away; 16 dB bright still on
+                    # 2026-11-17, night, with the risers tamed: 4 dB more off, and closed from 5 kHz.)
+                    line.effects = list(line.effects) + [sounds.equalise(low_cut=200.0, high_cut=5000.0, high_shelf=(3500.0, -10.0)),
                                                          sounds.ensemble(0.35)]
                     line.send = max(line.send, 0.28)
                 out[channel].append(line)
