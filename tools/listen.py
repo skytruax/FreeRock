@@ -4,7 +4,7 @@
 
 The studio keeps a track as a recording for each channel, which is what the player wants and
 nobody can listen to. This puts the channels of each staged track together and writes the whole
-track as a FLAC file under var/listen/<style>/, with index.html beside them: open that in a
+track as an MP3 file under var/listen/<style>/, with index.html beside them: open that in a
 browser and every track is a row with its title, what it is for and a play button. A track
 that is there already, and is no older than the staged track, is left alone.
 
@@ -26,6 +26,7 @@ import numpy as np
 import soundfile
 
 from freerock import studio
+from freerock.audio import write_mp3
 
 VAR = Path(__file__).resolve().parents[1] / "var"
 STYLES = ("warcraft", "house")
@@ -42,15 +43,14 @@ ORDER = ("texture", "lead", "rhythm", "drums", "bass")
 
 def channels(desk: Path, meta: dict, parts: dict[str, np.ndarray], peak: float) -> None:
     """Writes a track's channels for the mixer page: each channel as pieces of PIECE seconds
-    (<channel>-<number>.flac), and track.json, which says what there is and is written last."""
+    (<channel>-<number>.mp3), and track.json, which says what there is and is written last."""
     desk.mkdir(parents=True, exist_ok=True)
     frames = max(len(audio) for audio in parts.values())
     size = int(PIECE * studio.RATE)
     count = -(-frames // size)
     for channel, audio in parts.items():
         for index in range(count):
-            soundfile.write(str(desk / ("%s-%03d.flac" % (channel, index))), audio[index * size:(index + 1) * size], studio.RATE,
-                            format="FLAC", subtype="PCM_16")
+            write_mp3(desk / ("%s-%03d.mp3" % (channel, index)), audio[index * size:(index + 1) * size], studio.RATE)
     at, sections = 0.0, []
     for section in meta["sections"]:
         long = section["bars"] * meta["bar_frames"] / studio.RATE
@@ -69,7 +69,7 @@ def mixed(folder: Path) -> tuple[str, dict]:
     the file's name and what the track is."""
     meta, parts = studio.read_track(folder)
     out = VAR / "listen" / meta["style"]
-    name = "%s - take %s (%s).flac" % (meta["title"], meta["take"], meta["family"])
+    name = "%s - take %s (%s).mp3" % (meta["title"], meta["take"], meta["family"])
     staged = (folder / "track.json").stat().st_mtime
     desk = out / name[:-5]
 
@@ -83,7 +83,7 @@ def mixed(folder: Path) -> tuple[str, dict]:
             raise ValueError("The track in %s is silent" % folder)
         out.mkdir(parents=True, exist_ok=True)
         scratch = out / (name + ".part")
-        soundfile.write(str(scratch), mix * (0.89 / peak), studio.RATE, format="FLAC", subtype="PCM_16")
+        write_mp3(scratch, mix * (0.89 / peak), studio.RATE)
         scratch.replace(out / name)
         channels(desk, meta, parts, peak)
     return name, meta

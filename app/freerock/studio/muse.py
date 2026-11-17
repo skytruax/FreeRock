@@ -503,9 +503,12 @@ def perform(part: str, notes: list[Note], *, bpm: float, way: str = "", sound: s
     text = score(part, notes, bpm=bpm, way=way, swells=swells)
     profile = "MuseSounds" if sounds() else "MuseScore Basic"       # as MuseScore 4.7 spells it; a name it does not know is passed over without a word
     name = hashlib.sha1((profile + "\n" + (sound or "") + "\n" + text).encode("utf-8")).hexdigest()[:20]
-    made = KEPT / (name + ".wav")
-    if made.is_file():
-        return made
+    # Kept as FLAC (lossless, and a part that rests most of the time costs next to nothing), or as WAV from before
+    # (2026-11-16, night: the WAVs had filled the drive).
+    for made in (KEPT / (name + ".flac"), KEPT / (name + ".wav")):
+        if made.is_file():
+            return made
+    made = KEPT / (name + ".flac")
     KEPT.mkdir(parents=True, exist_ok=True)
     with _busy_lock:
         mine = _busy.setdefault(name, threading.Lock())
@@ -538,7 +541,12 @@ def _performed(part: str, text: str, name: str, made: Path, profile: str, sound:
         fresh.unlink()
         raise RuntimeError("MuseScore played %s with its plain built-in sounds, not with Muse Sounds (%s): the part's name or kind "
                            "is not one it has a Muse Sound for" % (part, written))
-    fresh.replace(made)
+    import soundfile
+    audio, rate = soundfile.read(str(fresh), dtype="float32", always_2d=True)
+    packed = KEPT / ("%s.%s.part.flac" % (name, once))
+    soundfile.write(str(packed), audio, rate, format="FLAC", subtype="PCM_24")
+    packed.replace(made)
+    fresh.unlink()                                             # MuseScore's own WAV, now kept as FLAC
     return made
 
 

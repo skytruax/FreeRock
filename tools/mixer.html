@@ -89,7 +89,7 @@ function partAt(seconds) {
 function piece(channel, index) {
   const key = channel + "-" + index;
   if (!kept.has(key)) {
-    kept.set(key, fetch(path(track) + "/" + channel + "-" + String(index).padStart(3, "0") + ".flac")
+    kept.set(key, fetch(path(track) + "/" + channel + "-" + String(index).padStart(3, "0") + ".mp3")
       .then((answer) => { if (!answer.ok) throw new Error(key + ": " + answer.status); return answer.arrayBuffer(); })
       .then((bytes) => ctx.decodeAudioData(bytes)));
   }

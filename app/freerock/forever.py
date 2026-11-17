@@ -37,6 +37,7 @@ import numpy as np
 import soundfile
 
 from . import analysis, atlas, composer
+from .audio import write_mp3
 from .audio import PcmStream
 from .eleven import ElevenError, Gateway
 
@@ -811,12 +812,11 @@ class Bucket:
                             bars=max(int(round((last - first) / bar_frames)), 1), frames=last - first,
                             gain_db=round(float(gain_db), 2), created=time.time(), words=[title], source=source or "written",
                             piece=piece_id, order=order, post=len(stretch) - (last - first))
-                # The parts of pieces are kept as FLAC: the same samples in half the room. (There
-                # are thousands of them; the loose phrases, which are few, are kept raw.)
-                scratch = self.folder / "clips" / (clip.id + ".part")
-                soundfile.write(str(scratch), np.round(np.clip(stretch, -1.0, 32767 / 32768) * 32768).astype("<i2"), RATE,
-                                format="FLAC", subtype="PCM_16")
-                scratch.replace(self.folder / "clips" / (clip.id + ".flac"))
+                # The parts of pieces are kept as MP3 (audio.write_mp3: the best quality, a quarter of the room of
+                # FLAC, every sample where it was). There are thousands of them; the loose phrases are kept raw.
+                scratch = self.folder / "clips" / (clip.id + ".part.mp3")
+                write_mp3(scratch, stretch, RATE)
+                scratch.replace(self.folder / "clips" / (clip.id + ".mp3"))
                 self.clips.append(clip)
         self.pieces[piece_id] = {
             "title": title, "track": track, "next": "", "story": story, "moods": list(moods), "role": role,
@@ -888,10 +888,13 @@ class Bucket:
         return self.audio(clip_id).tobytes()
 
     def _file(self, clip_id: str) -> Path:
-        """Where a recording is kept: raw samples for a loose phrase (and for the pieces put in
-        before pieces were kept as FLAC), FLAC for the part of a piece."""
-        raw = self.folder / "clips" / (clip_id + ".npy")
-        return raw if raw.is_file() else self.folder / "clips" / (clip_id + ".flac")
+        """Where a recording is kept: raw samples for a loose phrase, MP3 for the part of a piece (FLAC for one
+        put in before parts were kept as MP3)."""
+        clips = self.folder / "clips"
+        for name in (clip_id + ".npy", clip_id + ".mp3", clip_id + ".flac"):
+            if (clips / name).is_file():
+                return clips / name
+        return clips / (clip_id + ".mp3")
 
     def audio(self, clip_id: str) -> np.ndarray:
         """A recording as 16-bit stereo samples: for a part of a piece, the stretch and then

@@ -820,20 +820,22 @@ def synth_chain(player: str, bpm: float) -> list[str]:
 
 def bus(channel: str) -> list[str]:
     """What is on a whole channel's folder. The drums: their room, a compressor that holds
-    them together, tape, and a ceiling. The others: a compressor that evens the channel out
-    (the recordings that were liked wander a third as far in level as bare playing does) and
-    a ceiling."""
+    them together, tape, and a ceiling. The others: a gentle compressor that only takes the
+    edge off the loudest notes, and a ceiling. (2026-11-16, night: "rewrite all music to be
+    more dynamic". The compressors began 6 dB lower and every ceiling was pushed 3 dB, which
+    flattened what the writer wrote between pianissimo and fortissimo.)"""
     # Under 28 Hz nothing is heard, and what is there uses up the room every loudspeaker and limiter has.
     if channel == "drums":
-        return [equalise(low_cut=28.0), drum_room(), squeeze(-14.0, 3.0, 25.0, 180.0, 2.0), warm(0.3), ceiling(-1.5, push=3.0)]
+        return [equalise(low_cut=28.0), drum_room(), squeeze(-12.0, 2.5, 25.0, 180.0, 1.0), warm(0.3), ceiling(-1.5, push=1.0)]
     if channel == "bass":
         # More of the bottom, and harmonics of it so that it is heard on small loudspeakers too; tape to thicken it.
-        return [equalise(low_cut=28.0, low_shelf=(90.0, 2.5)), enhance(0.35), squeeze(-20.0, 2.5, 30.0, 250.0, 2.0), warm(0.25), ceiling(-1.5, push=3.0)]
+        return [equalise(low_cut=28.0, low_shelf=(90.0, 2.5)), enhance(0.35), squeeze(-14.0, 2.0, 30.0, 250.0, 1.0), warm(0.25),
+                ceiling(-1.5, push=1.0)]
     if channel == "texture":
-        return [equalise(low_cut=28.0), wide(1.25), squeeze(-20.0, 2.5, 30.0, 250.0, 2.0), warm(0.15), ceiling(-1.5, push=3.0)]
+        return [equalise(low_cut=28.0), wide(1.25), squeeze(-14.0, 2.0, 30.0, 250.0, 1.0), warm(0.15), ceiling(-1.5, push=0.5)]
     if channel == "lead":
-        return [equalise(low_cut=28.0), squeeze(-20.0, 2.5, 30.0, 250.0, 2.0), excite(0.25), warm(0.12), ceiling(-1.5, push=3.0)]
-    return [equalise(low_cut=28.0), squeeze(-20.0, 2.5, 30.0, 250.0, 2.0), warm(0.15), ceiling(-1.5, push=3.0)]
+        return [equalise(low_cut=28.0), squeeze(-14.0, 2.0, 30.0, 250.0, 1.0), excite(0.25), warm(0.12), ceiling(-1.5, push=0.5)]
+    return [equalise(low_cut=28.0), squeeze(-14.0, 2.0, 30.0, 250.0, 1.0), warm(0.15), ceiling(-1.5, push=0.5)]
 
 
 def hall(seconds: float) -> str:

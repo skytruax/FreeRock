@@ -13,15 +13,28 @@ import argparse
 import sys
 import time
 import traceback
-from datetime import datetime
+from datetime import datetime, timedelta
 from multiprocessing import Pool
 
 from freerock.studio import build, reaper, sounds
 
 
-def one(job: tuple[str, int, str]) -> tuple[str, int, str, str]:
-    name, take, until = job
-    if until and datetime.now().strftime("%H:%M") >= until:
+def deadline_of(until: str) -> float | None:
+    """When `--until` is: the next time the clock shows it, so that a queue begun at 23:00 with --until 08:00 runs
+    through the night (found 2026-11-16: comparing the time of day alone, 23:06 was already past 08:00)."""
+    if not until:
+        return None
+    hour, minute = (int(part) for part in until.split(":"))
+    now = datetime.now()
+    at = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    if at <= now:
+        at += timedelta(days=1)
+    return at.timestamp()
+
+
+def one(job: tuple[str, int, str, float | None]) -> tuple[str, int, str, str]:
+    name, take, until, deadline = job
+    if deadline is not None and time.time() >= deadline:
         return name, take, "not begun", "it was past %s" % until
     try:
         fam = next(fam for fam, _ in build.plan() if fam.name == name)
@@ -38,7 +51,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--workers", type=int, default=3)
     parser.add_argument("--until", default="", help="begin none after this time of day (HH:MM)")
     args = parser.parse_args(argv)
-    jobs = [(name.rsplit("/", 1)[0], int(name.rsplit("/", 1)[1]), args.until) for name in args.tracks]
+    deadline = deadline_of(args.until)
+    jobs = [(name.rsplit("/", 1)[0], int(name.rsplit("/", 1)[1]), args.until, deadline) for name in args.tracks]
     known = {fam.name for fam, _ in build.plan()}
     unknown = [name for name, _, _ in jobs if name not in known]
     if unknown:

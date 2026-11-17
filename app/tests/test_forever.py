@@ -780,6 +780,7 @@ async def test_a_new_style_takes_over_as_soon_as_it_has_anything(tmp_path):
 def test_the_mix_is_what_the_player_is_sent():
     conductor = types.SimpleNamespace(forever=True, mix=None, target=Target(intensity=0.8, drums=1.0, bass=1.0),
                                       hub=types.SimpleNamespace(state=None, link=game.Link.LIVE), bucket=None,
-                                      borrowed=False, scene_tag=lambda state: None)
+                                      borrowed=False, scene_tag=lambda state: None, shade_here=lambda state: 0.0,
+                                      setting_here=lambda state: "")
     message = music.Conductor._target_message(conductor)
     assert message["target"]["channels"]["drums"] == {"level": 1.0, "tier": 2}

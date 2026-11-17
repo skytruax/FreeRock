@@ -1087,15 +1087,17 @@ def _levels(role: str, heavy: float) -> dict[str, tuple[float, float]]:
     if role in FIGHTS:
         return {"open": (0.6, 0.72), "first": (0.7, 0.8), "second": (0.66, 0.78), "build": (0.75, 0.95), "arrival": (0.9, 0.9),
                 "valley": (0.58, 0.66), "climb": (0.68, 1.0), "summit": (1.0, 1.0), "close": (0.9, 0.65)}
+    # (2026-11-16, night: "rewrite all music to be more dynamic". The quiet parts are quieter and the top is as high: an
+    # opening and a valley at pianissimo to piano, the summit at fortissimo, a close that dies away.)
     if role in ("night", "ember", "depths"):
-        top, under = 0.5 + 0.4 * heavy, 0.46 + 0.26 * heavy
-        return {"open": (0.2, 0.3), "first": (0.4, 0.48), "second": (0.36, 0.46), "build": (0.42, 0.42 + 0.2 * heavy),
-                "arrival": (under, under), "valley": (0.24, 0.22), "climb": (0.3, 0.45 + 0.3 * heavy), "summit": (top, top),
-                "close": (0.4, 0.15)}
-    top, under = 0.55 + 0.45 * heavy, 0.52 + 0.3 * heavy
-    return {"open": (0.22, 0.34), "first": (0.45, 0.58), "second": (0.42, 0.56), "build": (0.5, 0.5 + 0.34 * heavy),
-            "arrival": (under, under), "valley": (0.26, 0.24), "climb": (0.34, 0.5 + 0.45 * heavy), "summit": (top, top),
-            "close": (0.5, 0.18)}
+        top, under = 0.45 + 0.4 * heavy, 0.4 + 0.26 * heavy
+        return {"open": (0.14, 0.26), "first": (0.34, 0.44), "second": (0.3, 0.42), "build": (0.36, 0.38 + 0.2 * heavy),
+                "arrival": (under, under), "valley": (0.18, 0.16), "climb": (0.26, 0.42 + 0.3 * heavy), "summit": (top, top),
+                "close": (0.36, 0.1)}
+    top, under = 0.6 + 0.4 * heavy, 0.5 + 0.28 * heavy
+    return {"open": (0.14, 0.3), "first": (0.38, 0.55), "second": (0.34, 0.52), "build": (0.42, 0.45 + 0.4 * heavy),
+            "arrival": (under, under), "valley": (0.2, 0.16), "climb": (0.28, 0.5 + 0.45 * heavy), "summit": (top, top),
+            "close": (0.45, 0.1)}
 
 
 def family(character: Character, seed: int, name: str, title: str) -> Family:
@@ -1821,7 +1823,7 @@ class Take:
     @staticmethod
     def hard(level: float, weight: float = 1.0) -> float:
         """How hard a note is struck for how hard the music is being played."""
-        return min(max(0.26 + 0.66 * level * weight, 0.05), 1.0)
+        return min(max(0.16 + 0.8 * level * weight, 0.05), 1.0)          # pianissimo to fortissimo ("more dynamic")
 
     def fit(self, line: Line, chord: Chord, aim: float = 0.0) -> Line:
         """A fragment of a tune moved bodily so that it begins on a note of a chord, as near

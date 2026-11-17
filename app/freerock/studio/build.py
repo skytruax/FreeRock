@@ -38,7 +38,8 @@ LIGHT = {"drums": -24.0, "bass": -21.5}        # a light track's drums and bass 
 WAR_DRUMS = -16.0                              # where the drums sit in a track that has war drums: up with the tune, the loudest strokes in the piece
 BAND = {"lead": -17.0, "rhythm": -18.5, "drums": -18.0, "bass": -19.5, "texture": -24.0}       # a band: guitars and drums up front
 BAND_LIGHT = {"drums": -21.0, "bass": -21.0, "rhythm": -20.0}
-RIDE = 0.42                    # how far each part of the story is brought up towards the loudest part
+RIDE = 0.15                    # how far each part of the story is brought up towards the loudest part (it was 0.42, which
+                               # took most of the written dynamics away: "rewrite all music to be more dynamic", 2026-11-16)
 # The least each channel is played at in each part of the story, so that the story is whole
 # whatever the game is doing; the game then only adds weight to the drums and the bass.
 # Under every stroke of the kick the other channels give way for a moment and come back within
