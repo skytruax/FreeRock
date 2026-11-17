@@ -570,7 +570,12 @@ def ride_points(curve: np.ndarray, *, step: int = 480, tolerance_db: float = 0.1
     curve = np.asarray(curve, dtype=np.float64)
     if len(curve) == 0:
         return []
-    blocks = np.minimum.reduceat(curve, np.arange(0, len(curve), step))
+    # Each point is the lowest the curve goes within a block either side of it: a straight line between two such
+    # points then never rises over the curve, wherever in a block a dip falls. (2026-11-17, night: with each point the
+    # lowest of the block after it only, a kick's peak hold that fell inside a block was let through, 3 dB over.)
+    from scipy.ndimage import minimum_filter1d
+    held = minimum_filter1d(curve, size=2 * step + 1, mode="nearest")
+    blocks = np.append(held[::step], held[-1])
     floor = 1e-3
     level = 20.0 * np.log10(np.maximum(blocks, floor))
     count = len(blocks)
@@ -598,7 +603,7 @@ def ride_points(curve: np.ndarray, *, step: int = 480, tolerance_db: float = 0.1
             low = high
         keep.append(low)
         first = low
-    return [(index * step / RATE, float(blocks[index])) for index in keep]
+    return [(min(index * step, len(curve) - 1) / RATE, float(blocks[index])) for index in keep]
 
 
 def mixdown(work: Path, recorded: dict[str, Path], *, faders: dict[str, float], ride: list[tuple[float, float]], bpm: float,
