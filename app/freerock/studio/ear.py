@@ -4,9 +4,10 @@ The studio cannot hear. What it can do is what a mixing engineer does with a rec
 trust: lay the two side by side and compare. `profile` measures a recording: how its power is
 spread over the octaves (dull, boomy, thin, harsh), how hard its notes start, how far its peaks
 stand above its body, how even its level is, how wide it is, how long it rings. `reference`
-gives the same numbers for recordings that were listened to and liked: the stems in var/stems
-(stems.csv says which instrument each was asked for), so an instrument of the studio's can be
-held against the same instrument there. `differs` says where two profiles part, and `top` turns
+gives the same numbers for recordings that were listened to and liked: the stems of FreeRock's first
+days, each with the instrument it was asked for, measured once and kept in var/reaper/ear.json (the
+stems themselves are gone), so an instrument of the studio's can be held against the same
+instrument there. `differs` says where two profiles part, and `top` turns
 the difference in their tops into settings for the channel equaliser.
 
     uv run --no-sync python -m freerock.studio.ear "violins in" path/to/mine.flac
@@ -18,10 +19,9 @@ has to carry, peaks with no body under them, a bass that is not there.
 """
 from __future__ import annotations
 
-import csv
 import json
 import sys
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
@@ -29,8 +29,7 @@ import soundfile
 from scipy import signal
 
 VAR = Path(__file__).resolve().parents[3] / "var"
-STEMS = VAR / "stems"
-KEPT = VAR / "reaper" / "ear.json"            # the references' profiles, kept (346 files take a minute to measure)
+KEPT = VAR / "reaper" / "ear.json"            # the references' profiles: all there is of them now
 EDGES = (20, 40, 80, 160, 320, 640, 1250, 2500, 5000, 10000, 20000)      # the octaves, in Hz
 CENTRES = tuple(float(np.sqrt(low * high)) for low, high in zip(EDGES, EDGES[1:]))
 
@@ -150,29 +149,15 @@ _kept: dict[str, dict] | None = None
 
 def _references() -> dict[str, dict]:
     """Every reference stem's profile with what it was asked for: file -> {style, channel,
-    strength, asked, profile}. Measured once and kept."""
+    strength, asked, profile}. The stems were measured once and are gone (the drive was cleared on
+    2026-11-16, night), so this table is the whole of them: nothing is ever added to it, and the
+    studio's own recordings must never be."""
     global _kept
     if _kept is None:
-        _kept = json.loads(KEPT.read_text(encoding="utf-8")) if KEPT.is_file() else {}
-        # The stems themselves may be gone (2026-11-16, night: the drive was cleared); what was measured of them is kept.
-        rows = []
-        if (STEMS / "stems.csv").is_file():
-            with open(STEMS / "stems.csv", newline="", encoding="utf-8") as table:
-                rows = list(csv.DictReader(table))
-        fresh = False
-        for row in rows:
-            if row["file"] in _kept or row["banned"] or not (STEMS / row["file"]).is_file():
-                continue
-            audio, rate = soundfile.read(str(STEMS / row["file"]), dtype="float32", always_2d=True)
-            found = profile(audio, rate)
-            if found is None:
-                continue
-            _kept[row["file"]] = {"style": row["style"], "channel": row["channel"], "strength": row["strength"],
-                                  "asked": row["asked_for"].split(";")[0].strip(), "profile": asdict(found)}
-            fresh = True
-        if fresh:
-            KEPT.parent.mkdir(parents=True, exist_ok=True)
-            KEPT.write_text(json.dumps(_kept), encoding="utf-8")
+        if not KEPT.is_file():
+            raise FileNotFoundError("The liked stems' profiles (%s) are missing, and the stems they were measured from are "
+                                    "gone: put the file back from a copy" % KEPT)
+        _kept = json.loads(KEPT.read_text(encoding="utf-8"))
     return _kept
 
 

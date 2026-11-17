@@ -1,12 +1,10 @@
-"""The music commands of `freerock`: the settings, the stems and the written pieces.
+"""The music commands of `freerock`: the settings and the written pieces.
 
     freerock settings [name value] show the settings, or change one
-    freerock stems                 keep every phrase as an audio file, with a table of what each is
     freerock pieces add [style]    put every track staged by the studio in the style's bucket
     freerock pieces list [style]   what written pieces a style has
-    freerock pieces drop style from   take out for good every piece that came from somewhere ("knight/" for the
-                                   studio's Knight Rock, "warcraft/real-" for the real scores, "song/" for the
-                                   pieces cut from the first design's songs)
+    freerock pieces drop style from   take out for good every piece whose source begins with `from` ("knight/" for
+                                   every Knight Rock track the studio made, "warcraft/pastoral-" for one kind of place)
 """
 from __future__ import annotations
 
@@ -16,7 +14,6 @@ import sys
 from . import composer, forever, pieces
 from .cli import add_command
 from .settings import Settings
-from .stemstore import StemStore
 
 
 def _settings() -> Settings:
@@ -56,23 +53,6 @@ def _show_settings(arguments: argparse.Namespace) -> int:
 
 
 add_command("settings", "show the settings, or change one", _settings_arguments, _show_settings)
-
-
-# -- stems -----------------------------------------------------------------------------------------
-def _stems_arguments(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--to", help="the folder to write them to (default: var/stems)")
-
-
-def _stems(arguments: argparse.Namespace) -> int:
-    """Every phrase in every bucket as a FLAC file, with a table of what each is."""
-    settings = _settings()
-    store = StemStore(arguments.to or settings.var_dir / "stems")
-    written, total = store.sync(settings.var_dir / "buckets")
-    print("%d phrases in %s (%d written now), with stems.csv saying what each is." % (total, store.root, written))
-    return 0
-
-
-add_command("stems", "keep every phrase as an audio file, with a table of what each is", _stems_arguments, _stems)
 
 
 # -- pieces ----------------------------------------------------------------------------------------
