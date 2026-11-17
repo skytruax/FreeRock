@@ -359,6 +359,10 @@ def stage(name: str, take: int) -> dict:
         if have < -70.0:
             del parts[channel]                       # it plays nothing to speak of in this take
             continue
+        # ...but never so far up that another part of the story goes more than 3 dB over the channel's place (as the
+        # orchestra's desk does since 2026-11-17, night: a house tune soft at its drop and full in its theme blared there).
+        edges = [0] + [int(round((first + count) * house.BAR_FRAMES)) for _, first, count in track.sections]
+        have = max(have, max(analysis.loudness_lufs(parts[channel][low:high], RATE) for low, high in zip(edges, edges[1:])) - 3.0)
         faders[channel] = 10.0 ** ((want[channel] - have) / 20.0)
         parts[channel] = (parts[channel] * faders[channel]).astype(np.float32)
     # What is still ringing two seconds before the recording ends is eased away to nothing (as the writer's own render does).
