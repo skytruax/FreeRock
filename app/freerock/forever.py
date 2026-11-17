@@ -30,7 +30,6 @@ import numpy as np
 import soundfile
 
 from . import analysis, atlas, composer
-from .audio import write_mp3
 
 RATE, CHANNELS_OUT = 48000, 2
 
@@ -77,7 +76,7 @@ CALM_PLACES = ("ember",)       # an inn, the moment after a fight, a death: ever
 # Pieces: written music, kept as its parts. See Bucket.add_piece.
 PIECE_LEVEL = -13.0            # how loud a piece is with every part playing (LUFS): what five decks of phrases come to
 POST_S = 6.0                   # how much of what follows is kept after each stretch of a part, for fading out under what comes next
-ENCODERS = min(16, os.cpu_count() or 4)        # how many parts of a piece are written as MP3 at once
+ENCODERS = min(16, os.cpu_count() or 4)        # how many parts of a piece are written at once
 WINDOW_S = 52.0                # a part is kept in stretches no longer than this, so that no one of them is slow to fetch
 FREE_SHARE = 0.12              # how often a stretch of loose phrases comes between two tracks, where there are enough of them
 STORY = ("open", "theme", "rise", "moment", "close")       # where in a story a piece belongs; "" for one that is a story in itself
@@ -438,12 +437,15 @@ class Bucket:
                                   piece=piece_id, order=order, post=len(stretch) - (last - first)), stretch))
 
         def keep_clip(job: tuple[Clip, np.ndarray]) -> None:
-            # The parts of pieces are kept as MP3 (audio.write_mp3: the best quality, a quarter of the room of
-            # FLAC, every sample where it was). There are thousands of them; the loose phrases are kept raw.
+            # The parts of pieces are kept losslessly, as FLAC (2026-11-17, morning: "Make sure the mp3s arent losing
+            # quality"). They are cut from tracks staged as MP3, and encoding them as MP3 a second time changed what is
+            # above 2 kHz at only 19 to 24 dB under the music (measured); kept as FLAC, what is played is what was
+            # staged, to 16 bits (96 dB down, far under the MP3's own noise; a third less room than 24). The loose
+            # phrases are kept raw.
             clip, stretch = job
-            scratch = self.folder / "clips" / (clip.id + ".part.mp3")
-            write_mp3(scratch, stretch, RATE)
-            scratch.replace(self.folder / "clips" / (clip.id + ".mp3"))
+            scratch = self.folder / "clips" / (clip.id + ".part.flac")
+            soundfile.write(str(scratch), np.clip(stretch, -1.0, 1.0), RATE, format="FLAC", subtype="PCM_16")
+            scratch.replace(self.folder / "clips" / (clip.id + ".flac"))
 
         # Many at once (2026-11-17, night: one after another, a whole style's bucket took hours to build): the encoder
         # works outside Python's lock, so threads share the cores. An encoding that fails stops the piece with its error.

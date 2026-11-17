@@ -24,6 +24,7 @@ from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
 import numpy as np
+import soundfile
 
 from freerock import studio
 from freerock.audio import write_mp3
@@ -69,9 +70,12 @@ def mixed(folder: Path) -> tuple[str, dict]:
     the file's name and what the track is."""
     meta, parts = studio.read_track(folder)
     out = VAR / "listen" / meta["style"]
-    name = "%s - take %s (%s).mp3" % (meta["title"], meta["take"], meta["family"])
+    # The whole track lossless (2026-11-17, morning: "Make sure the mp3s arent losing quality"): its channels were
+    # staged as MP3, and the whole as MP3 again would be a second encoding; as FLAC it is what the game plays.
+    base = "%s - take %s (%s)" % (meta["title"], meta["take"], meta["family"])
+    name = base + ".flac"
     staged = (folder / "track.json").stat().st_mtime
-    desk = out / name[:-5]
+    desk = out / base[:-1]                       # the mixer page's folder, named as it always was
 
     def stale(path: Path) -> bool:
         return not path.is_file() or path.stat().st_mtime < staged
@@ -82,8 +86,8 @@ def mixed(folder: Path) -> tuple[str, dict]:
         if peak <= 0.0:
             raise ValueError("The track in %s is silent" % folder)
         out.mkdir(parents=True, exist_ok=True)
-        scratch = out / (name + ".part")
-        write_mp3(scratch, mix * (0.89 / peak), studio.RATE)
+        scratch = out / (base + ".part.flac")
+        soundfile.write(str(scratch), mix * (0.89 / peak), studio.RATE, format="FLAC", subtype="PCM_16")
         scratch.replace(out / name)
         channels(desk, meta, parts, peak)
     return name, meta
