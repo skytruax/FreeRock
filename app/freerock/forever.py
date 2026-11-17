@@ -18,8 +18,10 @@ studio (app/freerock/studio).
 from __future__ import annotations
 
 import json
+import os
 import time
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
@@ -75,6 +77,7 @@ CALM_PLACES = ("ember",)       # an inn, the moment after a fight, a death: ever
 # Pieces: written music, kept as its parts. See Bucket.add_piece.
 PIECE_LEVEL = -13.0            # how loud a piece is with every part playing (LUFS): what five decks of phrases come to
 POST_S = 6.0                   # how much of what follows is kept after each stretch of a part, for fading out under what comes next
+ENCODERS = min(16, os.cpu_count() or 4)        # how many parts of a piece are written as MP3 at once
 WINDOW_S = 52.0                # a part is kept in stretches no longer than this, so that no one of them is slow to fetch
 FREE_SHARE = 0.12              # how often a stretch of loose phrases comes between two tracks, where there are enough of them
 STORY = ("open", "theme", "rise", "moment", "close")       # where in a story a piece belongs; "" for one that is a story in itself
@@ -425,19 +428,28 @@ class Bucket:
         piece_id = uuid.uuid4().hex[:10]
         (self.folder / "clips").mkdir(parents=True, exist_ok=True)
         keep = int(POST_S * RATE)
+        made: list[tuple[Clip, np.ndarray]] = []
         for (channel, tier), audio in sorted(parts.items()):
             for order, (first, last) in enumerate(zip(edges, edges[1:])):
                 stretch = audio[first:min(last + keep, len(audio))]
-                clip = Clip(id=uuid.uuid4().hex[:10], channel=channel, tier=tier, variant=0,
-                            bars=max(int(round((last - first) / bar_frames)), 1), frames=last - first,
-                            gain_db=round(float(gain_db), 2), created=time.time(), words=[title], source=source or "written",
-                            piece=piece_id, order=order, post=len(stretch) - (last - first))
-                # The parts of pieces are kept as MP3 (audio.write_mp3: the best quality, a quarter of the room of
-                # FLAC, every sample where it was). There are thousands of them; the loose phrases are kept raw.
-                scratch = self.folder / "clips" / (clip.id + ".part.mp3")
-                write_mp3(scratch, stretch, RATE)
-                scratch.replace(self.folder / "clips" / (clip.id + ".mp3"))
-                self.clips.append(clip)
+                made.append((Clip(id=uuid.uuid4().hex[:10], channel=channel, tier=tier, variant=0,
+                                  bars=max(int(round((last - first) / bar_frames)), 1), frames=last - first,
+                                  gain_db=round(float(gain_db), 2), created=time.time(), words=[title], source=source or "written",
+                                  piece=piece_id, order=order, post=len(stretch) - (last - first)), stretch))
+
+        def keep_clip(job: tuple[Clip, np.ndarray]) -> None:
+            # The parts of pieces are kept as MP3 (audio.write_mp3: the best quality, a quarter of the room of
+            # FLAC, every sample where it was). There are thousands of them; the loose phrases are kept raw.
+            clip, stretch = job
+            scratch = self.folder / "clips" / (clip.id + ".part.mp3")
+            write_mp3(scratch, stretch, RATE)
+            scratch.replace(self.folder / "clips" / (clip.id + ".mp3"))
+
+        # Many at once (2026-11-17, night: one after another, a whole style's bucket took hours to build): the encoder
+        # works outside Python's lock, so threads share the cores. An encoding that fails stops the piece with its error.
+        with ThreadPoolExecutor(max_workers=ENCODERS) as pool:
+            list(pool.map(keep_clip, made))
+        self.clips += [clip for clip, _ in made]
         self.pieces[piece_id] = {
             "title": title, "track": track, "next": "", "story": story, "moods": list(moods), "role": role,
             "serves": sorted(set(int(tier) for tier in serves)), "bar_frames": float(bar_frames), "bars": int(bars),
