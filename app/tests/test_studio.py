@@ -341,7 +341,7 @@ def test_the_big_drums_are_where_they_should_be_and_nowhere_else():
         # "dont hear much war drums": softer, later up its rises, the boom at its summit only; and from "go a little
         # harder this is not world of fairy craft" the rhythmic lighter music too, not the delicate.)
         lively = (character.weight >= 0.6 and character.busy >= 0.55) or (
-            character.weight >= 0.5 and character.busy >= 0.45 and not set(character.grooves) <= set(orchestra.DELICATE))
+            character.weight >= 0.5 and character.busy >= 0.35 and not set(character.grooves) <= set(orchestra.DELICATE))
         war = fight or heavy or (walk and lively and not set(character.grooves) & set(orchestra.DANCE_GROOVES))
         if war:
             want |= {"war drums", "boom"}
@@ -726,9 +726,8 @@ def test_the_plan_has_a_band_for_knight_rock_beside_the_orchestra():
     assert styles == {"warcraft", "knight"}
     knight = [fam for fam, _ in families if fam.character.style == "knight"]
     assert {kind for fam in knight for kind in fam.character.kinds} == set(kinds.KINDS)
-    # (A town's streets and a battleground have Warcraft music first, 2026-11-16; where a style has nothing written for a
-    # kind of moment the player plays its walking music.)
-    assert {fam.character.role for fam in knight} == set(studio.ROLES) - {"town", "battleground"}
+    # (Knight Rock has music for every kind of moment since 2026-11-18, its towns and battlegrounds among them.)
+    assert {fam.character.role for fam in knight} == set(studio.ROLES)
     assert all(build.folder_of(fam, 1).parts[-3] == "knight" for fam in knight)
 
 
@@ -784,3 +783,18 @@ def test_every_character_has_ground_the_atlas_knows():
         ground = orchestra.settings_of(character)
         assert ground, "%s has no ground" % character.name
         assert set(ground) <= names, "%s: %s" % (character.name, ground)
+
+
+def test_an_effect_moves_through_the_piece():
+    # Effects over time (2026-11-18, "yes you need effects over time"): an envelope inside the effect's place in the
+    # chain, its points on the project's clock and kept inside the setting's range.
+    from freerock.studio import desk
+    effect = desk.automated(desk.js("filters/resonantlowpass", 300, 0.3), 0, [(0.0, 300.0), (10.0, 99999.0)], 20, 20000)
+    head, envelope = effect.split("<PARMENV", 1)
+    assert head.startswith("<JS filters/resonantlowpass") and effect.endswith("WAK 0 0")
+    assert envelope.startswith(" 0 20 20000 300")
+    points = [row.split() for row in envelope.splitlines() if row.startswith("PT ")]
+    assert [(float(at), float(value)) for _, at, value, _ in points] == [(desk.LEAD, 300.0), (desk.LEAD + 10.0, 20000.0)]
+    steps = desk.sweep(0.0, 8.0, 250, 16000, steps=6)
+    ratios = {round(b[1] / a[1], 6) for a, b in zip(steps, steps[1:])}
+    assert len(ratios) == 1 and steps[0][1] == 250 and round(steps[-1][1]) == 16000      # the same step in pitch each time

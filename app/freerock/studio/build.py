@@ -77,7 +77,9 @@ LAST_ADDED = ("deep tide", "fallen crusade",
               "hill country", "harvest boogie", "iron vow", "free company",
               # (the next night: more music for Knight Rock's moments, and Warcraft's storms for the places that had none)
               "barroom blues", "dwarf hall", "road camp", "glow cave", "low tunnel", "midnight ride", "downpour run",
-              "field storm", "monsoon", "witch storm")
+              "field storm", "monsoon", "witch storm",
+              # (2026-11-18: Knight Rock's towns, a second boss and a battleground)
+              "market square", "royal march", "warlord", "banner war")
 
 
 def _shapes_last(character) -> list[int]:

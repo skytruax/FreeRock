@@ -1212,6 +1212,28 @@ CHARACTERS = (
       pads=("choir", "tremolo"), pad_ways=("tremolo", "pad"), plucks=("strings",), figures=("hammer", "gallop"),
       basses=("basses", "contrabassoon"), kit="orchestra", drums=("timpani", "great drum"), grooves=("thunder",), hall=(3.4, 0.36), lift=0.4,
       titles=(("Witch", "Grave", "Howling", "Raven", "Bone", "Shrieking"), ("Storm", "Gale", "Tempest", "Squall", "Night", "Thunder"))),
+    # --- Knight Rock's towns, a second boss and a battleground (2026-11-18: "then focus on some knight rock for the rest of --
+    # --- the day"; the band had none for a town, Stormwind and Ironforge among them, one boss and no battleground). -------
+    C("market square", KINDS_ALL, role="town", light=True, serves=(0, 1), style="knight", band=True, modes=("mixolydian", "major"),
+      bpm=(104, 116), busy=0.6, weight=0.55, leads=("fiddle", "lead guitar"), strong=("fiddle",), under=(), pads=("accordion", "rock organ"),
+      pad_ways=("pad",), plucks=("rhythm guitar", "mandolin", "twelve string"), figures=("strum", "riff"), basses=("picked bass",),
+      kit="rock", drums=(), grooves=("shuffle", "tavern rock"), hall=(1.4, 0.15), lift=0.25,
+      titles=(("Market", "Cobblestone", "Guildhall", "Fountain", "Merchant's", "Bell Tower"), ("Square", "Shuffle", "Strut", "Day", "Row", "Crossing"))),
+    C("royal march", ("regal", "pastoral", "highland", "infernal"), role="town", serves=(0, 1), style="knight", band=True,
+      modes=("major", "mixolydian", "dorian"), bpm=(92, 104), busy=0.5, weight=0.85, leads=("lead guitar",), strong=("lead guitar",),
+      under=(), pads=("rock organ", "choir"), pad_ways=("pad",), plucks=("rhythm guitar", "twelve string"), figures=("riff", "hammer"),
+      basses=("picked bass",), kit="rock", drums=("church bell",), grooves=("half rock", "anvil rock"), hall=(1.9, 0.2), lift=0.35,
+      titles=(("King's", "Throne", "Lion's", "Iron", "High", "Banner"), ("March", "Hall", "Gate", "Anthem", "Parade", "Crown"))),
+    C("warlord", ("desert", "jungle", "infernal", "haunted"), role="boss", serves=(2,), style="knight", band=True, modes=("phrygian", "minor"),
+      bpm=(132, 144), busy=0.55, weight=1.0, leads=("lead guitar",), strong=("lead guitar",), under=(), pads=("rock organ",),
+      pad_ways=("drone",), plucks=("rhythm guitar",), figures=("chug", "riff"), basses=("picked bass",), kit="rock", drums=("taiko",),
+      grooves=("tom rock", "rock ride"), hall=(1.4, 0.15), lift=0.5,
+      titles=(("Warlord", "Bloodfang", "Skullcrusher", "Chieftain", "Ironjaw", "Ravager"), ("Throne", "Reckoning", "Fury", "Last Stand", "Den", "Pit"))),
+    C("banner war", KINDS_ALL, role="battleground", serves=(0, 1, 2), style="knight", band=True, modes=("minor", "dorian"), bpm=(136, 150),
+      busy=0.6, weight=1.0, leads=("lead guitar",), strong=("lead guitar",), under=(), pads=("rock organ", "choir"), pad_ways=("drone", "pad"),
+      plucks=("rhythm guitar",), figures=("riff", "chug"), basses=("picked bass",), kit="rock", drums=("taiko",), grooves=("rock ride", "tom rock"),
+      hall=(1.6, 0.17), lift=0.45,
+      titles=(("Warsong", "Banner", "Flag", "Front Line", "Blood", "Bridge"), ("War", "Charge", "Rally", "Run", "Raid", "Clash"))),
 )
 
 METRES = {"4/4": (4.0, (2.0, 2.0)), "3/4": (3.0, (3.0,)), "6/8": (3.0, (1.5, 1.5)), "5/4": (5.0, (3.0, 2.0)),
@@ -1963,6 +1985,7 @@ SETTINGS_OF: dict[str, tuple[str, ...]] = {
     "unquiet dead": ("graves", "ruins"), "titan": ("ruins", "heights"), "wild hunt": ("woods",), "blizzard": ("heights",),
     "dread lord": ("ruins", "graves"), "wild king": ("woods", "ruins"), "alliance town": ("settlement", "fort"),
     "town square": ("settlement",), "battleground": ("fields", "fort"), "siege line": ("fort", "fields"),
+    "market square": ("settlement",), "royal march": ("settlement", "fort"), "warlord": ("fort", "ruins"), "banner war": ("fields", "fort"),
     "deep tide": ("water",), "fallen crusade": ("ruins", "sacred"), "bog beast": ("water",), "sea king": ("water",),
     "sea storm": ("water",), "frost wyrm": ("heights", "ruins"), "whiteout": ("heights",),
     "village dance": ("settlement", "fields"), "morning fields": ("fields",), "riverside waltz": ("water", "fields"),
@@ -2142,7 +2165,11 @@ class Take:
         # (And from 21:50 the rhythmic lighter music a little lighter and calmer than that too, so long as its grooves are not
         # all the delicate ones (a music box, fireflies, rain on the roof keep none): "go a little harder this is not world
         # of fairy craft".)
-        lively = walk and ((ch.weight >= 0.6 and ch.busy >= 0.55) or (ch.weight >= 0.5 and ch.busy >= 0.45 and not set(ch.grooves) <= set(DELICATE))) \
+        # (2026-11-18, "i hope you have been working on those war drums", "its okay if some light pieces dont": of the
+        # lighter walking music only one take in thirty-five had them; the slower of it, busy from 0.35 (a snowfall, a
+        # mirage, a frozen lake, a desert shrine, the ice fields), has them too now. Dances and the most delicate still
+        # go without.)
+        lively = walk and ((ch.weight >= 0.6 and ch.busy >= 0.55) or (ch.weight >= 0.5 and ch.busy >= 0.35 and not set(ch.grooves) <= set(DELICATE))) \
             and not set(ch.grooves) & set(DANCE_GROOVES)
         self.has_war = self.fight or (walk and self.heavy) or lively
         self.soft_war = self.has_war and not self.fight and not self.heavy

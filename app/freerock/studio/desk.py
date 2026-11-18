@@ -90,6 +90,39 @@ def js(name: str, *settings: float | str) -> str:
     return "<JS %s \"\"\n%s\n>\nWAK 0 0" % (name, " ".join(slots + ["-"] * (64 - len(slots))))
 
 
+def automated(effect: str, param: int, points: list[tuple[float, float]], low: float, high: float) -> str:
+    """An effect whose setting `param` (its slider's number from 0, for a JSFX) moves through the piece: `points` are
+    (seconds into the piece, value), drawn as one of REAPER's parameter envelopes inside the effect's place in the
+    chain, between `low` and `high` (2026-11-18: "yes you need effects over time"). Between two points the value
+    moves in a straight line, so a sweep that should sound even (a filter's frequency) is given many points."""
+    if "\nWAK 0 0" not in effect:
+        raise ValueError("Not an effect as js() or lv2() writes it: %r" % effect[:60])
+    rows = ["<PARMENV %d %.6g %.6g %.6g" % (param, low, high, points[0][1] if points else low), "ACT 1 -1", "VIS 1 1 1",
+            "LANEHEIGHT 0 0", "ARM 0", "DEFSHAPE 0 -1 -1"]
+    last = -1.0
+    for at, value in sorted(points):
+        when = max(at, 0.0) + LEAD
+        if when <= last:
+            when = last + 0.001
+        rows.append("PT %.4f %.6g 0" % (when, min(max(value, low), high)))
+        last = when
+    rows.append(">")
+    head, _, tail = effect.rpartition("\nWAK 0 0")
+    return head + "\n" + "\n".join(rows) + "\nWAK 0 0" + tail
+
+
+def sweep(start_s: float, end_s: float, low_hz: float, high_hz: float, steps: int = 48) -> list[tuple[float, float]]:
+    """Points for a filter's frequency moving from `low_hz` to `high_hz` (or down, if `high_hz` is the smaller) evenly to
+    the ear: the same step in pitch every point, from `start_s` to `end_s`."""
+    import math
+    out = []
+    for index in range(steps + 1):
+        share = index / steps
+        value = low_hz if index == 0 else high_hz if index == steps else math.exp(math.log(low_hz) + (math.log(high_hz) - math.log(low_hz)) * share)
+        out.append((start_s + (end_s - start_s) * share, value))
+    return out
+
+
 def make_tracks(tracks: list[dict], *, display: str, out: Path = TEMPLATES) -> str:
     """Has REAPER build each track ({"name": ..., "fx": [...]}) and save it as a template in
     `out`. Returns what the builder wrote down."""

@@ -44,11 +44,13 @@ def plays(piece: Piece, instrument: str, parts: tuple[str, ...] = ("leads", "str
     return any(instrument in getattr(piece.character, part, ()) for part in parts)
 
 
-def lively_walk(piece: Piece) -> bool:
+def lively_walk(piece: Piece, busy_from: float = 0.45) -> bool:
+    """Walking music that has soft war drums (orchestra.Take: `lively`), by the rule of its day: busy from 0.45 until
+    2026-11-18, from 0.35 since."""
     ch = piece.character
     if piece.style == "house" or getattr(ch, "role", "") != "wander":
         return False
-    return (((ch.weight >= 0.6 and ch.busy >= 0.55) or (ch.weight >= 0.5 and ch.busy >= 0.45 and not set(ch.grooves) <= set(DELICATE)))
+    return (((ch.weight >= 0.6 and ch.busy >= 0.55) or (ch.weight >= 0.5 and ch.busy >= busy_from and not set(ch.grooves) <= set(DELICATE)))
             and not set(ch.grooves) & set(DANCE_GROOVES))
 
 
@@ -87,6 +89,9 @@ CHANGES = [
     Change("the bagpipe's tunes on a real chanter", datetime.datetime(2026, 11, 18, 8, 18), "8759cca",
            "FreePats' chanter plays the bagpipe's tunes, chosen by ear; held drones stay the english horn",
            lambda p: p.style != "house" and plays(p, "bagpipe", ("leads", "strong", "under"))),
+    Change("soft war drums for the slower light walks", datetime.datetime(2026, 11, 18, 8, 55), "",
+           "the lighter walking music busy from 0.35 has soft war drums too (snowfall, mirage, frozen lake, desert shrine, ice fields)",
+           lambda p: lively_walk(p, 0.35) and not lively_walk(p, 0.45)),
 ]
 
 
