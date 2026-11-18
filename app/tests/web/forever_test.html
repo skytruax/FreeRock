@@ -691,7 +691,7 @@ tests.piecePlace = async () => {
   return { haunted: [...new Set(there.engine.log.map(pieceOf))], pastoral: [...new Set(here.engine.log.map(pieceOf))], order };
 };
 
-// A light place is kept light, but not wholly: after three light pieces in a row a heavier one takes a turn ("the warcraft
+// A light place is kept light, but not wholly: after two light pieces in a row a heavier one takes a turn ("the warcraft
 // songs are too light go a lil darker sometimes", 2026-11-17).
 tests.pieceLightTurn = async () => {
   const pieces = [{ id: "meadow", moods: ["pastoral"], light: true }, { id: "brook", moods: ["pastoral"], light: true },

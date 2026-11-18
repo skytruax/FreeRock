@@ -199,11 +199,12 @@ Two things share these words.
 
 - **The label** (`Character.light`, `house.Family.light`, `light` in a piece). The player makes
   light and heavy take turns (`web/player/forever.js`, `_nextItem`): after a heavy track a heavy one
-  costs 0.6; after two light ones a light one costs 0.3; in a light place a heavy track costs 5,
-  far more than being written for another kind of place (at most 1), except that after three light
-  tracks in a row it costs nothing and a light one 0.3 ("the warcraft songs are too light go a lil
-  darker sometimes", 2026-11-17): about one track in four, the nearest heavy one in shade. Turns are
-  counted as a track for calm play begins. In a light place a heavy track does not go on into its next piece where
+  costs 0.6; after a light one a light one costs 0.3, so they go one for one; in a light place a
+  heavy track costs 5, far more than being written for another kind of place (at most 1), except that
+  after two light tracks in a row it costs nothing and a light one 0.3: one track in three, the nearest
+  heavy one in shade ("the warcraft songs are too light go a lil darker sometimes", "just a bit light
+  and wimpy in general", "in all genres", 2026-11-17; light and heavy had gone two to one, and light
+  places had heard nothing heavy). Turns are counted as a track for calm play begins. In a light place a heavy track does not go on into its next piece where
   light music is there to take over.
 - **Heavy writing** (`Take.heavy`: weight 0.8 or more): brass stabs and two lines above the pad at
   the moments, the whole low end together, war drums in walking music, a gong, a piccolo on top of

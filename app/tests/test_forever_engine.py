@@ -404,11 +404,11 @@ async def test_the_piece_is_chosen_for_the_kind_of_place(results):
     assert "crypt" not in place["order"][1:], "a light place was not kept light"
 
 
-async def test_a_light_place_hears_a_heavier_piece_after_three_light_ones(results):
+async def test_a_light_place_hears_a_heavier_piece_after_two_light_ones(results):
     order = of(results, "pieceLightTurn")["order"]
     assert "moor" in order, "a light place never heard a heavier piece: %s" % order
-    assert order.index("moor") >= 3, "the heavier piece came before three light ones: %s" % order
-    assert order.count("moor") <= max(1, len(order) // 4 + 1), "the light place was not kept mostly light: %s" % order
+    assert order.index("moor") >= 2, "the heavier piece came before two light ones: %s" % order
+    assert order.count("moor") <= max(1, len(order) // 3 + 1), "the light place was not kept mostly light: %s" % order
 
 
 async def test_the_music_follows_the_player_into_another_kind_of_place_within_a_few_bars(results):
