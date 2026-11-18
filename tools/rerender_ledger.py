@@ -128,6 +128,15 @@ CHANGES = [
            "the valley's string and choir pads further off, closing their top and opening at the climb; a harp's, a celesta's, "
            "the bells' last note of each phrase left to hang in an echo ('this might apply to other genres too')",
            lambda p: p.style == "warcraft"),
+    Change("a band's rises and drums that move", datetime.datetime(2026, 11, 18, 15, 59), "",
+           "a long rise opened on the rhythm guitar's wah by hand; the drummer's cymbal turned every sixteen bars of a theme (the "
+           "hat, then the ride; the ride over a groove of the toms) and a heavy band's long moment ridden out on the bell (the "
+           "boredom meter: a battle piece's rhythm one colour through a 36-bar rise, its drums one groove through a theme)",
+           lambda p: p.style == "knight" and p.character.band),
+    Change("House's bass grows harsher through a long drop", datetime.datetime(2026, 11, 18, 15, 59), "",
+           "a harsher twin of the bass on its own notes through the second half of every drop of 32 bars or more, in over "
+           "eight bars (deadmau5's 'Turning Point'; the boredom meter: Moonwell's bass one colour through 44 bars of a drop)",
+           lambda p: p.style == "house" and p.character.role not in ("ember", "night", "camp")),
 ]
 
 

@@ -3,6 +3,30 @@
 Newest first. Words in quotation marks are what was said while listening or playing, as typed or
 dictated, where it drove the change.
 
+## 2026-11-18, afternoon: the pedals on; drums, rises and basses that move
+
+"k keep going"; "some of the instruments get boring figure out how to get more especially in house";
+"Rain on the Roofs I is okay i wish i could hear more of that saw synths top end".
+
+- **The band's 1970s pedals and the orchestra's moving effects are on** in every new take (the demos
+  were heard). Each is still a switch (`orchestra.BAND_PEDALS`, `ORCHESTRA_MARKS`).
+- **House's saw lead keeps its top**: only its very top is eased now (2 dB above 7 kHz), and the
+  tune's filter opens further than the band's.
+- **A band's long rise opens**: the rhythm guitar's wah is held at the heel as a rise of 16 bars or
+  more begins and is brought by hand to the toe by its end, then let go so the moment comes in open.
+- **A band's drummer turns the cymbal** every sixteen bars of a theme: the hat, then the ride. A groove
+  on the toms takes the ride softly over it. At a heavy band's long moment the drummer rides out its
+  second sixteen bars on the ride's bell.
+- **House's bass grows harsher through a long drop**: halfway through every drop of 32 bars or more, a
+  harsher twin plays the bass's own notes, coming in over eight bars (deadmau5's "Turning Point").
+- **A judge that listens** ("find more music judging packages, that will rate a song"): Meta's
+  Audiobox Aesthetics scores a take's enjoyment and production quality, whole and part by part
+  (`tools/judge.py`), on this machine. It is a gate and a pointer for the sound, not a target.
+- All found by the boredom meter (`tools/boredom.py`): a battle piece's rhythm guitar had one colour
+  through a 36-bar rise, its drums one groove through a 40-bar theme and 18 bars of its last moment,
+  and Moonwell's bass one colour through 44 bars of its last drop. The handbook has the lesson that a
+  part can change its notes and still sound the same.
+
 ## 2026-11-18, midday: House's lead a riff, its synths bigger; no reed whining in a valley
 
 "still some boring sounds in house, somethings got better the lead is still lame"; "the sounds just need

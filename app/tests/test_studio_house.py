@@ -505,7 +505,9 @@ def test_a_house_sheet_reads_back_and_is_played_as_it_was_written(tmp_path):
     sheet.save(tmp_path / "sheet.json")
     again = club.heard_from(type(sheet).load(tmp_path / "sheet.json"))
     heard = club.listen(house.Take(fam, 1))
-    assert set(again.notes) == set(heard.notes)
+    # The sheet is the writer's music and what its first draft adds (the bass's harsh twin late in a long drop, `harsher`).
+    added = {key for key in again.notes if key[2].startswith("harsh")}
+    assert set(again.notes) - added == set(heard.notes)
     for key, notes in heard.notes.items():
         assert [(round(at, 6), round(length, 6), round(pitch), round(level, 6)) for at, length, pitch, level, _, _ in notes] == \
                [(round(at, 6), round(length, 6), round(pitch), round(level, 6)) for at, length, pitch, level, _, _ in again.notes[key]]
@@ -559,6 +561,30 @@ def test_a_riff_spells_its_chords_in_short_notes_and_its_echo_is_thrown_at_each_
     assert _value_at(echo, last.start + last.length + 1.0) == 0.0
     calm = next(each for each in house.PLAN if each.role in house.CALM_ROLES)
     assert not house.Take(calm, 1).tune.riff                  # the calm moments sing
+
+
+def test_a_long_drops_bass_grows_harsher_halfway():
+    # (The house study: deadmau5's "Turning Point", a second, harsher bass fading in under the same notes; the boredom
+    # meter, 2026-11-18: Moonwell's bass kept one colour through 44 bars of its last drop.) The twin plays the bass's own
+    # notes through the second half of every drop of 32 bars or more, stepping in over eight bars, and nowhere else.
+    from freerock.studio import club
+    sheet = club.write("mystic-01", 1)
+    twins = [name for name in sheet.parts["bass"] if name.startswith("bass harsh")]
+    assert len(twins) == 1
+    twin = sheet.parts["bass"][twins[0]]
+    halves = [((section["first"] + section["bars"] // 2) * 4.0, (section["first"] + section["bars"]) * 4.0)
+              for section in sheet.form if section["story"] == "moment" and section["bars"] >= 32]
+    assert halves and all(any(a <= note.start < b for a, b in halves) for note in twin.notes)
+    bass = [note for name, part in sheet.parts["bass"].items() if name not in twins for note in part.notes]
+    assert {(note.start, note.pitch) for note in twin.notes} <= {(note.start, note.pitch) for note in bass}
+    a, _ = halves[-1]
+    first = max(note.loud for note in twin.notes if a <= note.start < a + 16.0)
+    last = max(note.loud for note in twin.notes if a + 32.0 <= note.start)
+    assert first < 0.6 * last and last <= club.HARSH
+    assert twin.instrument != next(part.instrument for name, part in sheet.parts["bass"].items() if name not in twins)
+    # ...and none in a calm piece.
+    calm = next(each for each in house.PLAN if each.role in house.CALM_ROLES)
+    assert not any(name.startswith("bass harsh") for name in club.write(calm.name, 1).parts["bass"])
 
 
 def test_a_house_groove_changes_every_sixteen_bars():

@@ -923,6 +923,22 @@ def test_a_bands_long_rise_opens_on_a_wah_and_its_drummer_turns_to_the_ride():
         assert ride in strokes(16, 32) and hat not in strokes(16, 32)
 
 
+def test_a_heavy_bands_drummer_rides_out_a_long_moment_on_the_bell():
+    # (The boredom meter on Bridge Charge: its drums 18 bars of a 40-bar last moment without a change.) The ride's bell
+    # joins its groove of the toms for the moment's second sixteen bars, and leaves for the last eight.
+    take = orchestra.Take(_family("anywhere-banner-war-2"), 1)
+    kit, beats = take.voices["drums"]["kit"], take.beats
+    bell = orchestra.KITS[take.ch.kit]["bell"]
+    summit = next(first for section, first, _, _ in take.spans if section.part == "summit")
+    struck = lambda a, b: {note.pitch for note in kit.notes if summit + a * beats <= note.start < summit + b * beats}  # noqa: E731
+    assert bell not in struck(0, 16) and bell in struck(16, 32) and bell not in struck(32, 40)
+    # A light band's moment is left as it is.
+    light = orchestra.Take(_family("anywhere-tavern-rock-1"), 1)
+    moments = [(first, first + section.bars * light.beats) for section, first, _, _ in light.spans if section.part in ("arrival", "summit")]
+    assert not any(note.pitch == orchestra.KITS[light.ch.kit]["bell"] and any(a <= note.start < b for a, b in moments)
+                   for note in light.voices["drums"]["kit"].notes)
+
+
 def test_a_bands_pedals_can_be_switched_off():
     # A new sound is heard as a demo before it is used (the plan's principles): the switch that held the pedals back until
     # the demos were heard ("k keep going", 2026-11-18) still takes every mark away.

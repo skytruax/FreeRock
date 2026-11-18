@@ -851,7 +851,9 @@ moment.
 The cymbal turns (`Take.cymbal`). In a theme, a drummer keeps time on the hat for sixteen bars and
 on the ride for the next sixteen, the same figure a little softer. On a groove of the toms, with no
 cymbal keeping time, the ride joins softly for those sixteen bars and leaves again. A tavern's
-tambourine and side stick, and a theme the drums sit out, stay as they are.
+tambourine and side stick, and a theme the drums sit out, stay as they are. At a heavy band's moment
+the drummer rides it out the same way: the open hat or the ride goes over to the ride's bell for the
+second sixteen bars, or the bell joins a groove of the toms. A light band's moment is left alone.
 
 ### 4.9 The rest of the band's story
 
@@ -916,6 +918,15 @@ off-beat roots for four bars, and no figure has octaves or fifths for eight. The
 close once the kick has gone, hold one long note to a bar, *8 to 10 dB under the groove*. In two
 takes of three, eighths on one note open up through the end of a rise. The desk adds the sub and the
 growl (5.7).
+
+**The bass grows harsher through a long drop** (`club.harsher`, on the sheet as the part `bass
+harsh`). Halfway through every drop of 32 bars or more, a second bass plays the bass's own notes and
+leaves with the drop. It is the detuned saws of the wide bass, or a sawtooth where the bass is already
+the wide one. It comes in over eight bars in the desk's four-bar volume steps (under half way, most of
+the way, in), up to about half the bass's level. This is the move of deadmau5's "Turning Point", where
+a harsher bass fades in under the same notes and the timbre seems to change, and of "Phantoms Can't
+Hang", whose bass turns harsher before a core's midpoint. The boredom meter had heard Moonwell's bass
+keep one colour through 44 bars of its last drop. Calm pieces keep one bass.
 
 ### 5.4 Plucks, stabs and arps; leads; pads
 
@@ -1264,6 +1275,24 @@ loudspeakers. `tools/audition.py [--only <name>] [--keep]` writes `var/listen/in
 instrument alone, as the bare recording, as it was and as it is now, with the ear's octave gaps.
 
 ---
+
+### 7.7 The boredom meter and the judge
+
+`tools/boredom.py` gives each channel of a take a fingerprint for every bar: its shape across the
+octaves, its loudness and the figure its top strikes in sixteen steps. It reports the longest
+stretch that does not move, and flags 16 bars or more. Read a flag against the sheet: a close that
+peels its groove away a quiet layer at a time reads as unchanged, and a part can change its notes
+and still sound the same (0.4).
+
+`tools/judge.py` runs Meta's Audiobox Aesthetics on a take, whole and part by part (`--parts`), in an
+environment of its own (`var/tools/judges`). It scores enjoyment (CE), usefulness (CU), production
+complexity (PC) and production quality (PQ), about 1 to 10, from 16 kHz mono in ten-second windows.
+It is a gate and a pointer, not a target. Its first readings (2026-11-18): Bridge Charge scored the
+same before and after its rise was opened on a wah and its drummer turned to the ride (CE 6.85 and
+6.83, PQ 7.28 and 7.29). It hears production, not arrangement. The reworked House take Larks over the
+Ridge scored PQ 7.83. Under a full load of renders it takes about six minutes a take.
+
+    "var/tools/judges/.venv/bin/python" -I tools/judge.py knight/anywhere-banner-war-2/1 --parts
 
 ## 8. How to make and change music
 

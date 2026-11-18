@@ -49,6 +49,7 @@ BEAT = house.BEAT
 PLAYED = {
     ("bass", "sub"): "house sub", ("bass", "pluck"): "house bass pluck", ("bass", "saw"): "house bass saw", ("bass", "square"): "house bass square",
     ("bass", "fm"): "house bass fm", ("bass", "reese"): "house bass wide", ("bass", "organ"): "house bass organ",
+    ("bass", "harsh"): "house bass wide", ("bass", "harsh saw"): "house bass saw",      # the twin that comes in late in a drop
     ("keys", "piano"): "house piano", ("keys", "keys"): "electric piano", ("keys", "organ"): "house organ", ("keys", "stab"): "house stab",
     ("keys", "pluck"): "house pluck", ("keys", "bell"): "house bell", ("keys", "glass"): "house glass", ("keys", "harp"): "harp",
     ("keys", "marimba"): "marimba", ("keys", "oud"): "guitar", ("keys", "string"): "guitar", ("keys", "brass"): "brass",
@@ -183,6 +184,7 @@ def _loud(levels: list[float]) -> list[float]:
 SPAN = 4            # bars: a voice's level is read four at a time (a house phrase is eight, every part a whole number of them)
 UNDER = 0.6         # a note written under this part of the loudest in its four bars is a line under the tune: a doubling, an echo
 SUBBED = ("house bass pluck", "house bass saw")      # the basses that are heard more than felt: a sine goes under them
+HARSH = 0.55        # how far under the bass its harsh twin plays, once it is all the way in (`harsher`)
 SUB_UNDER = 0.8     # ...this far under the bass it holds up (0.7 until the third pass: the liked basses have 3 to 7 dB more at 28 to 57 Hz)
 
 
@@ -570,6 +572,8 @@ def write(name: str, take: int) -> Sheet:
                 part.set("phaser bars", 4.0)
                 part.set("phaser feedback", 0.4)
         parts[channel]["%s %s" % (table, sound)] = part
+    if not calm:
+        harsher(parts, form)
     machine = heard.hits[0][1] if heard.hits else ""
     for drum, _, at, level, _ in heard.hits:
         parts["drums"].setdefault(drum, Voice(drums=True, instrument="house kit " + machine)).notes.append(Note(at / BEAT, 0.25, 36, level))
@@ -580,6 +584,32 @@ def write(name: str, take: int) -> Sheet:
                   about=about, airs=[asdict(air) for air in heard.airs])
     sheet.revised("the first draft", "written by the studio's house writer (%s, %s)" % (fam.palette, fam.groove), by="the writer")
     return sheet
+
+
+def harsher(parts: dict[str, dict[str, Voice]], form: list[dict]) -> None:
+    """The bass grows harsher through a long drop: a second bass on the same notes comes in over eight bars halfway
+    through every drop of 32 bars or more and leaves with it (the house study: deadmau5's "Turning Point", where a harsher
+    bass fades in under the same notes, an illusion of the timbre changing, and "Phantoms Can't Hang", whose bass turns
+    harsher before a core's midpoint; the boredom meter, 2026-11-18: the bass's colour held 44 bars of a last drop). The
+    twin is the detuned saws of the wide bass, or a sawtooth where the bass is already the wide one."""
+    notes: list[Note] = []
+    played = ""
+    for section in form:
+        if section["story"] != "moment" or section["bars"] < 32:
+            continue
+        a, b = (section["first"] + section["bars"] // 2) * 4.0, (section["first"] + section["bars"]) * 4.0
+        here = {name: [note for note in part.notes if a <= note.start < b] for name, part in parts["bass"].items()}
+        name = max(here, key=lambda each: len(here[each]), default=None)
+        if not name or not here[name]:
+            continue
+        played = parts["bass"][name].instrument
+        for note in here[name]:
+            # In over eight bars, a step for each of the desk's four-bar volume steps: under half way, most of the way, in.
+            step = (0.45, 0.73, 1.0)[min(int((note.start - a) // 16.0), 2)]
+            notes.append(Note(note.start, note.length, note.pitch, note.loud * HARSH * step))
+    if notes:
+        twin = "harsh saw" if played == PLAYED[("bass", "harsh")] else "harsh"
+        parts["bass"]["bass " + twin] = Voice(instrument=PLAYED[("bass", twin)], notes=notes)
 
 
 def heard_from(sheet: Sheet) -> Heard:

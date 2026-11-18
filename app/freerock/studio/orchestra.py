@@ -3086,14 +3086,27 @@ class Take:
             inst = INSTRUMENTS[sound]
             self.put("drums", sound, at, 0.5, key.pitch(chord.root, inst.home), loud)
 
-    def cymbal(self, layers: list, bar: int) -> list:
+    def cymbal(self, layers: list, bar: int, moment: bool = False) -> list:
         """A band's drummer keeps time on the hat for sixteen bars of a theme and on the ride for the next sixteen, the
         same figure a little softer; on a groove of the toms, with no cymbal keeping time, the ride joins it softly for
         those sixteen bars and leaves again (2026-11-18, the boredom meter: a battle piece's drums had sounded the same
         through a whole theme and into the next, 44 bars; "some of the instruments get boring"). Any other groove (a
-        tavern's tambourine and side stick) is left as it is."""
+        tavern's tambourine and side stick) is left as it is.
+
+        At a heavy band's moment the drummer rides it out the same way: the cymbal keeping time goes over to the ride's
+        bell for the second sixteen bars, or the bell joins a groove of the toms (the meter: 18 bars of a battle piece's
+        40-bar last moment without a change)."""
         if not self.ch.band or not layers or (bar // 16) % 2 == 0:
             return layers                                   # (a theme the drums sit out stays without them)
+        if moment:
+            if not self.heavy:
+                return layers
+            keeper = ("hat open", "ride", "hat")
+            if any(layer[0] in keeper for layer in layers):
+                return [("bell", layer[1], 0.85 * layer[2]) + tuple(layer[3:]) if layer[0] in keeper else layer for layer in layers]
+            if any(layer[0] in ("tom", "tom low") for layer in layers):
+                return list(layers) + [("bell", "pulses", 0.4)]
+            return layers
         if any(layer[0] == "hat" for layer in layers):
             return [("ride", layer[1], 0.9 * layer[2]) + tuple(layer[3:]) if layer[0] == "hat" else layer for layer in layers]
         if any(layer[0] in ("tom", "tom low") for layer in layers) and not any(layer[0] in ("hat open", "ride") for layer in layers):
@@ -3183,7 +3196,7 @@ class Take:
                 elif part in ("arrival", "summit"):
                     big = part == "summit"
                     if not (ch.band and self.heavy and bar == 0):          # a band's moment begins with a stop: the hit alone
-                        lay(main["moment"], bar, bar_at, level, 1.0 if big else 0.85, chord, key)
+                        lay(self.cymbal(main["moment"], bar, moment=True), bar, bar_at, level, 1.0 if big else 0.85, chord, key)
                     if bar == 0 and main["hit"]:
                         self.strike(main["hit"], bar_at, (0.6 + 0.35 * ch.weight) * (1.0 if big else 0.85), chord, key)
                         if self.heavy:
