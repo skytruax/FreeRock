@@ -6,7 +6,7 @@
     "Redridge Mountains":  {"bpm": 120, "tonic": "D mixolydian", "colours": ["twelve-string acoustic strum", "mandolin"], "mood": ["brisk lakeside air", "watchful"]},
     "Duskwood":            {"bpm": 80,  "tonic": "D minor", "colours": ["tremolo guitar", "church organ", "tolling bell"], "mood": ["gothic", "moonlit", "haunted"]},
     "Stranglethorn Vale":  {"bpm": 125, "tonic": "A minor", "colours": ["hand drums and shakers", "wah guitar", "wooden flute"], "mood": ["humid jungle", "prowling"]},
-    "Loch Modan":          {"bpm": 120, "tonic": "A mixolydian", "colours": ["mandolin", "tin whistle", "hand claps"], "mood": ["fresh mountain air", "sturdy and cheerful"]},
+    "Loch Modan":          {"bpm": 120, "tonic": "A mixolydian", "colours": ["mandolin", "drone pipes", "hand claps"], "mood": ["fresh mountain air", "sturdy and stout", "dwarven hill farms"]},
     "Dun Morogh":          {"bpm": 100, "tonic": "D dorian", "colours": ["anvil strikes on the backbeat", "drone pipes", "stomping feet"], "mood": ["icy and snowbound", "stout", "proud"]},
     "Wetlands":            {"bpm": 96,  "tonic": "B minor", "colours": ["slide guitar", "squeezebox", "frame drum"], "mood": ["damp and grey", "marshy"]},
     "Arathi Highlands":    {"bpm": 125, "tonic": "E mixolydian", "colours": ["marching snare", "fiddle", "drone pipes"], "mood": ["open highland", "riding hard"]},

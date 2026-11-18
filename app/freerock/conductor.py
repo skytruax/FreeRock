@@ -51,6 +51,7 @@ class Conductor:
         self.settings = settings or Settings()
         self._began = clock()
         self._zone_of_map: dict[int, str] = {}           # the zone each of the game's maps belongs to
+        self._zone_before_flight: str | None = None      # the zone the player was last in on foot (see zone_here)
         self.players: set[web.WebSocketResponse] = set()
         self.target: Target | None = None
         self.statuses: dict[int, dict[str, Any]] = {}   # what each player page last reported
@@ -99,6 +100,18 @@ class Conductor:
         if state is None:
             return [], False
         return atlas.kinds_for(self.place_name(state), self.spot_name(state))
+
+    def zone_here(self, state: game.GameState | None) -> str | None:
+        """The zone or dungeon the player is in, for the player's choice of when a song changes; while on a flight
+        path, the one the flight left from. None while the game has not said."""
+        if state is None:
+            return None
+        if state.on_taxi and self._zone_before_flight is not None:
+            return self._zone_before_flight
+        zone = self.place_name(state) or None
+        if not state.on_taxi:
+            self._zone_before_flight = zone
+        return zone
 
     def setting_here(self, state: game.GameState | None) -> str:
         """What sort of ground the player is on (atlas.SETTINGS: woods, water, heights, fields...), or ""."""
@@ -152,6 +165,10 @@ class Conductor:
         target["shade"] = self.shade_here(state)
         # ...and what sort of ground it is (by a lake, in the woods, on the heights): among those, the piece written for it.
         target["setting"] = self.setting_here(state)
+        # ...and which zone (or dungeon) it is: a song is changed for a new zone, never for a subzone ("but this should only
+        # happen in like zone changes, not every subzone", 2026-11-17, played). On a flight path the zone the player
+        # left stands until the landing: the zones passed over are not entered.
+        target["zone"] = self.zone_here(state)
         return {"type": "target", "target": target, "link": self.hub.link.value,
                 # The volume set in the game with /rock volume, 0 to 100; the page's own volume
                 # control follows it whenever it changes.
@@ -196,7 +213,7 @@ class Conductor:
         mixed = forever.mix(target, self.mix)
         found, light = self.kinds_here(state)
         told = (target, state.volume, self._sent_bucket, json.dumps(mixed, sort_keys=True), tuple(found), light, self.shade_here(state),
-                self.setting_here(state))
+                self.setting_here(state), self.zone_here(state))
         if told != self._told:
             self.target, self.mix, self._told = target, mixed, told
             await self._broadcast(self._target_message())

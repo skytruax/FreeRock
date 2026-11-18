@@ -663,6 +663,24 @@ tests.pieceFightAgain = async () => {
            secondAt: second ? second.at : null, secondOffset: second ? second.offset : null, late: run.engine.late };
 };
 
+// Neither a walking track nor a fight's is gone back to once it began long ago: in a run of pulls one walking track came
+// back after every fight, and one fight's track with every pull ("feel like i hear the same knight rock one over and
+// over then something else maybe then it comes back", 2026-11-17). A short fight still goes back.
+tests.pieceResumeSpan = async () => {
+  const bucket = makePieces("span", [{ id: "long", windows: 80, moods: ["pastoral"] }, { id: "fresh", windows: 80, moods: ["highland"] },
+                                     { id: "brawl", windows: 4, serves: [2], role: "battle", moods: ["pastoral"] },
+                                     { id: "scrap", windows: 4, serves: [2], role: "battle", moods: ["highland"] }]);
+  const fight = Object.assign(mix(2), { place: "battle", kinds: ["pastoral"] }), calm = Object.assign(mix(1), { place: "wander", kinds: ["pastoral"] });
+  const run = await render(530, { bucket, tickEvery: 2.0, target: calm,
+                                  script: [[10.3, (engine) => engine.setTarget(fight)], [20.3, (engine) => engine.setTarget(calm)],
+                                           [500.3, (engine) => engine.setTarget(fight)], [510.3, (engine) => engine.setTarget(calm)]] });
+  const log = [...run.engine.log].sort((a, b) => a.at - b.at);
+  const walking = (name) => name === "long" || name === "fresh", fighting = (name) => name === "brawl" || name === "scrap";
+  const first = (from, to, which) => { const entry = log.find((e) => e.at >= from && e.at < to && which(pieceOf(e))); return entry ? pieceOf(entry) : null; };
+  return { start: first(0, 10, walking), firstFight: first(10.3, 20, fighting), early: first(20.3, 30, walking),
+           fightLate: first(500.3, 510, fighting), late: first(510.3, 530, walking), lateCount: run.engine.late };
+};
+
 // A fight that comes in the last bars of a piece: afterwards the track goes on from its next piece.
 tests.pieceFightAtTheEnd = async () => {
   const bucket = makePieces("late", [{ id: "one", windows: 2, then: "two", story: "open", track: "t" },
@@ -691,8 +709,8 @@ tests.piecePlace = async () => {
   return { haunted: [...new Set(there.engine.log.map(pieceOf))], pastoral: [...new Set(here.engine.log.map(pieceOf))], order };
 };
 
-// A light place is kept light, but not wholly: after two light pieces in a row a heavier one takes a turn ("the warcraft
-// songs are too light go a lil darker sometimes", 2026-11-17).
+// A light place is not kept wholly light: after each light piece a heavier one takes a turn ("the warcraft songs are too
+// light go a lil darker sometimes", then "go a little harder this is not world of fairy craft", 2026-11-17).
 tests.pieceLightTurn = async () => {
   const pieces = [{ id: "meadow", moods: ["pastoral"], light: true }, { id: "brook", moods: ["pastoral"], light: true },
                   { id: "orchard", moods: ["pastoral"], light: true }, { id: "moor", moods: ["pastoral"] }];
@@ -702,34 +720,42 @@ tests.pieceLightTurn = async () => {
   return { order };
 };
 
-// Where the player goes, the music follows: into another kind of place the new place's track
-// takes over a few seconds after the border, on a bar line, long before the piece that was
-// playing has ended; and a step back picks the old track up where it was left.
+// Where the player goes, the music follows, for a new zone only ("but this should only happen in like zone changes,
+// not every subzone", 2026-11-17): once the player has been in the new zone fifteen seconds its track takes over on a
+// bar line, long before the piece that was playing has ended; a step over the border and back changes nothing; and
+// back in the first zone, the old track is picked up where it was left. A subzone (another kind of land named, another
+// shade, another ground, a light place or not) never moves the song.
 tests.pieceFollows = async () => {
   const bucket = makePieces("follow", [{ id: "meadow", windows: 6, moods: ["pastoral"], light: true }, { id: "crypt", windows: 6, moods: ["haunted"] }]);
-  const run = await render(60, { bucket, target: Object.assign(mix(1), { kinds: ["pastoral"], light: true }),
-                                 script: [[5, (engine) => engine.setTarget({ kinds: ["haunted"], light: false })],
-                                          [7, (engine) => engine.setTarget({ kinds: ["pastoral"], light: true })],       // a step back at once: nothing
-                                          [8.5, (engine) => engine.setTarget({ kinds: ["haunted"], light: false })],
-                                          [20, (engine) => engine.setTarget({ kinds: ["pastoral"], light: true })]] });
+  const run = await render(70, { bucket, target: Object.assign(mix(1), { kinds: ["pastoral"], light: true, zone: "Elwynn" }),
+                                 script: [[5, (engine) => engine.setTarget({ kinds: ["haunted"], light: false, zone: "Duskwood" })],
+                                          [7, (engine) => engine.setTarget({ kinds: ["pastoral"], light: true, zone: "Elwynn" })],   // a step back at once: nothing
+                                          [8.5, (engine) => engine.setTarget({ kinds: ["haunted"], light: false, zone: "Duskwood" })],
+                                          [40, (engine) => engine.setTarget({ kinds: ["pastoral"], light: true, zone: "Elwynn" })]] });
   const log = [...run.engine.log].sort((a, b) => a.at - b.at);
   const crypt = log.find((entry) => pieceOf(entry) === "crypt");
   // (What the old track had laid down ahead when the new one took over is in the log too: the return is looked for later.)
-  const back = log.find((entry) => pieceOf(entry) === "meadow" && entry.at > 30);
+  const back = log.find((entry) => pieceOf(entry) === "meadow" && entry.at > 45);
   const meadow = TONE["follow-meadow-rhythm1-w0"], haunted = TONE["follow-crypt-rhythm1-w0"];
   // A border crossed in a short fight (the game names no other moment for it): nothing moves
   // while the fight is on, and the music follows when it is over.
   const fight = await render(30, { bucket: makePieces("skirmish", [{ id: "meadow", windows: 6, moods: ["pastoral"], light: true },
                                                                    { id: "crypt", windows: 6, moods: ["haunted"] }]),
-                                   target: Object.assign(mix(1), { kinds: ["pastoral"], light: true }),
-                                   script: [[4.5, (engine) => engine.setTarget({ kinds: ["haunted"], light: false, intensity: 0.8 })],
+                                   target: Object.assign(mix(1), { kinds: ["pastoral"], light: true, zone: "Elwynn" }),
+                                   script: [[4.5, (engine) => engine.setTarget({ kinds: ["haunted"], light: false, intensity: 0.8, zone: "Duskwood" })],
                                             [12, (engine) => engine.setTarget({ intensity: 0.3 })]] });
   const after = [...fight.engine.log].sort((a, b) => a.at - b.at).find((entry) => pieceOf(entry) === "crypt");
+  // A subzone: another kind of land named, darker, other ground, no longer light; the same zone. Nothing moves.
+  const sub = await render(45, { bucket: makePieces("subzone", [{ id: "meadow", windows: 6, moods: ["pastoral"], light: true },
+                                                                { id: "crypt", windows: 6, moods: ["haunted"] }]),
+                                 target: Object.assign(mix(1), { kinds: ["pastoral"], light: true, zone: "Elwynn", shade: 2, setting: "fields" }),
+                                 script: [[5, (engine) => engine.setTarget({ kinds: ["haunted"], light: false, shade: -2, setting: "graves" })]] });
   return { afterFightAt: after ? after.at : null,
+           subzone: [...new Set(sub.engine.log.filter((entry) => entry.at < 45).map(pieceOf))],
            cryptAt: crypt ? crypt.at : null, backAt: back ? back.at : null, backOffset: back ? back.offset : null, backClip: back ? back.clip : null,
            meadowBefore: strength(run.data, 9, 13, meadow), cryptBefore: strength(run.data, 9, 13, haunted),
-           meadowThere: strength(run.data, 19, 23, meadow), cryptThere: strength(run.data, 19, 23, haunted),
-           meadowBack: strength(run.data, 39, 43, meadow), cryptBack: strength(run.data, 39, 43, haunted) };
+           meadowThere: strength(run.data, 28, 32, meadow), cryptThere: strength(run.data, 28, 32, haunted),
+           meadowBack: strength(run.data, 60, 64, meadow), cryptBack: strength(run.data, 60, 64, haunted) };
 };
 
 // A cave or an inn is a place the player stands in: what was written for it comes at once, though
@@ -759,17 +785,61 @@ tests.pieceIntoCave = async () => {
            afterFight: [...new Set(fought.engine.log.filter((entry) => entry.at > 20 && entry.at < 60).map(pieceOf))] };
 };
 
+// A fight drives the walking song on to its own rise: the same song, its next rise, on the next bar line; no other
+// song; and once for each fight ("fights shouldnt start new songs", "need to do a better job dynamically to match the
+// mood in general", 2026-11-17).
+tests.pieceDrive = async () => {
+  const bucket = makePieces("drive", [{ id: "op", windows: 2, then: "th", story: "open", track: "t" },
+                                      { id: "th", windows: 4, phase: "op", then: "ri", story: "theme", track: "t" },
+                                      { id: "ri", windows: 2, phase: "th", then: "mo", story: "rise", track: "t" },
+                                      { id: "mo", windows: 2, phase: "ri", story: "moment", track: "t" },
+                                      { id: "other", windows: 6, track: "o", role: "ember" }]);      // (never chosen to begin with)
+  const run = await render(50, { bucket, target: Object.assign(mix(1), { place: "wander", also: [] }),
+                                 script: [[20.3, (engine) => engine.setTarget({ fight: true, intensity: 0.85 })],
+                                          [30.3, (engine) => engine.setTarget({ fight: false, intensity: 0.4 })]] });
+  const log = [...run.engine.log].sort((a, b) => a.at - b.at);
+  const rise = log.find((entry) => pieceOf(entry) === "ri"), moment = log.find((entry) => pieceOf(entry) === "mo");
+  return { riseAt: rise ? rise.at : null, momentAt: moment ? moment.at : null,
+           other: log.filter((entry) => pieceOf(entry) === "other" && entry.at < 45).length, late: run.engine.late };
+};
+
+// A camp and a storm that sets in each change the song ("but major place changes, inns, camps, or abrupt storms should
+// change the song", 2026-11-17): the camp's or the storm's own music on a bar line a few seconds in; up from the camp,
+// the walking track is picked up again; and when the storm is over its track plays to the end of its part.
+tests.pieceCampStorm = async () => {
+  const camp = await render(50, { bucket: makePieces("camp", [{ id: "walk", windows: 8 }, { id: "fire", windows: 8, role: "camp" }]),
+                                  target: Object.assign(mix(1), { place: "wander", also: [] }),
+                                  script: [[5, (engine) => engine.setTarget({ place: "camp", also: ["wander", "ember"], sited: true })],
+                                           [30.5, (engine) => engine.setTarget({ place: "wander", also: [], sited: false })]] });
+  const storm = await render(50, { bucket: makePieces("gale", [{ id: "walk", windows: 8 }, { id: "gale", windows: 2, role: "storm" }]),
+                                   target: Object.assign(mix(1), { place: "wander", also: [], intensity: 0.4 }),
+                                   script: [[5, (engine) => engine.setTarget({ place: "storm", also: ["wander"], intensity: 0.78 })],
+                                            [20.5, (engine) => engine.setTarget({ place: "wander", also: [], intensity: 0.4 })]] });
+  const first = (log, id, after) => {
+    const found = [...log].sort((a, b) => a.at - b.at).find((entry) => pieceOf(entry) === id && entry.at > after);
+    return found ? found.at : null;
+  };
+  return { fireAt: first(camp.engine.log, "fire", 0), campBackAt: first(camp.engine.log, "walk", 30),
+           galeAt: first(storm.engine.log, "gale", 0), galeEnds: (() => {
+             const gale = storm.engine.log.filter((entry) => pieceOf(entry) === "gale");
+             return gale.length ? Math.max(...gale.map((entry) => entry.at)) : null; })(),
+           stormBackAt: first(storm.engine.log, "walk", 20), late: camp.engine.late + storm.engine.late };
+};
+
 // A border crossed in the last seconds of a piece, after the track's next piece was made ready:
-// the track still gives way to the new place's music where the piece ends.
+// the zone has not been there long enough to change the song, so the track goes on into its next
+// piece, and the new zone's music comes where the track ends.
 tests.pieceBorderLate = async () => {
   const bucket = makePieces("border", [{ id: "crypt", windows: 2, then: "vault", story: "open", track: "t", moods: ["haunted"] },
                                        { id: "vault", windows: 2, phase: "crypt", story: "theme", track: "t", moods: ["haunted"] },
                                        { id: "meadow", windows: 2, moods: ["pastoral"], light: true }]);
-  const run = await render(40, { bucket, target: Object.assign(mix(1), { kinds: ["haunted"] }),
-                                 script: [[11, (engine) => engine.setTarget({ kinds: ["pastoral"], light: true })]] });
+  const run = await render(40, { bucket, target: Object.assign(mix(1), { kinds: ["haunted"], zone: "Duskwood" }),
+                                 script: [[11, (engine) => engine.setTarget({ kinds: ["pastoral"], light: true, zone: "Elwynn" })]] });
   const second = run.engine.log.filter((entry) => entry.at > 16 && entry.at < 16.2).map(pieceOf);
+  const meadow = [...run.engine.log].sort((a, b) => a.at - b.at).find((entry) => pieceOf(entry) === "meadow");
   const sounding = TONE["border-meadow-rhythm1-w0"], dropped = TONE["border-crypt-rhythm1-w0"];
-  return { second: [...new Set(second)], meadow: strength(run.data, 19, 23, sounding), vault: strength(run.data, 22, 23, dropped) };
+  return { second: [...new Set(second)], meadowAt: meadow ? meadow.at : null, meadow: strength(run.data, 35, 39, sounding),
+           vault: strength(run.data, 22, 23, dropped) };
 };
 
 // Light and heavy take turns: two heavy tracks never follow each other while there is a light one.
@@ -847,9 +917,9 @@ tests.pieceLong = () => longTrack(false);
 tests.pieceLongPlaced = () => longTrack(true);
 
 // A track goes on through a calm moment (the game says "ember" after a fight), even though the
-// bucket has a piece written for calm moments; that piece comes when the track has ended.
+// bucket has a piece written for calm moments; and the calm after a fight is no place, so a track
+// that ends in it is followed by walking music ("fights shouldnt start new songs", 2026-11-17).
 tests.pieceCarriesOn = async () => {
-  // ...and a track written for the calm moment ends when the moment is over, not three minutes later.
   const bucket = makePieces("carry", [{ id: "one", then: "two", story: "open", track: "t" }, { id: "two", phase: "one", story: "moment", track: "t" },
                                       { id: "calm", role: "ember", serves: [0, 1], story: "open", then: "calmer", track: "c" },
                                       { id: "calmer", role: "ember", serves: [0, 1], phase: "calm", story: "theme", track: "c" }]);
@@ -863,14 +933,15 @@ tests.pieceCarriesOn = async () => {
 
 // How dark or bright: two tracks for the same kind of place, one in a major key and one in a
 // minor, are told apart by the place's shade. A dark corner of bright country takes the minor
-// one; and when the light goes (the shade falls by two steps) the music follows, though the
-// kind of place has not changed.
+// one; and when the light goes (the shade falls by two steps) the next song is the darker one,
+// while the one playing plays to its end ("for the whole songs to play ... and for major place
+// changes to shift the songs", 2026-11-17: the light is not a change of place).
 tests.pieceShade2 = async () => {
   const pieces = () => makePieces("shade2", [{ id: "sunny", windows: 6, moods: ["pastoral"], tonic: "G major" },
                                             { id: "dusky", windows: 6, moods: ["pastoral"], tonic: "E phrygian" }]);
   const bright = await render(10, { bucket: pieces(), target: Object.assign(mix(1), { kinds: ["pastoral"], shade: 2 }) });
   const dark = await render(10, { bucket: pieces(), target: Object.assign(mix(1), { kinds: ["pastoral"], shade: -2 }) });
-  const dusk = await render(30, { bucket: pieces(), target: Object.assign(mix(1), { kinds: ["pastoral"], shade: 2 }),
+  const dusk = await render(60, { bucket: pieces(), target: Object.assign(mix(1), { kinds: ["pastoral"], shade: 2 }),
                                   script: [[5.5, (engine) => engine.setTarget({ shade: 1.5 })],        // a cloud: nothing
                                            [8.5, (engine) => engine.setTarget({ shade: -1 })]] });      // nightfall and rain
   const log = [...dusk.engine.log].sort((a, b) => a.at - b.at);
@@ -883,14 +954,14 @@ tests.pieceShade2 = async () => {
 };
 
 // Among pieces for one kind of place, the one written for the ground the player stands on (a lake, a farm) comes first,
-// and the music follows when the ground changes.
+// and when the ground changes the next song is the new ground's, the one playing playing to its end.
 tests.pieceSetting = async () => {
   const pieces = () => makePieces("ground", [{ id: "lake", windows: 6, moods: ["pastoral"], settings: ["water"] },
                                              { id: "farm", windows: 6, moods: ["pastoral"], settings: ["fields"] },
                                              { id: "any", windows: 6, moods: ["pastoral"] }]);
   const water = await render(10, { bucket: pieces(), target: Object.assign(mix(1), { kinds: ["pastoral"], setting: "water" }) });
   const fields = await render(10, { bucket: pieces(), target: Object.assign(mix(1), { kinds: ["pastoral"], setting: "fields" }) });
-  const walk = await render(30, { bucket: pieces(), target: Object.assign(mix(1), { kinds: ["pastoral"], setting: "water" }),
+  const walk = await render(60, { bucket: pieces(), target: Object.assign(mix(1), { kinds: ["pastoral"], setting: "water" }),
                                   script: [[8.5, (engine) => engine.setTarget({ setting: "fields" })]] });
   const log = [...walk.engine.log].sort((a, b) => a.at - b.at);
   const moved = log.find((entry) => pieceOf(entry) === "farm");

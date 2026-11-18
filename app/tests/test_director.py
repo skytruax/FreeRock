@@ -49,8 +49,11 @@ def test_standing_is_a_riff_with_the_guitars_alone():
     calm = play([], 10, start=STANDING)(10)
     # (Standing still quiets every channel a little: "and standing still should quiet the tracks", 2026-11-16.)
     assert calm.place == "wander" and calm.also == () and (calm.bed, calm.drums, calm.bass) == (0.85, 0.0, 0.0)
-    assert calm.bed_highpass_hz == 110.0 and calm.lowpass_hz == 20000.0 and calm.reverb == 0.0
-    assert calm.intensity == pytest.approx(0.25) and calm.why == ("standing still", "standing still: a little quieter")
+    # (And a little darker, coming down slowly: "sometimes when one synth stays in when youre sitting its whiny and
+    # annoying mix better", 2026-11-17.)
+    assert calm.bed_highpass_hz == 110.0 and calm.lowpass_hz == 6500.0 and calm.reverb == 0.0 and calm.fade_s == 3.0
+    assert calm.intensity == pytest.approx(0.25)
+    assert calm.why == ("standing still", "standing still: a little quieter", "standing still: a little darker")
     assert not calm.silent
 
 
@@ -63,6 +66,25 @@ def test_standing_still_quiets_the_music_and_moving_brings_it_back():
     assert at(41).bed == 1.0, "moving brings it straight back"
     fight = play([(5, FIGHT)], 8, start=STANDING)(8)
     assert fight.bed == 1.0, "not in a fight, standing or not"
+
+
+def test_standing_and_sitting_darken_the_music_slowly_and_moving_or_a_fight_opens_it_at_once():
+    """("sometimes when one synth stays in when youre sitting its whiny and annoying mix better", 2026-11-17, played: a
+    drone held all but alone in a quiet stretch, between pulls.)"""
+    at = play([(5, {"speed": 7.0}), (15, {"speed": 0.0}), (40, {"speed": 7.0}), (45, {"speed": 0.0}), (70, FIGHT)], 75,
+              start=STANDING)
+    assert at(10).lowpass_hz == 20000.0 and at(10).fade_s == 0.4, "on the move: open"
+    assert at(17).lowpass_hz == 6500.0 and at(17).fade_s == 3.0 and "standing still: a little darker" in at(17).why
+    assert at(35).lowpass_hz == 3400.0 and at(35).fade_s == 3.0 and "sat a while: darker" in at(35).why
+    assert at(41).lowpass_hz == 20000.0 and at(41).fade_s == 0.4, "getting up opens it at once"
+    assert at(62).lowpass_hz == 3400.0
+    assert at(70.25).lowpass_hz == 20000.0 and at(70.25).fade_s == 0.4, "a fight opens it at once"
+    sizing = play([(20, {"has_target": True, "target_class": "normal", "target_hostile": True})], 22, start=STANDING)(22)
+    assert sizing.lowpass_hz == 20000.0, "something to fight in sight: the music leans in, it does not darken"
+    cave = play([(2, {"indoors": True})], 30, start=STANDING)(30)
+    assert cave.lowpass_hz == 2500.0, "the darker of the two"
+    under = play([(20, {"submerged": True})], 22, start=STANDING)(22)
+    assert under.lowpass_hz == 500.0 and under.fade_s == 0.15, "under water still moves fast"
 
 
 def test_moving_brings_the_drums_in_at_once_and_stopping_takes_them_out():
@@ -176,7 +198,7 @@ def test_sizing_up_a_target_brings_the_band_in_before_the_pull():
 
 def test_a_friendly_target_or_an_addon_that_does_not_say_changes_nothing():
     friend = play([(5, {"has_target": True, "target_class": "normal", "target_hostile": False})], 8, start=STANDING)(8)
-    assert friend.bass == 0.0 and friend.why == ("standing still", "standing still: a little quieter")
+    assert friend.bass == 0.0 and friend.why == ("standing still", "standing still: a little quieter", "standing still: a little darker")
     old_addon = play([(5, {"has_target": True, "target_class": "normal", "target_hostile": None})], 8)(8)
     assert old_addon.bass == 0.0
     in_town = play([(5, {"has_target": True, "target_class": "elite", "target_hostile": True, "resting": True})], 8,

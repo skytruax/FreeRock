@@ -65,6 +65,10 @@ class Target:
     fade_s: float = 0.4               # how long the levels and tone take to get there
     intensity: float = 0.0            # 0 to 1, for the log and the music's status
     why: tuple[str, ...] = ()         # the rules in force, for the log
+    # A fight is on (or has just ended and the band is still in it): the player drives the song that is playing on to its
+    # own rise and moment, the same song further on ("fights shouldnt start new songs", "need to do a better job
+    # dynamically to match the mood in general", 2026-11-17).
+    fight: bool = False
 
     def as_dict(self) -> dict:
         return {name: (list(value) if isinstance(value, tuple) else value)
@@ -151,6 +155,13 @@ class Rules:
     # this much of its level on stopping, and at this much once stood a while. Moving brings it straight back.
     still_bed: float = 0.85           # about 1.4 dB down
     linger_bed: float = 0.65          # about 3.7 dB down
+    # ...and darker, as a band playing softly loses its edge, so that a held pad or drone left nearly alone in a quiet
+    # stretch does not whine over the rest ("sometimes when one synth stays in when youre sitting its whiny and annoying
+    # mix better", 2026-11-17, played: a bagpipe and organ drone in a band's quiet middle, between pulls). The top comes
+    # down slowly (`sit_fade_s`) and opens again the moment the player moves or a fight starts.
+    still_top: float = 6500.0         # Hz: the top of the music on stopping...
+    linger_top: float = 3400.0        # ...and once stood (or sat) a while
+    sit_fade_s: float = 3.0
     sizing_after_s: float = 0.2
     # A roll: fights close together keep the band in between them.
     heat_per_fight: float = 0.34      # what each fight adds, out of 1
@@ -576,6 +587,17 @@ class Director:
             drums *= 1.0 - 0.3 * strength
         elif state.weather == "sandstorm" and strength > 0 and not state.indoors:
             tint("sandstorm", low=3000.0 + 5000.0 * (1.0 - strength), high=300.0 * strength)
+        # Sitting down between pulls, waiting on a spawn: softer and darker the longer it lasts (the levels came down above).
+        # (Not with something to fight in sight, where the music leans in; under water and a loading screen move fast.)
+        sitting = (not state.in_combat and m.combat_since is None and not fallen and not storming and not inn
+                   and not state.on_taxi and not state.submerged and not state.loading and not sizing_up)
+        if sitting:
+            if lingering:
+                tint("sat a while: darker", low=rules.linger_top)
+                fade = max(fade, rules.sit_fade_s)
+            elif on_the_move is False:
+                tint("standing still: a little darker", low=rules.still_top)
+                fade = max(fade, rules.sit_fade_s)
         hush = 1.0
         if state.daytime is False and not storming and not state.indoors and not dungeon:
             # Night out of doors: darker, further off and softer, the drums and the bass well back ("night should feel like
@@ -606,4 +628,5 @@ class Director:
                       bed_highpass_hz=FLOOR_HZ if bass > 0 else 110.0,
                       lowpass_hz=round(lowpass, 1), highpass_hz=round(highpass, 1),
                       reverb=round(min(reverb, 0.6), 3), volume=round(volume, 3), fade_s=fade,
-                      intensity=round(intensity, 3), why=tuple(dict.fromkeys(why)))
+                      intensity=round(intensity, 3), why=tuple(dict.fromkeys(why)),
+                      fight=bool(state.in_combat and not fallen))

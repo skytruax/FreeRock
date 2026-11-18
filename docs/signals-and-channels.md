@@ -163,7 +163,7 @@ The lowest low-pass, the highest high-pass and the largest reverb win; volumes m
 | stealth, out of a fight | | | | | bed 0, drums 0.35, bass 0.7 (the bass line alone), in 0.25 s |
 | dead | at most 1200 Hz | | at least 0.6 | × 0.4 | bed 1.0, drums 0, bass 0 |
 
-Standing still (not in a fight, a storm, an inn or on a flight path): the bed is 0.85 after 1.5 s, and 0.65 once you have lingered 15 s. The drums and bass are not turned down by this rule. They fall away because the intensity drops to 0.25.
+Standing still (not in a fight, a storm, an inn or on a flight path): the bed is 0.85 after 1.5 s, and 0.65 once you have lingered 15 s. The drums and bass are not turned down by this rule. They fall away because the intensity drops to 0.25. The music is also darker, as a band playing softly loses its edge: the top comes down to 6500 Hz on stopping and to 3400 Hz once you have stood (or sat) 15 s, over 3 s, and opens again at once when you move or a fight starts; not with something to fight in your sights, under water or on a loading screen ("sometimes when one synth stays in when youre sitting its whiny and annoying mix better", 2026-11-17).
 
 When the bass is 0, the bed (texture, lead, rhythm) is also cut below 110 Hz.
 
@@ -183,10 +183,14 @@ What the writers stage:
 | | open | theme | rise | moment | close | follow |
 |---|---|---|---|---|---|---|
 | Warcraft and Knight Rock (`build.py:56`) | rhythm 1.0, bass 0.85, drums 0.6 | rhythm 1.0, bass 0.85, drums 0.55 | rhythm 1.0, bass 0.9, drums 0.75 | rhythm 1.0, bass 1.0, drums 0.9 | rhythm 1.0, bass 0.85, drums 0.55 | rhythm and texture follow the lead |
-| House, walking (`house.py:1250`) | | drums 0.6, bass 0.5 | | drums 0.6, bass 0.5 | | rhythm follows the lead |
+| House, walking (`house.Take.meta`) | drums 0.36, bass 0.4 | drums 0.6, bass 0.5 | drums 0.36, bass 0.4 | drums 0.6, bass 0.5 | drums 0.36, bass 0.4 | rhythm follows the lead |
 | House, fights and battlegrounds | drums 0.9, bass 0.85 in every part | | | | | |
-| House, inns | drums 0.5, bass 0.4 in theme and moment | | | | | |
+| House, inns and camps | drums 0.3, bass 0.32 | drums 0.5, bass 0.4 | drums 0.3, bass 0.32 | drums 0.5, bass 0.4 | drums 0.3, bass 0.32 | |
 | real scores (`scores.py`) | texture 1.0, lead 1.0, bass 0.9, rhythm 0.8, drums 0.7 | (all parts) | | | | none |
+
+House's open, rise and close had no floor until 2026-11-17: standing still, the director takes the drums and the bass
+out, and there that left the synths all but alone ("sometimes when one synth stays in when youre sitting its whiny and
+annoying mix better"). Now the bass stays under them, and a little of the drums (60% of the theme's drums, 80% of its bass).
 
 The Warcraft and Knight floors are deliberate. On the evening of 2026-11-16 you said, while
 playing, "the abruptness between fighting and not, its way too much now, it should only be a
@@ -206,8 +210,8 @@ and a fight adds the rest. The cost is P1.
 | 3+ foes in view | 0.53-0.62 | bed | bed | bed | 0.70-0.80 | 0-0.80 | |
 | walking | 0.40 → 0.57 over 20 s | bed | bed | bed | 0.55 → 0.75 | 0, then 0.70 after about 18 s | |
 | riding | 0.60 → 0.75 over 25 s; full tilt at 0.70 | bed | bed | bed | 0.75 → 0.95 | 0.75 → 0.95 | |
-| standing still | 0.25 | 0.85 | 0.85 | off | 0 | 0 | down over 5-6 s |
-| lingering | 0.10; ember allowed | 0.65 | 0.65 | off | 0 | 0 | |
+| standing still | 0.25 | 0.85 | 0.85 | off | 0 | 0 | down over 5-6 s; low-pass 6500 Hz, over 3 s |
+| lingering | 0.10; ember allowed | 0.65 | 0.65 | off | 0 | 0 | low-pass 3400 Hz, over 3 s |
 | camping (45 s still, out of doors) | 0.10; camp music, every strength calm | 0.65 | 0.65 | off | 0 | 0 | |
 | dungeon | floor +0.15 | | | | 0.55 standing | 0.70-0.90 walking | depths allowed |
 | cave | depths after 1 s | | | | | | low-pass 2500 Hz, reverb 0.40 |
@@ -225,13 +229,67 @@ and a fight adds the rest. The cost is P1.
 | loading screen | | | | | | | low-pass 800 Hz, 6 dB down |
 | cinematic, FreeRock off, link lost | silence | | | | | | fades of 0.3, 1.0 and 2.0 s |
 
-## Moving between pieces
+## Moving between pieces: when a song changes, and which comes
 
-- **A track** runs its pieces in order (open, theme, rise, moment, close; a two-wave track tells several twice). The next piece is ready 12 s before the end and starts exactly on it.
-- **A boss, and the calm after one:** a harder piece comes in on the next beat over 1 bar; an easier one on the next bar line over 2 bars (never more than 6 s). The walking piece that was left is picked up at the bar it reached, if that was within 15 minutes.
-- **A change of place:** the player looks for a better piece 4 s after the change. It doesn't look within 20 s of the last move, in a piece's last 12 s, in a fight, or at intensity 0.74 and over. It moves only if another piece fits clearly better (0.25), on the next bar line over 2 bars.
-- **Silences:** every `rest_every_minutes` (3 in the settings now) a silence is due, at the next end of a whole track, unless intensity is 0.74 or over. It lasts about `rest_seconds` (40 now). A fight ends it early; the music comes back over 5 s (3 s at intensity 0.74 and over).
-- **Dying:** the music slows to a stop over 1.2 s, then the ember music comes in over 3 s.
+Rethought from the ground on the evening of 2026-11-17, after playing, in your words: "fights shouldnt start new
+songs"; "the idea is to hear new music all the time, for the whole songs to play, for the best song to be chosen based
+on the place, and for major place changes to shift the songs"; "for songs to match locations, but for us to hear new
+songs every night and it not go back to those old ones until it finally goes back around"; "but major place changes,
+inns, camps, or abrupt storms should change the song"; "entering a new place the song should be based on the time and
+weather and place"; "but this should only happen in like zone changes, not every subzone"; "need to do a better job
+dynamically to match the mood in general".
+
+### The rules
+
+1. **A song plays whole.** A track runs its pieces in order (open, theme, rise, moment, then the second wave: the quiet
+   middle, the climb, the summit, the close). The next piece is ready 12 s before the end and starts exactly on it.
+2. **Only these change the song that is playing**, on the next bar line over two bars:
+   - **a new zone** (or a dungeon), once you have been in it 15 s (a corner cut across a border changes nothing; on a
+     flight path the zone you left stands until you land);
+   - **going into a place with music of its own**: an inn, a camp, a cave or mine, a town, a battleground (4 s after);
+   - **a storm setting in** (heavy rain for 4 s, then 4 s more);
+   - **a dungeon's boss** (on the next beat over one bar).
+   Going **out** of an inn, camp, cave, town or battleground ends that place's song too; a storm's song ends where its
+   part ends once the storm is over. Back in the zone the walking song was playing in, within 5 minutes and less than
+   8 minutes after it began, it is picked up at the bar it reached; otherwise a new one comes.
+3. **Nothing else changes it**: not a subzone (whatever kind of land, shade or ground its name says), not nightfall, not
+   the weather short of a storm, not a fight, not standing or sitting, not the calm after a fight.
+4. **Which song comes** (when one ends, or after a change), in this order: the moment (an inn's, a camp's, a cave's, a
+   storm's, the night's own music before the walking music that takes turns with it, which counts 2.5 against it); the
+   kind of land (the zone's, with the subzone's colouring: written for it first, then one that lists it, then the
+   zone's second kind; a neighbouring kind's counts 0.6, a far one's 5, so it comes only where nothing else will do);
+   light and heavy in turn, one for one; then the round of what has been heard: never heard first, then the one heard
+   longest ago (a track heard costs 1.2, and up to 1.0 more for each of its last three hearings, falling away over some
+   six hours; a sister tune of the same character heard in the last two hours 0.8). The page remembers this for 60
+   days, so each night starts with what the last did not play. Among those the hour and the weather choose by shade
+   (night darker by 1.5 steps, rain by 0.5 to 1) and the ground underfoot by its setting. The calm after a fight is no
+   place: a song that begins in it is walking music.
+5. **Inside a song, the music follows the mood as it changes**: a fight brings the drums and the bass up, and **drives
+   the song on to its own rise** (where it is in its opening, a theme or the quiet middle, its next rise comes in on the
+   next bar line: the same song, further on, and the moment after it); standing still and sitting make it softer and
+   darker; night darker and further off; rain wetter; a storm brings the whole band; snow softens; a cave muffles;
+   something to fight in sight leans in. See the tables above.
+6. **Silences:** every `rest_every_minutes` (3 in the settings now) a silence is due, at the next end of a whole track,
+   unless intensity is 0.74 or over. It lasts about `rest_seconds` (40 now). A fight ends it early.
+7. **Dying:** the music slows to a stop over 1.2 s, then the ember music comes in over 3 s.
+
+### What the audit found (2026-11-17)
+
+- **Subzones moved the song.** The player looked again whenever the kinds of land, the light, the shade (night falling
+  counted) or the ground changed, and a subzone's name changes all of them; then on the way back the old song was
+  picked up again: "the same knight rock one over and over then something else maybe then it comes back". Now only a
+  new zone, a place with music of its own, a storm or a boss.
+- **The heavy turn was cut short.** In a light place a heavy track that came on its turn was ended after its opening.
+- **Wear lasted an hour and a half**, so there was no round from night to night, and a place with two light tracks
+  heard those two all evening. Now the round above, kept for 60 days.
+- **The moment's own music lost to walking music** once the round was in: a never-heard walking song beat the storm's.
+  Now what takes turns with the moment counts 2.5 against it.
+- **A fight's prepared piece went stale**: chosen ahead after one pull and kept however long the calm lasted.
+- **Loch Modan was heard as sunny farmland** (its profile said "cheerful", mandolin, tin whistle): it is dwarven hill
+  country, highland first, and not a light place.
+- **Camps and storms did not change the song**, and a camp's or a storm's song played on after it.
+- **Still thin**: a kind of place in Knight Rock or House has few tracks of its own (Knight's light walking music for
+  the hills and fields was two tunes of one character), so the round comes back sooner there; more are being written.
 
 ## Problems, to iterate on
 

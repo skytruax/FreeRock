@@ -389,6 +389,17 @@ async def test_the_next_fight_goes_on_with_the_last_fights_track(results):
     assert again["late"] == 0
 
 
+async def test_neither_a_walking_track_nor_a_fights_is_gone_back_to_once_it_began_long_ago(results):
+    """("feel like i hear the same knight rock one over and over then something else maybe then it comes back",
+    2026-11-17, played: in a run of pulls one walking track came back after every fight, the evening long.)"""
+    span = of(results, "pieceResumeSpan")
+    assert (span["start"], span["firstFight"]) == ("long", "brawl"), span
+    assert span["early"] == "long", "a short fight did not go back to the walking track: %s" % span
+    assert span["fightLate"] == "scrap", "a fight eight minutes on went on with the first fight's track: %s" % span
+    assert span["late"] == "fresh", "the walking track was gone back to long after it began: %s" % span
+    assert span["lateCount"] == 0
+
+
 async def test_a_fight_in_the_last_bars_of_a_piece_and_the_track_goes_on_from_the_next(results):
     late = of(results, "pieceFightAtTheEnd")
     assert late["brawlAt"] == pytest.approx(ORIGIN + 13.5, abs=1e-6)
@@ -404,26 +415,30 @@ async def test_the_piece_is_chosen_for_the_kind_of_place(results):
     assert "crypt" not in place["order"][1:], "a light place was not kept light"
 
 
-async def test_a_light_place_hears_a_heavier_piece_after_two_light_ones(results):
+async def test_a_light_place_hears_a_heavier_piece_after_each_light_one(results):
+    """("go a little harder this is not world of fairy craft", 2026-11-17: it was after two light ones.)"""
     order = of(results, "pieceLightTurn")["order"]
     assert "moor" in order, "a light place never heard a heavier piece: %s" % order
-    assert order.index("moor") >= 2, "the heavier piece came before two light ones: %s" % order
-    assert order.count("moor") <= max(1, len(order) // 3 + 1), "the light place was not kept mostly light: %s" % order
+    assert order.index("moor") == 1, "the heavier piece did not come after the first light one: %s" % order
+    assert all(not (a == "moor" and b == "moor") for a, b in zip(order, order[1:])), "two heavy pieces in a row: %s" % order
 
 
-async def test_the_music_follows_the_player_into_another_kind_of_place_within_a_few_bars(results):
+async def test_the_music_follows_the_player_into_another_zone_and_never_for_a_subzone(results):
+    """("but this should only happen in like zone changes, not every subzone", 2026-11-17, played.)"""
     follows = of(results, "pieceFollows")
-    # A step over the border at 5 s and back at 7 moved nothing; in for good at 8.5 s: four seconds to be
+    # A step over the border at 5 s and back at 7 moved nothing; in for good at 8.5 s: fifteen seconds to be
     # sure of it, then the next bar line (a bar is two seconds), long before the piece ends at 48 s.
-    assert follows["cryptAt"] == pytest.approx(ORIGIN + 14.0, abs=1e-6), "the new place's track did not come on the bar line after the player had stayed: %s" % follows
+    assert follows["cryptAt"] == pytest.approx(ORIGIN + 24.0, abs=1e-6), "the new zone's track did not come on the bar line after the player had stayed: %s" % follows
     assert follows["meadowBefore"] > 0.05 and follows["cryptBefore"] < 0.005, "the music moved before the player had stayed: %s" % follows
-    assert follows["cryptThere"] > 0.05 and follows["meadowThere"] < 0.005, "the old place's track had not given way: %s" % follows
-    # Back at 20 s: the music does not move twice within twenty seconds; then the old track, from the bar it had reached.
-    assert follows["backAt"] == pytest.approx(ORIGIN + 34.0, abs=1e-6), follows
-    assert follows["backClip"].endswith("-w1") and follows["backOffset"] == pytest.approx(6.0, abs=1e-6), "the old track was not picked up where it was left: %s" % follows
+    assert follows["cryptThere"] > 0.05 and follows["meadowThere"] < 0.005, "the old zone's track had not given way: %s" % follows
+    # Back at 40 s: fifteen seconds, then the old track, from the bar it had reached (24 s into it: its fourth stretch).
+    assert follows["backAt"] == pytest.approx(ORIGIN + 56.0, abs=1e-6), follows
+    assert follows["backClip"].endswith("-w3") and follows["backOffset"] == pytest.approx(0.0, abs=1e-6), "the old track was not picked up where it was left: %s" % follows
     assert follows["meadowBack"] > 0.05 and follows["cryptBack"] < 0.005, follows
-    # A border crossed at 4.5 s in a fight that is over at 12: the look at 8.5 s is put off, the one four seconds on moves the music.
-    assert follows["afterFightAt"] == pytest.approx(ORIGIN + 14.0, abs=1e-6), "the music did not follow once the fight was over: %s" % follows
+    # A border crossed at 4.5 s in a fight that is over at 12: the look at 19.5 s moves the music.
+    assert follows["afterFightAt"] == pytest.approx(ORIGIN + 20.0, abs=1e-6), "the music did not follow once the fight was over: %s" % follows
+    # Another kind of land named, darker, other ground, no longer a light place, in the same zone: the song plays on.
+    assert follows["subzone"] == ["meadow"], "a subzone moved the song: %s" % follows
 
 
 async def test_a_cave_brings_its_own_music_at_once_and_the_calm_after_a_fight_does_not(results):
@@ -435,16 +450,42 @@ async def test_a_cave_brings_its_own_music_at_once_and_the_calm_after_a_fight_do
     assert cave["afterFight"] == ["deep"], "the calm after a fight in the cave took the cave's track away: %s" % cave
 
 
-async def test_a_track_carries_on_through_a_calm_moment(results):
+async def test_a_track_carries_on_through_a_calm_moment_and_what_follows_it_there_is_walking_music(results):
+    """("fights shouldnt start new songs", 2026-11-17, played: the calm after a fight is no place.)"""
     order = of(results, "pieceCarriesOn")["order"]
-    assert order[:3] == ["one", "two", "calm"], "the track was dropped for the calm piece: %s" % order
-    assert order[3] == "one", "the calm track went on after the calm moment was over: %s" % order
+    assert order[:2] == ["one", "two"], "the track was dropped for the calm piece: %s" % order
+    assert order[2] == "one" and "calm" not in order, "the calm after a fight began a calm track: %s" % order
 
 
-async def test_a_border_crossed_in_the_last_seconds_of_a_piece_still_changes_the_music(results):
+async def test_a_fight_drives_the_walking_song_on_to_its_own_rise(results):
+    """("fights shouldnt start new songs", "need to do a better job dynamically to match the mood in general", 2026-11-17.)"""
+    drive = of(results, "pieceDrive")
+    # The theme runs from 16 s to 48 s; the fight takes hold at 20.3 s: the rise on the next bar line, at 22 s.
+    assert drive["riseAt"] == pytest.approx(ORIGIN + 22.0, abs=1e-6), "the fight did not bring the rise in: %s" % drive
+    assert drive["momentAt"] == pytest.approx(ORIGIN + 38.0, abs=1e-6), "the story did not go on from the rise: %s" % drive
+    assert drive["other"] == 0, "the fight started another song: %s" % drive
+    assert drive["late"] == 0
+
+
+async def test_a_camp_and_a_storm_that_sets_in_each_change_the_song(results):
+    """("but major place changes, inns, camps, or abrupt storms should change the song", 2026-11-17, played.)"""
+    found = of(results, "pieceCampStorm")
+    # Four seconds to be sure, then the next bar line.
+    assert found["fireAt"] is not None and 9.0 <= found["fireAt"] <= 13.0, "the camp's music did not come: %s" % found
+    assert found["campBackAt"] is not None and found["campBackAt"] <= 40.0, "up from the camp the walking music did not come back: %s" % found
+    assert found["galeAt"] is not None and 9.0 <= found["galeAt"] <= 13.0, "the storm's music did not come: %s" % found
+    # The storm is over at 20.5 s: its track plays its part out (16 s from where it began) and is not cut on the next bar.
+    assert found["stormBackAt"] is not None and found["stormBackAt"] >= found["galeAt"] + 14.0, "the storm's track was cut: %s" % found
+    assert found["late"] == 0
+
+
+async def test_a_border_crossed_in_the_last_seconds_of_a_piece_changes_the_music_where_the_track_ends(results):
     border = of(results, "pieceBorderLate")
+    # Five seconds in the new zone when the piece ended: not long enough to change the song, which goes on whole.
+    assert border["second"] == ["vault"], "the track was cut before the zone had been there long enough: %s" % border
+    # (The next track comes in under the last bar of the one that ends: a crossfade.)
+    assert border["meadowAt"] == pytest.approx(ORIGIN + 30.0, abs=1e-6), "the new zone's music did not come where the track ended: %s" % border
     assert border["meadow"] == pytest.approx(0.1, rel=0.1), "the new place's music did not come: %s" % border
-    assert border["vault"] < 0.005, "the old track went on into its next piece"
 
 
 async def test_tracks_heard_lately_give_way_to_others_and_a_neighbouring_kind_of_place_comes_before_a_third_hearing(results):
@@ -453,8 +494,10 @@ async def test_tracks_heard_lately_give_way_to_others_and_a_neighbouring_kind_of
     assert len(order) >= 8, order
     assert set(order[:2]) == {"a1", "a2"}, "the two tracks written for the place did not come first: %s" % order
     assert all(now != before for now, before in zip(order[1:], order)), "a track was played twice running: %s" % order
-    assert "near" in order[:5], "both tracks were heard a third time before the neighbouring kind's got a turn: %s" % order
-    assert "far" in order and order.index("near") < order.index("far"), "the track for somewhere else came before the neighbour's: %s" % order
+    assert "near" in order[:3], "a track was heard again before the neighbouring kind's got a turn: %s" % order
+    # ("for songs to match locations", 2026-11-17: a track for country that is neither this nor a neighbour waits for
+    # a place with nothing else.)
+    assert "far" not in order, "the track for somewhere else came in: %s" % order
 
 
 async def test_the_takes_of_one_family_count_as_one_song_and_its_sister_families_as_half_of_one(results):
@@ -488,21 +531,25 @@ async def test_with_six_loudspeakers_the_music_is_laid_over_all_of_them_and_each
         assert slot["others"] < 0.2 * slot["own"], "another loudspeaker sounded with the %s: %s" % (name, slot)
 
 
-async def test_among_pieces_for_one_kind_of_place_the_nearest_in_shade_is_chosen_and_the_music_follows_the_light(results):
-    """("in a dark misty place and music is too light we need lots of different granularity", 2026-11-16.)"""
+async def test_among_pieces_for_one_kind_of_place_the_nearest_in_shade_is_chosen_and_the_light_chooses_the_next_song(results):
+    """("in a dark misty place and music is too light we need lots of different granularity", 2026-11-16; then "for the
+    whole songs to play, for the best song to be chosen based on the place, and for major place changes to shift the
+    songs", 2026-11-17: the light is not a change of place.)"""
     shade = of(results, "pieceShade2")
     assert shade["shades"] == [3, -2.5, 0], "a bright major piece, a dark minor one, a wistful light one: %s" % shade["shades"]
     assert shade["bright"] == ["sunny"] and shade["dark"] == ["dusky"], shade
-    # The light goes at 8.5 s (a passing cloud at 5.5 moved nothing): four seconds to be sure, then the next bar line.
-    assert shade["first"] == "sunny" and shade["movedAt"] == pytest.approx(ORIGIN + 14.0, abs=1e-6), shade
+    # The light goes at 8.5 s: the bright song plays on to its end (48 s, the next coming in under its last bar), and the
+    # dark one follows it.
+    assert shade["first"] == "sunny" and shade["movedAt"] is not None and shade["movedAt"] >= ORIGIN + 44.0, shade
 
 
-async def test_among_pieces_for_one_kind_of_place_the_one_written_for_its_ground_comes_first_and_the_music_follows_it(results):
-    """("make sure by tomorroow morning we have granularity in locations on all the kinds", 2026-11-16.)"""
+async def test_among_pieces_for_one_kind_of_place_the_one_written_for_its_ground_comes_first_and_chooses_the_next_song(results):
+    """("make sure by tomorroow morning we have granularity in locations on all the kinds", 2026-11-16; the ground is
+    not a change of place, 2026-11-17.)"""
     ground = of(results, "pieceSetting")
     assert ground["water"] == ["lake"] and ground["fields"] == ["farm"], ground
-    # The ground changes at 8.5 s: four seconds to be sure, then the next bar line.
-    assert ground["first"] == "lake" and ground["movedAt"] == pytest.approx(ORIGIN + 14.0, abs=1e-6), ground
+    # The ground changes at 8.5 s: the lake's song plays on to its end, and the farm's follows it.
+    assert ground["first"] == "lake" and ground["movedAt"] is not None and ground["movedAt"] >= ORIGIN + 44.0, ground
 
 
 async def test_at_night_the_night_music_comes_first_and_the_walking_music_still_comes(results):

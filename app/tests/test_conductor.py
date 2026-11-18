@@ -367,6 +367,6 @@ def test_the_mix_is_what_the_player_is_sent():
     conductor = types.SimpleNamespace(mix=None, target=Target(intensity=0.8, drums=1.0, bass=1.0),
                                       hub=types.SimpleNamespace(state=None, link=game.Link.LIVE),
                                       kinds_here=lambda state: ([], False), shade_here=lambda state: 0.0,
-                                      setting_here=lambda state: "")
+                                      setting_here=lambda state: "", zone_here=lambda state: None)
     message = music.Conductor._target_message(conductor)
     assert message["target"]["channels"]["drums"] == {"level": 1.0, "tier": 2}

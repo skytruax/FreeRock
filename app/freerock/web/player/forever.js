@@ -103,14 +103,32 @@
   const LOG_LENGTH = 500;
   // Written pieces.
   const HANDOVER = 12.0;       // what follows a piece is made ready this long before the piece ends
-  const RESUME_WITHIN = 900;   // a piece that a fight cut into is gone back to if the fight is over within this long
+  const RESUME_WITHIN = 300;   // a piece that a fight cut into is gone back to if the fight is over within this long
   const FIGHT_AGAIN = 600;     // a fight's own track is gone on with if the next fight comes within this long
+  // ...but neither is gone back to once it began this long ago: in a run of pulls one walking track came back after
+  // every fight and one fight's track with every pull, the evening long ("feel like i hear the same knight rock one
+  // over and over then something else maybe then it comes back", 2026-11-17, played). A fresh one is chosen instead.
+  const RESUME_SPAN = 480;
   // Where the player goes, the music follows ("make sure our location changes CHANGE SONGS", 2026-11-16).
   // ("feels like its playing the same songs over and over", the same evening: the best-suited track was chosen
   // every time, and a place of one kind with three tracks written for it heard those three all night.)
-  const WORN_FOR = 5400;       // seconds a track counts as lately heard (an hour and a half: "been hearing the same thing over and over")
-  const WORN = 0.45;           // ...and how much each time it began in that while counts against choosing it again
-  const SISTER = 0.8;          // ...and how much a sister family's beginning counts (see _worn)
+  // What has been heard goes round ("the idea is to hear new music all the time, for the whole songs to play, for the
+  // best song to be chosen based on the place", "for us to hear new songs every night and it not go back to those old
+  // ones until it finally goes back around", 2026-11-17, played; it was an hour and a half's wear, and a place with
+  // two light tracks heard the two all evening). Every track that begins is remembered (the page keeps it between
+  // visits): one never heard comes first, then the one heard longest ago. See _rotation.
+  const HEARD_FOR = 60 * 86400;   // seconds a beginning is remembered
+  const HEARD = 1.2;           // a track once heard counts this much against it: more than a neighbouring kind's (0.6)
+  const HEARD_LATELY = 1.0;    // ...and up to this much more for each of its last three hearings, the more lately the more,
+  const HEARD_TAU = 21600;     // ...falling away over some six hours: what was heard tonight weighs, last night's hardly
+  const SISTER_FOR = 7200;     // a sister family (the same character's other tune) heard in this while...
+  const SISTER_OFF = 0.8;      // ...counts this much against: to an ear nearly the same tune
+  // A track for neither this kind of place nor a neighbour counts this much against it: more than a track that suits the
+  // place heard three times tonight (1.2 + 3 + a sister's 0.8), so it comes only where nothing else will do ("for songs
+  // to match locations"; at 2 a desert's track came in once the hills' had each been heard twice).
+  const FAR = 5.0;
+  const TURN = 1.0;            // light and heavy take turns: the sort whose turn it is not counts this much against it
+  const ALSO = 0.25;           // a kind of moment that takes turns with the one named (in tenths: 2.5), at the least
   const SETTING = 0.35;        // how much a piece written for other ground than the player's counts against it (see _setting)
   // The kinds of place whose music sits well in each other's: what is reached for before a track is heard a third time.
   const NEAR = { pastoral: ["highland", "regal", "mystic", "coast"], highland: ["pastoral", "regal", "frozen"], regal: ["pastoral", "highland", "infernal"],
@@ -131,6 +149,11 @@
   const FOLLOW_BY = 0.25;      // the music moves for a place only when another piece suits it this much better
   const SETTLE = 4.0;          // seconds in another kind of place (or in a cave, an inn) before the music follows: a step over a border and back changes nothing
   const PLACE_STAY = 20.0;     // ...and the music does not move for a place twice within this long
+  // A new zone changes the song once the player has been in it this long: a corner cut across a border changes nothing
+  // ("but this should only happen in like zone changes, not every subzone", 2026-11-17, played).
+  const ZONE_SETTLE = 15.0;
+  // A fight drives the walking song that is playing on to its own rise (see _drive): from these parts of its story.
+  const CALM_STORIES = ["open", "theme"];
   const BLEND_PLACE = 2;       // bars the track that is playing takes to give way to the new place's
   const FREE_SHARE = 0.25;     // how often a stretch of loose phrases follows a track, where there are enough of them
   const FREE_ENOUGH = 3;       // ...which is this many for every channel
@@ -138,6 +161,10 @@
   const RING_APART = 0.5;      // ...and when they are not
   const LAP_S = 40;            // a short piece on its own is played round until it has lasted about this long
   const STORY_NEXT = { open: "theme", theme: "rise", rise: "moment", moment: "close", close: "open" };
+  // The kinds of moment whose tracks play on when the moment is over: walking music, and the night's. (A camp's and a
+  // storm's end with the camp or the storm: "but major place changes, inns, camps, or abrupt storms should change the
+  // song", 2026-11-17, played.)
+  const STAYS = ["wander", "night"];
 
   function gainOf(db) { return Math.pow(10, db / 20); }
 
@@ -162,7 +189,7 @@
       // next fight, so that a fight's music gets past its opening over an evening).
       this.left = { walk: null, fight: null };
       this.standby = null;       // the piece a fight would bring in, chosen ahead so that it can be fetched ahead
-      // Family -> the moments a track of it began to play here, in the context's time (see _worn). The page keeps
+      // Family -> the moments a track of it began to play here, in the context's time (see _rotation). The page keeps
       // them between visits (`memory`: load() -> {family: [seconds since 1970]}, save(that)), so that a reload does
       // not forget what was just heard (2026-11-16, played: "i feel like im hearing alot the same shit again").
       this.memory = options.memory || null;
@@ -174,6 +201,8 @@
         }
       }
       this.followDue = null;     // when to look whether the music should follow the player somewhere new
+      this.zoneSince = -Infinity;   // when the zone last changed
+      this.driven = false;       // the fight that is on has driven the song on already (see _drive)
       this.movedAt = -Infinity;  // when it last did
       this.restDue = null;       // when the next moment of silence is due, where pieces are strung together
       this.pieceAt = new Map();  // piece id -> when it was last played here
@@ -570,7 +599,9 @@
       if (this._index().size) {
         // What a fight would bring in: chosen now, so that it is here when the fight is.
         const ask = this._ask();
-        if (ask < 2 && !this.standby) {
+        // (Chosen again once going back to the last fight's track is no longer right, so that the fresh one is fetched ahead.)
+        const stale = this.standby && this.standby.until !== undefined && this.ctx.currentTime >= this.standby.until;
+        if (ask < 2 && (!this.standby || stale)) {
           const item = this._nextItem(this.bucket, { ask: 2, peek: true, except: this.group && this.group.piece ? this.group.piece.id : null });
           this.standby = item && item.piece && item.piece.meta.serves.includes(2) ? item : { piece: null };
         }
@@ -709,25 +740,29 @@
       return tier >= 2 && place !== "boss" && place !== "battle" ? 1 : tier;
     }
 
-    // How often a track has begun in the last while: a track that has just been heard gives way
-    // to others, even ones that suit the place a little less, so that an evening in one kind
-    // of place is not the same three tracks round and round. It is counted by the track's
-    // family: the takes of a family are one song in other hands (the same key, pace and
-    // changes; a track plays each channel from one take or another), so hearing one is hearing
-    // them all. The other families written for the same kind of place, with the same
-    // instruments and grooves, count nearly as much: to an ear they are the same kind of tune
-    // ("been hearing the same thing over and over", 2026-11-16: two jigs of one palette were
-    // the most played tracks of the evening).
-    _worn(meta) {
+    // How far a track is from its turn in the round of what has been heard: nothing for one never heard here, HEARD
+    // for one heard, and up to HEARD_LATELY more for each of its last three hearings, the more lately the more, so that
+    // choosing goes round every track that suits the place, the one heard longest ago first, before any comes again,
+    // and a track that suits the place best but has been heard again and again tonight gives way. It is counted by the track's
+    // family: the takes of a family are one song in other hands (the same key, pace and changes; a track plays each
+    // channel from one take or another), so hearing one is hearing them all. A sister family (another tune of the same
+    // character, its instruments and grooves) heard in the last two hours counts too: to an ear nearly the same song
+    // ("been hearing the same thing over and over", 2026-11-16: two jigs of one palette were the most played tracks).
+    _rotation(meta) {
       const now = this.ctx.currentTime, family = Forever.family(meta), kind = Forever.kind(family);
-      let count = 0;
-      for (const [key, times] of this.begun) {
-        const recent = times.filter((at) => now - at < WORN_FOR).length;
-        if (!recent) continue;
-        if (key === family) count += recent;
-        else if (Forever.kind(key) === kind) count += SISTER * recent;
+      let cost = 0;
+      const own = this.begun.get(family);
+      if (own && own.length) {
+        cost += HEARD;
+        for (const at of own) cost += HEARD_LATELY * Math.exp(-Math.max(0, now - at) / HEARD_TAU);
       }
-      return count;
+      for (const [key, times] of this.begun) {
+        if (key !== family && times.length && Forever.kind(key) === kind && now - Math.max(...times) < SISTER_FOR) {
+          cost += SISTER_OFF;
+          break;
+        }
+      }
+      return cost;
     }
 
     static family(meta) { return meta.family || meta.track; }
@@ -738,7 +773,7 @@
     _remember() {
       const now = this.ctx.currentTime, offset = Date.now() / 1000 - now, kept = {};
       for (const [family, times] of this.begun) {
-        const recent = times.filter((at) => now - at < WORN_FOR);
+        const recent = times.filter((at) => now - at < HEARD_FOR).slice(-3);
         if (recent.length) kept[family] = recent.map((at) => at + offset);
       }
       this.memory.save(kept);
@@ -821,16 +856,23 @@
     // an inn: `sited`), what was written for that place comes before the walking music that
     // takes turns with it; anywhere else walking music is never out of place.
     _off(piece, ask, follow) {
-      const meta = piece.meta, place = this.target.place, also = this.target.also || [];
+      // (The calm after a fight is no place: the game says "ember" for some seconds and names none. What begins in it
+      // is walking music: "fights shouldnt start new songs", 2026-11-17, played. A death names the walking music with it.)
+      const after = this.target.place === "ember" && this.target.sited !== true && !(this.target.also || []).length;
+      const meta = piece.meta, place = after ? "wander" : this.target.place, also = this.target.also || [];
       const strength = meta.serves.includes(ask) ? 0 : Math.min(...meta.serves.map((tier) => Math.abs(tier - ask)));
       // The kind of moment the game names comes first; the kinds that take turns with it are
       // as good, except in a fight, where a piece written for a fight is wanted before a storm.
       const fight = place === "battle" || place === "boss";
       // (At night a walking piece counts a little against it beside a night piece: the director's `lean`.)
       const lean = typeof this.target.lean === "number" ? this.target.lean : 0;
-      let role = meta.role === place ? 0 : also.includes(meta.role) ? (fight ? 0.3 : lean) : 1;
+      // (What takes turns with the moment's own music counts at least ALSO against it: the storm's, the night's, the cave's
+      // music first, and walking music after it has been heard twice; with the round of what has been heard a walking
+      // track never heard had come before the storm's own, "music is not matching mood", 2026-11-17, played.)
+      let role = meta.role === place ? 0 : also.includes(meta.role) ? (fight ? 0.3 : Math.max(lean, ALSO)) : 1;
       if (follow && !fight) {
-        if (this.target.sited === true) role = meta.role === place ? 0 : also.includes(meta.role) ? 0.5 : 1;
+        // (A storm that has set in is reckoned as a place the player stands in: "abrupt storms should change the song".)
+        if (this.target.sited === true || place === "storm") role = meta.role === place ? 0 : also.includes(meta.role) ? 0.5 : 1;
         else if (meta.role === "wander") role = 0;
       }
       // Then how dark or bright: the further a piece's shade from the place's, the less it suits.
@@ -873,18 +915,26 @@
         }
         return true;
       };
-      if (left && !options.natural && left.key === bucket.key && left.piece !== options.except
+      // (Walking music is gone back to only in the zone it was playing in: back from an inn, a cave or a camp, or from a
+      // short way into the next zone.)
+      const sameZone = !left || slot !== "walk" || typeof left.zone !== "string" || typeof this.target.zone !== "string"
+        || left.zone === this.target.zone;
+      if (left && sameZone && !options.natural && left.key === bucket.key && left.piece !== options.except
           && index.has(left.piece) && serves(index.get(left.piece)) && now - left.at < (slot === "fight" ? FIGHT_AGAIN : RESUME_WITHIN)
+          && !(now - (left.began === undefined ? left.at : left.began) >= RESUME_SPAN)
           && (slot === "walk" || index.get(left.piece).meta.role === this.target.place) && belongs(index.get(left.piece))) {
         // (A fight's track is only gone on with in the same kind of moment: a fight's in a
         // fight, a boss's against a boss, a storm's in a storm.)
         const piece = index.get(left.piece);
         const from = Math.floor(left.position / piece.bar + 1e-6) * piece.bar;
         if (!options.peek) this.left[slot] = null;
-        if (piece.seconds - from > 2 * piece.bar) return { piece, from, laps: 1, cast: this._cast(piece, left.casting), entry: "resume" };
+        // (Until when going back is still right: a fight's piece chosen ahead is kept, and must not go back later.)
+        const until = Math.min(left.at + (slot === "fight" ? FIGHT_AGAIN : RESUME_WITHIN),
+                               (left.began === undefined ? left.at : left.began) + RESUME_SPAN);
+        if (piece.seconds - from > 2 * piece.bar) return { piece, from, laps: 1, cast: this._cast(piece, left.casting), entry: "resume", began: left.began, until, sited: left.sited, fit: left.fit, zone: left.zone };
         // It was all but over when the fight came: the track goes on from its next piece.
         const onward = piece.meta.next ? index.get(piece.meta.next) : null;
-        if (onward && serves(onward)) return { piece: onward, from: 0, laps: 1, cast: this._cast(onward, left.casting), entry: "resume" };
+        if (onward && serves(onward)) return { piece: onward, from: 0, laps: 1, cast: this._cast(onward, left.casting), entry: "resume", began: left.began, until, sited: left.sited, fit: left.fit, zone: left.zone };
       }
       const place = this.target.place, also = this.target.also || [];
       const off = (piece) => this._off(piece, ask, options.follow === true);
@@ -893,24 +943,21 @@
       const casting = after ? after.casting : null;
       if (after && options.natural) {
         // The track goes on into its next piece for as long as that piece answers what the
-        // game asks. Three things end a track early: the player has walked into another kind
-        // of place that the bucket has music of this sort for; or into a light place, and the
-        // track is a heavy one; or the track was written for a kind of moment (an inn, a cave,
-        // the night, a storm) and that moment is over. A track for walking about is not ended
-        // by a calm moment, a cave or nightfall: what is written for those comes when it has ended.
+        // game asks: the whole song plays ("for the whole songs to play ... and for major place
+        // changes to shift the songs", 2026-11-17, played). Two things end it early, both a real
+        // change of place: the player has gone into another zone; or the track was written
+        // for a place the player stood in (an inn, a cave, a town, a battleground, a camp) and has
+        // left, for a storm that is over, or for a boss who is down. Not the light or the hour or
+        // the ground underfoot, nor a calm moment or nightfall: what suits those comes when it has ended.
         const next = after.piece.meta.next ? index.get(after.piece.meta.next) : null;
         if (next && serves(next)) {
-          const kind = (piece) => this._mood(piece.meta);
-          let nearer = false, lighter = false;
-          for (const piece of index.values()) {
-            if (!serves(piece) || piece.meta.role !== next.meta.role) continue;
-            if (kind(piece) < kind(next)) nearer = true;
-            if (piece.meta.light) lighter = true;
-          }
-          const tooHeavy = this.target.light === true && !next.meta.light && lighter;
+          // (Another zone, the player in it long enough to be sure: the track ends here rather than wait for the look.)
+          const elsewhere = typeof this.target.zone === "string" && typeof after.zone === "string" && this.target.zone !== after.zone
+            && now - this.zoneSince >= ZONE_SETTLE;
           const mine = next.meta.role;
-          const over = mine !== "wander" && mine !== place && !also.includes(mine);
-          if (!nearer && !tooHeavy && !over) return { piece: next, from: 0, laps: 1, cast: this._cast(next, casting), entry: "continue" };
+          const placed = mine === "boss" || mine === "battle" || mine === "storm" || (after.sited === true && !STAYS.includes(mine));
+          const over = placed && mine !== place && !also.includes(mine);
+          if (!elsewhere && !over) return { piece: next, from: 0, laps: 1, cast: this._cast(next, casting), entry: "continue", began: after.began, sited: after.sited, fit: after.fit, zone: after.zone };
         }
       }
       // A track has ended, or the moment has moved on from it. Now and then, where the bucket
@@ -924,37 +971,26 @@
       // A track that was left part of the way through is followed by a piece that stands where
       // its next one would have; one that has ended, by a beginning.
       const want = after && options.natural && after.piece.meta.next ? STORY_NEXT[after.piece.meta.story] || "open" : "open";
-      const shade = (piece) => {
+      const turn = (piece) => {
         if (piece.meta.serves.includes(2) && !piece.meta.serves.includes(0)) return 0;      // a fight is a fight
         if (this.target.light === true) {
           // (2026-11-17, evening, played: "the warcraft songs are too light go a lil darker sometimes", then "just a bit light
-          // and wimpy in general". A light place hears a heavier piece after two light ones, the nearest of them in shade.)
-          if (this.light >= 2) return piece.meta.light ? 0.3 : 0;
+          // and wimpy in general", then "go a little harder this is not world of fairy craft". A light place hears a heavier
+          // piece after each light one, the nearest of them in shade; it was after two, and before that never.)
+          if (this.light >= 1) return piece.meta.light ? TURN : 0;
           return piece.meta.light ? 0 : 5;
         }
         // Elsewhere light and heavy take turns one for one (they were two light to one heavy).
-        if (this.heavy >= 1) return piece.meta.light ? 0 : 0.6;
-        if (this.light >= 1) return piece.meta.light ? 0.3 : 0;
+        if (this.heavy >= 1) return piece.meta.light ? 0 : TURN;
+        if (this.light >= 1) return piece.meta.light ? TURN : 0;
         return 0;
-      };
-      // How lately each track has been heard counts against it, measured from the least-heard
-      // track of its own sort (light or heavy): so a worn track gives way to a fresher one, of
-      // a neighbouring kind of place if need be, and light and heavy go on taking their turns.
-      const wear = new Map(), freshest = { light: Infinity, heavy: Infinity };
-      for (const piece of index.values()) {
-        const count = this._worn(piece.meta), sort = piece.meta.light ? "light" : "heavy";
-        wear.set(piece.id, count);
-        if (serves(piece)) freshest[sort] = Math.min(freshest[sort], count);
-      }
-      const worn = (piece) => {
-        const low = freshest[piece.meta.light ? "light" : "heavy"];
-        return WORN * Math.max(0, wear.get(piece.id) - (low === Infinity ? 0 : low));
       };
       let best = [], bestScore = [Infinity, Infinity, Infinity];
       for (const piece of index.values()) {
         if (piece.id === options.except && index.size > 1) continue;
         const story = !piece.meta.story || piece.meta.story === want ? 0 : 0.25;
-        const score = [off(piece) + shade(piece) + story + worn(piece), piece.plays,
+        const far = this._mood(piece.meta) >= 1 ? FAR : 0;
+        const score = [off(piece) + turn(piece) + story + far + this._rotation(piece.meta), piece.plays,
                        this.pieceAt.has(piece.id) ? this.pieceAt.get(piece.id) : -1];
         let order = 0;
         for (let i = 0; i < 3 && !order; i++) order = score[i] - bestScore[i];
@@ -963,7 +999,8 @@
       }
       if (!best.length) return null;
       const piece = best[Math.floor(this.random() * best.length) % best.length];
-      return { piece, from: 0, laps: laps(piece), cast: this._cast(piece, null), entry: "start" };
+      return { piece, from: 0, laps: laps(piece), cast: this._cast(piece, null), entry: "start", sited: this.target.sited === true,
+               zone: typeof this.target.zone === "string" ? this.target.zone : null };
     }
 
     // How loud a deck is: what the game asks of its channel, or of the channels it stands in
@@ -1163,7 +1200,10 @@
       }
       // What was fetched ahead for a fight is what comes in, unless this is a boss and that is
       // not a boss's piece: then one is chosen now.
-      const ready = this.standby && this.standby.piece && ask === 2 && !force && index.has(this.standby.piece.id);
+      // (A piece chosen ahead to go back to the last fight's track is let go once that is no longer right: it was kept
+      // however long the calm lasted, so a fight's track came back after any wait.)
+      const stale = this.standby && this.standby.until !== undefined && this.ctx.currentTime >= this.standby.until;
+      const ready = this.standby && this.standby.piece && ask === 2 && !force && !stale && index.has(this.standby.piece.id);
       const standby = ready && (this.target.place !== "boss" || this.standby.piece.meta.role === "boss") ? this.standby : null;
       const item = standby || this._nextItem(this.bucket, { after: group, except: group.piece ? group.piece.id : null });
       if (standby && standby.entry === "resume") this.left.fight = null;       // the fight's track is being gone on with
@@ -1188,10 +1228,37 @@
       return true;
     }
 
+    // A fight drives the walking song that is playing on to its own rise ("fights shouldnt start new songs", "need to do
+    // a better job dynamically to match the mood in general", 2026-11-17, played): where a written track is in a calm
+    // part of its story (its opening, a theme, the quiet middle) when a fight takes hold, its next rise comes in on the
+    // next bar line over a bar, the same song further on, and the story goes on from there (the moment, then the calm
+    // after it). Once for each fight: not again until the fight is over. Not in a boss's or a battle's own music, which
+    // _regroup answers, nor in the last seconds of a piece, where what follows it is being made ready already.
+    async _drive() {
+      const group = this.group, t = this.target;
+      if (t.fight !== true) { this.driven = false; return false; }
+      if (this.driven || !group || !group.piece || this._quiet() || t.place === "boss" || t.place === "battle") return false;
+      this.driven = true;
+      const meta = group.piece.meta, index = this._index();
+      if (!CALM_STORIES.includes(meta.story) || !meta.serves.includes(this._ask())) return false;
+      if (group.until - this.ctx.currentTime <= HANDOVER) return false;
+      let next = meta.next ? index.get(meta.next) : null;
+      for (let steps = 0; next && next.meta.story !== "rise" && steps < 6; steps++) next = next.meta.next ? index.get(next.meta.next) : null;
+      if (!next || next.meta.story !== "rise" || next.meta.track !== meta.track) return false;
+      const item = { piece: next, from: 0, laps: 1, cast: this._cast(next, group.casting), entry: "continue",
+                     began: group.began, sited: group.sited, fit: group.fit, zone: group.zone };
+      await this._first(this.bucket, item);
+      if (!this.started || this.group !== group || this._quiet()) return false;
+      const when = Math.max(this._lineAfter(group, this.ctx.currentTime + NOTICE, 1), group.start);
+      const fade = Math.min(BLEND_FIGHT * group.bar, 6.0);
+      await this._takeOver(group, item, when, fade, fade);
+      return true;
+    }
+
     // Where a piece that is being left had got to, so that it can be gone back to.
     _leftAt(group, when, now) {
       return { key: this.bucket.key, piece: group.piece.id, position: (when - group.origin) % group.piece.seconds,
-               at: now, casting: group.casting };
+               at: now, casting: group.casting, began: group.began, sited: group.sited, fit: group.fit, zone: group.zone };
     }
 
     // What is playing gives way at `when`, over `fade`, to the piece chosen to take its place,
@@ -1221,11 +1288,25 @@
       const ask = this._ask();
       const place = this.target.place;
       const calm = place === "ember" && this.target.sited !== true;
-      if (ask === 2 || this.target.intensity >= WAVE_OFF || place === "battle" || place === "boss" || calm) {
+      // (A storm is a place's own moment however hard it rocks: its intensity is the storm's.)
+      if (ask === 2 || (this.target.intensity >= WAVE_OFF && place !== "storm") || place === "battle" || place === "boss" || calm) {
         this.followDue = this.ctx.currentTime + SETTLE;
         return false;
       }
       if (!group.piece.meta.serves.includes(ask)) return false;          // how hard it plays is _regroup's to answer
+      // Only a real change of place moves a song that is playing ("for the whole songs to play, for the best song to be
+      // chosen based on the place, and for major place changes to shift the songs", then "but major place changes, inns,
+      // camps, or abrupt storms should change the song", 2026-11-17, played: a change of ground or of light between two
+      // subzones had moved the song, and the old one came back on the way back). The player has gone into another zone
+      // (or dungeon) than the song began in; or into a place with music of its own (an inn, a cave,
+      // a town, a battleground, a camp) or a storm has set in; or the player has left the place the song was for (a
+      // storm's song ends where its part ends, see _nextItem). The light, the hour, the ground underfoot and a subzone's
+      // name choose the next song, and leave this one alone.
+      const role = group.piece.meta.role, also = this.target.also || [], fit = this._mood(group.piece.meta);
+      const land = typeof this.target.zone === "string" && typeof group.zone === "string" && this.target.zone !== group.zone;
+      const into = (this.target.sited === true || place === "storm") && role !== place;
+      const out = group.sited === true && !STAYS.includes(role) && role !== place && !also.includes(role);
+      if (!land && !into && !out) return false;
       // (Only a look: the track that was left for this one is still remembered if the music
       // does not move, and gives up its place to this one if it does.)
       const item = this._nextItem(this.bucket, { after: group, except: group.piece.id, follow: true, peek: true });
@@ -1306,6 +1387,14 @@
                       form: piece ? { verse: piece.line, build: 0, chorus: 0 } : bucket.form,
                       arc: piece ? null : bucket.arc,
                       piece, cast: piece ? item.cast : null, entry: item && item.entry || "",
+                      // When the track this piece belongs to began: its pieces, and a resume, carry it on.
+                      began: item && typeof item.began === "number" ? item.began : start,
+                      // Whether the track began in a place the player stood in (an inn, a cave, a town...): see _nextItem.
+                      sited: Boolean(item && item.sited),
+                      // How well it suited the kind of land where it began (see _mood), and the zone it began in: a new
+                      // zone changes the song (see _follow).
+                      fit: item && typeof item.fit === "number" ? item.fit : piece ? this._mood(piece.meta) : 0,
+                      zone: item && item.zone !== undefined ? item.zone : (typeof this.target.zone === "string" ? this.target.zone : null),
                       // A style may ask for longer or shorter blends than the usual.
                       blend: bucket.arc && bucket.arc.blend > 0 ? bucket.arc.blend : 1,
                       bed: ctx.createGain(), rest: ctx.createGain() };
@@ -1317,9 +1406,10 @@
         for (const channel of Object.keys(group.cast)) group.casting[channel] = group.cast[channel].meta.track;
         this.pieceTurn += 1;
         this.pieceAt.set(piece.id, this.pieceTurn);
-        if (group.entry !== "continue") {
+        // (A track is heard once however often a fight or a cave cut into it: a resume is not a hearing.)
+        if (group.entry === "start") {
           const family = Forever.family(piece.meta);
-          const times = (this.begun.get(family) || []).filter((at) => start - at < WORN_FOR);
+          const times = (this.begun.get(family) || []).filter((at) => start - at < HEARD_FOR).slice(-2);
           times.push(start);
           this.begun.set(family, times);
           if (this.memory) this._remember();
@@ -1850,6 +1940,9 @@
         // A fight, or the calm after one, may call for another piece altogether.
         await this._regroup(false);
         if (!this.group || !this.started) return;
+        // ...and an ordinary fight drives the song that is playing on to its rise.
+        await this._drive();
+        if (!this.group || !this.started) return;
         // And so may somewhere new, once the player has stayed there a moment.
         if (this.followDue !== null && this.ctx.currentTime >= this.followDue) {
           const ending = this.group.until - this.ctx.currentTime;
@@ -1901,13 +1994,17 @@
       this.target = Object.assign({}, before, target);
       const wasQuiet = before.silent === true;
       if (this._quiet() && !wasQuiet) this.restSince = this.ctx.currentTime;
-      // Somewhere else (another kind of place, a cave, an inn, or out of one): the music follows
-      // once the player has stayed there a moment.
-      const darker = typeof before.shade === "number" && typeof this.target.shade === "number"
-        && Math.abs(before.shade - this.target.shade) >= 1;                  // night has fallen, a storm has come, a darker corner
-      if (String(before.kinds) !== String(this.target.kinds) || before.light !== this.target.light
-          || before.place !== this.target.place || before.sited !== this.target.sited || darker
-          || (before.setting || "") !== (this.target.setting || "")) this.followDue = this.ctx.currentTime + SETTLE;
+      // Somewhere else: another zone, or into or out of a place with music of its own (an inn, a camp, a cave, a town,
+      // a battleground), or a storm has set in or is over. The music follows once the player has stayed there a moment
+      // (a zone a while longer). A subzone, the light, the hour or the ground underfoot is no reason to look: they choose
+      // the next song when this one ends ("for the whole songs to play ... and for major place changes to shift the
+      // songs", "but this should only happen in like zone changes, not every subzone", 2026-11-17, played).
+      if ((before.zone || null) !== (this.target.zone || null)) {
+        this.zoneSince = this.ctx.currentTime;
+        this.followDue = this.ctx.currentTime + ZONE_SETTLE;
+      } else if (before.place !== this.target.place || before.sited !== this.target.sited) {
+        this.followDue = Math.max(this.followDue || 0, this.ctx.currentTime + SETTLE);
+      }
       this._levels(before, wasQuiet);
       return this._serial(async () => {
         if (!this.started || !this.bucket) return;
