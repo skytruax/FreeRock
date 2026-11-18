@@ -748,6 +748,12 @@ the 60 families are light: *the house is meant to be mostly light* (the test).
   before the drop*. The calm roles stir a shaker, a rim or the hats instead.
 - **Crashes** at the start of each theme and drop, and every eight bars of a drop.
 
+At the desk (`club.lines`) the kick is struck dry and everything else into a small room, whose
+equaliser lifts the clap's, the snare's and the hats' presence at 2 kHz (*4 to 10 dB short from 900
+Hz to 3.5 kHz against the liked stems*, 2026-11-17) and their knock at 900 Hz (*still 3 to 6 dB short
+there in every take*, 2026-11-18: 3 dB more brought that octave about 2 dB nearer and left the rest,
+the level and the punch as they were).
+
 ### 5.3 Bass, sub and growl
 
 `house.Take.bass` plays a figure from `house.BASSES` (offbeat, offbeat with octaves, rolling,

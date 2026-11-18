@@ -287,8 +287,9 @@ def lines(heard: Heard, track: house.Take, work: Path) -> tuple[dict[str, list[d
         chains = {
             # The kick: its stroke brought out, what is under 30 Hz taken away, held together; nothing of it in the hall.
             "kick": ([sounds.punch(0.35, -0.1), sounds.equalise(low_cut=30.0, bands=((320.0, -2.5, 1.2), (3500.0, 2.0, 1.6))), sounds.smash(0.3)], 0.0, 1.0),
-            # (The clap, the snare and the hats 4 to 10 dB short from 900 Hz to 3.5 kHz against the liked stems, 2026-11-17.)
-            "room": ([sounds.equalise(low_cut=180.0, bands=((2000.0, 3.0, 0.8),)), sounds.warm(0.35)], 0.22, 0.6),
+            # (The clap, the snare and the hats 4 to 10 dB short from 900 Hz to 3.5 kHz against the liked stems, 2026-11-17;
+            # with that lifted, the clap's and the snare's knock at 900 Hz was still 3 to 6 dB short in every take, 2026-11-18.)
+            "room": ([sounds.equalise(low_cut=180.0, bands=((900.0, 3.0, 1.2), (2000.0, 3.0, 0.8))), sounds.warm(0.35)], 0.22, 0.6),
         }
         for which, notes in sets.items():
             effects, send, volume = chains[which]
