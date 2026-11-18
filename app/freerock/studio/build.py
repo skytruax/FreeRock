@@ -74,7 +74,10 @@ LAST_ADDED = ("deep tide", "fallen crusade",
               # (Knight Rock's for the new kinds)
               "bayou boogie", "sea dog", "frost hammer",
               # (and more of its walking music for the hills and fields: "feel like i hear the same knight rock one over and over")
-              "hill country", "harvest boogie", "iron vow", "free company")
+              "hill country", "harvest boogie", "iron vow", "free company",
+              # (the next night: more music for Knight Rock's moments, and Warcraft's storms for the places that had none)
+              "barroom blues", "dwarf hall", "road camp", "glow cave", "low tunnel", "midnight ride", "downpour run",
+              "field storm", "monsoon", "witch storm")
 
 
 def _shapes_last(character) -> list[int]:
