@@ -176,6 +176,16 @@ setting moves.
   hear more of that saw synths top end") had reached every synth lead, and an inn's sung melody stood
   20 dB over the liked leads at the top. Only the drop's big synths keep it now (`club.OPEN_TOP`).
 
+- **House's chords against the liked stems at the top are not a target.** Struck as the desk strikes
+  them, every synth tried for the chords stood 15 to 28 dB over the liked chords from 2.5 to 10 kHz,
+  under the old fixed top too (cut at 6 kHz, 16 dB down from 2.5): no EQ brought them near. As with
+  Knight Rock's texture, the liked chords' top is likely a separated stem's leftovers. The chords keep
+  their top and are judged by ear. The organ was another matter: its whole shape was off, centred at
+  1,658 Hz against the liked 514.
+- **A calm piece has no roll into its moment**, as its design says (Cold Stars I's bell had rolled in
+  sixteenths into its drop, ringing 6 dB over it). In the other pieces the chords' roll climbs to the
+  drop and no higher: each stroke softer as they come faster, swelling across the bar.
+
 The nightly loop works on sheets and writes every lesson here: what was tried, what it was for, how
 it measured, what Sky's ear said, and what did not work ("the recursive loop should also update the
 music writing handbook as it learns more").

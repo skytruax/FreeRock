@@ -25,6 +25,9 @@ dictated, where it drove the change.
   Organ stays for the organ bass.
 - **Only the drop's big synths keep the open top**: a calm piece's sung melody and the quiet riff's
   pluck have the gentler top again (an inn's tune had stood 20 dB over the liked leads there).
+- **The chords' roll climbs to the drop and no higher**: in the last two bars of a rise each stroke is
+  softer as they come faster, swelling across the bar. A calm piece has no roll into its moment, as
+  designed (Cold Stars I's bell had rung 6 dB over its own drop).
 - **A judge that listens** ("find more music judging packages, that will rate a song"): Meta's
   Audiobox Aesthetics scores a take's enjoyment and production quality, whole and part by part
   (`tools/judge.py`), on this machine. It is a gate and a pointer for the sound, not a target.

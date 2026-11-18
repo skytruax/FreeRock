@@ -1116,7 +1116,10 @@ class Take:
                 if story == "rise" and not through_rise and inside < count - build:
                     continue
                 thin = (story == "open" and inside < count // 2) or (story == "close" and inside >= count // 2)
-                building = story == "rise" and inside >= count - 2
+                # The chords' roll into the drop: in the last two bars of a rise, eighths and then sixteenths. A calm piece
+                # has no roll into its moment (2026-11-18, Cold Stars I, a night piece: a bell's sixteenths had rung into
+                # each other 6 dB over its own drop).
+                building = story == "rise" and inside >= count - 2 and fam.role not in CALM_ROLES
                 if style == "dub":
                     # One chord thrown into the echo, and left to ring.
                     if inside % 2 == 0 or story == "moment":
@@ -1131,8 +1134,12 @@ class Take:
                         order = notes if number % 2 == 0 else notes[::-1]
                         for index, pitch in enumerate(order):
                             late = index * 0.014 if style == "strum" else 0.0
-                            synth.play(out, sound, self.at(bar, step) + late, length * STEP * 0.9, pitch,
-                                       level * (1.0 if step % 4 == 0 or len(places) < 5 else 0.82) * (0.9 + 0.1 * rng.random()),
+                            hard = level * (1.0 if step % 4 == 0 or len(places) < 5 else 0.82) * (0.9 + 0.1 * rng.random())
+                            if building:
+                                # The roll climbs to the drop and no higher: each stroke softer as they come faster (eighths,
+                                # then sixteenths ringing into each other), swelling across the bar.
+                                hard *= (0.62 if inside == count - 1 else 0.8) * (0.75 + 0.25 * step / 15.0)
+                            synth.play(out, sound, self.at(bar, step) + late, length * STEP * 0.9, pitch, hard,
                                        pan=(notes.index(pitch) - (len(notes) - 1) / 2.0) * 0.28, seed=self.seed + bar * 64 + number * 4 + index,
                                        bright=bright)
                 elif style == "pumpchords":

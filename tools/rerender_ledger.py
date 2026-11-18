@@ -142,6 +142,10 @@ CHANGES = [
            "put them 23 to 34 dB over the liked at the top); the open top asked for the saw kept to the drop's saw and super, "
            "the calm melodies and the quiet pluck back to the gentler top",
            lambda p: p.style == "house"),
+    Change("House's chord roll climbs to the drop", datetime.datetime(2026, 11, 18, 17, 22), "",
+           "the chords' roll into a drop softer as it comes faster, no louder than the drop; none in a calm piece (Cold Stars "
+           "I's bell had rung 6 dB over its drop)",
+           lambda p: p.style == "house"),
 ]
 
 

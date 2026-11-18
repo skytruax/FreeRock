@@ -608,6 +608,29 @@ def test_only_the_drops_big_synths_keep_the_open_top():
     assert seen == {True, False}
 
 
+def test_the_chords_roll_climbs_to_the_drop_and_a_calm_piece_has_none():
+    # (2026-11-18, Cold Stars I, a night piece: its bell's sixteenths into the drop, ringing into each other, stood 6 dB over
+    # its own drop. The calm moments have no roll into one, by their design.) The roll's strokes are softer than the drop's
+    # first chord, and a calm piece's rise ends on its ordinary chords.
+    from freerock.studio import club
+
+    def bars_of(name: str):
+        take = house.Take(house.family(name), 1)
+        keys = [note for (channel, _, _), notes in club.listen(take).notes.items() if channel == "rhythm" for note in notes]
+        rises = [(first, count) for story, first, count in take.sections if story == "rise"]
+        drops = [first for story, first, _ in take.sections if story == "moment"]
+        for (first, count), drop in zip(rises, drops):
+            last = [note for note in keys if (first + count - 1) * house.BAR <= note[0] < (first + count) * house.BAR]
+            hit = [note for note in keys if drop * house.BAR <= note[0] < (drop + 1) * house.BAR]
+            yield last, hit
+    for last, hit in bars_of("coast-03"):
+        assert len(last) > 2 * len(hit)                                            # a roll: sixteenths
+        assert max(note[3] for note in last) < 0.7 * max(note[3] for note in hit)
+    assert house.family("night-03").role in house.CALM_ROLES
+    for last, hit in bars_of("night-03"):
+        assert len(last) <= len(hit)                                               # no roll
+
+
 def test_a_house_groove_changes_every_sixteen_bars():
     # (2026-11-18, the boredom meter: Breakwater's drums sounded the same for 40 bars of its theme, its maracas' sixteenths
     # under everything; "still some boring sounds in house". The hats turn and the percussion figures take turns.)
