@@ -86,7 +86,11 @@ INSTRUMENTS = {
     "steel guitar": I(40, 84, 62, held=False), "mandolin": I(55, 91, 72, held=False),
     "twelve string": I(40, 84, 62, held=False), "sitar": I(48, 84, 64, held=False),
     "koto": I(48, 91, 67, held=False), "kalimba": I(60, 96, 76, held=False),
-    "banjo": I(48, 84, 64, held=False), "bagpipe": I(61, 83, 72, level=0.7), "pipe drone": I(58, 82, 70, level=0.7),
+    # (The pipe drone, the english horn that holds a pad's drone, down to its own lowest E3, 2026-11-18: from B-flat 3, the
+    # old bagpipe's range, a valley's drone written on A2 and E3 was pushed up to A4 and E4 and held there twenty-four bars,
+    # a reed whining over a soft guitar at -35 against the tune's -44, "sometimes when one synth stays in when youre
+    # sitting its whiny". Its home note, which casts who sings what, is as it was.)
+    "banjo": I(48, 84, 64, held=False), "bagpipe": I(61, 83, 72, level=0.7), "pipe drone": I(52, 82, 70, level=0.7),
     "fiddle": I(55, 96, 74), "shenai": I(58, 86, 70, level=0.8),
     "choir": I(48, 81, 64, early=0.05), "oohs": I(48, 84, 65, early=0.05),
     "timpani": I(36, 57, 45, held=False), "taiko": I(36, 60, 45, held=False),
@@ -1287,6 +1291,10 @@ THEMATIC = ("first", "second", "arrival", "valley", "summit")      # the parts i
 FIGHTS = ("battle", "boss", "storm", "battleground")
 DANCE_GROOVES = ("jig", "reel", "waltz", "courtly")      # the grooves of dances: no war drums under them
 VALLEY_PAD = 0.55      # how far the pad's swell goes under in the valley, where the tune is a single soft player
+# The reeds: held alone under a soft tune they whine, and MuseScore's english horn hardly follows its dynamics there (2026-11-18:
+# King's Oath's valley drone stood 12.7 dB over the clean guitar's tune at pianissimo as at piano). In the valley the drone goes to
+# the other pad, an organ's or the strings', which go down 20 dB there as written.
+REEDS = ("pipe drone", "bagpipe", "accordion", "harmonica")
 DELICATE = ("sparkle", "tick", "rain", "drip", "bog", "brushes", "none")      # grooves too fine for war drums under them
 LONG = 480.0                   # seconds: about how long a track is
 BAND_PEDALS = False            # a band's guitars' effect marks (Take.effects): a new sound, heard as a demo before it is used
@@ -2565,6 +2573,8 @@ class Take:
         for section, first, key, chords in self.spans:
             part, bars = section.part, section.bars
             pad, way = (self.pad_b, self.way_b) if part in ("second", "valley") else (self.pad, self.way)
+            if part == "valley" and pad in REEDS and self.pad not in REEDS:
+                pad = self.pad                         # a reed does not hold the valley's drone (REEDS)
             if part == "valley" and (not self.fight or ch.band):
                 way = self.valley_way                  # (a band's fight breaks down in its valley too: see `drums`)
             name = "tremolo" if way == "tremolo" and part in ("open", "build", "climb") else pad

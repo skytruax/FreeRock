@@ -227,20 +227,50 @@ Three things are read every morning, strongest first:
   including what did not work. The handbook grows as the loop learns, and the writers follow it ("the
   recursive loop should also update the music writing handbook as it learns more", 2026-11-18).
 - **Judges that listen** ("find more music judging packages, that will rate a song", "add those to
-  the recursive loop", 2026-11-18): open models that run on this machine, with no audio sent anywhere,
-  score every take alongside the study. Among them: an aesthetics model for production quality and
-  enjoyment, a song-musicality model, and Essentia's engagement and approachability models. Also how
-  near a take sits to the liked stems as a whole (an embedding distance), how well it answers its
-  brief in words ("a slow haunted walk with organ"), and an audio-language model that writes a short
-  critique of where it drags. No one judge decides: each is first checked against Sky's own loves and
-  skips, and the judges are trusted only as far as they agree with Sky's ear. They rank the last
-  three takes of a family, point at the weakest sections, and choose which family is written again.
-- **Nothing stays the same too long** ("some of the instruments get boring figure out how to get more
-  especially in house", "put that in the recursive loop", 2026-11-18): every take is measured for
-  how long each channel sounds the same (its shape across the octaves, its brightness, its movement).
-  Something must change in every channel at least every 8 or 16 bars: a filter opening, a pedal
-  coming in, the part, the voicing or the instrument. A take with a long unchanged stretch is flagged,
-  and the fix goes into the writer or the desk for that style.
+  the recursive loop", 2026-11-18). Open models that run on this machine, with no audio sent anywhere,
+  from a study of what exists (the study's own list of what it could not verify is kept with it). None
+  has been proven on long instrumental game music or on stems, and most hear only 16 kHz mono. So they
+  are gates, voters and pointers, never targets.
+  - **Gates**:
+    - Meta's Audiobox Aesthetics, production quality (CC BY 4.0, about 400 MB, a minute or so a
+      track);
+    - PAM, as a floor for artefacts;
+    - the loudness and peak checks: one common gain for the five stems, true peak at most -1 dBTP;
+    - every one of the 31 ways the game can mix the five channels (each subset) checked for clipping
+      and holes.
+  - **Voters** that rank a family's takes:
+    - LAION-CLAP, the margin by which a take answers its brief ("a slow haunted walk with organ")
+      better than a foil;
+    - its distance (KAD) from the takes Sky loved;
+    - Essentia's style checks (their weights are non-commercial, which suits a game soundtrack kept
+      for Sky's own playing, but noted).
+  - **Holdouts** that are watched but never steer: Audiobox's enjoyment score, MuQ-Eval.
+  - **A critic in words**: Qwen3-Omni (Apache-2.0, about 22 GB of memory), as a fault-finder for
+    sections whose hints a measurement has to confirm. It agrees with experts only weakly (about 0.3).
+- **The boredom meter** (the answer to "some of the instruments get boring"): for each stem, a
+  fingerprint of every bar (its shape across the octaves, its brightness, its density) and a hash of
+  its notes on the sheet. It reports:
+  - the longest run that does not change, alone and in the mix;
+  - how much the hats dominate;
+  - for each run too long, what failed to change (the sound, the part, the treatment), so the remedy
+    fits.
+
+  The evidence blames unvarying simple stems and flat section shapes, not repetition itself. Something
+  must change in every channel at least every 8 or 16 bars: a filter opening, a pedal coming in, the
+  part, the voicing or the instrument.
+- **When a new take may replace an old one.** It must:
+  - pass every gate;
+  - regress nowhere;
+  - win beyond the judges' measured noise;
+  - not be a near-copy;
+  - come from the top third of its night.
+
+  It stays provisional until Sky agrees. Loves are kept outside the three-take window, and bans go
+  at once. Renders are shared out by how likely each family is to improve, so the promising ones get
+  more tries. Candidates go through a funnel: many note-level checks on sheets, a few excerpts, then a
+  handful of full renders (about four full renders a family a night).
+- **Sky decides.** At most one blind, loudness-matched comparison an evening. If the judges agree with
+  Sky on fewer than 15 of the last 20 such pairs, replacing stops until they are mended.
 - **Effects that move with the story, in every style** ("yes you need effects over time", "this
   might apply to other genres too", "guitars should have effects in the 70s bro", 2026-11-18):
   - House rides its filters: shut at the start, open at a drop, shut for the breakdown, the bass's
@@ -326,6 +356,23 @@ FreeRock/
   at a phrase's end, a valley further into the hall).
 - **Keeping the sheets safe**: every revision is kept beside its take, and the sheets could also be
   kept in a version history of their own (a decision for Sky).
+- **The loop's first tools** (the study's first step, about a week):
+  - the player's love, skip and ban, and its play log, sent to the server;
+  - a blind A/B page;
+  - the loudness, true-peak and 31-subset checks;
+  - the boredom meter;
+  - new reference audio for every style.
+- **Better performances of the same sheets**, one family at a time, demo first:
+  - phrasing that breathes (phrase arches, a final slowing, timing that drifts as a player's does);
+  - real drum grooves (the Groove MIDI Dataset, CC BY 4.0), played by DrumGizmo as multi-mic stems;
+  - amp captures for the band's clean guitars (Neural Amp Modeler, MIT);
+  - a scripted organ with its Leslie (setBfree);
+  - the Accurate-Salamander piano.
+
+  Nothing is to be bought; if anything ever is, Pianoteq first.
+- **Licences to settle** (Sky's call):
+  - The AVL drum kits in use are CC BY-SA 3.0, outside the CC0 and CC BY of everything else.
+  - The sfizz sampler's project was archived in June 2026: sforzando's free Linux build is the fallback.
 - **The player's record of what it played**, sent to the server and kept with each evening's log, so
   the mornings can count what played where, what came twice and what ran short.
 - **Windows on its own.** Server, sensor and player on the gaming PC alone, with the studio's work

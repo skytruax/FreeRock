@@ -41,6 +41,7 @@ EFFECTS = {
     "flanger": "the flanger: 0 out, 1 all the way in",
     "flanger depth": "how far the flanger sweeps itself: 1 in time with the song, 0 only where it is swept by hand",
     "flanger position": "where a flanger swept by hand stands: 0 its shortest delay, 1 its longest",
+    "echo": "the tape echo's send: 0 none, 1 thrown all the way up (a phrase's last note)",
     "lowpass": "the low-pass filter, in Hz (20000 is open)",
     "highpass": "the high-pass filter, in Hz (20 is open)",
 }
@@ -51,6 +52,8 @@ SETTINGS = {
     "phaser feedback": "0 to 0.9",
     "flanger bars": "bars one sweep of the flanger takes, down and back",
     "flanger feedback": "0 to 0.95",
+    "echo beats": "beats the echo's left repeat comes after (the right one a beat after)",
+    "echo feedback": "how much of each repeat comes round again, 0 to 0.9",
     "lowpass resonance": "0 to 1",
     "highpass resonance": "0 to 1",
 }

@@ -540,3 +540,22 @@ def test_the_hats_between_the_eighths_come_only_at_a_drop():
             per_bar[(story, bar)] = per_bar.get((story, bar), 0) + 1
     assert max(count for (story, _), count in per_bar.items() if story == "moment") >= 14
     assert max(count for (story, _), count in per_bar.items() if story != "moment") <= 8
+
+
+def test_a_riff_spells_its_chords_in_short_notes_and_its_echo_is_thrown_at_each_phrases_end():
+    # (2026-11-18: "the lead is still lame": a house lead is a riff, cells of three sixteenths, every note on the chord.)
+    from freerock.studio import club
+    fam = next(each for each in house.PLAN if each.role not in house.CALM_ROLES and house.Take(each, 1).tune.riff)
+    take = house.Take(fam, 1)
+    idea = take.tune.idea
+    assert max(note.length for note in idea) <= 7
+    assert all(take.changes.within(take.changes.chord(int(note.at // 16)), note.degree) for note in idea)
+    sheet = club.write(fam.name, 1)
+    lead = max(sheet.parts["lead"].values(), key=lambda part: len(part.notes))
+    echo = lead.effects["echo"]
+    phrase = min(int(note.start // 16) for note in lead.notes)
+    last = max((note for note in lead.notes if int(note.start // 16) == phrase), key=lambda note: note.start)
+    assert _value_at(echo, last.start + 0.01) > 0.5 > _value_at(echo, last.start - 0.5)
+    assert _value_at(echo, last.start + last.length + 1.0) == 0.0
+    calm = next(each for each in house.PLAN if each.role in house.CALM_ROLES)
+    assert not house.Take(calm, 1).tune.riff                  # the calm moments sing

@@ -352,8 +352,10 @@ def lines(heard: Heard, seed: int, work: Path) -> tuple[dict[str, list[desk.Line
                     moved = [sounds.phase(0.35)] if synth_played else []
                     # (2026-11-18: a moving low-pass is marked on each part now, shut in the themes and the breakdown and open at
                     # a drop; with this top fixed at 6 kHz and 16 dB down from 2.5, a drop was as dark as its theme.)
-                    line.effects = list(line.effects) + [sounds.equalise(low_cut=110.0, bands=tone, high_shelf=(2500.0, -10.0))] \
-                        + moved + [sounds.warm(0.3), sounds.echo(house.BPM, 0.26, left=3, right=4, again=0.36)]
+                    # (2026-11-18, by ear: "the sounds just need to be bigger somehow it sounds hollow and generic in the
+                    # synths". Cut from 110 Hz, the chords had lost their body: from 80 now, and spread wider.)
+                    line.effects = list(line.effects) + [sounds.equalise(low_cut=80.0, bands=tone, high_shelf=(2500.0, -10.0))] \
+                        + moved + [sounds.warm(0.3), sounds.wide(1.3), sounds.echo(house.BPM, 0.26, left=3, right=4, again=0.36)]
                     line.send = max(line.send, 0.24)
                 elif channel == "lead":
                     # (The night's leads, MuseScore's, were 6 dB dull at their top and 3 in their middle against the liked house
@@ -362,22 +364,26 @@ def lines(heard: Heard, seed: int, work: Path) -> tuple[dict[str, list[desk.Line
                     # (Third pass, midday: Surge's leads still 8 to 20 dB over from 1.8 to 7 kHz: taken down further, which
                     # brought them 4 to 5 dB nearer. MuseScore's keep their lift: given back, a pastoral lead went 3 dB further
                     # under the liked ones at the top.)
+                    # (2026-11-18, "it sounds hollow": open from 85 Hz, not 120, so the lead has its body, and a synth's
+                    # wider: more chorus, spread.)
                     if synth_played:
-                        toned = sounds.equalise(low_cut=120.0, bands=((2500.0, -5.0, 1.0),), high_shelf=(3500.0, -8.0))
+                        toned = sounds.equalise(low_cut=85.0, bands=((2500.0, -5.0, 1.0),), high_shelf=(3500.0, -8.0))
                     else:
-                        toned = sounds.equalise(low_cut=120.0, bands=((1200.0, 3.0, 1.5),), high_shelf=(4000.0, 6.0))
-                    # (...and the lead: tape, a little chorus on a synth's, a longer echo from side to side, more room.)
-                    widened = [sounds.ensemble(0.2)] if synth_played else []
+                        toned = sounds.equalise(low_cut=85.0, bands=((1200.0, 3.0, 1.5),), high_shelf=(4000.0, 6.0))
+                    # (...and the lead: tape, a chorus on a synth's, a longer echo from side to side, more room.)
+                    widened = [sounds.ensemble(0.35), sounds.wide(1.3)] if synth_played else []
                     line.effects = list(line.effects) + [toned, sounds.warm(0.35)] + widened + [sounds.echo(house.BPM, 0.3, left=3, right=4, again=0.42)]
                     line.send = max(line.send, 0.3)
                 elif channel == "texture":
                     # (...and the pad 15 to 35 dB too much there: its glass is kept, its glare taken away; 16 dB bright still on
                     # 2026-11-17, night, with the risers tamed: 4 dB more off, and closed from 5 kHz.)
                     # (Third pass, midday: the pads alone, in the open and the themes, still 7 to 20 dB over at 3.5 to 7 kHz.)
-                    closed = sounds.equalise(low_cut=200.0, high_cut=3500.0, high_shelf=(2000.0, -12.0)) if synth_played \
-                        else sounds.equalise(low_cut=200.0, high_cut=4500.0, high_shelf=(3000.0, -12.0))
+                    # (2026-11-18, "hollow": the pads from 110 Hz, not 200, their top a little more open, the moving low-pass
+                    # doing the rest; and wider.)
+                    closed = sounds.equalise(low_cut=110.0, high_cut=5000.0, high_shelf=(2500.0, -8.0)) if synth_played \
+                        else sounds.equalise(low_cut=110.0, high_cut=6000.0, high_shelf=(3000.0, -9.0))
                     # (...and the pads wider, turning more slowly than the chords, further into the room.)
-                    line.effects = list(line.effects) + [closed, sounds.ensemble(0.55), sounds.phase(0.25, rate=0.04)]
+                    line.effects = list(line.effects) + [closed, sounds.ensemble(0.55), sounds.phase(0.25, rate=0.04), sounds.wide(1.4)]
                     line.send = max(line.send, 0.36)
                 out[channel].append(line)
     # ----- the risers and the air: played in REAPER by the studio's own instrument (studio/jsfx/air)
@@ -476,6 +482,36 @@ def thinning(form: list[dict], channel: str, calm: bool) -> list[tuple[float, fl
     return points
 
 
+def throws(part: Voice, form: list[dict], calm: bool) -> None:
+    """The tune's own treatment, marked from its phrases (2026-11-18: "the lead is still lame"): its echo thrown up on
+    the last note of each four bars it plays and taken down after it (the house study: the delay send up 6 dB for a
+    phrase's last note), and through the second half of each drop a phaser turning over two bars, so that the hook
+    stays and what is done to it changes."""
+    phrases: dict[int, list[Note]] = defaultdict(list)
+    for note in part.notes:
+        phrases[int(note.start // 16.0)].append(note)
+    if not phrases:
+        return
+    up = 0.55 if calm else 0.8
+    points: list[tuple[float, float]] = []
+    for _, mine in sorted(phrases.items()):
+        last = max(mine, key=lambda note: note.start)
+        end = last.start + last.length
+        points += [(last.start - 0.05, 0.0), (last.start, up), (end + 0.25, up), (end + 0.75, 0.0)]
+    part.mark("echo", points)
+    part.set("echo beats", 0.75)
+    part.set("echo feedback", 0.5)
+    for section in form:
+        if section["story"] == "moment" and not calm:
+            a, b = section["first"] * 4.0, (section["first"] + section["bars"]) * 4.0
+            middle = a + (b - a) / 2.0
+            if any(middle <= note.start < b for note in part.notes):
+                part.mark("phaser", [(middle - 0.05, 0.0), (middle + 1.0, 0.6), (b - 1.0, 0.6), (b, 0.0)])
+    if "phaser" in part.effects:
+        part.set("phaser bars", 2.0)
+        part.set("phaser feedback", 0.45)
+
+
 def story_at(sections: list[tuple[str, int, int]], beat: float) -> str:
     """Which part of the story a beat is in ((story, first bar, bars) of each section)."""
     bar = beat / 4.0
@@ -513,6 +549,8 @@ def write(name: str, take: int) -> Sheet:
         if thin:
             part.mark("highpass", thin)
             part.set("highpass resonance", 0.25 if channel == "bass" else 0.15)
+        if channel == "lead":
+            throws(part, form, calm)
         parts[channel]["%s %s" % (table, sound)] = part
     machine = heard.hits[0][1] if heard.hits else ""
     for drum, _, at, level, _ in heard.hits:

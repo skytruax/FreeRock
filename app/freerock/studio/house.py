@@ -497,6 +497,15 @@ HOOKS = (
     ((0, 8), (8, 4), (12, 4), (16, 8), (24, 6)),
     ((0, 2), (3, 2), (6, 2), (8, 2), (11, 2), (14, 2), (16, 6), (24, 6)),
 )
+# Riffs: cells of three sixteenths over the four beats, resolved by two eighths at the end of the phrase, every note on
+# the chord (2026-11-18: "the lead is still lame"; the house study: deadmau5's hooks, "Strobe", "Phantoms Can't Hang",
+# cells of three sixteenths over 4/4; the singing hooks above have long notes, a melody, where a house lead is a riff).
+RIFFS = (
+    ((0, 2), (3, 2), (6, 2), (9, 2), (12, 2), (14, 2), (16, 2), (19, 2), (22, 2), (25, 2), (28, 4)),
+    ((0, 1), (3, 1), (6, 1), (8, 1), (11, 1), (14, 1), (16, 1), (19, 1), (22, 1), (24, 1), (27, 1), (30, 2)),
+    ((0, 2), (3, 2), (6, 2), (8, 2), (10, 2), (12, 4), (16, 2), (19, 2), (22, 2), (24, 2), (26, 2), (28, 4)),
+    ((0, 3), (3, 3), (6, 3), (9, 3), (12, 2), (14, 2), (16, 3), (19, 3), (22, 3), (25, 7)),
+)
 FLOWS = (
     ((0, 2), (2, 2), (4, 2), (6, 2), (8, 4), (12, 2), (14, 2), (16, 2), (18, 2), (20, 2), (22, 2), (24, 6)),
     ((0, 1), (1, 1), (2, 2), (4, 2), (6, 2), (8, 6), (16, 1), (17, 1), (18, 2), (20, 2), (22, 2), (24, 6)),
@@ -604,7 +613,7 @@ class Tune:
     climb a third higher. Notes on the strong beats and the long notes are notes of the chord
     under them; the notes between move by step."""
 
-    def __init__(self, changes: Changes, rng: random.Random, home: int = 67):
+    def __init__(self, changes: Changes, rng: random.Random, home: int = 67, riff: bool = False):
         # (The middle of the tune at G4, not D5 as it was: 2026-11-17, morning, "your house needs some work". Against
         # the liked house stems the leads had nothing under 320 Hz and 6 to 19 dB too much from 900 Hz to 3.5 kHz, where
         # the liked leads have their weight at 200 to 450 Hz: a house hook sits in the warm middle, not over the band.)
@@ -612,10 +621,12 @@ class Tune:
         # The step of the scale nearest `home` (a MIDI note) is the middle of the tune's range.
         self.centre = min(range(-7, 22), key=lambda degree: abs(changes.pitch(degree) - home))
         self.low, self.high = self.centre - 6, self.centre + 7
-        hook = rng.choice(HOOKS)
+        # A riff (RIFFS) or a singing hook (HOOKS): the riff is a house lead's, every note on the chord.
+        self.riff = riff
+        hook = rng.choice(RIFFS if riff else HOOKS)
         other = rng.choice(FLOWS + LONGS)
         shape = rng.choice(("arch", "rising", "valley", "wave", "arch"))
-        a = self._write(hook, 0, shape, 0)
+        a = self._write(hook, 0, shape, 0, riff=riff)
         a2 = self._answer(a, 2)
         b = self._write(other, 4, rng.choice(("arch", "rising")), 2 + rng.randrange(2))
         a3 = self._close(self._answer(a, 6), 6)
@@ -638,13 +649,15 @@ class Tune:
     def _strong(at: float, length: float) -> bool:
         return at % 8 == 0 or length >= 4
 
-    def _write(self, rhythm: tuple[tuple[int, int], ...], bar: int, shape: str, lift: int) -> list[Tone]:
+    def _write(self, rhythm: tuple[tuple[int, int], ...], bar: int, shape: str, lift: int, riff: bool = False) -> list[Tone]:
         """Two bars over the chords from `bar`: each note the one that best follows the shape,
-        moves by step from the last, and sits on the chord where it is strong."""
+        moves by step from the last, and sits on the chord where it is strong. In a riff every
+        note is on the chord (the riff spells it out), a note may come again, and the first of
+        each cell of three sixteenths is the one leaned on."""
         curve, out, before, leapt, same = SHAPES[shape], [], None, 0, 0
         for index, (at, length) in enumerate(rhythm):
             chord = self._chord(bar, at)
-            strong = self._strong(at, length) or index == len(rhythm) - 1
+            strong = riff or self._strong(at, length) or index == len(rhythm) - 1
             want = self.centre + lift + curve(at / 32.0)
             best, least = None, 1e9
             for degree in range(self.low, self.high + 1):
@@ -653,14 +666,18 @@ class Tune:
                 cost = 0.9 * abs(degree - want) + self.rng.random() * 0.8
                 if before is not None:
                     step = abs(degree - before)
-                    cost += 0.0 if step == 1 else 0.5 if step == 2 else 0.9 * (step - 1) if step else (1.1 if strong else 2.0) + 3.0 * same
+                    again = (0.4 + 0.8 * same) if riff else (1.1 if strong else 2.0) + 3.0 * same
+                    cost += 0.0 if step == 1 else 0.5 if step == 2 else 0.9 * (step - 1) if step else again
                     if leapt and (degree - before) * leapt >= 0:
                         cost += 1.5                      # after a leap, back the other way
                 if cost < least:
                     best, least = degree, cost
             leapt = 0 if before is None or abs(best - before) < 3 else (1 if best > before else -1)
             same = same + 1 if best == before else 0
-            out.append(Tone(at, length, best, 0.82 if strong else 0.64))
+            if riff:
+                out.append(Tone(at, length, best, 0.85 if at % 16 in (0, 3, 6, 9) or at % 16 == 8 else 0.68))
+            else:
+                out.append(Tone(at, length, best, 0.82 if strong else 0.64))
             before = best
         return out
 
@@ -821,7 +838,8 @@ class Take:
         self.frames = int(round(self.bars * BAR_FRAMES)) + int(round(POST_S * RATE))
         self.kick = KICKS[fam.groove]
         self.arc = ARCS[ARC_OF[fam.role]]
-        self.tune = Tune(self.changes, self.rng("tune"))
+        # Walking music, the moments and the fights have a riff for a hook two takes in three; the calm moments sing.
+        self.tune = Tune(self.changes, self.rng("tune"), riff=fam.role not in CALM_ROLES and self.pick("riff", (True, True, False)))
 
     # --- what a take is made of ----------------------------------------------------------------
     def rng(self, what: str) -> random.Random:
@@ -1141,6 +1159,14 @@ class Take:
         soft = LEADS[names[(names.index(chosen) + 1) % len(names)]]      # the same tune in a gentler voice, for the quiet places
         doubled = self.pick("lead-double", ("octave", "third", "octave")) if fam.role not in CALM_ROLES else ""
         tune = self.tune
+        late = None
+        if tune.riff:
+            # A riff is a pluck's through the echo where it is quiet and the big saw's at the drops, and in the second half
+            # of a drop a second synth joins it an octave up, the drop's new thing (the house study: a harsher twin
+            # crossfaded in late in a drop, something never heard before in the last drop's second half).
+            big = self.pick("riff-lead", ("saw", "super", "saw"))
+            main, soft = LEADS[big], LEADS[self.pick("riff-soft", ("pluck", "glass", "pluck"))]
+            late = LEADS["super" if big == "saw" else "saw"]
 
         def say(notes: list[Tone], bar: int, sound: Any, level: float, bright: float, shift: int = 0, echo_of: float = 0.0) -> None:
             before = None
@@ -1184,7 +1210,9 @@ class Take:
                     phrase = tune.first if (inside // 8) % 2 == 0 else tune.second
                     notes = cut(phrase, phrase[0].at - phrase[0].at % 128, phrase[0].at - phrase[0].at % 128 + 128)
                     say(notes, first + inside, main, 0.62, 1.0)
-                    if doubled and (inside // 8) % 2 == 1:
+                    if late is not None and inside >= count // 2:
+                        say(notes, first + inside, late, 0.24, 1.0, shift=7)
+                    elif doubled and (inside // 8) % 2 == 1:
                         # The second time round, a line above it: an octave, or a third.
                         say(notes, first + inside, main, 0.26, 0.9, shift=7 if doubled == "octave" else 2)
             else:

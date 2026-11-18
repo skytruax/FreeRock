@@ -114,6 +114,22 @@ setting moves.
   of the breakdown by 26 dB, where before it held on at -9.
 - **The hats**: off the clap's bright chain, onto a line of their own (high-passed at 500 Hz, dry, no
   tape), 3 dB further under the kick ("too much high hat").
+- **A house lead is a riff** ("the lead is still lame"). The singing hooks, two-bar melodies with long notes
+  on a thin whistle, became riffs: cells of three sixteenths resolved by eighths, every note on the
+  chord, a pluck where it is quiet and a big synth at the drops, the echo thrown at each phrase's end.
+  The calm moments still sing.
+- **Hollow came from the cuts** ("it sounds hollow and generic in the synths"). Measured against the
+  liked stems on average, House's pads had been cut below 200 Hz, its chords below 110, its leads
+  below 120: the body of a synth lives there. Eased (110, 80, 85) and spread wider, the lead gained
+  2.5 dB of body and about 6 dB of width. Bigger patches are heard by Sky, not chosen by number
+  (`var/listen/house-sounds.html`), and a held C4 can mislead about a patch's octave: a strong sub reads
+  as the note, so every candidate's pitch is checked again in its own music.
+- **A reed does not hold the valley's drone.** King's Oath's valley drone was the english horn, held
+  24 bars under a soft guitar. Pushed up into its upper register by the old bagpipe's floor it whined,
+  and MuseScore's english horn hardly follows its dynamics (as loud at pianissimo as at piano): it
+  stood 9 dB over the tune. Handed to the organ, which goes down 20 dB there as written, it sits 2 dB
+  under the tune and whines 17 dB less. A reed's harmonics read louder than its note (its peaks at
+  twice, three and four times the note): read a reed's spectrum by its pattern, not its top peak.
 
 The nightly loop works on sheets and writes every lesson here: what was tried, what it was for, how
 it measured, what Sky's ear said, and what did not work ("the recursive loop should also update the

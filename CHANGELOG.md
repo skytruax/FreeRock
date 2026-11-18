@@ -3,6 +3,28 @@
 Newest first. Words in quotation marks are what was said while listening or playing, as typed or
 dictated, where it drove the change.
 
+## 2026-11-18, midday: House's lead a riff, its synths bigger; no reed whining in a valley
+
+"still some boring sounds in house, somethings got better the lead is still lame"; "the sounds just need
+to be bigger somehow it sounds hollow and generic in the synths".
+
+- **House's lead is a riff**: cells of three sixteenths resolved by two eighths, every note on the chord,
+  as a progressive house hook is written. It's a pluck where the track is quiet and a big synth at the
+  drops, chosen by each take. Its echo is thrown up on the last note of every four-bar phrase, and in a
+  drop's second half a phaser turns on it and a second synth joins an octave up. The calm moments still
+  sing their melodies.
+- **Bigger synths**: the pads, chords and leads keep their body (cut from 110, 80 and 85 Hz, where they
+  had been cut from 200, 110 and 120) and are spread wider: the lead has 2.5 dB more body and about 6 dB
+  more width. Bigger Surge XT patches are on a page to choose from by ear.
+- **A tape echo among the pedals** (`studio/jsfx/pedals`), its send thrown up by the sheet's marks.
+- **No reed whining in a valley.** A valley's drone is no longer held by a reed (the english horn, a
+  bagpipe, an accordion, a harmonica): it goes to the organ or the strings, and the english horn's pipe
+  drone plays as low as the instrument does. King's Oath's valley drone went from 9 dB over the tune to
+  2 under, with 17 dB less whine ("sometimes when one synth stays in when youre sitting its whiny").
+- The plan has the study of judges and the rules of the nightly loop (gates, voters, the boredom meter,
+  when a take may replace another, Sky's blind comparison), the better performances to come, and two
+  licences for Sky to settle.
+
 ## 2026-11-18, late morning: every track gets its own music sheet; effects the music asks for
 
 "the music sheet should be a separate concept and asset for every track, and updating it should be the

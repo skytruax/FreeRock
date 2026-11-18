@@ -1318,7 +1318,8 @@ def _muse(voice: Voice, title: str, bpm: float, taste: float, room: float, seed:
 
 
 # The effect marks the desk plays (score.EFFECTS), and which setting of which of the studio's effects each one draws.
-PEDAL_MARKS = {"wah": 0, "wah depth": 2, "wah position": 3, "phaser": 4, "flanger": 7, "flanger depth": 10, "flanger position": 11}
+PEDAL_MARKS = {"wah": 0, "wah depth": 2, "wah position": 3, "phaser": 4, "flanger": 7, "flanger depth": 10, "flanger position": 11,
+               "echo": 12}
 SWEEP_MARKS = {"lowpass": (0, 20.0, 20000.0), "highpass": (2, 20.0, 4000.0)}
 
 
@@ -1339,7 +1340,8 @@ def marked(voice: Voice, bpm: float) -> list[str]:
         effect = desk.js("freerock/pedals", first("wah", 0.0), settings.get("wah beats", 1.0), first("wah depth", 1.0), first("wah position", 0.5),
                          first("phaser", 0.0), settings.get("phaser bars", 2.0), settings.get("phaser feedback", 0.45),
                          first("flanger", 0.0), settings.get("flanger bars", 4.0), settings.get("flanger feedback", 0.6),
-                         first("flanger depth", 1.0), first("flanger position", 0.0))
+                         first("flanger depth", 1.0), first("flanger position", 0.0), first("echo", 0.0), settings.get("echo beats", 0.75),
+                         1.0, settings.get("echo feedback", 0.45))
         for name, param in PEDAL_MARKS.items():
             if marks.get(name):
                 effect = desk.automated(effect, param, [(at * second, value) for at, value in marks[name]], 0.0, 1.0)

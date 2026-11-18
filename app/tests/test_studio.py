@@ -912,3 +912,16 @@ def test_a_take_is_written_down_whole_as_its_sheet():
     assert {"band", "hall", "weight", "seed", "tonic", "ducks under", "soft war", "character", "metre"} <= set(sheet.about)
     assert sheet.history[0]["by"] == "the writer"
     assert sheet.parts["bass"]["sub at the moments"].notes                                # what the desk stacks is on it too
+
+
+def test_a_valleys_drone_is_held_low_and_not_by_a_reed():
+    # (2026-11-18: King's Oath's valley held A4 and E4 on the english horn for 24 bars, pushed up from A2 and E3 by the old
+    # bagpipe's floor, and whined over the soft guitar, 12.7 dB over it at pianissimo as at piano: "sometimes when one synth
+    # stays in when youre sitting its whiny". The drone goes to the organ, low.)
+    sheet = build.write(_family("pastoral-banner-ride-1"), 4)
+    valley = next(section for section in sheet.form if section["part"] == "valley")
+    a, b = valley["first"] * sheet.beats, (valley["first"] + valley["bars"]) * sheet.beats
+    held = [(part.instrument, note.pitch) for part in sheet.parts["texture"].values() for note in part.notes
+            if a <= note.start < b and note.length >= 8.0]
+    assert held and all(instrument not in orchestra.REEDS and pitch <= 57 for instrument, pitch in held)
+    assert orchestra.INSTRUMENTS["pipe drone"].low == 52             # where the english horn really goes down to

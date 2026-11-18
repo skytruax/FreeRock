@@ -22,7 +22,7 @@ from .score import EFFECTS, Sheet
 VAR = Path(__file__).resolve().parents[3] / "var"
 NAMES = ("C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B")
 SHORT = {"wah": "w", "wah depth": "", "wah position": "", "phaser": "p", "flanger": "f", "flanger depth": "", "flanger position": "",
-         "lowpass": "l", "highpass": "h"}
+         "echo": "e", "lowpass": "l", "highpass": "h"}
 assert set(SHORT) == set(EFFECTS)
 
 
@@ -54,8 +54,8 @@ def _marked_in(points: list[tuple[float, float]], first: float, last: float, eff
 
 def show(sheet: Sheet) -> str:
     """The sheet as a musician reads it at a glance: the form across the top; for each part, how many notes it plays a
-    bar in each section (blank where it rests) and which effects are marked there (w a wah, p a phaser, f a flanger, l
-    the low-pass closed, h the high-pass in); then the history."""
+    bar in each section (blank where it rests) and which effects are marked there (w a wah, p a phaser, f a flanger, e an
+    echo thrown, l the low-pass closed, h the high-pass in); then the history."""
     lines = ["%s (%s/%s/%d), revision %d: %g to the minute, %g beats a bar, %d bars" % (
         sheet.title, sheet.style, sheet.family, sheet.take, sheet.revision, sheet.tempo, sheet.beats, sheet.bars)]
     heads = ["%s %d" % (section.get("part") or section["story"], section["bars"]) for section in sheet.form]

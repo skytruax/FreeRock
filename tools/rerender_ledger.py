@@ -98,6 +98,16 @@ CHANGES = [
            "every take written down whole as its music sheet beside its recordings, the golden rule ('the music sheet should be "
            "a separate concept and asset for every track'); a take made before has none until it is performed again",
            lambda p: True),
+    Change("a reed does not hold the valley's drone", datetime.datetime(2026, 11, 18, 11, 41), "",
+           "in the valley a reed's drone (the english horn's pipe drone, a bagpipe, an accordion, a harmonica) goes to the other "
+           "pad, an organ's or the strings'; and the pipe drone plays down to its own E3 ('sometimes when one synth stays in when "
+           "youre sitting its whiny': King's Oath's valley drone stood 9 dB over the tune, now 2 under)",
+           lambda p: p.style != "house" and any(pad in ("pipe drone", "bagpipe", "accordion", "harmonica") for pad in getattr(p.character, "pads", ()))),
+    Change("House's lead a riff, its synths bigger", datetime.datetime(2026, 11, 18, 11, 41), "",
+           "the tune written as a riff (cells of three sixteenths, every note on the chord) on a pluck and a big synth, its echo "
+           "thrown at each phrase's end and a phaser and a second synth in a drop's second half; the synths' low cuts eased and "
+           "spread wider ('the lead is still lame', 'it sounds hollow and generic in the synths')",
+           lambda p: p.style == "house"),
     Change("House written as sheets, its effects marked by the music", datetime.datetime(2026, 11, 18, 10, 44), "",
            "each part's low-pass follows its notes' brightness (the theme darker than the drop, the breakdown shut), the sub out "
            "of each rise and the breakdown, a rise's last beats thinned from the bottom, the hats on a dry line of their own and "

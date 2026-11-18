@@ -1,4 +1,4 @@
-desc: FreeRock pedals (a 1970s guitar's wah, phaser and flanger, in time with the song)
+desc: FreeRock pedals (a 1970s guitar's wah, phaser, flanger and tape echo, in time with the song)
 // Part of FreeRock's studio (2026-11-18: "guitars should have effects in the 70s bro", "yes you need effects over
 // time"). Three pedals in the order a player chains them: a wah rocked on the beat or held part way, a four-stage
 // phaser and a flanger, each swept in time with the song (REAPER's own beat), so a sweep lands where the bars do.
@@ -6,7 +6,9 @@ desc: FreeRock pedals (a 1970s guitar's wah, phaser and flanger, in time with th
 // and nothing restarts when it moves (REAPER's bundled phaser starts its sweep again whenever a setting changes, so it
 // cannot be faded in and out). The wah and the flanger can also be swept by hand (depth 0, the position drawn by the
 // piece's marks), as a held wah is opened across a long note or a tape is flanged across a held chord; the hand moves
-// glide over 10 ms. Copied into REAPER's Effects folder by freerock.studio.reaper.configure.
+// glide over 10 ms. Last in the chain, a tape echo whose send can be thrown up on a phrase's last note and taken
+// down after it, its repeats darker each time round, as an Echoplex's are. Copied into REAPER's Effects folder by
+// freerock.studio.reaper.configure.
 
 slider1:0<0,1,0.001>Wah mix
 slider2:1<0.125,8,0.125>Wah beats a rock (toe down on the beat)
@@ -20,6 +22,10 @@ slider9:4<0.25,16,0.25>Flanger bars a sweep
 slider10:0.6<0,0.95,0.01>Flanger feedback
 slider11:1<0,1,0.01>Flanger depth (0 sweeps it by hand)
 slider12:0<0,1,0.001>Flanger position (by hand: 0 the shortest delay, 1 the longest)
+slider13:0<0,1,0.001>Echo send (thrown up on a phrase's last note)
+slider14:0.75<0.125,2,0.125>Echo beats, left
+slider15:1<0.125,2,0.125>Echo beats, right
+slider16:0.45<0,0.9,0.01>Echo feedback
 
 in_pin:left input
 in_pin:right input
@@ -27,12 +33,18 @@ out_pin:left output
 out_pin:right output
 
 @init
-ext_tail_size = 2048;
+ext_tail_size = 4 * srate;
 SIZE = 16384;           // the flanger's line: far more than its longest delay at any rate
 bufL = 0;
 bufR = SIZE;
 stages = 2 * SIZE;      // the phaser's memory: what went into and came out of each stage, per side
 memset(bufL, 0, 2 * SIZE + 16);
+ECHO = 4 * srate + 8;   // the echo's lines: up to two beats at 30 to the minute
+echoL = 2 * SIZE + 64;
+echoR = echoL + ECHO;
+memset(echoL, 0, 2 * ECHO);
+ew = 0; em = slider13; toneL = toneR = 0;
+dark = 1 - exp(-2 * $pi * 3500 / srate);
 write = 0;
 wm = slider1; pm = slider5; fm = slider8;
 wd = slider3; wp = slider4; fd = slider11; fp = slider12;
@@ -58,6 +70,7 @@ wd += (slider3 - wd) * hand;
 wp += (slider4 - wp) * hand;
 fd += (slider11 - fd) * hand;
 fp += (slider12 - fp) * hand;
+em += (slider13 - em) * smooth;
 outL = spl0;
 outR = spl1;
 
@@ -113,6 +126,21 @@ bufR[write] = outR + slider10 * backR;
 write += 1; write >= SIZE ? write = 0;
 outL += fm * (0.5 * (outL + backL) - outL);
 outR += fm * (0.5 * (outR + backR) - outR);
+
+// --- the tape echo: the left a dotted eighth (as set) behind, the right a beat, each repeat through a gentle low-pass
+eL = min(max(slider14 * 60 / tempo * srate, 1), ECHO - 2);
+eR = min(max(slider15 * 60 / tempo * srate, 1), ECHO - 2);
+rL = ew - eL; rL < 0 ? rL += ECHO;
+rR = ew - eR; rR < 0 ? rR += ECHO;
+backEL = echoL[floor(rL)];
+backER = echoR[floor(rR)];
+toneL += (backEL - toneL) * dark;
+toneR += (backER - toneR) * dark;
+echoL[ew] = outL * em + toneL * slider16;
+echoR[ew] = outR * em + toneR * slider16;
+ew += 1; ew >= ECHO ? ew = 0;
+outL += toneL;
+outR += toneR;
 
 spl0 = outL;
 spl1 = outR;
