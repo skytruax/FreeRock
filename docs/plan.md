@@ -15,6 +15,19 @@ plays in each, `docs/places.md`; the strip's format, `protocol/beacon.md`.
 
 These come from Sky, mostly while playing, and every part of FreeRock answers to them.
 
+- **The music sheet is the golden rule** ("the music sheet should be a separate concept and asset for
+  every track, and updating it should be the golden rule, you are a musician were working on music....
+  the rest is plumbing", 2026-11-18). Every track has its own sheet, kept with its recordings:
+  - its form and keys;
+  - every part's notes, dynamics and articulation;
+  - its effect marks: where a filter opens, a pedal comes in, an echo is thrown;
+  - who plays each part;
+  - its history of revisions, each with why.
+
+  The writers make a sheet's first draft. The studio only performs a sheet. Making a song better
+  means revising its sheet as a musician would and performing it again. The effects are written into
+  the music by what the notes do ("the music itself should denote the effects it shouldnt be
+  standard"), never laid on by one rule for every piece.
 - **Written music with stories, not loops.** Every piece is a composition of about eight minutes ("this
   is epic world of warcraft, not top 40"): it opens, states a theme, rises to a moment, falls to a
   valley and climbs to a summit before it closes. Each is recorded as five channels (texture, lead,
@@ -207,6 +220,36 @@ Three things are read every morning, strongest first:
   measures below, and Sky's love, skip and ban while playing); what the judging finds is fed back into
   the writer's and the desk's settings for that family's next take; several candidates can be written
   and the best by the judging rendered; and Sky's ear stays in charge, so no one number is chased.
+- **The loop works on the sheets, and writes down what it learns.** A night's improvement is a revision
+  of a sheet (a part re-voiced, a passage varied, an effect marked where the music asks for one), with
+  why in the sheet's history. Every lesson goes into the music-writing handbook
+  (`docs/songwriting.md`): what was tried, what it was for, how it measured and what Sky's ear said,
+  including what did not work. The handbook grows as the loop learns, and the writers follow it ("the
+  recursive loop should also update the music writing handbook as it learns more", 2026-11-18).
+- **Judges that listen** ("find more music judging packages, that will rate a song", "add those to
+  the recursive loop", 2026-11-18): open models that run on this machine, with no audio sent anywhere,
+  score every take alongside the study. Among them: an aesthetics model for production quality and
+  enjoyment, a song-musicality model, and Essentia's engagement and approachability models. Also how
+  near a take sits to the liked stems as a whole (an embedding distance), how well it answers its
+  brief in words ("a slow haunted walk with organ"), and an audio-language model that writes a short
+  critique of where it drags. No one judge decides: each is first checked against Sky's own loves and
+  skips, and the judges are trusted only as far as they agree with Sky's ear. They rank the last
+  three takes of a family, point at the weakest sections, and choose which family is written again.
+- **Nothing stays the same too long** ("some of the instruments get boring figure out how to get more
+  especially in house", "put that in the recursive loop", 2026-11-18): every take is measured for
+  how long each channel sounds the same (its shape across the octaves, its brightness, its movement).
+  Something must change in every channel at least every 8 or 16 bars: a filter opening, a pedal
+  coming in, the part, the voicing or the instrument. A take with a long unchanged stretch is flagged,
+  and the fix goes into the writer or the desk for that style.
+- **Effects that move with the story, in every style** ("yes you need effects over time", "this
+  might apply to other genres too", "guitars should have effects in the 70s bro", 2026-11-18):
+  - House rides its filters: shut at the start, open at a drop, shut for the breakdown, the bass's
+    bottom taken away before a drop.
+  - Knight Rock's guitars go through 1970s pedals (phaser, flanger "jet", wah rocked on the beat), each
+    coming in and out with the sections.
+  - Warcraft gets the same treatment in its own way (its rooms and swells).
+  - The studio's own REAPER effects (`studio/jsfx/pedals`, `studio/jsfx/sweep`) can move through a
+    piece without a click.
 - **More than MuseScore where it falls short**: better instruments, synths and mixing tools are
   weighed as the loop shows where the sound, not the writing, is the weak part.
 - A place's pieces are ranked: Sky's loves and the most played first. The weakest by the study, and

@@ -92,6 +92,11 @@ CHANGES = [
     Change("soft war drums for the slower light walks", datetime.datetime(2026, 11, 18, 8, 55), "",
            "the lighter walking music busy from 0.35 has soft war drums too (snowfall, mirage, frozen lake, desert shrine, ice fields)",
            lambda p: lively_walk(p, 0.35) and not lively_walk(p, 0.45)),
+    Change("House's filters ride the story", datetime.datetime(2026, 11, 18, 9, 39), "",
+           "the chords, pads and tune through a low-pass that opens as a track builds, is wide open at a drop and shuts for the "
+           "breakdown; the bass's bottom taken away before a drop; the pump deeper at a drop, lighter in a theme; the hats 3 dB "
+           "softer, the sixteenths between the eighths only at a drop ('too much high hat and not enough dynamic sound')",
+           lambda p: p.style == "house"),
 ]
 
 

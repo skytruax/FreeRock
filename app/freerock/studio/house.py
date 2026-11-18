@@ -882,7 +882,8 @@ class Take:
         backbeat = self.pick("backbeat", (("clap",), ("clap", "snare"), ("snare2",)) if fam.groove != "half" and fam.role not in ("ember", "camp")
                              else (("snap",), ("rim",), ("clap",)))
         back_steps = (8,) if fam.groove in ("half", "none") else (4, 12)
-        hats = HATS[self.pick("hats", self.palette["hats"])]
+        hat_figure = self.pick("hats", self.palette["hats"])
+        hats = HATS[hat_figure]
         kinds = self.palette["perc"]
         first_perc = self.pick("perc", kinds)
         second_perc = kinds[(kinds.index(first_perc) + 1) % len(kinds)]
@@ -931,7 +932,12 @@ class Take:
                         for step, loud in steps:
                             if filling and step >= 12 and fill != "lift":
                                 continue
-                            hit(wet, sound, bar, step, 0.38 * loud * (0.6 + 0.4 * energy), 0.18 if sound == "hat" else -0.12)
+                            # (2026-11-18: "too much high hat and not enough dynamic sound". The sixteenths between the
+                            # eighths come only at a drop; every hat is 3 dB softer there and follows the story further
+                            # under it: a theme's first bars 3 dB under the drop's, were 1.5.)
+                            if hat_figure == "sixteenths" and sound == "hat" and step % 2 and story != "moment":
+                                continue
+                            hit(wet, sound, bar, step, 0.27 * loud * (0.3 + 0.7 * energy), 0.18 if sound == "hat" else -0.12)
                     if story == "moment" or inside >= perc_in:
                         figure(first_perc, bar, 0.34 * (0.6 + 0.4 * energy), -0.35)
                     if story == "moment":

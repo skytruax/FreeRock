@@ -1,0 +1,61 @@
+desc: FreeRock sweep (a dance floor's filters: a resonant low-pass and a high-pass that move through a piece)
+// Part of FreeRock's studio (2026-11-18: "yes you need effects over time", "some of the instruments get boring"). The
+// filter a DJ or a producer rides over a build: a low-pass, 24 dB an octave with a resonance that sings as it opens, and
+// a high-pass that takes the bottom away before a drop. Both glide (10 ms, evenly in pitch), so a parameter envelope
+// can draw them through a piece without a step being heard. Copied into REAPER's Effects folder by
+// freerock.studio.reaper.configure.
+
+slider1:20000<20,20000,1>Low-pass (Hz)
+slider2:0.2<0,1,0.01>Low-pass resonance
+slider3:20<20,4000,1>High-pass (Hz)
+slider4:0<0,1,0.01>High-pass resonance
+
+in_pin:left input
+in_pin:right input
+out_pin:left output
+out_pin:right output
+
+@init
+ext_tail_size = -1;
+lpLog = log(slider1);
+hpLog = log(slider3);
+smooth = 1 - exp(-1 / (0.01 * srate));
+// The state of each stage (two equations' memories), per side: the low-pass is two stages, the high-pass one.
+a1L = a2L = b1L = b2L = c1L = c2L = 0;
+a1R = a2R = b1R = b2R = c1R = c2R = 0;
+
+@slider
+lpTarget = log(min(max(slider1, 20), 20000));
+hpTarget = log(min(max(slider3, 20), 4000));
+
+@sample
+lpLog += (lpTarget - lpLog) * smooth;
+hpLog += (hpTarget - hpLog) * smooth;
+top = 0.45 * srate;
+// A state-variable filter in its trapezoidal form: stable however fast its frequency moves.
+g = tan($pi * min(exp(lpLog), top) / srate);
+k1 = 1.848;                                    // the two stages together a Butterworth when there is no resonance
+k2 = max(0.765 - 0.71 * slider2, 0.05);
+d1 = 1 / (1 + g * (g + k1)); e1 = g * d1; f1 = g * e1;
+d2 = 1 / (1 + g * (g + k2)); e2 = g * d2; f2 = g * e2;
+h = tan($pi * min(exp(hpLog), top) / srate);
+kh = max(1.414 - 1.3 * slider4, 0.1);
+dh = 1 / (1 + h * (h + kh)); eh = h * dh; fh = h * eh;
+
+// left: high-pass, then the two low-pass stages
+x = spl0;
+v3 = x - c2L; v1 = dh * c1L + eh * v3; v2 = c2L + eh * c1L + fh * v3; c1L = 2 * v1 - c1L; c2L = 2 * v2 - c2L;
+x = x - kh * v1 - v2;
+v3 = x - a2L; v1 = d1 * a1L + e1 * v3; v2 = a2L + e1 * a1L + f1 * v3; a1L = 2 * v1 - a1L; a2L = 2 * v2 - a2L;
+x = v2;
+v3 = x - b2L; v1 = d2 * b1L + e2 * v3; v2 = b2L + e2 * b1L + f2 * v3; b1L = 2 * v1 - b1L; b2L = 2 * v2 - b2L;
+spl0 = v2;
+
+// right
+x = spl1;
+v3 = x - c2R; v1 = dh * c1R + eh * v3; v2 = c2R + eh * c1R + fh * v3; c1R = 2 * v1 - c1R; c2R = 2 * v2 - c2R;
+x = x - kh * v1 - v2;
+v3 = x - a2R; v1 = d1 * a1R + e1 * v3; v2 = a2R + e1 * a1R + f1 * v3; a1R = 2 * v1 - a1R; a2R = 2 * v2 - a2R;
+x = v2;
+v3 = x - b2R; v1 = d2 * b1R + e2 * v3; v2 = b2R + e2 * b1R + f2 * v3; b1R = 2 * v1 - b1R; b2R = 2 * v2 - b2R;
+spl1 = v2;

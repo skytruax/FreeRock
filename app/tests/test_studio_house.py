@@ -454,3 +454,72 @@ def test_every_house_family_has_ground_the_atlas_knows():
     for fam in house.PLAN:
         ground = house.ground(fam)
         assert ground and set(ground) <= names, "%s: %s" % (fam.name, ground)
+
+
+def _envelope(effect: str) -> list[tuple[float, float]]:
+    """The points of the one parameter envelope in an effect as the desk writes it: (seconds into the piece, value)."""
+    from freerock.studio import desk
+    return [(float(at) - desk.LEAD, float(value)) for at, value in
+            (line.split()[1:3] for line in effect.splitlines() if line.startswith("PT "))]
+
+
+def _value_at(points: list[tuple[float, float]], seconds: float) -> float:
+    return float(np.interp(seconds, [at for at, _ in points], [value for _, value in points]))
+
+
+def test_the_filters_open_as_a_track_builds_are_wide_open_at_a_drop_and_shut_for_the_breakdown():
+    # (2026-11-18: "not enough dynamic sound", "yes you need effects over time", "study top dj techniques like deadmau5
+    # and daft punk": the filter a producer rides over a build.)
+    from freerock.studio import club
+    fam = next(each for each in house.PLAN if not each.hard and each.role not in house.CALM_ROLES)
+    track = house.Take(fam, 1)
+    assert track.breakdown is not None
+    rides = club.filter_rides(track)
+    bar = house.BAR
+    for channel in ("rhythm", "texture"):
+        points = _envelope(rides[channel])
+        assert all(later >= earlier for (earlier, _), (later, _) in zip(points, points[1:]))
+        opening = [_value_at(points, at * bar) for at in range(0, track.sections[2][1] + 1, 4)]
+        assert opening[0] < 1000.0 and opening == sorted(opening), opening     # the open and the first theme only open
+        for story, first, count in track.sections:
+            middle = (first + count / 2) * bar
+            if story == "moment":
+                assert _value_at(points, middle) == club.OPEN_HZ
+            if track.broken(story, first):
+                assert _value_at(points, middle) < 2500.0
+    # The bass loses its bottom over the end of each rise, and has it back on the drop.
+    bass = _envelope(rides["bass"])
+    for story, first, count in track.sections:
+        if story == "rise":
+            end = (first + count) * bar
+            assert _value_at(bass, end - 0.05) > 150.0
+            assert _value_at(bass, end + 0.01) == 20.0
+            assert _value_at(bass, first * bar) == 20.0
+
+
+def test_the_pump_is_deepest_at_a_drop():
+    from freerock.studio import club
+    assert club.PUMP["moment"] == max(club.PUMP.values()) == 1.0
+    track = house.Take(house.PLAN[0], 1)
+    for story, first, count in track.sections:
+        assert club.story_at(track, (first + count / 2) * 4.0) == story
+
+
+def test_the_hats_between_the_eighths_come_only_at_a_drop():
+    # (2026-11-18: "too much high hat".)
+    from freerock.studio import club
+    for fam in house.PLAN:
+        track = house.Take(fam, 1)
+        if track.pick("hats", track.palette["hats"]) == "sixteenths" and fam.kit:
+            break
+    else:
+        pytest.skip("no family plays sixteenths in its first take")
+    heard = club.listen(track)
+    per_bar: dict[tuple[str, int], int] = {}
+    for name, _, at, _, _ in heard.hits:
+        if name == "hat":
+            bar = int((at + 0.02) // house.BAR)
+            story = club.story_at(track, bar * 4.0)
+            per_bar[(story, bar)] = per_bar.get((story, bar), 0) + 1
+    assert max(count for (story, _), count in per_bar.items() if story == "moment") >= 14
+    assert max(count for (story, _), count in per_bar.items() if story != "moment") <= 8

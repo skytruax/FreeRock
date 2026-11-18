@@ -1,0 +1,107 @@
+desc: FreeRock pedals (a 1970s guitar's wah, phaser and flanger, in time with the song)
+// Part of FreeRock's studio (2026-11-18: "guitars should have effects in the 70s bro", "yes you need effects over
+// time"). Three pedals in the order a player chains them: a wah rocked on the beat or held part way, a four-stage
+// phaser and a flanger, each swept in time with the song (REAPER's own beat), so a sweep lands where the bars do.
+// Each pedal has its own mix, and the mixes can move through a piece by a parameter envelope: a mix glides over 20 ms
+// and nothing restarts when it moves (REAPER's bundled phaser starts its sweep again whenever a setting changes, so it
+// cannot be faded in and out). Copied into REAPER's Effects folder by freerock.studio.reaper.configure.
+
+slider1:0<0,1,0.001>Wah mix
+slider2:1<0.125,8,0.125>Wah beats a rock (toe down on the beat)
+slider3:1<0,1,0.01>Wah depth (0 holds it at its position)
+slider4:0.5<0,1,0.01>Wah position (heel 0, toe 1)
+slider5:0<0,1,0.001>Phaser mix
+slider6:2<0.25,16,0.25>Phaser bars a sweep
+slider7:0.45<0,0.9,0.01>Phaser feedback
+slider8:0<0,1,0.001>Flanger mix
+slider9:4<0.25,16,0.25>Flanger bars a sweep
+slider10:0.6<0,0.95,0.01>Flanger feedback
+
+in_pin:left input
+in_pin:right input
+out_pin:left output
+out_pin:right output
+
+@init
+ext_tail_size = 2048;
+SIZE = 16384;           // the flanger's line: far more than its longest delay at any rate
+bufL = 0;
+bufR = SIZE;
+stages = 2 * SIZE;      // the phaser's memory: what went into and came out of each stage, per side
+memset(bufL, 0, 2 * SIZE + 16);
+write = 0;
+wm = slider1; pm = slider5; fm = slider8;
+fbL = fbR = 0;
+lowL = bandL = lowR = bandR = 0;
+smooth = 1 - exp(-1 / (0.02 * srate));
+beats = 0;
+DAMP = 0.2;             // the wah's band: about a fifth of its middle wide
+
+@block
+// During a render REAPER is playing: beat_position is where this block begins in the song.
+beats = beat_position;
+step = tempo / 60 / srate;
+bar = ts_num > 0 ? ts_num : 4;
+
+@sample
+beats += step;
+wm += (slider1 - wm) * smooth;
+pm += (slider5 - pm) * smooth;
+fm += (slider8 - fm) * smooth;
+outL = spl0;
+outR = spl1;
+
+// --- the wah: a resonant band from 400 Hz (heel) to 2.2 kHz (toe), rocked toe down on the beat, or held
+rock = 0.5 + 0.5 * cos(2 * $pi * beats / slider2);
+pos = slider4 * (1 - slider3) + rock * slider3;
+fw = 400 * pow(5.5, pos);
+f = 2 * sin($pi * min(fw, srate / 8) / srate);
+lowL += f * bandL; highL = outL - lowL - DAMP * bandL; bandL += f * highL;
+lowR += f * bandR; highR = outR - lowR - DAMP * bandR; bandR += f * highR;
+// The band alone, made up to about the level the guitar had, and a little of what is under it.
+wahL = 2.2 * DAMP * bandL + 0.12 * lowL;
+wahR = 2.2 * DAMP * bandR + 0.12 * lowR;
+outL += wm * (wahL - outL);
+outR += wm * (wahR - outR);
+
+// --- the phaser: four all-pass stages swept between 250 Hz and 2.5 kHz once in so many bars, the right side a
+// quarter of a sweep behind the left
+ph = beats / (slider6 * bar); ph -= floor(ph);
+phR = ph + 0.25; phR -= floor(phR);
+tL = tan($pi * 250 * pow(10, 0.5 - 0.5 * cos(2 * $pi * ph)) / srate);
+tR = tan($pi * 250 * pow(10, 0.5 - 0.5 * cos(2 * $pi * phR)) / srate);
+aL = (tL - 1) / (tL + 1);
+aR = (tR - 1) / (tR + 1);
+xL = outL + slider7 * fbL;
+xR = outR + slider7 * fbR;
+i = 0;
+loop(4,
+  yL = aL * xL + stages[i] - aL * stages[i + 4];
+  stages[i] = xL; stages[i + 4] = yL; xL = yL;
+  yR = aR * xR + stages[i + 8] - aR * stages[i + 12];
+  stages[i + 8] = xR; stages[i + 12] = yR; xR = yR;
+  i += 1;
+);
+fbL = xL; fbR = xR;
+outL += pm * (0.5 * (outL + xL) - outL);
+outR += pm * (0.5 * (outR + xR) - outR);
+
+// --- the flanger: a delay from 0.8 to 6 ms and back once in so many bars (evenly to the ear), fed back
+fl = beats / (slider9 * bar); fl -= floor(fl);
+tri = fl < 0.5 ? 2 * fl : 2 - 2 * fl;
+dL = 0.0008 * pow(7.5, tri) * srate;
+dR = dL * 1.07;
+rd = write - dL; rd < 0 ? rd += SIZE;
+j = floor(rd); fr = rd - j; k = j + 1; k >= SIZE ? k -= SIZE;
+backL = bufL[j] * (1 - fr) + bufL[k] * fr;
+rd = write - dR; rd < 0 ? rd += SIZE;
+j = floor(rd); fr = rd - j; k = j + 1; k >= SIZE ? k -= SIZE;
+backR = bufR[j] * (1 - fr) + bufR[k] * fr;
+bufL[write] = outL + slider10 * backL;
+bufR[write] = outR + slider10 * backR;
+write += 1; write >= SIZE ? write = 0;
+outL += fm * (0.5 * (outL + backL) - outL);
+outR += fm * (0.5 * (outR + backR) - outR);
+
+spl0 = outL;
+spl1 = outR;
