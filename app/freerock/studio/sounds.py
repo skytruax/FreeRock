@@ -91,6 +91,11 @@ RECORDED: dict[str, tuple[str, dict]] = {
     # A chromatic harmonica (a Hohner Super 64), with its own vibrato on the held notes and its accented notes for the short ones.
     "harmonica long": (VC + "Aerophones/Free Aerophones/Harmonica-Hohner-Super64/Sustains/Vib", dict(WIND, attack=20.0, release=160.0)),
     "harmonica short": (VC + "Aerophones/Free Aerophones/Harmonica-Hohner-Super64/Sustains/Accented", dict(WIND, attack=6.0, release=110.0)),
+    # The accordion is TinySOL's (IRCAM, CC BY 4.0): every semitone from A1 played soft, medium and loud, most of them
+    # twice more. Until 2026-11-18 the harmonica stood in for it, whose recordings go only from C4 to C6: an accordion's
+    # chords from F3 were a harmonica stretched, and reedy where an accordion is full.
+    "accordion long": (SOL + "Keyboards/Accordion/ordinario", dict(WIND, attack=30.0, release=200.0)),
+    "accordion short": (SOL + "Keyboards/Accordion/ordinario", dict(WIND, attack=6.0, release=100.0)),
     # --- brass: TinySOL (IRCAM, CC BY 4.0), every semitone played soft, medium and loud, with no vibrato ---
     # Brass is the family that changes most with strength: a horn played loud is twenty decibels louder than one
     # played soft and has twenty-five more above 2.5 kHz. The brass there was before (VSCO 2) had one strength, a
@@ -368,10 +373,9 @@ SOUNDS: dict[str, Sound] = {
     "dulcimer": Sound((Player("psaltery", seat=-0.2),)),
     "organ": Sound((Player("organ quiet", under=0.62, seat=0.0), Player("organ loud", over=0.62, seat=0.0))),
     "harpsichord": Sound((Player("harpsichord", seat=-0.15),)),
-    # There is no accordion that sounds like one. A harmonica is the same kind of instrument (free reeds), was asked
-    # for by name ("i better hear harmonica and banjo", 2026-11-16) and is there as a real recording: it has the
-    # accordion's parts. The banjo's are a strumstick's: three strings and the same twang; there is no banjo here.
-    "accordion": _blown("harmonica", 0.15), "harmonica": _blown("harmonica", 0.1),
+    # The accordion is a real one (TinySOL's; until 2026-11-18 the harmonica, the same kind of instrument, played its
+    # parts). The banjo's are a strumstick's: three strings and the same twang; there is no banjo here.
+    "accordion": _blown("accordion", 0.15), "harmonica": _blown("harmonica", 0.1),
     "guitar": Sound((Player("folk harp", seat=-0.25),)), "steel guitar": Sound((Player("strumstick", seat=-0.25),)),
     "mandolin": Sound((Player("strumstick", octave=1, seat=0.2),)),
     "twelve string": Sound((Player("strumstick", seat=-0.25), Player("psaltery", octave=1, gain=-7.0, seat=-0.25))),
@@ -511,7 +515,7 @@ def family(name: str) -> str:
         return "strings short" if name.endswith(("short", "pizz")) else "strings"
     if first == "violin":
         return "solo strings short" if name.endswith(("short", "pizz")) else "solo strings"
-    if first in ("flute", "piccolo", "oboe", "clarinet", "bassoon", "recorder", "ocarina", "harmonica"):
+    if first in ("flute", "piccolo", "oboe", "clarinet", "bassoon", "recorder", "ocarina", "harmonica", "accordion"):
         return "woodwind short" if name.endswith("short") else "woodwind"
     if first in ("horn", "trumpet", "trombone", "tuba"):
         return "brass short" if name.endswith("short") else "brass"
@@ -730,7 +734,7 @@ def drum_room() -> str:
                     low_boost=30.0, boost_freq=300.0, in_low_cut=4.0)
 
 
-LOW_CUT = {"harmonica": 200.0, "violins": 170.0, "violas": 115.0, "celli": 58.0, "basses": 30.0, "violin": 175.0, "flute": 230.0, "piccolo": 480.0, "oboe": 210.0,
+LOW_CUT = {"harmonica": 200.0, "accordion": 110.0, "violins": 170.0, "violas": 115.0, "celli": 58.0, "basses": 30.0, "violin": 175.0, "flute": 230.0, "piccolo": 480.0, "oboe": 210.0,
            "clarinet": 130.0, "bassoon": 52.0, "recorder": 220.0, "ocarina": 400.0, "horn": 60.0, "trumpet": 150.0, "trombone": 55.0, "tuba": 30.0}
 VOICING = desk.TEMPLATES / "voicing.json"          # what the ear worked out for each instrument's top (see `levels`)
 _voicing: dict[str, dict] | None = None
@@ -1079,7 +1083,7 @@ def level(name: str) -> dict[str, float]:
 # The further back, the more of the hall is heard with it and the less of its top.
 DEPTHS = (("violin", 0.0), ("viola", 0.0), ("celli", 0.0), ("basses", 0.05), ("strumstick", 0.25), ("harp", 0.3), ("folk harp", 0.3),
           ("psaltery", 0.3), ("zither", 0.3), ("harpsichord", 0.35), ("piano", 0.35), ("kalimba", 0.4), ("mbira", 0.4),
-          ("recorder", 0.4), ("ocarina", 0.4), ("harmonica", 0.3), ("flute", 0.45), ("piccolo", 0.45), ("oboe", 0.45), ("clarinet", 0.45), ("bassoon", 0.45),
+          ("recorder", 0.4), ("ocarina", 0.4), ("harmonica", 0.3), ("accordion", 0.3), ("flute", 0.45), ("piccolo", 0.45), ("oboe", 0.45), ("clarinet", 0.45), ("bassoon", 0.45),
           ("small organ", 0.5), ("horn", 0.6), ("balafon", 0.6), ("frame drum", 0.6), ("trumpet", 0.65), ("trombone", 0.65), ("tuba", 0.65),
           ("surge", 0.7), ("marimba", 0.7), ("vibes", 0.7), ("glock", 0.75), ("tube glock", 0.75), ("xylophone", 0.75), ("anvil", 0.75),
           ("hand chimes", 0.8), ("organ", 0.85), ("tubular bells", 0.85), ("war drum", 0.85), ("tom mallet", 0.85), ("kit", 0.85), ("avl", 0.85),

@@ -626,7 +626,7 @@ parts and their levels. This is what differs.
 | kit rock, kit room | the AVL Red Zeppelin kit (a 26-inch bass drum), the Black Pearl kit | the kick under the bass drum, 6 dB down |
 
 The light pieces are *the same band unplugged*: fiddle (a Muse solo violin), whistle (piccolo),
-harmonica and accordion (a recorded harmonica in the sampler), steel-strung guitars and mandolin
+harmonica (a recorded harmonica in the sampler), accordion (TinySOL's, in the sampler), steel-strung guitars and mandolin
 (Muse acoustic guitars), banjo (a strumstick in the sampler), ocarina and pan flute (Muse flutes).
 Hall sends are small: rhythm guitars −19 dB, muted −22, lead −11, bass −26, organ −14
 (`sounds.MUSE_SENDS`). Channel places at the summit (`build.BAND`): lead −17, rhythm −18.5, drums
@@ -914,8 +914,8 @@ chorus and the hall are the desk's now*.
    ZynAddSubFX patches, the AVL and Geonkick plug-ins. A name can have several: long and short notes
    split at 0.26 s (0.2 s for winds), registers split among sections, soft and loud recordings.
 
-With MuseScore there, it plays every pitched instrument but the pipe organ, the harmonica (which
-also has the accordion's parts) and the banjo (a strumstick). The studio's own players have those,
+With MuseScore there, it plays every pitched instrument but the pipe organ, the harmonica, the
+accordion and the banjo (a strumstick). The studio's own players have those,
 all the drums (war drums, frame drums, taiko, great drum, melodic tom, the deep stroke, gong, anvil,
 cymbal swells and the kits) and the desk's layers: the Zyn pad, the Surge sub, and the kick, Naked
 Drums' bass drum through three microphones with a Geonkick sub under it, *short on purpose: a kick is
@@ -960,8 +960,8 @@ made the orchestra dull and wide and unlike itself*.
 
 A voice that still comes out bright against the liked stems has its top taken down by name or by
 instrument (`build.tamed_tone`, 2026-11-17, each measured on rendered tracks and noted beside it):
-brass stabs and the bell at the moments shelved 9 dB from 3 kHz; the accordion (played by a
-harmonica) closed at 5.5 kHz and shelved 14 dB from 2 kHz; xylophone, glock and harpsichord shelved
+brass stabs and the bell at the moments shelved 9 dB from 3 kHz; the accordion closed at 5.5 kHz and shelved 14 dB from 2 kHz
+(set for the harmonica that played it until 2026-11-18, and kept for TinySOL's accordion: see below); xylophone, glock and harpsichord shelved
 7 dB from 4 kHz; banjo and mandolin 6 dB from 4 kHz, keeping the twang under it; a trombone doubling
 a battle's bass shelved 6 dB from 1.5 kHz; in the band only (`band=True`), the church organ and the rock
 organ closed at 6 kHz and shelved 10 dB from 3 kHz (the black chapel's had its texture 24 to 28 dB over
@@ -1257,6 +1257,16 @@ on the audition page (after adding a row to `audition.rows`):
 
     uv run --no-sync python -m freerock.studio.sounds --only <name>
     uv run --no-sync python ../tools/audition.py --only <name>
+
+*While the lanes run, measure before the `Sound` points at the new players* (2026-11-18, TinySOL's
+accordion for the harmonica that had played its parts): `tools/render_some.py` will not begin while a
+player the plan uses has no measured level, so every list begun between the switch and the measuring
+is refused (night.sh puts a refused list back to wait and stops its lane by its stop file). The
+`--only` line finds only players a `Sound` already uses, so measure them straight from
+`sounds.levels([...], display=...)` inside `reaper.Display()`, then make the switch. The accordion
+was then heard against the harmonica on one inn of each style: in the Warcraft tavern its pad came
+from +9.5, +10.2 and +18.6 dB over the liked stems at 1.8, 3.5 and 7 kHz to +2.7, -2.0 and -7.2, and
+its upper middle from 6.5 to 18 dB under its body (the reedy whine gone).
 
 ### 8.9 Work in passes
 
