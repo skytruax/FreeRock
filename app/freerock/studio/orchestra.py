@@ -1362,7 +1362,7 @@ def _lengths(bar_s: float, period: int, fight: bool) -> dict[str, int]:
     return bars
 
 
-def _levels(role: str, heavy: float) -> dict[str, tuple[float, float]]:
+def _levels(role: str, heavy: float, busy: float = 0.5) -> dict[str, tuple[float, float]]:
     """How hard each part of the story is played, from its start to its end. The first arrival
     is clearly under the summit, and the valley between them is the quietest the story gets
     once it has begun. A fight is hard from its first bar, and its valley is only a breath; a
@@ -1372,7 +1372,10 @@ def _levels(role: str, heavy: float) -> dict[str, tuple[float, float]]:
                 "valley": (0.58, 0.66), "climb": (0.68, 1.0), "summit": (1.0, 1.0), "close": (0.9, 0.65)}
     # (2026-11-16, night: "rewrite all music to be more dynamic". The quiet parts are quieter and the top is as high: an
     # opening and a valley at pianissimo to piano, the summit at fortissimo, a close that dies away.)
-    if role in ("night", "ember", "depths", "camp"):
+    # (A rowdy tavern is not a quiet room: an inn's music busy 0.6 or more is shaped as walking music is, its opening and
+    # its middle present and not whispered; the player turns every inn down 4 dB anyway. Found 2026-11-18: a dwarven
+    # drinking hall's demo opened at -38 dB and its middle fell to -41.)
+    if role in ("night", "ember", "depths", "camp") and not (role == "ember" and busy >= 0.6):
         top, under = 0.45 + 0.4 * heavy, 0.4 + 0.26 * heavy
         return {"open": (0.14, 0.26), "first": (0.34, 0.44), "second": (0.3, 0.42), "build": (0.36, 0.38 + 0.2 * heavy),
                 "arrival": (under, under), "valley": (0.18, 0.16), "climb": (0.26, 0.42 + 0.3 * heavy), "summit": (top, top),
@@ -1474,7 +1477,7 @@ def family(character: Character, seed: int, name: str, title: str) -> Family:
                "build": _spread(rises[0], lengths["build"]), "arrival": run(lengths["arrival"], first),
                "valley": run(lengths["valley"], second if valley == "second" else first), "climb": climbing,
                "summit": run(lengths["summit"], first), "close": closing}
-    levels = _levels(character.role, character.weight)
+    levels = _levels(character.role, character.weight, character.busy)
     made = Family(name=name, title=title, character=character, seed=seed, key=key, bpm=bpm, metre=metre, lift=lift,
                   period=period, valley=valley)
     made.sections = [Section(WORD[part], lengths[part], changes[part], levels[part], bool(lift) and part in ("climb", "summit", "close"),

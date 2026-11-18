@@ -160,7 +160,9 @@ running `orchestra.family` with the seeds `build.plan` gives them:
 
 *Walking music was made a little harder on 2026-11-17 ("go a little harder this is not world of fairy
 craft"): its quiet parts less faint and a light piece's top higher (it was open 0.14 to 0.30, valley
-0.20 to 0.16, summit 0.6 + 0.4w).*
+0.20 to 0.16, summit 0.6 + 0.4w). A rowdy inn (an inn's character busy 0.6 or more: tavern, drinking
+song, harbour saloon, sailors rest, tavern rock, dwarf hall) is shaped as walking music, not as a quiet
+room: a dwarven drinking hall's demo opened at -38 dB and its middle fell to -41 (2026-11-18).*
 
 A note's strength is `Take.hard(level, weight)` = 0.16 + 0.8 × level × weight, kept between 0.05
 and 1. `tests/test_studio.py` holds the shape: the summit is the top, the arrival at least 0.05
