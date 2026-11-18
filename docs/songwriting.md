@@ -133,7 +133,10 @@ setting moves.
 - **A synth is chosen by the music it plays.** Nine leads played Breakwater's own riff through House's
   chain; Argitoth's Trance Lead 1 stood 4 dB from the liked house leads across the octaves, the leads in
   use 12 to 14 (16 to 34 dB short from 80 to 160 Hz). In the track its lead went from 17.9 dB off the
-  liked to 9.1.
+  liked to 9.1. But it played 22 cents flat as it comes, and the second choice, Anthemish 1, 42 sharp:
+  a patch is heard for its tuning in its own music too, not only its shape (`analysis.estimate_key` on
+  the audition clip). Trance Lead 1 is tuned up in its own state (`desk.surge`, "@+22") and plays at
+  +4; Anthemish 2, in tune, is the second synth.
 - **A reed does not hold the valley's drone.** King's Oath's valley drone was the english horn, held
   24 bars under a soft guitar. Pushed up into its upper register by the old bagpipe's floor it whined,
   and MuseScore's english horn hardly follows its dynamics (as loud at pianissimo as at piano): it

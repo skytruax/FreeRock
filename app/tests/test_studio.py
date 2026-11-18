@@ -925,3 +925,14 @@ def test_a_valleys_drone_is_held_low_and_not_by_a_reed():
             if a <= note.start < b and note.length >= 8.0]
     assert held and all(instrument not in orchestra.REEDS and pitch <= 57 for instrument, pitch in held)
     assert orchestra.INSTRUMENTS["pipe drone"].low == 52             # where the english horn really goes down to
+
+
+def test_a_surge_patch_is_tuned_up_in_its_own_state():
+    # (2026-11-18: Argitoth's Trance Lead 1, chosen as House's drop lead, played 22 cents flat as it comes.)
+    import base64
+    from freerock.studio import desk
+    patch = "patches_3rdparty/Argitoth/Leads/Trance Lead 1.fxp"
+    plain, tuned = (base64.b64decode(desk.surge(name)["chunk"]) for name in (patch, patch + "@+22"))
+    assert len(plain) == len(tuned) and b'<a_pitch type="2" value="0.220000" />' in tuned and b'value="0.220000"' not in plain
+    with pytest.raises(ValueError):
+        desk.surge(patch + "@-5")                      # only up, where the bytes stay as many

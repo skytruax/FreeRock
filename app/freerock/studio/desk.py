@@ -74,13 +74,27 @@ def lua(value: object, depth: int = 0) -> str:
 
 def surge(patch: str) -> dict:
     """The Surge XT synth with one of its patches: `patch` is a file under Surge's patch
-    folders, for example "patches_factory/Pads/Aurora.fxp"."""
-    path = SURGE / patch
+    folders, for example "patches_factory/Pads/Aurora.fxp", and after an "@" how many cents its
+    scene is tuned up, where the patch as it comes is not in tune ("...Trance Lead 1.fxp@+22")."""
+    name, _, tune = patch.partition("@")
+    path = SURGE / name
     data = path.read_bytes()
     if data[:4] != b"CcnK" or data[8:12] != b"FPCh":
         raise ValueError("%s is not a Surge patch file" % path)
     # A patch file is a 60-byte wrapper around what the synth itself keeps as its state.
-    return {"kind": "clap", "name": "CLAPi: Surge XT", "chunk": base64.b64encode(data[60:]).decode("ascii")}
+    state = data[60:]
+    if tune:
+        # (2026-11-18: Argitoth's Trance Lead 1 played 22 cents flat.) The scene's pitch, in semitones, written in the
+        # patch's own XML as "0.000000": a tuning up of under ten semitones takes exactly as many bytes, so nothing else
+        # in the state has to move.
+        cents = float(tune)
+        if not 0.0 < cents < 1000.0:
+            raise ValueError("A Surge patch can only be tuned up here, by under ten semitones: %r" % patch)
+        was = b'<a_pitch type="2" value="0.000000" />'
+        if state.count(was) != 1:
+            raise ValueError("%s does not have its scene's pitch at zero, where it could be tuned" % path)
+        state = state.replace(was, ('<a_pitch type="2" value="%.6f" />' % (cents / 100.0)).encode("ascii"))
+    return {"kind": "clap", "name": "CLAPi: Surge XT", "chunk": base64.b64encode(state).decode("ascii")}
 
 
 def js(name: str, *settings: float | str) -> str:

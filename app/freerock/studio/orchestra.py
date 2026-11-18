@@ -1298,6 +1298,10 @@ REEDS = ("pipe drone", "bagpipe", "accordion", "harmonica")
 DELICATE = ("sparkle", "tick", "rain", "drip", "bog", "brushes", "none")      # grooves too fine for war drums under them
 LONG = 480.0                   # seconds: about how long a track is
 BAND_PEDALS = False            # a band's guitars' effect marks (Take.effects): a new sound, heard as a demo before it is used
+ORCHESTRA_MARKS = False        # ...and an orchestra's (Take._orchestra_marks): the same
+STRUCK = ("harp", "celesta", "glockenspiel", "bells", "marimba", "music box", "dulcimer", "xylophone", "handbells", "harpsichord",
+          "pizzicato")         # what a plucked or struck line is played on: its phrase's last note can hang in an echo
+DISTANT = ("strings", "strings slow", "tremolo", "choir", "oohs")      # the pads that go further off in the valley
 SHORTEST, LONGEST = 455.0, 505.0
 # How the time is shared out. The summit is the longest part and the opening and the close the
 # shortest; a fight hardly opens at all.
@@ -3422,7 +3426,11 @@ class Take:
         Chugs, stabs and short notes stay dry, and so does everything where the music does not ask. The marks follow
         this take's own notes, so no two takes have them in the same places. (Written once Sky's ear has passed the
         demo, var/listen/sheets.html: `BAND_PEDALS`.)"""
-        if not self.ch.band or not BAND_PEDALS:
+        if not self.ch.band:
+            if ORCHESTRA_MARKS:
+                self._orchestra_marks()
+            return
+        if not BAND_PEDALS:
             return
         rng = random.Random(self.fam.seed * 7919 + self.take * 104729 + 17)      # its own: the writing's draws are not moved
         depth = 0.6 if self.ch.light else 1.0
@@ -3443,6 +3451,37 @@ class Take:
                     self._lead_marks(voice, depth)          # (a second guitar in harmony stays dry: the harmony is its colour)
                 elif voice.instrument == "guitar":
                     self._vibe_marks(voice, depth)
+
+    def _orchestra_marks(self) -> None:
+        """An orchestra's effects, where its music asks (2026-11-18: "this might apply to other genres too"): the valley
+        further off, its pads' top closing as it begins and opening again at the climb, as the far end of a hall sounds;
+        and a plucked or struck line's last note of each phrase left to hang in an echo (a harp's, a celesta's), not one
+        echo on every note. A light piece has them less far."""
+        beats = self.beats
+        depth = 0.6 if self.ch.light else 0.8
+        valley = next(((first, first + section.bars * beats) for section, first, _, _ in self.spans if section.part == "valley"), None)
+        for channel, parts in self.voices.items():
+            for voice in parts.values():
+                if not voice.notes or voice.drums:
+                    continue
+                if valley and channel == "texture" and voice.instrument in DISTANT and self._notes_in(voice, *valley):
+                    a, b = valley
+                    turn = min(2 * beats, (b - a) / 4)
+                    voice.mark("lowpass", [(a - 0.05, 20000.0), (a + turn, 3500.0), (b - turn, 3500.0), (b, 20000.0)])
+                    voice.set("lowpass resonance", 0.05)
+                if voice.instrument in STRUCK and channel in ("lead", "rhythm", "texture"):
+                    phrases: dict[int, list[Note]] = {}
+                    for note in voice.notes:
+                        phrases.setdefault(int(note.start // (4 * beats)), []).append(note)
+                    points: list[tuple[float, float]] = []
+                    for _, mine in sorted(phrases.items()):
+                        last = max(mine, key=lambda note: note.start)
+                        end = last.start + last.length
+                        points += [(last.start - 0.05, 0.0), (last.start, depth), (end + 0.25, depth), (end + 0.75, 0.0)]
+                    if points:
+                        voice.mark("echo", points)
+                        voice.set("echo beats", 0.75)
+                        voice.set("echo feedback", 0.4)
 
     def _notes_in(self, voice: Voice, first: float, last: float) -> list[Note]:
         return [note for note in voice.notes if first - 1e-6 <= note.start < last - 1e-6]

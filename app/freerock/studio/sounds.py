@@ -438,9 +438,10 @@ HOUSE = {
     "house pluck": "Plucks/Saw Pluck", "house bell": "Polysynths/Fat Curtis", "house glass": "Plucks/Delay Dancer",
     # (2026-11-18: "the lead is still lame", "it sounds hollow and generic in the synths". Heard against the liked house
     # leads playing the same riff, Argitoth's Trance Lead 1 (one of the patches others made for Surge, and ship with it)
-    # stood 4 dB from them across the octaves and Anthemish 1 6.5; Oberheim Dreams and Prophet VS 13.6 and 12.4, 16 to 34
-    # dB short from 80 to 160 Hz: the hollow.)
-    "house lead saw": "3rd:Argitoth/Leads/Trance Lead 1", "house lead super": "Polysynths/Anthemish 1", "house lead hollow": "Leads/Moogy Saw",
+    # stood 4 dB from them across the octaves; Oberheim Dreams and Prophet VS 13.6 and 12.4, 16 to 34 dB short from 80 to
+    # 160 Hz: the hollow. It plays 22 cents flat as it comes, so its scene is tuned up that much ("@+22"). Anthemish 1,
+    # 6.5 dB from the liked, played 42 cents sharp: Anthemish 2, in tune and 8 dB from them, is the second synth.)
+    "house lead saw": "3rd:Argitoth/Leads/Trance Lead 1@+22", "house lead super": "Polysynths/Anthemish 2", "house lead hollow": "Leads/Moogy Saw",
     "house lead sine": "Leads/Crisp PWM", "house pad warm": "Pads/Verb Pad", "house pad super": "Pads/Legacy",
     "house pad glass": "Pads/Sparkly", "house pad hollow": "Pads/Winter Warmer", "house pad organ": "Keys/Organ 1",
 }
@@ -450,13 +451,15 @@ HOUSE = {
 # (Its "Square Bass" does not follow the keys at all, and "Rubber Bass" does not die away as a plucked bass does:
 # "Squared" and "Fingered" are used in their places.)
 HOUSE_OCTAVE: dict[str, int] = {"house sub": 1, "house bass pluck": 1, "house bass saw": 1, "house bass square": 1, "house bass wide": 2,
-                                "house bass organ": 2, "house organ": 2, "house lead saw": 0, "house lead super": 1, "house lead sine": 1,
+                                "house bass organ": 2, "house organ": 2, "house lead saw": 0, "house lead super": 0, "house lead sine": 1,
                                 "house bell": 1, "house pad warm": -1, "house pad hollow": -1}
 _SURGE_THIRD = "surge:patches_3rdparty/"     # the patches others made for Surge, which ship with it ("3rd:" in HOUSE)
 
 
 def _surge_player(patch: str) -> str:
-    return (_SURGE_THIRD + patch[4:] if patch.startswith("3rd:") else _SURGE + patch) + ".fxp"
+    """A patch in HOUSE as a player's name: "3rd:" the patches others made, "@+N" its scene tuned up N cents (desk.surge)."""
+    name, at, tune = patch.partition("@")
+    return (_SURGE_THIRD + name[4:] if name.startswith("3rd:") else _SURGE + name) + ".fxp" + at + tune
 
 
 SOUNDS.update({name: Sound((Player(_surge_player(patch), octave=HOUSE_OCTAVE.get(name, 0), seat=0.0),)) for name, patch in HOUSE.items()})
@@ -923,7 +926,8 @@ def hall(seconds: float, *, top: float = 10000.0) -> str:
 def template_of(player: str) -> str:
     """What a player's track template is called."""
     if player.startswith("surge:"):
-        return _file("surge " + Path(player[6:]).stem)
+        name, _, tune = player[6:].partition("@")          # a patch tuned up (desk.surge) is a template of its own
+        return _file("surge " + Path(name).stem + (" tuned %s cents" % tune.lstrip("+") if tune else ""))
     if player.startswith("zyn:"):
         return _file("zyn " + player[4:].replace(".xiz", "").replace(": ", " "))
     if player.startswith("geonkick:"):
