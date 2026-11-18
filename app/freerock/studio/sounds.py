@@ -436,7 +436,11 @@ HOUSE = {
     "house bass square": "Basses/Squared", "house bass fm": "Basses/FM Bass 1", "house bass wide": "Basses/Wide Bassline",
     "house bass organ": "Keys/House Organ", "house organ": "Keys/House Organ", "house stab": "Polysynths/Smooth Stabs",
     "house pluck": "Plucks/Saw Pluck", "house bell": "Polysynths/Fat Curtis", "house glass": "Plucks/Delay Dancer",
-    "house lead saw": "Polysynths/Oberheim Dreams", "house lead super": "Polysynths/Prophet VS", "house lead hollow": "Leads/Moogy Saw",
+    # (2026-11-18: "the lead is still lame", "it sounds hollow and generic in the synths". Heard against the liked house
+    # leads playing the same riff, Argitoth's Trance Lead 1 (one of the patches others made for Surge, and ship with it)
+    # stood 4 dB from them across the octaves and Anthemish 1 6.5; Oberheim Dreams and Prophet VS 13.6 and 12.4, 16 to 34
+    # dB short from 80 to 160 Hz: the hollow.)
+    "house lead saw": "3rd:Argitoth/Leads/Trance Lead 1", "house lead super": "Polysynths/Anthemish 1", "house lead hollow": "Leads/Moogy Saw",
     "house lead sine": "Leads/Crisp PWM", "house pad warm": "Pads/Verb Pad", "house pad super": "Pads/Legacy",
     "house pad glass": "Pads/Sparkly", "house pad hollow": "Pads/Winter Warmer", "house pad organ": "Keys/Organ 1",
 }
@@ -446,9 +450,16 @@ HOUSE = {
 # (Its "Square Bass" does not follow the keys at all, and "Rubber Bass" does not die away as a plucked bass does:
 # "Squared" and "Fingered" are used in their places.)
 HOUSE_OCTAVE: dict[str, int] = {"house sub": 1, "house bass pluck": 1, "house bass saw": 1, "house bass square": 1, "house bass wide": 2,
-                                "house bass organ": 2, "house organ": 2, "house lead saw": 1, "house lead super": 1, "house lead sine": 1,
+                                "house bass organ": 2, "house organ": 2, "house lead saw": 0, "house lead super": 1, "house lead sine": 1,
                                 "house bell": 1, "house pad warm": -1, "house pad hollow": -1}
-SOUNDS.update({name: Sound((Player(_SURGE + patch + ".fxp", octave=HOUSE_OCTAVE.get(name, 0), seat=0.0),)) for name, patch in HOUSE.items()})
+_SURGE_THIRD = "surge:patches_3rdparty/"     # the patches others made for Surge, which ship with it ("3rd:" in HOUSE)
+
+
+def _surge_player(patch: str) -> str:
+    return (_SURGE_THIRD + patch[4:] if patch.startswith("3rd:") else _SURGE + patch) + ".fxp"
+
+
+SOUNDS.update({name: Sound((Player(_surge_player(patch), octave=HOUSE_OCTAVE.get(name, 0), seat=0.0),)) for name, patch in HOUSE.items()})
 
 
 def _file(name: str) -> str:

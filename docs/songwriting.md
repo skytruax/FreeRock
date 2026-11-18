@@ -124,6 +124,16 @@ setting moves.
   2.5 dB of body and about 6 dB of width. Bigger patches are heard by Sky, not chosen by number
   (`var/listen/house-sounds.html`), and a held C4 can mislead about a patch's octave: a strong sub reads
   as the note, so every candidate's pitch is checked again in its own music.
+- **The boredom meter** (`tools/boredom.py`) found what the ear calls boring in House: the drums the same
+  for 40 bars of a theme, the maracas' sixteenths running under everything, and in a 48-bar last drop the
+  lead's colour held 23 bars and the chords' all 48. A groove now changes every sixteen bars (the hats
+  turn, the percussion figures take turns), a drop builds block by block, and its last sixteen bars
+  change again. The meter reads a groove's figure as well as its octaves: a hat that turns from eighths
+  to off-beats hardly moves any octave's energy.
+- **A synth is chosen by the music it plays.** Nine leads played Breakwater's own riff through House's
+  chain; Argitoth's Trance Lead 1 stood 4 dB from the liked house leads across the octaves, the leads in
+  use 12 to 14 (16 to 34 dB short from 80 to 160 Hz). In the track its lead went from 17.9 dB off the
+  liked to 9.1.
 - **A reed does not hold the valley's drone.** King's Oath's valley drone was the english horn, held
   24 bars under a soft guitar. Pushed up into its upper register by the old bagpipe's floor it whined,
   and MuseScore's english horn hardly follows its dynamics (as loud at pianissimo as at piano): it

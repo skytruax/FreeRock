@@ -113,6 +113,11 @@ CHANGES = [
            "of each rise and the breakdown, a rise's last beats thinned from the bottom, the hats on a dry line of their own and "
            "softer, the pump deeper at a drop ('too much high hat and not enough dynamic sound', 'this is boring generic crap')",
            lambda p: p.style == "house"),
+    Change("House's drops change, its lead chosen by ear and number", datetime.datetime(2026, 11, 18, 12, 50), "",
+           "the groove changes every sixteen bars and a drop builds block by block (the boredom meter: the drums had sounded the "
+           "same for 40 bars); the drop's lead Argitoth's Trance Lead 1, the nearest of nine to the liked house leads, its last "
+           "sixteen bars answered phrase by phrase, the chords phased there; MuseScore's chords given a gentler top of their own",
+           lambda p: p.style == "house"),
 ]
 
 

@@ -354,7 +354,10 @@ def lines(heard: Heard, seed: int, work: Path) -> tuple[dict[str, list[desk.Line
                     # a drop; with this top fixed at 6 kHz and 16 dB down from 2.5, a drop was as dark as its theme.)
                     # (2026-11-18, by ear: "the sounds just need to be bigger somehow it sounds hollow and generic in the
                     # synths". Cut from 110 Hz, the chords had lost their body: from 80 now, and spread wider.)
-                    line.effects = list(line.effects) + [sounds.equalise(low_cut=80.0, bands=tone, high_shelf=(2500.0, -10.0))] \
+                    # (...but MuseScore's brass and keys, open to 20 kHz at a drop, were 12 to 21 dB over the liked stems from 2.5
+                    # to 10 kHz: they keep a gentler top of their own, closed from 8 kHz; the moving low-pass shuts the rest.)
+                    top = dict(high_shelf=(2500.0, -10.0)) if synth_played else dict(high_cut=8000.0, high_shelf=(2500.0, -13.0))
+                    line.effects = list(line.effects) + [sounds.equalise(low_cut=80.0, bands=tone, **top)] \
                         + moved + [sounds.warm(0.3), sounds.wide(1.3), sounds.echo(house.BPM, 0.26, left=3, right=4, again=0.36)]
                     line.send = max(line.send, 0.24)
                 elif channel == "lead":
@@ -380,7 +383,7 @@ def lines(heard: Heard, seed: int, work: Path) -> tuple[dict[str, list[desk.Line
                     # (Third pass, midday: the pads alone, in the open and the themes, still 7 to 20 dB over at 3.5 to 7 kHz.)
                     # (2026-11-18, "hollow": the pads from 110 Hz, not 200, their top a little more open, the moving low-pass
                     # doing the rest; and wider.)
-                    closed = sounds.equalise(low_cut=110.0, high_cut=5000.0, high_shelf=(2500.0, -8.0)) if synth_played \
+                    closed = sounds.equalise(low_cut=110.0, high_cut=4200.0, high_shelf=(2500.0, -10.0)) if synth_played \
                         else sounds.equalise(low_cut=110.0, high_cut=6000.0, high_shelf=(3000.0, -9.0))
                     # (...and the pads wider, turning more slowly than the chords, further into the room.)
                     line.effects = list(line.effects) + [closed, sounds.ensemble(0.55), sounds.phase(0.25, rate=0.04), sounds.wide(1.4)]
@@ -551,6 +554,16 @@ def write(name: str, take: int) -> Sheet:
             part.set("highpass resonance", 0.25 if channel == "bass" else 0.15)
         if channel == "lead":
             throws(part, form, calm)
+        if channel == "rhythm" and not calm:
+            # The chords' treatment changes in the last sixteen bars of a long drop: a phaser comes in (the house study: a
+            # phaser on the chord loop; the boredom meter: the chords' colour held all 48 bars of a last drop).
+            for section in form:
+                if section["story"] == "moment" and section["bars"] >= 32:
+                    a, b = (section["first"] + section["bars"] - 16) * 4.0, (section["first"] + section["bars"]) * 4.0
+                    part.mark("phaser", [(a - 0.05, 0.0), (a + 2.0, 0.55), (b - 1.0, 0.55), (b, 0.0)])
+            if "phaser" in part.effects:
+                part.set("phaser bars", 4.0)
+                part.set("phaser feedback", 0.4)
         parts[channel]["%s %s" % (table, sound)] = part
     machine = heard.hits[0][1] if heard.hits else ""
     for drum, _, at, level, _ in heard.hits:
@@ -674,8 +687,9 @@ def perform(sheet: Sheet) -> dict:
     for bus, _ in folders:
         (work / (bus.name + ".wav")).unlink()
     meta = dict(about["meta"])
-    meta["credit"] = ("Written by FreeRock's studio (studio.house); played in REAPER by the Surge XT synth, MuseScore Studio's Muse Sounds "
-                      "(Muse Group) and MckAudio's TR-8 drum-machine recordings (CC0), put together by studio.club.")
+    meta["credit"] = ("Written by FreeRock's studio (studio.house); played in REAPER by the Surge XT synth (with Argitoth's Trance Lead 1, "
+                      "one of the patches that ship with it), MuseScore Studio's Muse Sounds (Muse Group) and MckAudio's TR-8 drum-machine "
+                      "recordings (CC0), put together by studio.club.")
     found = house.measure(meta, parts)
     folder = stage_root(VAR, "house") / name / str(take)
     write_track(folder, meta, parts)

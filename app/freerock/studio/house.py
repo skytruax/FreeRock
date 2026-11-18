@@ -1227,9 +1227,14 @@ class Take:
                 for inside in range(0, count, 8):
                     phrase = tune.first if (inside // 8) % 2 == 0 else tune.second
                     notes = cut(phrase, phrase[0].at - phrase[0].at % 128, phrase[0].at - phrase[0].at % 128 + 128)
-                    say(notes, first + inside, main, 0.62, 1.0)
+                    # (2026-11-18, the boredom meter: the lead's colour held 23 bars at the end of a 48-bar drop.) In the last
+                    # sixteen bars of a long drop the tune answers itself: the main voice and the second synth alone take
+                    # turns, phrase by phrase.
+                    answering = late is not None and count >= 32 and inside >= count - 16 and (inside // 8) % 2 == 1
+                    if not answering:
+                        say(notes, first + inside, main, 0.62, 1.0)
                     if late is not None and inside >= count // 2:
-                        say(notes, first + inside, late, 0.24, 1.0, shift=7)
+                        say(notes, first + inside, late, 0.42 if answering else 0.24, 1.0, shift=7)
                     elif doubled and (inside // 8) % 2 == 1:
                         # The second time round, a line above it: an octave, or a third.
                         say(notes, first + inside, main, 0.26, 0.9, shift=7 if doubled == "octave" else 2)
