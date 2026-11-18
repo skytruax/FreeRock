@@ -197,11 +197,20 @@ Three things are read every morning, strongest first:
    again, and a short report says what changed, why, and where to hear it (`tools/new_songs.py` writes
    the page of the new songs).
 
-### When the drive is full: replace, never only grow
+### When the drive is full: the last three takes, each better than the last
 
+- Every family keeps only its last three takes (take 24, 25 and 26, say): each night's new take of a
+  family replaces its oldest once it has passed its study, so the library stays the same size while
+  every piece in it keeps getting better ("when the drive fills up we'll always only keep the last 3
+  takes", 2026-11-18).
+- **A loop that improves itself**: each take is judged (its study against the liked stems and the
+  measures below, and Sky's love, skip and ban while playing); what the judging finds is fed back into
+  the writer's and the desk's settings for that family's next take; several candidates can be written
+  and the best by the judging rendered; and Sky's ear stays in charge, so no one number is chased.
+- **More than MuseScore where it falls short**: better instruments, synths and mixing tools are
+  weighed as the loop shows where the sound, not the writing, is the weak part.
 - A place's pieces are ranked: Sky's loves and the most played first. The weakest by the study, and
-  those skipped or never chosen, are written again as new takes or families of the same character; the
-  old take goes once its replacement has passed its study.
+  those skipped or never chosen, are written again as new takes or families of the same character.
 - Nothing Sky loved is removed; banned pieces go first.
 - The library keeps its shape: every kind of place, role and time of day keeps enough pieces that no
   piece comes twice in an evening and a place's round lasts days, counted from the player's log.
