@@ -33,14 +33,16 @@ PROJECTS = VAR / "reaper" / "projects"       # every track's REAPER project is k
 MASTER = 20261115
 # Where each channel sits when everyone is playing (LUFS at the moment, before the whole track
 # is brought to the bucket's level): the tune on top, the pad and the accompaniment under it.
-PLACE = {"lead": -17.0, "texture": -21.0, "rhythm": -21.5, "bass": -18.5, "drums": -21.0}       # an orchestra's drums are a few great strokes: by loudness they sit low
-# A light track's drums and bass sit further back (2026-11-17, evening, played: "just a bit light and wimpy in general",
-# "in all genres": 2 and 1.5 dB nearer than they were, -24 and -21.5).
-LIGHT = {"drums": -22.0, "bass": -20.0}
-SOFT_WAR_DRUMS = -19.5                         # where a lighter track's softer war drums sit (`orchestra.Take.soft_war`)
-WAR_DRUMS = -16.0                              # where the drums sit in a track that has war drums: up with the tune, the loudest strokes in the piece
-BAND = {"lead": -17.0, "rhythm": -18.5, "drums": -18.0, "bass": -19.5, "texture": -24.0}       # a band: guitars and drums up front
-BAND_LIGHT = {"drums": -19.5, "bass": -20.0, "rhythm": -19.0}      # (1 to 1.5 dB nearer since "light and wimpy", 2026-11-17)
+# (The drums and the bass of every style a little nearer again, the light ones most: "go a little harder this is not world of fairy craft", 2026-11-17, 21:50, played. They were
+# PLACE drums -21, bass -18.5; LIGHT -22, -20; SOFT_WAR_DRUMS -19.5; WAR_DRUMS -16; BAND drums -18; BAND_LIGHT -19.5, -20, -19.)
+PLACE = {"lead": -17.0, "texture": -21.0, "rhythm": -21.5, "bass": -18.0, "drums": -20.0}       # an orchestra's drums are a few great strokes: by loudness they sit low
+# A light track's drums and bass sit a little further back (2026-11-17, evening, played: "just a bit light and wimpy in
+# general", "in all genres", then "go a little harder": 3.5 and 2.5 dB nearer than they were at first, -24 and -21.5).
+LIGHT = {"drums": -20.5, "bass": -19.0}
+SOFT_WAR_DRUMS = -18.0                         # where a lighter track's softer war drums sit (`orchestra.Take.soft_war`)
+WAR_DRUMS = -15.5                              # where the drums sit in a track that has war drums: up with the tune, the loudest strokes in the piece
+BAND = {"lead": -17.0, "rhythm": -18.5, "drums": -17.5, "bass": -19.5, "texture": -24.0}       # a band: guitars and drums up front
+BAND_LIGHT = {"drums": -18.5, "bass": -19.5, "rhythm": -18.5}      # (2 to 2.5 dB nearer since "light and wimpy" and "a little harder")
 RIDE = 0.15                    # how far each part of the story is brought up towards the loudest part (it was 0.42, which
                                # took most of the written dynamics away: "rewrite all music to be more dynamic", 2026-11-16)
 # The least each channel is played at in each part of the story, so that the story is whole
@@ -70,7 +72,9 @@ LAST_ADDED = ("deep tide", "fallen crusade",
               "frog chorus", "bog inn", "drowned grotto", "reed fire", "bog beast", "sailors rest", "tide cave", "driftwood fire",
               "sea king", "sea storm", "aurora", "mead hall", "ice cave", "frost camp", "frost wyrm", "whiteout",
               # (Knight Rock's for the new kinds)
-              "bayou boogie", "sea dog", "frost hammer")
+              "bayou boogie", "sea dog", "frost hammer",
+              # (and more of its walking music for the hills and fields: "feel like i hear the same knight rock one over and over")
+              "hill country", "harvest boogie", "iron vow", "free company")
 
 
 def _shapes_last(character) -> list[int]:

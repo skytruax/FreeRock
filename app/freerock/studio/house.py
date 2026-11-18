@@ -1296,7 +1296,12 @@ class Take:
         groove = {"drums": 0.6, "bass": 0.5} if not fam.hard else {"drums": 0.9, "bass": 0.85}
         if fam.role in ("ember", "camp"):
             groove = {"drums": 0.5, "bass": 0.4}
-        floor = {"theme": groove, "moment": groove}
+        # (The open, the rise and the close had no floor: standing still, the director takes the drums and the bass out,
+        # and there that left the synths all but alone, a pad or a lead whining on its own: "sometimes when one synth
+        # stays in when youre sitting its whiny and annoying mix better", 2026-11-17. The bass stays under them
+        # everywhere, and a little of the drums.)
+        edges = {"drums": round(groove["drums"] * 0.6, 2), "bass": round(groove["bass"] * 0.8, 2)}
+        floor = {story: groove if story in ("theme", "moment") else edges for story in forever.STORY}
         if fam.hard:
             floor = {story: groove for story in forever.STORY}
         return {

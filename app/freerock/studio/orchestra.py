@@ -654,7 +654,7 @@ CHARACTERS = (
       titles=(("Lamplit", "Moonlit", "Back Alley", "Spice", "Lantern", "Late"), ("Market", "Stalls", "Square", "Street", "Crowd", "Lanes"))),
     C("high pasture", ("highland", "pastoral"), light=True, modes=("mixolydian", "major", "dorian"), bpm=(88, 100), metres=("6/8", "3/4"),
       busy=0.55, weight=0.6, leads=("whistle", "oboe", "fiddle"), strong=("violins", "whistle"), under=("horns", "celli"),
-      pads=("strings slow", "strings"), pad_ways=("pad", "drone"), plucks=("harp", "steel guitar", "celesta"), figures=("arp", "strum"),
+      pads=("strings slow", "strings"), pad_ways=("pad", "drone"), plucks=("harp", "steel guitar", "mandolin"), figures=("arp", "strum"),
       basses=("celli pizz", "acoustic bass"), kit="folk", drums=(), grooves=("jig", "sleigh"), hall=(2.0, 0.22), lift=0.3,
       titles=(("High", "Shepherd's", "Cloudy", "Bluebell", "Thistle", "Lark's"), ("Pasture", "Downs", "Slopes", "Fold", "Air", "Hills"))),
     # --- the open country, where most of an evening is spent (2026-11-16: "been hearing the same thing over and ---
@@ -667,16 +667,16 @@ CHARACTERS = (
     C("sunset hills", ("pastoral", "highland"), light=True, modes=("major", "lydian", "mixolydian"), bpm=(66, 78), metres=("3/4", "4/4"),
       busy=0.35, weight=0.6, leads=("horns", "english horn", "violin"), strong=("violins slow", "horns"), under=("celli",),
       pads=("strings slow", "oohs"), pad_ways=("pad",), plucks=("harp", "guitar"), figures=("arp", "rock"), basses=("celli slow", "basses pizz"),
-      kit="folk", drums=(), grooves=("sparkle", "waltz"), hall=(2.6, 0.28), lift=0.35,
+      kit="folk", drums=(), grooves=("waltz",), hall=(2.6, 0.28), lift=0.35,
       titles=(("Sunset", "Amber", "Evening", "Long Shadow", "Homeward", "Golden"), ("Hills", "Vale", "Rise", "Glow", "Light", "Slope"))),
     C("lakeside reverie", ("pastoral", "mystic"), light=True, modes=("lydian", "major", "dorian"), bpm=(60, 72), metres=("4/4", "3/4"),
       busy=0.3, weight=0.5, leads=("piano", "flute", "cello"), strong=("violins slow", "flute"), under=("celli", "clarinet"),
-      pads=("strings slow", "oohs"), pad_ways=("pad",), plucks=("harp", "piano", "vibes"), figures=("arp", "rock"),
+      pads=("strings slow", "oohs"), pad_ways=("pad",), plucks=("harp", "piano", "guitar"), figures=("arp", "rock"),
       basses=("celli slow", "basses pizz"), kit="folk", drums=(), grooves=("sparkle", "rain"), hall=(3.0, 0.32), lift=0.2,
       titles=(("Lakeside", "Still Water", "Reed", "Heron", "Mirror", "Lily Pad"), ("Reverie", "Dream", "Hour", "Mere", "Ripples", "Shallows"))),
     C("harvest home", ("pastoral",), light=True, modes=("major", "mixolydian"), bpm=(100, 112), metres=("3/4", "6/8"), busy=0.6, weight=0.65,
       leads=("violin", "eb clarinet", "whistle"), strong=("violins", "horns"), under=("celli", "bassoon"), pads=("strings",), pad_ways=("pad",),
-      plucks=("harp", "glock", "pizzicato"), figures=("arp", "oompah"), basses=("celli pizz", "basses pizz"), kit="folk", drums=("timpani",),
+      plucks=("harp", "guitar", "pizzicato"), figures=("arp", "oompah"), basses=("celli pizz", "basses pizz"), kit="folk", drums=("timpani",),
       grooves=("waltz", "jig"), hall=(2.0, 0.22), lift=0.45,
       titles=(("Harvest", "Sheaf", "Hayrick", "Lammas", "Gleaner's", "Bonfire"), ("Home", "Feast", "Supper", "Round", "Thanks", "Ring"))),
     # --- caves and inns: a cave had two pieces, one light and one heavy, so every light cave played the same one ----
@@ -847,7 +847,7 @@ CHARACTERS = (
       titles=(("Smoking", "Fire", "Cinder", "Ashfall", "Burning", "Black"), ("Peak", "Summit", "Crater", "Mountain", "Caldera", "Crown"))),
     C("harbour town", ("regal", "pastoral", "coast"), light=True, modes=("major", "mixolydian", "lydian"), bpm=(104, 116), metres=("6/8", "4/4"), busy=0.6,
       weight=0.65, leads=("flute", "violin", "trumpet"), strong=("violins", "flute"), under=("horns", "celli"), pads=("strings",), pad_ways=("pad",),
-      plucks=("harp", "pizzicato", "glock"), figures=("arp", "oompah"), basses=("celli pizz", "basses pizz"), kit="march", drums=("timpani",),
+      plucks=("harp", "pizzicato", "guitar"), figures=("arp", "oompah"), basses=("celli pizz", "basses pizz"), kit="march", drums=("timpani",),
       grooves=("courtly", "jig"), hall=(2.2, 0.24), lift=0.35,
       titles=(("Harbour", "Lighthouse", "Seagate", "Admiral's", "Mariner's", "Pier"), ("Town", "Watch", "Promenade", "Quay", "Morning", "Sails"))),
     C("royal gardens", ("regal", "pastoral"), light=True, modes=("major", "lydian"), bpm=(80, 92), metres=("3/4",), busy=0.5, weight=0.5,
@@ -1134,6 +1134,29 @@ CHARACTERS = (
       plucks=("rhythm guitar",), figures=("riff", "chug"), basses=("picked bass",), kit="rock", drums=("taiko",),
       grooves=("half rock", "tom rock"), hall=(1.8, 0.2), lift=0.35,
       titles=(("Frost", "Ice", "Winter", "Rime", "Glacier", "Northern"), ("Hammer", "Giant", "Riders", "Anthem", "Wall", "Fist"))),
+    # --- More of Knight Rock's walking music for the hills and the fields ("feel like i hear the same knight rock one over and --
+    # --- over", 2026-11-17, played in Loch Modan: the band had two light tracks there, of one character). Pads, not drones:
+    # --- a drone held through a quiet stretch was the whine of the same evening.
+    C("hill country", ("highland", "pastoral", "frozen"), light=True, style="knight", band=True, modes=("mixolydian", "major", "dorian"),
+      bpm=(108, 122), busy=0.6, weight=0.6, leads=("lead guitar",), strong=("lead guitar",), under=(), pads=("rock organ",),
+      pad_ways=("pad",), plucks=("twelve string", "mandolin", "rhythm guitar"), figures=("strum", "riff"), basses=("picked bass",),
+      kit="rock", drums=(), grooves=("rock", "half rock"), hall=(1.3, 0.14), lift=0.3,
+      titles=(("Hill", "Granite", "Kinsman's", "Ridge", "Stonecutter's", "Thane's"), ("Country", "Stride", "Ballad", "Lane", "Rover", "Homestead"))),
+    C("harvest boogie", ("pastoral", "coast", "regal"), light=True, style="knight", band=True, modes=("major", "mixolydian"),
+      bpm=(126, 140), busy=0.65, weight=0.6, leads=("fiddle", "lead guitar"), strong=("lead guitar", "fiddle"), under=(),
+      pads=("rock organ", "accordion"), pad_ways=("pad",), plucks=("banjo", "steel guitar", "twelve string"), figures=("strum",),
+      basses=("picked bass",), kit="rock", drums=(), grooves=("tavern rock", "rock"), hall=(1.2, 0.13), lift=0.3,
+      titles=(("Harvest", "Haystack", "Barnyard", "Market", "Millpond", "Hayride"), ("Boogie", "Shuffle", "Jamboree", "Stomp", "Day", "Run"))),
+    C("iron vow", ("highland", "pastoral", "regal"), style="knight", band=True, modes=("dorian", "minor", "mixolydian"), bpm=(96, 110),
+      busy=0.5, weight=0.9, leads=("lead guitar",), strong=("lead guitar",), under=(), pads=("rock organ",), pad_ways=("pad",),
+      plucks=("rhythm guitar",), figures=("riff", "chug"), basses=("picked bass",), kit="rock", drums=("taiko",),
+      grooves=("half rock", "rock ride"), hall=(1.6, 0.18), lift=0.35,
+      titles=(("Iron", "Oathsworn", "Thunderhead", "Anvil", "Clansman's", "Bastion"), ("Vow", "March", "Gate", "Drum", "Hold", "Creed"))),
+    C("free company", ("pastoral", "regal", "highland"), style="knight", band=True, modes=("mixolydian", "dorian"), bpm=(124, 138),
+      busy=0.6, weight=0.85, leads=("lead guitar",), strong=("lead guitar",), under=(), pads=("rock organ",), pad_ways=("pad", "drone"),
+      plucks=("rhythm guitar", "twelve string"), figures=("riff", "strum"), basses=("picked bass",), kit="rock", drums=(),
+      grooves=("rock", "rock ride"), hall=(1.3, 0.14), lift=0.4,
+      titles=(("Free", "Sellsword", "Roving", "Hired", "Wandering", "Mercenary"), ("Company", "Blades", "Riders", "Band", "Lances", "Banners"))),
 )
 
 METRES = {"4/4": (4.0, (2.0, 2.0)), "3/4": (3.0, (3.0,)), "6/8": (3.0, (1.5, 1.5)), "5/4": (5.0, (3.0, 2.0)),
@@ -1185,6 +1208,8 @@ WORD = {"open": "open", "first": "theme", "second": "theme", "build": "rise", "a
 THEMATIC = ("first", "second", "arrival", "valley", "summit")      # the parts in which a theme is sung whole
 FIGHTS = ("battle", "boss", "storm", "battleground")
 DANCE_GROOVES = ("jig", "reel", "waltz", "courtly")      # the grooves of dances: no war drums under them
+VALLEY_PAD = 0.55      # how far the pad's swell goes under in the valley, where the tune is a single soft player
+DELICATE = ("sparkle", "tick", "rain", "drip", "bog", "brushes", "none")      # grooves too fine for war drums under them
 LONG = 480.0                   # seconds: about how long a track is
 SHORTEST, LONGEST = 455.0, 505.0
 # How the time is shared out. The summit is the longest part and the opening and the close the
@@ -1297,10 +1322,14 @@ def _levels(role: str, heavy: float) -> dict[str, tuple[float, float]]:
         return {"open": (0.14, 0.26), "first": (0.34, 0.44), "second": (0.3, 0.42), "build": (0.36, 0.38 + 0.2 * heavy),
                 "arrival": (under, under), "valley": (0.18, 0.16), "climb": (0.26, 0.42 + 0.3 * heavy), "summit": (top, top),
                 "close": (0.36, 0.1)}
-    top, under = 0.6 + 0.4 * heavy, 0.5 + 0.28 * heavy
-    return {"open": (0.14, 0.3), "first": (0.38, 0.55), "second": (0.34, 0.52), "build": (0.42, 0.45 + 0.4 * heavy),
-            "arrival": (under, under), "valley": (0.2, 0.16), "climb": (0.28, 0.5 + 0.45 * heavy), "summit": (top, top),
-            "close": (0.45, 0.1)}
+    # (Walking music a little harder, its quiet parts less faint and a light piece's top higher, the valley still the
+    # quietest and the summit the loudest: "go a little harder this is not world of fairy craft", 2026-11-17. It was top
+    # 0.6 + 0.4 heavy, under 0.5 + 0.28 heavy, open 0.14 to 0.3, first 0.38 to 0.55, second 0.34 to 0.52, build 0.42 to
+    # 0.45 + 0.4 heavy, valley 0.2 to 0.16, climb 0.28 to 0.5 + 0.45 heavy, close 0.45 to 0.1.)
+    top, under = 0.68 + 0.32 * heavy, 0.56 + 0.26 * heavy
+    return {"open": (0.18, 0.34), "first": (0.42, 0.6), "second": (0.38, 0.56), "build": (0.46, 0.5 + 0.38 * heavy),
+            "arrival": (under, under), "valley": (0.24, 0.2), "climb": (0.32, 0.55 + 0.42 * heavy), "summit": (top, top),
+            "close": (0.48, 0.12)}
 
 
 def family(character: Character, seed: int, name: str, title: str) -> Family:
@@ -1854,6 +1883,8 @@ DESKS = {
 # pieces for the same kind of place, those written for the ground the player stands on. Music for a moment (a cave, an
 # inn, the night, a storm, a fight, a town) is for the moment, not the ground: it has none.
 SETTINGS_OF: dict[str, tuple[str, ...]] = {
+    "hill country": ("heights", "road"), "harvest boogie": ("fields", "settlement"), "iron vow": ("heights",),
+    "free company": ("road", "fields"),
     "village dance": ("settlement", "fields"), "morning fields": ("fields",), "riverside waltz": ("water", "fields"),
     "long road home": ("road", "fields"), "highland reel": ("heights", "settlement"), "snowfall": ("heights", "woods"),
     "mountain pass": ("heights", "road"), "moorland ride": ("heights", "road"), "requiem": ("graves", "sacred"),
@@ -2028,7 +2059,11 @@ class Take:
         hand = len(ch.kinds) < len(KINDS_ALL) and bool(set(ch.kinds) & {"desert", "jungle", "highland"})
         # (2026-11-17, evening, played: "just a bit light and wimpy in general", "dont hear much war drums", "in all genres".
         # Lively walking music of some weight has them too, softer (`soft_war`): not a dance, nor a hymn or a morning.)
-        lively = walk and ch.weight >= 0.6 and ch.busy >= 0.55 and not set(ch.grooves) & set(DANCE_GROOVES)
+        # (And from 21:50 the rhythmic lighter music a little lighter and calmer than that too, so long as its grooves are not
+        # all the delicate ones (a music box, fireflies, rain on the roof keep none): "go a little harder this is not world
+        # of fairy craft".)
+        lively = walk and ((ch.weight >= 0.6 and ch.busy >= 0.55) or (ch.weight >= 0.5 and ch.busy >= 0.45 and not set(ch.grooves) <= set(DELICATE))) \
+            and not set(ch.grooves) & set(DANCE_GROOVES)
         self.has_war = self.fight or (walk and self.heavy) or lively
         self.soft_war = self.has_war and not self.fight and not self.heavy
         self.has_frames = not ch.band and (self.has_war or (walk and ch.weight >= 0.6 and hand))
@@ -2412,7 +2447,9 @@ class Take:
     # --- the pad -----------------------------------------------------------------------------
     def texture(self) -> None:
         ch, beats = self.ch, self.beats
-        lift = 5 if ch.light else 0
+        # (A light piece's pad sits three semitones up, warmer than the five it had: "go a little harder this is not world
+        # of fairy craft", 2026-11-17, played: light pads high and airy were half of the fairy sound.)
+        lift = 3 if ch.light else 0
         # Under a second theme that is sung high the pad sits low, and the other way about.
         second_centre = 55 if INSTRUMENTS[self.other].home >= 64 else 62
         before: list[int] | None = None
@@ -2444,9 +2481,14 @@ class Take:
                 else:
                     notes = voiced(key, chord, before if before and len(before) == count else None, count, centre)
                     before = notes
+                # (In the valley the pad is under the tune. Its swell never went below 0.3 while the tune went down to the
+                # valley's pianissimo, so a band's drone stood 9 to 11 dB over everything else there, a bagpipe and an
+                # organ held all but alone: "sometimes when one synth stays in when youre sitting its whiny and annoying
+                # mix better", 2026-11-17, played.)
+                under = VALLEY_PAD if part == "valley" else 1.0
                 for swell in swells:
-                    swell.swells.append((at, 0.3 + 0.62 * level))
-                    swell.swells.append((at + beats * 0.5, 0.3 + 0.62 * min(level + 0.05, 1.0)))
+                    swell.swells.append((at, (0.3 + 0.62 * level) * under))
+                    swell.swells.append((at + beats * 0.5, (0.3 + 0.62 * min(level + 0.05, 1.0)) * under))
                 if arp:
                     # Broken chords on the harp: up through the chord and down again.
                     ladder = notes + [notes[0] + 12] + notes[::-1][:-1]
@@ -3056,16 +3098,16 @@ class Take:
             else:
                 enter, whole = (0.3, 0.65) if part == "build" else (0.3, 0.6)
                 if self.soft_war:
-                    enter, whole = enter + 0.2, whole + 0.15            # lighter music: later up the rise, and softer
+                    enter, whole = enter + 0.1, whole + 0.08            # lighter music: a little later up the rise, and softer
             if along < enter:
                 return None, 0.0
-            return ("low" if along < whole else "full"), (0.55 + 0.45 * along) * (0.8 if self.soft_war else 1.0)
+            return ("low" if along < whole else "full"), (0.55 + 0.45 * along) * (0.9 if self.soft_war else 1.0)
         if ch.band:
             return {"open": ("low", 0.6), "valley": ("single", 0.5)}.get(part, (None, 0.0)) if fight else (None, 0.0)
         if part == "arrival":
-            return ("full", 0.7) if self.soft_war else ("top", 0.9 if fight else 0.85)
+            return ("full", 0.8) if self.soft_war else ("top", 0.9 if fight else 0.85)
         if part == "summit":
-            return "top", 0.85 if self.soft_war else 1.0
+            return "top", 0.92 if self.soft_war else 1.0
         if part == "close":
             end = 0.75 if fight else 0.5
             return ("low", 0.7 * (1.0 - along / end)) if along < end else (None, 0.0)

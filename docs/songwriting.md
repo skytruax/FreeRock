@@ -148,15 +148,19 @@ running `orchestra.family` with the seeds `build.plan` gives them:
 
 | Part | Walking music | Night, inn, cave, camp | Fights (battle, boss, storm, battleground) |
 |---|---|---|---|
-| open | 0.14 to 0.30 | 0.14 to 0.26 | 0.60 to 0.72 |
-| first | 0.38 to 0.55 | 0.34 to 0.44 | 0.70 to 0.80 |
-| second | 0.34 to 0.52 | 0.30 to 0.42 | 0.66 to 0.78 |
-| build | 0.42 to 0.45 + 0.4w | 0.36 to 0.38 + 0.2w | 0.75 to 0.95 |
-| arrival | 0.5 + 0.28w | 0.4 + 0.26w | 0.90 |
-| valley | 0.20 to 0.16 | 0.18 to 0.16 | 0.58 to 0.66 |
-| climb | 0.28 to 0.5 + 0.45w | 0.26 to 0.42 + 0.3w | 0.68 to 1.00 |
-| summit | 0.6 + 0.4w | 0.45 + 0.4w | 1.00 |
-| close | 0.45 to 0.10 | 0.36 to 0.10 | 0.90 to 0.65 |
+| open | 0.18 to 0.34 | 0.14 to 0.26 | 0.60 to 0.72 |
+| first | 0.42 to 0.60 | 0.34 to 0.44 | 0.70 to 0.80 |
+| second | 0.38 to 0.56 | 0.30 to 0.42 | 0.66 to 0.78 |
+| build | 0.46 to 0.5 + 0.38w | 0.36 to 0.38 + 0.2w | 0.75 to 0.95 |
+| arrival | 0.56 + 0.26w | 0.4 + 0.26w | 0.90 |
+| valley | 0.24 to 0.20 | 0.18 to 0.16 | 0.58 to 0.66 |
+| climb | 0.32 to 0.55 + 0.42w | 0.26 to 0.42 + 0.3w | 0.68 to 1.00 |
+| summit | 0.68 + 0.32w | 0.45 + 0.4w | 1.00 |
+| close | 0.48 to 0.12 | 0.36 to 0.10 | 0.90 to 0.65 |
+
+*Walking music was made a little harder on 2026-11-17 ("go a little harder this is not world of fairy
+craft"): its quiet parts less faint and a light piece's top higher (it was open 0.14 to 0.30, valley
+0.20 to 0.16, summit 0.6 + 0.4w).*
 
 A note's strength is `Take.hard(level, weight)` = 0.16 + 0.8 × level × weight, kept between 0.05
 and 1. `tests/test_studio.py` holds the shape: the summit is the top, the arrival at least 0.05
@@ -199,18 +203,20 @@ Two things share these words.
 
 - **The label** (`Character.light`, `house.Family.light`, `light` in a piece). The player makes
   light and heavy take turns (`web/player/forever.js`, `_nextItem`): after a heavy track a heavy one
-  costs 0.6; after a light one a light one costs 0.3, so they go one for one; in a light place a
-  heavy track costs 5, far more than being written for another kind of place (at most 1), except that
-  after two light tracks in a row it costs nothing and a light one 0.3: one track in three, the nearest
-  heavy one in shade ("the warcraft songs are too light go a lil darker sometimes", "just a bit light
-  and wimpy in general", "in all genres", 2026-11-17; light and heavy had gone two to one, and light
-  places had heard nothing heavy). Turns are counted as a track for calm play begins. In a light place a heavy track does not go on into its next piece where
-  light music is there to take over.
+  costs 1.0 (`TURN`); after a light one a light one does, so they go one for one; in a light place a
+  heavy track costs 5, except that after a light track (two until "go a little harder", 2026-11-17) it costs nothing and a light one
+  1.0: one track in two, the nearest heavy one in shade ("the warcraft songs are too light go a lil
+  darker sometimes", "just a bit light and wimpy in general", "in all genres", 2026-11-17; light and
+  heavy had gone two to one, and light places had heard nothing heavy). Turns are counted as a track
+  for calm play begins, and a track plays whole whichever it is ("for the whole songs to play").
 - **Heavy writing** (`Take.heavy`: weight 0.8 or more): brass stabs and two lines above the pad at
   the moments, the whole low end together, war drums in walking music, a gong, a piccolo on top of
   the summit (a glockenspiel otherwise); in a band, the lone opening guitar and the stop.
 
-A light piece is written lighter: its pad five semitones higher, its arrival's second player a
+A light piece is written lighter: its pad three semitones higher (five until "go a little harder this
+is not world of fairy craft", 2026-11-17: high airy pads were half the fairy sound, and high pasture,
+harvest home, harbour town and lakeside reverie gave up their celesta, glockenspiel and vibraphone
+for mandolin and guitar), its arrival's second player a
 third above the tune, the desk's kick only on the bar and at 0.6, and no sub, low brass or bell at
 its moments (`build.stage`). Drums and
 bass sit further back where the weight is under 0.7 (`build.LIGHT`, `build.BAND_LIGHT`). Light
@@ -259,10 +265,12 @@ and take always write the same notes.
 **Kin.** In the player, pieces of one family at the same place in the story, of the same length and
 bar, are kin (`forever.js`, `_index`). `_cast` takes each channel from any of them, keeping whoever
 played that channel in the piece before: the same story, told by another band. So a family's
-changes, key and tempo must never change once a take of it exists (`orchestra.family`). Wear
-counts by family: each start in the last 90 minutes counts 0.45 against it (measured from the
-freshest track of its sort), and a sister family's start (the same name but its number) 0.8 of one
-(`_worn`).
+changes, key and tempo must never change once a take of it exists (`orchestra.family`). What has
+been heard counts by family and goes round (`_rotation`): a family never heard comes first, one
+heard costs 1.2 and up to 1.0 more for each of its last three hearings (falling away over some six
+hours), remembered for 60 days; a sister family (the same name but its number) heard in the last two
+hours costs 0.8 ("for us to hear new songs every night and it not go back to those old ones until it
+finally goes back around", 2026-11-17).
 
 ### 2.6 From a staged track to pieces
 
@@ -442,7 +450,11 @@ orchestra's does: a step down is held into the bar and let fall (a suspension); 
 with the note between at the end of the bar (a passing note); on a repeated chord an upper voice
 moves to another chord note halfway through. How often, by part: open 0.5, themes 0.6, build 0.4,
 arrival 0.3, valley 0.7, climb 0.4, summit 0.25, close 0.7. Each pad voice carries a swell, 0.3 +
-0.62 × level every half bar, which becomes MuseScore's hairpins or the sampler's controller 1. At
+0.62 × level every half bar, which becomes MuseScore's hairpins or the sampler's controller 1; in
+the valley it is 0.55 of that (`VALLEY_PAD`), under the tune: its floor of 0.3 kept the pad at
+mezzo-piano while the tune went down to pianissimo, and a band's drone stood 9 to 11 dB over
+everything else there, a bagpipe or an organ held all but alone ("sometimes when one synth stays
+in when youre sitting its whiny and annoying mix better", 2026-11-17, played). At
 heavy moments two lines sit an octave above the pad (the violins, or oboe and flute when the
 violins are busy), and the summit adds the choir where the palette has one.
 
@@ -498,10 +510,12 @@ notes for the orchestra, march, folk, hands, wood, rock and room kits.
 **The big drums** (`Take.big`, `Take.hands`, `Take.war_drums`). A fight has war drums nearly all the
 way; heavy walking music has them in each rise and its moment; lighter walking music of the desert,
 jungle and highlands (weight 0.6 or more) has frame drums. Lively lighter walking music (weight 0.6 or
-more, busy 0.55 or more, and not a dance: no jig, reel, waltz or courtly groove) has them too, softer
-(`Take.soft_war`, since "just a bit light and wimpy in general", "dont hear much war drums", 2026-11-17):
-from halfway up a rise at 80%, under the arrival rather than on it, the deep stroke at the summit only,
-and frame drums with them; a hymn, a morning or a dance has none. Night, inn, cave and camp music has none.
+more and busy 0.55 or more, or weight 0.5 and busy 0.45 where its grooves are not all delicate ones:
+sparkle, tick, rain, drip, bog, brushes, none; and never a dance: no jig, reel, waltz or courtly groove)
+has them too, softer (`Take.soft_war`, since "just a bit light and wimpy in general", "dont hear much war
+drums", then "go a little harder this is not world of fairy craft", 2026-11-17): from 40% of a rise at 90%,
+under the arrival at 0.8 rather than on it, the deep stroke at the summit only (0.92), and frame drums
+with them; a hymn, a morning, a music box or a dance has none. Night, inn, cave and camp music has none.
 In walking music they come in low at 30% of a rise, play the whole ostinato from 60 to 65%, and grow;
 every drum strikes together on the bar at the moments; the close lets them fall away. A fight
 begins with every drum at once. `Take.war_cycle` writes the take's own ostinato of two or four bars:
@@ -612,7 +626,7 @@ harmonica and accordion (a recorded harmonica in the sampler), steel-strung guit
 (Muse acoustic guitars), banjo (a strumstick in the sampler), ocarina and pan flute (Muse flutes).
 Hall sends are small: rhythm guitars −19 dB, muted −22, lead −11, bass −26, organ −14
 (`sounds.MUSE_SENDS`). Channel places at the summit (`build.BAND`): lead −17, rhythm −18.5, drums
-−18, bass −19.5, texture −24 LUFS; lighter pieces drums −21, bass −21, rhythm −20.
+−17.5, bass −19.5, texture −24 LUFS; lighter pieces (`BAND_LIGHT`) drums −18.5, bass −19.5, rhythm −18.5.
 
 ### 4.2 Riffs
 
@@ -868,7 +882,7 @@ chorus and the hall are the desk's now*.
   each sound a note, its sweep on controller 1 and its swell on controller 11.
 - **Levels.** Each voice is set against the others of its channel by where each is loudest (its
   `taste`, at least 0.35). Muse voices are measured to −30 LUFS where they play firmest, as the
-  studio's own players are. Each channel goes to its place at the last drop (`club.PLACE`: drums −13, bass −15.5 since "light and wimpy", rhythm
+  studio's own players are. Each channel goes to its place at the last drop (`club.PLACE`: drums −12.5, bass −15 since "light and wimpy" and "a little harder", rhythm
   −20, lead −19, texture −22 LUFS; drums −27 with no kick), never so far up that another section is
   more than 3 dB over it. The last drop goes to −13 LUFS with its peaks held under 0.89
   (`house.master_gains`), and the last 2 s fade out.
@@ -915,8 +929,9 @@ a stroke, and the bass owns what rings*.
   struck at 0.8 of its hardest or more), because *a channel that had one of each had no level between
   them*. This is one place where the desks differ, against "uniform processes eventually".
 - **Each channel** goes to its place by its loudness at the summit (`build.PLACE`: lead −17, texture
-  −21, rhythm −21.5, bass −18.5, drums −21 LUFS, or −16 with war drums, −19.5 with soft ones; a light piece's drums
-  −22 and bass −20, 2 and 1.5 dB nearer than they were, and a light band's drums −19.5, bass −20, rhythm −19), never so far up that another
+  −21, rhythm −21.5, bass −18, drums −20 LUFS, or −15.5 with war drums, −18 with soft ones; a light piece's drums
+  −20.5 and bass −19, 3.5 and 2.5 dB nearer than they were at first, and a light band's drums −18.5, bass −19.5, rhythm
+  −18.5: "just a bit light and wimpy in general", then "go a little harder", 2026-11-17), never so far up that another
   part goes more than 3 dB over it, within ±18 dB, and drums never more than 6 dB up (`DRUMS_UP`:
   a light piece's taps had come out *16 dB up*).
 - `sounds.lines` also takes a `taste`, a turn of a whole voice. House sets it per voice (5.7). For
@@ -1222,7 +1237,10 @@ bucket. Write a new family.
    MuseScore does not know plays its plain sounds (`muse._plain` stops that render); a sound can sit an
    octave off at the foot of its range (the euphonium); some carry more than others at the same
    written strength (*handbells carry far more than the glockenspiel*; *the mark tree was at 2.0 at
-   first: a night piece's drums, nearly all mark tree, came out 14 dB bright*).
+   first: a night piece's drums, nearly all mark tree, came out 14 dB bright*); and MuseScore 4 can
+   crash on a note at one particular moment of a recording (*a tubular bell 5:56 into frost hammer's
+   track at 116 beats a minute, every time; a beat either side it played*): `muse.perform` then has
+   the part played a bar later and cuts that bar off, so every note sounds where it was written.
 
 **Played by the studio.** Put the recordings under `var/samples/` (and their licence in
 `tools/stems/README.md`), add the folder and how it is played to `sounds.RECORDED` (`LONG`, `SLOW`,

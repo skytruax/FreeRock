@@ -213,7 +213,8 @@ def test_a_short_track_is_staged_whole(staged):
     assert [section["story"] for section in meta["sections"]] == list(forever.STORY)
     assert [section["bars"] for section in meta["sections"]] == list(SHORT)
     assert meta["tonic"] == "D major" and meta["moods"] == ["pastoral"] and meta["light"] is True
-    assert meta["floor"]["moment"] == {"drums": 0.6, "bass": 0.5} and "open" not in meta["floor"]
+    # (The quiet edges keep the bass and a little of the drums: standing still once left a synth on its own there.)
+    assert meta["floor"]["moment"] == {"drums": 0.6, "bass": 0.5} and meta["floor"]["open"] == {"drums": 0.36, "bass": 0.4}
     assert json.loads((folder / "measured.json").read_text())["family"] == "pastoral-01"
 
 
@@ -306,7 +307,7 @@ def test_a_staged_track_goes_into_a_bucket_as_five_pieces_in_a_row(staged, tmp_p
     assert [piece["story"] for piece in pieces] == list(forever.STORY)
     assert [piece["next"] for piece in pieces] == ids[1:] + [""]
     assert all(piece["family"] == "house/pastoral-01" and piece["light"] and piece["serves"] == [0, 1] for piece in pieces)
-    assert pieces[3]["floor"] == {"drums": 0.6, "bass": 0.5} and pieces[0]["floor"] == {}
+    assert pieces[3]["floor"] == {"drums": 0.6, "bass": 0.5} and pieces[0]["floor"] == {"drums": 0.36, "bass": 0.4}
     channels = {clip.channel for clip in bucket.clips if clip.piece == ids[3]}
     assert channels == set(forever.CHANNELS), "the moment is missing a part"
     assert studio.import_track(bucket, folder) == [], "the same track went in twice"

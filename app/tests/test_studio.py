@@ -338,9 +338,11 @@ def test_the_big_drums_are_where_they_should_be_and_nowhere_else():
         forge = any("anvil" in groove for groove in character.grooves)
         want = {"swell"} if fight or character.weight >= 0.6 else set()
         # (Walking music of some weight has war drums too since 2026-11-17's "just a bit light and wimpy in general",
-        # "dont hear much war drums": softer, later up its rises, the boom at its summit only.)
-        war = fight or heavy or (walk and character.weight >= 0.6 and character.busy >= 0.55
-                                 and not set(character.grooves) & set(orchestra.DANCE_GROOVES))
+        # "dont hear much war drums": softer, later up its rises, the boom at its summit only; and from "go a little
+        # harder this is not world of fairy craft" the rhythmic lighter music too, not the delicate.)
+        lively = (character.weight >= 0.6 and character.busy >= 0.55) or (
+            character.weight >= 0.5 and character.busy >= 0.45 and not set(character.grooves) <= set(orchestra.DELICATE))
+        war = fight or heavy or (walk and lively and not set(character.grooves) & set(orchestra.DANCE_GROOVES))
         if war:
             want |= {"war drums", "boom"}
         if not character.band and (war or (character.weight >= 0.6 and hand)):
