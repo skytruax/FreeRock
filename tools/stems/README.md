@@ -5,13 +5,6 @@ Nothing here is installed in the usual way, because that needs the administrator
 everything is fetched and unpacked under `var/tools/`, which git does not keep. This is how to
 put it back on a new machine.
 
-## What played the first orchestra (not used now)
-
-On 2026-11-15 and 16 the orchestra was played by FluidSynth 2.4.8 (LGPL 2.1) through the MuseScore
-General and FluidR3 General MIDI SoundFonts (both MIT), unpacked from Ubuntu's archive into
-`var/tools/fluid`. Its renders were turned down by ear on 2026-11-16, and the code that drove it
-went on 2026-11-17. The unpacked copy is kept with the other tools.
-
 ## REAPER (the studio's desk)
 
 REAPER 7.86 is unpacked under `var/tools/reaper` (the Linux tarball from reaper.fm) and keeps its
@@ -117,7 +110,6 @@ synthesiser (`studio/synth.py`) while it writes, which is why House needs numba:
 
 ## The real scores
 
-Public-domain orchestral scores were fetched into `var/scores/` and arranged for the General MIDI
-orchestra; with that orchestra the arranging went too (2026-11-17). The scores are still read by
-`tools/orchestra_study.py`, which measures how real orchestral music moves (how often the bass
-repeats, how many instruments play at once) for the writers to be held against.
+Public-domain orchestral scores are kept in `var/scores/`. `tools/orchestra_study.py` reads them to
+measure how real orchestral music moves (how often the bass repeats, how many instruments play at
+once), for the writers to be held against.

@@ -182,10 +182,9 @@ starts the sensor.
    *place* (what kind of music), an *intensity* (how much is going on), levels for the bed,
    drums and bass, and a tone (filters, reverb, volume). The **mixing desk** (`forever.mix`)
    gives each of the five channels its level.
-5. **The player** (`app/freerock/web/player/`, in the browser) is five decks on one bar grid,
-   scheduled ahead on the audio clock and locked to the sample. It plays a piece's five
-   recordings together, each at the level the game asks for, and moves them like a hand on a
-   fader: up over about 4 s, down over about 6.
+5. **The player** (`app/freerock/web/player/`, in the browser) plays a piece's five recordings
+   together, scheduled ahead on the audio clock and locked to the sample, each at the level the
+   game asks for, and moves them like a hand on a fader: up over about 4 s, down over about 6.
 
 A fight is heard starting to come up about a quarter of a second after it begins, and is fully
 up after about four. Everything from the game to the speakers is written down, knob by knob, in
@@ -395,8 +394,9 @@ cd app && uv run python ../tools/tests/run.py          # the addon's Lua, agains
 tools/sim/run.sh                                       # the addon beside Blizzard's real interface code (Docker)
 ```
 
-The player is tested by rendering it offline in headless Chrome: decks stay aligned to the
-sample, a change asked for on a bar lands on it, and the output never clips. The director is
+The player is tested by rendering it offline in headless Chrome: a piece's five channels stay
+aligned to the sample, a song plays whole and changes only where the rules say, a fight's rise
+comes in on the next bar line, and the output never clips. The director is
 tested against scripted sessions, and the strip by a round trip: the real `Beacon.lua` draws it,
 the picture is distorted (gamma, contrast, tint, dimming, blur), and the real decoder has to read
 it back.

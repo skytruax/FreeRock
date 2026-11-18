@@ -1035,8 +1035,8 @@ The studio cannot hear, so it measures. The owner's ears stay the judge.
 (`ear.EDGES`, centres 28 Hz to 14 kHz), how wide each octave is, the crest, how fast its loud notes
 start, how far its level wanders, how long it rings, and the centre of its spectrum. `ear.reference`
 averages the profiles of stems the owner had heard and liked, kept in `var/reaper/ear.json` (the
-recordings are gone): 875 of them, 384 Warcraft, 334 Knight Rock, 20 House and 137 from the dropped
-trance style, each labelled with the instrument it was asked for. `ear.differs` prints the octave
+recordings are gone): 875 of them, 384 Warcraft, 334 Knight Rock, 20 House and 137 of the faster
+dance style House replaced, each labelled with its instrument. `ear.differs` prints the octave
 gaps (plus is more than the reference). `ear.top` turns the gap in the top, against the body from
 320 Hz to 2.5 kHz, into a bell at 3.5 kHz and a shelf from 7.5 kHz; `sounds.levels` keeps them in
 `voicing.json` for violins, solo violin, horns, trumpets and harp (`HEARD_AS`).
@@ -1324,13 +1324,11 @@ octave, a bass that moves, a tune that does not repeat its bars, and every chann
 
 | Tried | Why it went | What replaced it |
 |---|---|---|
-| Bought loose phrases (the first design's suites per zone, then a forever song of single-instrument phrases) | "too repetitive", then "boring"; "stop buying [...] were making music now"; "remove all the old phrases [...], we have a new way now" | Written pieces from the studio; the loose-phrase code went on 2026-11-17 |
 | A bucket per zone | "we moved from duskwood but it should just keep the bucket growing", then "Its not about duskwood... duskwood is a type of place" | One bucket per style; music by kind of place (`kinds.py`) |
-| Trance at 128 BPM | "change the trance to uplifting progressive house, like 110 bpm not 128" | House at 110 BPM; the trance phrases were never played |
+| Trance at 128 BPM | "change the trance to uplifting progressive house, like 110 bpm not 128" | House at 110 BPM |
 | Cuts | "crossfades are too sharp"; "you gotta fade in and out of everything" | Slow blends; channels move over 3.5 to 6 s |
 | Three-minute tracks | "rewrite all the music using the same concepts, but to 8 minutes" | Nine parts in two waves, about 480 s |
 | A render engine of the studio's own | the owner chose REAPER: "reaper", "Then rerender with reaper i can buy it or whatever" | Everything rendered and mixed in REAPER |
-| General MIDI SoundFont renders (FluidSynth) | "This sounds like generic midi [...] you needed reaper" | REAPER with real instruments; the FluidSynth runner and the arranger of public-domain scores that used it went on 2026-11-17 |
 | Bare samples, then hand-built sampled instruments | "the actual music is good", but "make the instruments sound less like a 90s piano", "still sounds like a 90s windows demo"; measured: filters that followed the note left the orchestra 10 to 18 dB short above 2.5 kHz, war drums tuned 5 to 15 semitones down, a chorus on the strings | Recordings as they are, then MuseScore with Muse Sounds: "the music is well written we just need a good renderer", then "sounds much better" |
 | House's own synthesiser | "figure out how to make house music not suck" | `club.py`: Surge XT, Muse Sounds and the TR-8 kit in REAPER |
 | A trumpet lead, and the SC's lead tone | "the lead synth sounds cheezy" (it was a trumpet); *two straight trumpets a few cents apart were heard as "a cheesy synth"*; the SC lead *has four times the power between 2.5 and 5 kHz that it has anywhere else* | One trumpet with a late vibrato (`sounds.VIBRATO`); the LP's lead tone |

@@ -30,7 +30,7 @@ A written piece can also hold a channel up by itself: its **floors** (see "What 
 3. **The sensor** on the gaming PC copies the strip 20 times a second while the game is the window in front.
 4. **The server** decodes the strip (`state.py`). If frames stop arriving, it holds the last good state (the link is "stale" after 1.5 s). After 120 s without a frame, the link counts as lost and the music fades to silence.
 5. **The director** (`director.py`) runs at least 4 times a second and answers with a target: place, intensity, bed, drums, bass, filters, reverb, volume.
-6. **The mixing desk** (`forever.mix`, `forever.py:97`) gives each channel a level and a strength: calm, steady or hard.
+6. **The mixing desk** (`forever.mix`, in `forever.py`) gives each channel a level and a strength: calm, steady or hard.
 7. **The player** (`web/player/forever.js`, `setTarget`) moves the channels at once. A channel comes up over 3.5-4 s and goes down over 5-6 s. Filters and reverb move over the target's fade time: 0.4 s usually, 0.15 s under water, 0.25 s into stealth.
 
 So a fight that starts is heard beginning to come up about a quarter of a second later, and is fully up after about 4 s.
@@ -119,7 +119,7 @@ Places 3, 7, 8, 9 and 11a are "sited": the player follows a change into or out o
 
 ## The mixing desk: from the director to each channel
 
-`forever.mix` (`forever.py:97-130`):
+`forever.mix` (in `forever.py`):
 
 | Channel | Level | Strength (calm / steady / hard) |
 |---|---|---|
@@ -129,8 +129,8 @@ Places 3, 7, 8, 9 and 11a are "sited": the player follows a change into or out o
 | drums | 0 below intensity 0.33; then 0.45 rising to 1.0 by 0.80 | steady from 0.52, hard from 0.74 |
 | bass | 0 until intensity 0.55 (and out again below 0.47); then 0.70 rising to 1.0 by 0.80 | steady from 0.50, hard from 0.88 |
 
-In ember (an inn, death, the afterglow) every channel is calm. Strengths matter only for the
-loose phrases: a written piece has one strength, so for pieces only the levels move (see P2).
+In ember (an inn, death, the afterglow) every channel is calm. A written piece has one strength, so
+only the levels move; the rhythm's strength still says which pieces serve the moment (see P2).
 
 The intensity ladder, worked out (the bass as it comes up):
 
@@ -186,7 +186,6 @@ What the writers stage:
 | House, walking (`house.Take.meta`) | drums 0.36, bass 0.4 | drums 0.6, bass 0.5 | drums 0.36, bass 0.4 | drums 0.6, bass 0.5 | drums 0.36, bass 0.4 | rhythm follows the lead |
 | House, fights and battlegrounds | drums 0.9, bass 0.85 in every part | | | | | |
 | House, inns and camps | drums 0.3, bass 0.32 | drums 0.5, bass 0.4 | drums 0.3, bass 0.32 | drums 0.5, bass 0.4 | drums 0.3, bass 0.32 | |
-| real scores (`scores.py`) | texture 1.0, lead 1.0, bass 0.9, rhythm 0.8, drums 0.7 | (all parts) | | | | none |
 
 House's open, rise and close had no floor until 2026-11-17: standing still, the director takes the drums and the bass
 out, and there that left the synths all but alone ("sometimes when one synth stays in when youre sitting its whiny and
@@ -310,7 +309,7 @@ P1. **Floors beat the director's silences.** For Warcraft and Knight pieces in a
 
 And with the bass 0 in the director's numbers, the bed is cut below 110 Hz while the floor keeps the bass playing, which thins the sound. Only stealth removes the floors. A way through: the director says when it means silence (inn, dead, flight path), and floors give way then. Elsewhere they stay, for the subtle difference you asked for. The bed's cut should follow what is really heard from the bass, not the director's number. Left as it is on 2026-11-17 until it has been heard: whether an inn's or a ghost's own piece should keep its bass and drums is for the ear.
 
-P2. **A fight only turns things up.** A piece has one strength, so one foe, five foes, an elite and a world boss sound the same once the intensity reaches 0.80. The strengths (calm, steady, hard) only reach the old loose phrases. A way through: hard versions of the moment pieces' drums and rhythm (a busier groove, the doubled riff), or extra layers that come in above 0.85.
+P2. **A fight only turns things up.** A piece has one strength, so one foe, five foes, an elite and a world boss sound the same once the intensity reaches 0.80. The strengths (calm, steady, hard) only choose which pieces serve; within a piece nothing changes. A way through: hard versions of the moment pieces' drums and rhythm (a busier groove, the doubled riff), or extra layers that come in above 0.85.
 
 P3. **Standing still is only half quieter.** The bed drops to 0.85 and then 0.65, but the floors hold the drums and bass up (P1). ("standing still should quiet the tracks", 2026-11-16.)
 
@@ -377,8 +376,8 @@ Still to be seen in the game:
 | standing still, lingering (bed) | 0.85, 0.65 | `still_bed`, `linger_bed` |
 | night: low-pass, volume, drums, floors | 3800 Hz, 0.89, × 0.7, × 0.75 | `NIGHT_TOP`, `NIGHT_GAIN`, `NIGHT_HUSH` |
 | the tints | the table above | `director.py:533-587` |
-| texture's fight dip, rhythm from | 0.6 from 0.80, 0.30 | `forever.py:97-130`, `RHYTHM_FROM` |
+| texture's fight dip, rhythm from | 0.6 from 0.80, 0.30 | `forever.mix`, `RHYTHM_FROM` |
 | strengths | lead 0.52/0.83, rhythm and drums 0.52/0.74, bass 0.50/0.88 | `forever.GEARS` |
 | channel ramps up / down | 3.5-4 s / 5-6 s | `forever.js` `UP`, `DOWN` |
-| piece floors and follows | the table above | `studio/build.py` `FLOOR`, `studio/house.py` `meta()`, `studio/scores.py` |
+| piece floors and follows | the table above | `studio/build.py` `FLOOR`, `studio/house.py` `meta()` |
 | silences | every 3 min, 40 s | `var/settings.json` `rest_every_minutes`, `rest_seconds` |

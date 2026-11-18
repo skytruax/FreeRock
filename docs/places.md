@@ -137,7 +137,7 @@ mountains round it; the harbours, bays and islands as plain country by the water
 - **Knight Rock has no town or battleground music** (a decision of 2026-11-16): there its walking
   music plays. House has two families of each since the night of 2026-11-17.
 - **Battle music is heard only around dungeon bosses** (a decision of 2026-11-16: no separate fight
-  piece except bosses; fights in the open bring up the layers of what is playing).
+  piece except bosses; fights in the open bring up the drums and bass of what is playing).
 - **Raids** use the dungeon rule (walking and cave music, boss music at encounters). No raid music
   of its own.
 - **Under water and stealth** are tints, not pieces; swimming on the surface and flying change nothing yet.
