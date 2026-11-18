@@ -568,7 +568,7 @@ a piccolo an octave up in heavy music, a glockenspiel otherwise. Pad lines and b
 | a wide synth pad (ZynAddSubFX `Full Strings`, −13 dB) | under the string pad, all the way |
 | a kick on the bar, and on the half bar at the moments of music that is not light | through each moment and the last 40% of each rise; not in night music |
 | a sub (Surge XT `Sub 1`) on the bass's notes | the moments of music that is not light |
-| low brass on the bass's notes | the same, where no tuba or trombone plays already |
+| low brass on the bass's notes | the same, where no tuba or trombone plays already; never under a band (a tuba had doubled the rock bass, 8 to 15 dB over the liked stems from 450 Hz to 1.8 kHz, 2026-11-18) |
 | a bell on the moment's first beat | where the crown has one |
 | the crown | the moments: choir, horns or oohs by kind of place (`build.CROWNS`, `CROWNS_LIGHT`); the full choir for bosses and battlegrounds |
 

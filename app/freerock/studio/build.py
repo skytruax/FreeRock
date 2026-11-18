@@ -287,7 +287,9 @@ def stage(fam: Family, take: int) -> dict:
         # is struck on the moment's first beat, on the note the bass has there.
         deep = [note for note in low if any(first <= note.start < last for first, last in spans)]
         written.voices["bass"]["sub at the moments"] = Voice(notes=[Note(note.start, note.length, note.pitch, 0.8) for note in deep], instrument="deep")
-        if not any(voice.instrument in ("tuba", "trombone") and voice.notes for voice in written.voices["bass"].values()):
+        # (Not a band's: a tuba doubled the rock band's bass at its moments, and a band's bass read 8 to 15 dB over the liked
+        # stems from 450 Hz to 1.8 kHz, 2026-11-18.)
+        if not character.band and not any(voice.instrument in ("tuba", "trombone") and voice.notes for voice in written.voices["bass"].values()):
             written.voices["bass"]["low brass at the moments"] = Voice(notes=[Note(note.start, note.length, note.pitch if note.pitch >= 29 else note.pitch + 12, 0.75) for note in deep if note.length >= 0.45],
                 instrument="tuba")
         rung = []
