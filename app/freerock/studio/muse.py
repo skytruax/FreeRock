@@ -615,6 +615,8 @@ def _performed(part: str, text: str, name: str, made: Path, profile: str, sound:
     else:
         done = _run(["--sound-profile", profile, "-o", str(fresh), str(written)])
     if done.returncode != 0 or not fresh.is_file() or fresh.stat().st_size < 1000:
+        # (What a crashed MuseScore had written so far is of no use, and is 120 MB a time: twelve were left in the cache.)
+        fresh.unlink(missing_ok=True)
         raise RuntimeError("MuseScore did not perform %s (%s):\n%s" % (part, written, (done.stderr or done.stdout)[-1500:]))
     if profile == "MuseSounds" and _plain(fresh):
         fresh.unlink()
