@@ -289,7 +289,10 @@ dynamically to match the mood in general".
   Now what takes turns with the moment counts 2.5 against it.
 - **A fight's prepared piece went stale**: chosen ahead after one pull and kept however long the calm lasted.
 - **Loch Modan was heard as sunny farmland** (its profile said "cheerful", mandolin, tin whistle): it is dwarven hill
-  country, highland first, and not a light place.
+  country, highland first, and not a light place. The next morning **Hillsbrad Foothills** was found light for the
+  word "peace" in "uneasy peace": a contested border, now "uneasy truce" and "watchful". Which zones are light is
+  pinned by a test (`test_atlas.py`): Elwynn, Mulgore, Teldrassil, Moonglade, Thunder Bluff, Darnassus, Zephras Isle and
+  the Riverglades.
 - **Camps and storms did not change the song**, and a camp's or a storm's song played on after it.
 - **Found by a made-up evening the next night** (`tools/soak.py`, Knight Rock): a long ride at full tilt changed the
   song (it is a "storm" to the game); a song that ended early was followed by another song's middle; a cave's song

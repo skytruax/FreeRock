@@ -49,3 +49,12 @@ def test_places_without_a_profile_get_one_from_their_name():
 
 def test_slug():
     assert atlas.slug("Un'Goro Crater") == "un-goro-crater" and atlas.slug("Shen'dralas") == "shen-dralas"
+
+
+def test_a_zone_is_light_only_where_its_mood_is_gentle():
+    # In a light zone only the lighter music plays, so a word that reads light must not make a hard place gentle: "uneasy
+    # peace" made Hillsbrad Foothills, a contested border, light (2026-11-18), as its farms had Loch Modan's hills the
+    # evening before.
+    light = sorted(name for name in GAME_ZONES if atlas.kinds_for(name)[1])
+    assert light == ["Darnassus", "Elwynn Forest", "Moonglade", "Mulgore", "Riverglades", "Teldrassil", "Thunder Bluff",
+                     "Zephras Isle"]

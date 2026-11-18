@@ -10,7 +10,7 @@
     "Dun Morogh":          {"bpm": 100, "tonic": "D dorian", "colours": ["anvil strikes on the backbeat", "drone pipes", "stomping feet"], "mood": ["icy and snowbound", "stout", "proud"]},
     "Wetlands":            {"bpm": 96,  "tonic": "B minor", "colours": ["slide guitar", "squeezebox", "frame drum"], "mood": ["damp and grey", "marshy"]},
     "Arathi Highlands":    {"bpm": 125, "tonic": "E mixolydian", "colours": ["marching snare", "fiddle", "drone pipes"], "mood": ["open highland", "riding hard"]},
-    "Hillsbrad Foothills": {"bpm": 120, "tonic": "C mixolydian", "colours": ["acoustic strum", "fiddle", "hand claps"], "mood": ["farmland", "uneasy peace"]},
+    "Hillsbrad Foothills": {"bpm": 120, "tonic": "C mixolydian", "colours": ["acoustic strum", "fiddle", "hand claps"], "mood": ["farmland", "uneasy truce", "watchful"]},
     "Alterac Mountains":   {"bpm": 100, "tonic": "F# minor", "colours": ["low guitar swells", "sleigh bells", "war drums"], "mood": ["cold hostile peaks", "grim"]},
     "The Hinterlands":     {"bpm": 128, "tonic": "A dorian", "colours": ["hand drums", "wooden flute", "twelve-string guitar"], "mood": ["wild forested heights", "soaring"]},
     "Western Plaguelands": {"bpm": 80,  "tonic": "C minor", "colours": ["detuned music box", "bowed drone", "distant bell"], "mood": ["blighted farmland", "sorrowful"]},
