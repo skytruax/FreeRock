@@ -744,6 +744,10 @@ HATS = {
     "shuffle": {"hat": ((0, 0.5), (3, 0.36), (4, 0.5), (6, 0.75), (7, 0.3), (8, 0.5), (11, 0.36), (12, 0.5), (14, 0.75), (15, 0.3))},
     "sparse": {"hat": ((2, 0.6), (10, 0.6)), "open": ((6, 0.55),)},
 }
+# What a hat figure turns into every second sixteen bars of a groove (2026-11-18, the boredom meter: Breakwater's drums
+# sounded the same for 40 bars of its theme and 52 of its last drop; "still some boring sounds in house"; the house study:
+# a layer enters or leaves, or a pattern varies, every 16 bars).
+HAT_TURNS = {"eighths": "off", "off": "eighths", "sixteenths": "off", "shuffle": "sparse", "sparse": "off"}
 # Percussion figures for one bar: (sixteenth, sound, how hard).
 PERCUSSION = {
     "tambourine": ((4, "tambourine", 0.7), (12, "tambourine", 0.7), (14, "tambourine", 0.4)),
@@ -944,8 +948,10 @@ class Take:
                             for step in back_steps:
                                 for sound in backbeat:
                                     hit(wet, sound, bar, step, 0.56 if sound != "snap" else 0.5)
-                    for sound, steps in hats.items():
-                        if sound == "open" and story == "theme" and inside < 8 and len(hats) > 1:
+                    # Every second sixteen bars the hats turn to another figure, and back (HAT_TURNS).
+                    turned = HAT_TURNS.get(hat_figure, hat_figure) if (inside // 16) % 2 == 1 else hat_figure
+                    for sound, steps in HATS[turned].items():
+                        if sound == "open" and story == "theme" and inside < 8 and len(HATS[turned]) > 1:
                             continue
                         for step, loud in steps:
                             if filling and step >= 12 and fill != "lift":
@@ -953,13 +959,23 @@ class Take:
                             # (2026-11-18: "too much high hat and not enough dynamic sound". The sixteenths between the
                             # eighths come only at a drop; every hat is 3 dB softer there and follows the story further
                             # under it: a theme's first bars 3 dB under the drop's, were 1.5.)
-                            if hat_figure == "sixteenths" and sound == "hat" and step % 2 and story != "moment":
+                            if turned == "sixteenths" and sound == "hat" and step % 2 and story != "moment":
                                 continue
                             hit(wet, sound, bar, step, 0.27 * loud * (0.3 + 0.7 * energy), 0.18 if sound == "hat" else -0.12)
-                    if story == "moment" or inside >= perc_in:
-                        figure(first_perc, bar, 0.34 * (0.6 + 0.4 * energy), -0.35)
+                    # One bright layer at a time (the house study; the boredom meter: Breakwater's maracas ran their
+                    # sixteenths under everything for the whole theme): outside a drop the two percussion figures take
+                    # turns, sixteen bars each; at a drop both play.
+                    odd = (inside // 16) % 2 == 1
+                    block = inside // 16
                     if story == "moment":
-                        figure(second_perc, bar, 0.3, 0.4)
+                        # A drop builds block by block: the first figure, then both, then the second alone.
+                        first_on, second_on = block % 3 != 2, block % 3 != 0
+                    else:
+                        first_on, second_on = inside >= perc_in and not (odd and story == "theme"), story == "theme" and odd
+                    if first_on:
+                        figure(first_perc, bar, 0.34 * (0.6 + 0.4 * energy), -0.35)
+                    if second_on:
+                        figure(second_perc, bar, 0.32 * (0.6 + 0.4 * energy), 0.4)
                     if filling:
                         if fill == "snare":
                             for index, step in enumerate((12, 13, 14, 15)):
@@ -1089,6 +1105,8 @@ class Take:
                 # studied do: "the theme is darker than the drop".)
                 bright = {"open": 0.12 + 0.33 * inside / count, "theme": 0.5 + 0.2 * inside / count, "rise": 0.4 + 0.6 * (inside / count) ** 2,
                           "moment": 1.0, "close": 0.85 - 0.6 * inside / count}[story]
+                if story == "moment" and inside % 16 == 15 and count - inside > 1:
+                    bright = 0.8           # the filter breathes: half an octave down on a block's last bar, open on the next
                 if self.broken(story, first):
                     # (2026-11-18: the breakdown was as bright as a theme.) Dark, and opening only a little across it.
                     bright = 0.22 + 0.18 * inside / count

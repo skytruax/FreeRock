@@ -559,3 +559,18 @@ def test_a_riff_spells_its_chords_in_short_notes_and_its_echo_is_thrown_at_each_
     assert _value_at(echo, last.start + last.length + 1.0) == 0.0
     calm = next(each for each in house.PLAN if each.role in house.CALM_ROLES)
     assert not house.Take(calm, 1).tune.riff                  # the calm moments sing
+
+
+def test_a_house_groove_changes_every_sixteen_bars():
+    # (2026-11-18, the boredom meter: Breakwater's drums sounded the same for 40 bars of its theme, its maracas' sixteenths
+    # under everything; "still some boring sounds in house". The hats turn and the percussion figures take turns.)
+    from freerock.studio import club
+    take = house.Take(house.family("coast-03"), 1)
+    heard = club.listen(take)
+    first, bars = next((first, count) for story, first, count in take.sections if story == "theme")
+
+    def struck(block: int) -> set[str]:
+        a, b = (first + 16 * block) * house.BAR, (first + 16 * (block + 1)) * house.BAR
+        return {name for name, _, at, _, _ in heard.hits if a <= at < b}
+    blocks = [struck(block) for block in range(bars // 16)]
+    assert len(blocks) >= 2 and all(here != after for here, after in zip(blocks, blocks[1:]))
