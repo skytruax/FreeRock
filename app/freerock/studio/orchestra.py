@@ -3086,6 +3086,20 @@ class Take:
             inst = INSTRUMENTS[sound]
             self.put("drums", sound, at, 0.5, key.pitch(chord.root, inst.home), loud)
 
+    def cymbal(self, layers: list, bar: int) -> list:
+        """A band's drummer keeps time on the hat for sixteen bars of a theme and on the ride for the next sixteen, the
+        same figure a little softer; on a groove of the toms, with no cymbal keeping time, the ride joins it softly for
+        those sixteen bars and leaves again (2026-11-18, the boredom meter: a battle piece's drums had sounded the same
+        through a whole theme and into the next, 44 bars; "some of the instruments get boring"). Any other groove (a
+        tavern's tambourine and side stick) is left as it is."""
+        if not self.ch.band or not layers or (bar // 16) % 2 == 0:
+            return layers                                   # (a theme the drums sit out stays without them)
+        if any(layer[0] == "hat" for layer in layers):
+            return [("ride", layer[1], 0.9 * layer[2]) + tuple(layer[3:]) if layer[0] == "hat" else layer for layer in layers]
+        if any(layer[0] in ("tom", "tom low") for layer in layers) and not any(layer[0] in ("hat open", "ride") for layer in layers):
+            return list(layers) + [("ride", "halves", 0.35)]
+        return layers
+
     def drums(self) -> None:
         ch, beats, fight = self.ch, self.beats, self.fight
         main, other = self.groove, self.groove_b
@@ -3126,13 +3140,13 @@ class Take:
                         elif bar >= 1:
                             lay(main["theme"], bar, bar_at, level, 0.8, chord, key)
                 elif part == "first":
-                    lay(main["theme"], bar, bar_at, level, 1.0, chord, key)
+                    lay(self.cymbal(main["theme"], bar), bar, bar_at, level, 1.0, chord, key)
                     if bar >= self.fam.period and not (ch.band and self.heavy):
                         # The second time round a theme, the moment's small percussion joins softly (2026-11-16,
                         # played: "not enough instruments in each track").
                         lay([each for each in main["moment"] if each[0] in SMALL and each not in main["theme"]], bar, bar_at, level, 0.55, chord, key)
                 elif part == "second":
-                    lay(second, bar, bar_at, level, 1.0 if other is not main else 0.85, chord, key)
+                    lay(self.cymbal(second, bar), bar, bar_at, level, 1.0 if other is not main else 0.85, chord, key)
                     if bar >= self.fam.period and not (ch.band and self.heavy):
                         lay([each for each in other["moment"] if each[0] in SMALL and each not in second], bar, bar_at, level, 0.55, chord, key)
                 if part in ("first", "second"):
@@ -3421,6 +3435,7 @@ class Take:
         - a rhythm guitar whose chords ring is coloured where a passage comes back, the first time it is heard dry:
           by a phaser that sweeps once for each chord it holds, or in some takes by a slow flanger;
         - a chord held into an arrival is flanged by hand across exactly that chord, and is dry when the arrival lands;
+        - a long rise opens on the rhythm guitar's wah, held at the heel as it begins and brought by hand to the toe;
         - the lead's busy runs at a moment go through a wah rocked at the pace of its own notes, and a long note held
           at a moment is opened slowly from heel to toe (the cry);
         - a clean guitar's broken chords that ring in the quiet go through a vibe.
@@ -3513,8 +3528,19 @@ class Take:
                 # The jet: a chord held two beats or more that rings into the arrival, flanged by hand from its first beat
                 # to the arrival, the delay drawn from short to long and back to the middle as the chord dies into it.
                 held = [note for note in notes if note.length >= 2.0 and note.start + note.length >= last - beats - self.breath]
+                jet = min(note.start for note in held) if held else None
+                if section.bars >= 16:
+                    # A long rise opens (2026-11-18, the boredom meter: a battle piece's rhythm guitar kept one colour
+                    # through a 36-bar rise): the wah rocked back to the heel as the rise begins, dark, and brought forward
+                    # by hand to the toe by its last bars, slowly at first; let go where the jet begins or the arrival
+                    # lands, so the moment comes in open and dry. Half in, the guitar keeps its body.
+                    end = jet - 0.25 if jet is not None else last
+                    if end - first >= 8 * beats:
+                        voice.mark("wah", [(first, 0.0), (first + beats, 0.55 * depth), (end - 0.25, 0.55 * depth), (end, 0.0)])
+                        voice.mark("wah depth", [(first, 0.0), (end, 0.0)])
+                        voice.mark("wah position", [(first, 0.05), (first + 0.6 * (end - first), 0.4), (end - 0.25, 0.95)])
                 if held:
-                    start = min(note.start for note in held)
+                    start = jet
                     voice.mark("flanger", [(start - 0.25, 0.0), (start, depth), (last - 0.05, depth), (last, 0.0)])
                     # By hand while it is in; sweeping in time again once it is out (a colour of this take may use it).
                     voice.mark("flanger depth", [(start - 0.3, 1.0), (start - 0.25, 0.0), (last, 0.0), (last + 0.05, 1.0)])

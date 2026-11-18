@@ -891,6 +891,38 @@ def test_a_bands_guitars_are_marked_where_their_own_music_asks(monkeypatch):
     assert max(at for at, _ in jets) in (ends["build"], ends["climb"])
 
 
+def test_a_bands_long_rise_opens_on_a_wah_and_its_drummer_turns_to_the_ride():
+    # (2026-11-18, the boredom meter on Bridge Charge: its rhythm guitar kept one colour through a 36-bar rise, its drums
+    # one through a whole theme.) The wah is rocked back as a long rise begins and opened by hand to the toe by its end,
+    # let go before the arrival; the drummer keeps time on the hat for sixteen bars of a theme and on the ride for the next.
+    take = orchestra.Take(_family("anywhere-banner-war-2"), 1)
+    beats = take.beats
+    rhythm = take.voices["rhythm"]["rhythm guitar"]
+    wah, where = rhythm.effects["wah"], rhythm.effects["wah position"]
+    at = lambda points, x: float(np.interp(x, [a for a, _ in points], [v for _, v in points]))       # noqa: E731
+    rises = [(first, first + section.bars * beats) for section, first, _, _ in take.spans if section.story == "rise" and section.bars >= 16]
+    assert len(rises) == 2
+    for first, last in rises:
+        middle = (first + last) / 2
+        assert at(wah, middle) > 0.5
+        assert at(where, first + beats) < 0.2 < at(where, middle) < at(where, last - 2 * beats)
+        assert at(wah, last) == 0.0                                       # the moment comes in open and dry
+    assert all(value == 0.0 for _, value in rhythm.effects["wah depth"])  # by hand, never rocked
+    kit = take.voices["drums"]["kit"]
+    theme = next(first for section, first, _, _ in take.spans if section.part == "first")
+    strokes = lambda a, b: {note.pitch for note in kit.notes if theme + a * beats <= note.start < theme + b * beats}  # noqa: E731
+    ride = orchestra.KITS[take.ch.kit]["ride"]
+    assert ride not in strokes(0, 16) and ride in strokes(16, 32) and ride not in strokes(32, 40)    # its groove is on the toms
+    assert strokes(0, 16) <= strokes(16, 32)                                                         # ...which go on under it
+    rock = orchestra.Take(_family("infernal-forge-anthem-1"), 3)                                     # a groove on the hat
+    kit, beats = rock.voices["drums"]["kit"], rock.beats
+    theme = next(first for section, first, _, _ in rock.spans if section.part == "first")
+    hat, ride = orchestra.KITS[rock.ch.kit]["hat"], orchestra.KITS[rock.ch.kit]["ride"]
+    if any(layer[0] == "hat" for layer in rock.groove["theme"]):
+        assert hat in strokes(0, 16) and ride not in strokes(0, 16)
+        assert ride in strokes(16, 32) and hat not in strokes(16, 32)
+
+
 def test_a_bands_pedals_can_be_switched_off():
     # A new sound is heard as a demo before it is used (the plan's principles): the switch that held the pedals back until
     # the demos were heard ("k keep going", 2026-11-18) still takes every mark away.

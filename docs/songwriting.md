@@ -81,6 +81,10 @@ setting moves.
   once per chord, or in some takes a slow flanger.
 - A chord held two beats or more into an arrival is flanged by hand across exactly that chord (the
   jet), and is dry when the arrival lands.
+- A long rise (16 bars or more) opens: the rhythm guitar's wah is held at the heel as the rise
+  begins, dark, and brought forward by hand to the toe by its last bars, slowly at first. It is let go
+  where the jet begins or the arrival lands, so the moment comes in open and dry. Half in, the guitar
+  keeps its body.
 - The lead's wah at the moments:
   - rocked at the pace of its own notes where it runs (at the first arrival only where it runs hard,
     at the summit wherever it is busy);
@@ -149,6 +153,13 @@ setting moves.
   stood 9 dB over the tune. Handed to the organ, which goes down 20 dB there as written, it sits 2 dB
   under the tune and whines 17 dB less. A reed's harmonics read louder than its note (its peaks at
   twice, three and four times the note): read a reed's spectrum by its pattern, not its top peak.
+
+- **A part can change its notes and still sound the same** (the boredom meter on Bridge Charge, a
+  battleground take). Its rhythm guitar went 19 bars of a 36-bar rise without a change the meter
+  could hear. On the sheet its chords moved a half step and its figure thinned, but in one colour, and
+  its drums kept one groove on the toms through a whole 40-bar theme. Moving the notes is not enough.
+  What moves is the colour: the long rise is now opened on a wah, and the drummer turns to the ride
+  every other sixteen bars. Read the meter's flag against the sheet before deciding what is wrong.
 
 The nightly loop works on sheets and writes every lesson here: what was tried, what it was for, how
 it measured, what Sky's ear said, and what did not work ("the recursive loop should also update the
@@ -836,6 +847,11 @@ into each change like this*).
 `kick busy` is 1, the and of 2, 3 and the and of 4. The fills: a pickup into each phrase (each
 second phrase in heavy music), a roll at the end of each rise, four strokes every eighth bar of a
 moment.
+
+The cymbal turns (`Take.cymbal`). In a theme, a drummer keeps time on the hat for sixteen bars and
+on the ride for the next sixteen, the same figure a little softer. On a groove of the toms, with no
+cymbal keeping time, the ride joins softly for those sixteen bars and leaves again. A tavern's
+tambourine and side stick, and a theme the drums sit out, stay as they are.
 
 ### 4.9 The rest of the band's story
 
