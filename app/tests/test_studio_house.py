@@ -631,6 +631,17 @@ def test_the_chords_roll_climbs_to_the_drop_and_a_calm_piece_has_none():
         assert len(last) <= len(hit)                                               # no roll
 
 
+def test_a_storms_rain_falls_under_the_full_band():
+    # (2026-11-18, Thunderhead I: its rain at one level all the way stood over the music where the band was full.)
+    take = house.Take(house.family("storm-02"), 1)
+    assert take.family.role == "storm"
+    story_at = lambda at: next(story for story, first, count in take.sections if first * house.BAR <= at + 1e-6 < (first + count) * house.BAR)  # noqa: E731
+    rain = [(story_at(air.at), air.level) for air in take.airs() if air.kind == "rain"]
+    full = [level for story, level in rain if story in ("theme", "moment")]
+    gaps = [level for story, level in rain if story in ("open", "rise", "close")]
+    assert full and gaps and max(full) < min(gaps)
+
+
 def test_a_house_groove_changes_every_sixteen_bars():
     # (2026-11-18, the boredom meter: Breakwater's drums sounded the same for 40 bars of its theme, its maracas' sixteenths
     # under everything; "still some boring sounds in house". The hats turn and the percussion figures take turns.)

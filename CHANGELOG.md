@@ -28,6 +28,9 @@ dictated, where it drove the change.
 - **The chords' roll climbs to the drop and no higher**: in the last two bars of a rise each stroke is
   softer as they come faster, swelling across the bar. A calm piece has no roll into its moment, as
   designed (Cold Stars I's bell had rung 6 dB over its own drop).
+- **A storm's rain falls under the full band**: hard in the opening, the rises and the close, softer
+  in the themes and drops. Over a bright pad it had covered the music (Thunderhead I's texture centred
+  at 4.8 kHz; now 1.8, the liked 0.4).
 - **A judge that listens** ("find more music judging packages, that will rate a song"): Meta's
   Audiobox Aesthetics scores a take's enjoyment and production quality, whole and part by part
   (`tools/judge.py`), on this machine. It is a gate and a pointer for the sound, not a target.

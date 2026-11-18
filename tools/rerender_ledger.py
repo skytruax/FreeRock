@@ -146,6 +146,10 @@ CHANGES = [
            "the chords' roll into a drop softer as it comes faster, no louder than the drop; none in a calm piece (Cold Stars "
            "I's bell had rung 6 dB over its drop)",
            lambda p: p.style == "house"),
+    Change("a storm's rain under the full band", datetime.datetime(2026, 11, 18, 17, 36), "",
+           "a storm's rain at 0.4 in the opening, rises and close and 0.25 under the themes and drops (over a bright pad it had "
+           "covered the music)",
+           lambda p: p.style == "house" and p.character.role == "storm"),
 ]
 
 

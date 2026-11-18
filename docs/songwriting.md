@@ -186,6 +186,13 @@ setting moves.
   sixteenths into its drop, ringing 6 dB over it). In the other pieces the chords' roll climbs to the
   drop and no higher: each stroke softer as they come faster, swelling across the bar.
 
+- **The weather sits under the band where the band is full.** A storm's rain at 0.4 all the way through
+  sat under Rain on the Roofs' warm pad, which was heard and liked, but over Thunderhead I's bright pad
+  it covered the music: the texture centred at 4.8 kHz against the liked 422 Hz, and the render's check
+  found it only 61% in its key. The rain now falls at 0.4 in the opening, the rises and the close and
+  at 0.25 under the themes and drops: centred at 1.8 kHz, 5 dB less at the top, 7 to 9 dB more middle.
+  The rest of the gap is the bright pad's own top; what pad a storm wants is for the ear.
+
 The nightly loop works on sheets and writes every lesson here: what was tried, what it was for, how
 it measured, what Sky's ear said, and what did not work ("the recursive loop should also update the
 music writing handbook as it learns more").

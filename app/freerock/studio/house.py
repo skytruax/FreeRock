@@ -1317,8 +1317,11 @@ class Take:
                 out.append(Air("sweep", start - 2 * BAR, 2 * BAR, 0.3, 300.0, 5000.0, True, seed=self.seed + 4 + first))
             if self.palette["atmos"] and (story in ("open", "close") or (story == "rise" and count >= 16) or fam.role == "storm"):
                 seconds = count * BAR if story != "rise" else count * BAR / 2
-                out.append(Air(self.palette["atmos"], start, seconds + 2.0, 0.3 if fam.role != "storm" else 0.4, fade=1.5,
-                               seed=self.seed + 9 + first))
+                # A storm's rain falls all the way through, under the band where it is full (2026-11-18, Thunderhead I: over a
+                # bright pad its rain at 0.4 in every section stood over the music, the texture centred at 4.8 kHz against
+                # the liked 422 Hz; Rain on the Roofs, heard and liked, had it under a warm pad).
+                level = 0.3 if fam.role != "storm" else (0.4 if story in ("open", "rise", "close") else 0.25)
+                out.append(Air(self.palette["atmos"], start, seconds + 2.0, level, fade=1.5, seed=self.seed + 9 + first))
         return sorted(out, key=lambda each: each.at)
 
     def air_audio(self, air: Air) -> np.ndarray:
