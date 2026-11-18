@@ -926,7 +926,12 @@
       const want = after && options.natural && after.piece.meta.next ? STORY_NEXT[after.piece.meta.story] || "open" : "open";
       const shade = (piece) => {
         if (piece.meta.serves.includes(2) && !piece.meta.serves.includes(0)) return 0;      // a fight is a fight
-        if (this.target.light === true) return piece.meta.light ? 0 : 5;
+        if (this.target.light === true) {
+          // (2026-11-17, evening, played: "the warcraft songs are too light go a lil darker sometimes". A light place hears
+          // a heavier piece after three light ones, the nearest of them in shade: a little darker now and then, not a dirge.)
+          if (this.light >= 3) return piece.meta.light ? 0.3 : 0;
+          return piece.meta.light ? 0 : 5;
+        }
         if (this.heavy >= 1) return piece.meta.light ? 0 : 0.6;
         if (this.light >= 2) return piece.meta.light ? 0.3 : 0;
         return 0;

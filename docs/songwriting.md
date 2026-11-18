@@ -200,8 +200,10 @@ Two things share these words.
 - **The label** (`Character.light`, `house.Family.light`, `light` in a piece). The player makes
   light and heavy take turns (`web/player/forever.js`, `_nextItem`): after a heavy track a heavy one
   costs 0.6; after two light ones a light one costs 0.3; in a light place a heavy track costs 5,
-  far more than being written for another kind of place (at most 1). Turns are counted as a track
-  for calm play begins. In a light place a heavy track does not go on into its next piece where
+  far more than being written for another kind of place (at most 1), except that after three light
+  tracks in a row it costs nothing and a light one 0.3 ("the warcraft songs are too light go a lil
+  darker sometimes", 2026-11-17): about one track in four, the nearest heavy one in shade. Turns are
+  counted as a track for calm play begins. In a light place a heavy track does not go on into its next piece where
   light music is there to take over.
 - **Heavy writing** (`Take.heavy`: weight 0.8 or more): brass stabs and two lines above the pad at
   the moments, the whole low end together, war drums in walking music, a gong, a piccolo on top of
@@ -212,7 +214,7 @@ third above the tune, the desk's kick only on the bar and at 0.6, and no sub, lo
 its moments (`build.stage`). Drums and
 bass sit further back where the weight is under 0.7 (`build.LIGHT`, `build.BAND_LIGHT`). Light
 walking characters, and every band walking character, get a second family, *since light places
-hear nothing else* (`build.plan`). The tests ask both writers for light and heavy walking music in
+hear little else* (`build.plan`). The tests ask both writers for light and heavy walking music in
 every kind of place.
 
 ### 2.5 Characters, families and takes
