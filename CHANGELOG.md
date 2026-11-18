@@ -31,6 +31,11 @@ dictated, where it drove the change.
 - **A storm's rain falls under the full band**: hard in the opening, the rises and the close, softer
   in the themes and drops. Over a bright pad it had covered the music (Thunderhead I's texture centred
   at 4.8 kHz; now 1.8, the liked 0.4).
+- **A whole bucket build keeps what was played, loved and banned** ("make sure whats played is marked
+  as played"): it had put every part back at no plays, so the player took them all for new (the
+  morning's build had forgotten the night before's), and a love or a ban would have gone the same way.
+  Each part now takes back its plays, love and ban by where it sits in its track
+  (`pieces.marks_of`, `restore_marks`).
 - **A judge that listens** ("find more music judging packages, that will rate a song"): Meta's
   Audiobox Aesthetics scores a take's enjoyment and production quality, whole and part by part
   (`tools/judge.py`), on this machine. It is a gate and a pointer for the sound, not a target.

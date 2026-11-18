@@ -193,6 +193,14 @@ setting moves.
   at 0.25 under the themes and drops: centred at 1.8 kHz, 5 dB less at the top, 7 to 9 dB more middle.
   The rest of the gap is the bright pad's own top; what pad a storm wants is for the ear.
 
+- **The boredom meter over the whole Knight Rock library** (206 takes, 2026-11-18): 16 bars or more
+  without a change in the rhythm guitar of 22 takes, 15 of them in a rise; in the drums of 8, 6 in a
+  moment; in the texture of 7; in the bass of 5. The rises and moments are what the opened wah and
+  the drummer's ride and bell were written for. The flat textures (21 to 40 bars of a tavern's, an open
+  road's or a bayou band's accordion and organ) are all in takes older than the sheets: the same
+  families' new takes hold nothing longer than 2 bars, so new takes replace them, and the player plays
+  the unheard first. Results in `var/passes/boredom-knight.json`.
+
 The nightly loop works on sheets and writes every lesson here: what was tried, what it was for, how
 it measured, what Sky's ear said, and what did not work ("the recursive loop should also update the
 music writing handbook as it learns more").

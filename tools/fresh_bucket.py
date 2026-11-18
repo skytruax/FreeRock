@@ -42,6 +42,7 @@ def main(argv: list[str]) -> int:
         return 1
     bucket = pieces.home_bucket(VAR, style, zone)
     before = pieces.summary(bucket)
+    marks = pieces.marks_of(bucket)               # what was played, loved and banned, given back once the tracks are in again
     save = bucket._save
     bucket._save = lambda: None                    # saved once, when every piece is out
     try:
@@ -57,8 +58,10 @@ def main(argv: list[str]) -> int:
             wrong.append((folder, problem))
         elif made:
             put += 1
+    carried = pieces.restore_marks(bucket, marks)
     after = pieces.summary(bucket)
     print("%s: %d tracks put in; the bucket now has %d pieces in %d tracks, %.0f minutes" % (style, put, after["pieces"], after["tracks"], after["minutes"]))
+    print("%s: %d parts kept what they had been: their plays, loves and bans (%d had any)" % (style, carried, len(marks)))
     settings = VAR / "settings.json"
     told = json.loads(settings.read_text(encoding="utf-8"))
     if keep:

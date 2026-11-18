@@ -747,6 +747,35 @@ def test_the_pieces_from_one_source_can_be_taken_out_again(tmp_path):
         pieces.drop_from(bucket, "")
 
 
+def test_a_whole_build_keeps_what_was_played_loved_and_banned(tmp_path):
+    # (2026-11-18: "make sure whats played is marked as played". A whole build took every piece out and put it in again
+    # at no plays: the player took them all for new, and a love or a ban would have been forgotten.)
+    from freerock import pieces
+    made_track(tmp_path / "studio" / "warcraft" / "test-family" / "1")
+    made_track(tmp_path / "studio" / "warcraft" / "test-family" / "2", take=2)
+    bucket = forever.Bucket(tmp_path / "buckets", "duskwood", "warcraft", 80, "D minor")
+    for folder in studio.staged(tmp_path, "warcraft"):
+        studio.import_track(bucket, folder)
+    first, last = bucket.clips[0], bucket.clips[-1]
+    where = lambda clip: (bucket.pieces[clip.piece]["track"], clip.channel, clip.tier, clip.order, bucket.pieces[clip.piece]["story"])  # noqa: E731
+    bucket.played([first.id])
+    bucket.played([first.id])
+    bucket.mark([last.id], banned=True, loved=False)
+    bucket.mark([bucket.clips[1].id], loved=True)
+    kept = {where(clip): (clip.plays, clip.loved, clip.banned) for clip in bucket.clips}
+    marks = pieces.marks_of(bucket)                    # (a love or a ban is the whole piece's: each of its parts has it)
+    marked = sum(1 for clip in bucket.clips if clip.plays or clip.loved or clip.banned)
+    assert len(marks) == marked >= 3
+    pieces.drop_from(bucket, "warcraft/")
+    for folder in studio.staged(tmp_path, "warcraft"):
+        studio.import_track(bucket, folder)
+    assert all(clip.plays == 0 and not clip.loved and not clip.banned for clip in bucket.clips)
+    assert pieces.restore_marks(bucket, marks) == marked
+    assert {where(clip): (clip.plays, clip.loved, clip.banned) for clip in bucket.clips} == kept
+    again = forever.Bucket(tmp_path / "buckets", "duskwood", "warcraft", 80, "D minor")
+    assert sorted(clip.plays for clip in again.clips if clip.plays) == [2]
+
+
 def test_the_bass_moves_through_the_chords_as_a_real_bass_does():
     # Measured against 72 movements of the orchestral repertoire, a bass line repeats its note about one time in four
     # and moves by step two times in five (tools/orchestra_study.py). The written bass of the orchestra's walking music

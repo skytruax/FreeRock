@@ -70,6 +70,53 @@ def drop_from(bucket: forever.Bucket, source: str) -> int:
     return len(mine)
 
 
+def _places(bucket: forever.Bucket) -> dict[str, tuple[str, int]]:
+    """Each written piece's track and its place in it, counted along the track from its first piece."""
+    pieces = bucket.pieces
+    pointed = {meta.get("next") for meta in pieces.values()}
+    out: dict[str, tuple[str, int]] = {}
+    for first in pieces:
+        if first in pointed:
+            continue                                   # not the first piece of its track
+        at, current, seen = 0, first, set()
+        while current in pieces and current not in seen:
+            seen.add(current)
+            out[current] = (str(pieces[current].get("track") or pieces[current].get("source", "")), at)
+            at += 1
+            current = pieces[current].get("next")
+    return out
+
+
+def marks_of(bucket: forever.Bucket) -> dict[tuple, tuple[int, bool, bool]]:
+    """What has been done with each written part, by where it sits: (its track, its piece's place in the track, its
+    channel, the strength it was written at, its stretch) -> (plays, loved, banned). A track put into a bucket again is
+    cut the same way, so its parts can take back what was theirs (`restore_marks`). (2026-11-18: "make sure whats played
+    is marked as played": a whole build had begun every part again at no plays, so the player took them all for new, and
+    it would have forgotten a love or a ban.)"""
+    places = _places(bucket)
+    out: dict[tuple, tuple[int, bool, bool]] = {}
+    for clip in bucket.clips:
+        place = places.get(clip.piece)
+        if place and (clip.plays or clip.loved or clip.banned):
+            out[place + (clip.channel, clip.tier, clip.order)] = (clip.plays, clip.loved, clip.banned)
+    return out
+
+
+def restore_marks(bucket: forever.Bucket, marks: dict[tuple, tuple[int, bool, bool]]) -> int:
+    """Gives the parts at the same places what `marks_of` kept; returns how many took something back."""
+    places = _places(bucket)
+    found = 0
+    for clip in bucket.clips:
+        place = places.get(clip.piece)
+        kept = marks.get(place + (clip.channel, clip.tier, clip.order)) if place else None
+        if kept:
+            clip.plays, clip.loved, clip.banned = kept
+            found += 1
+    if found:
+        bucket._save()
+    return found
+
+
 def summary(bucket: forever.Bucket) -> dict[str, Any]:
     """What written pieces a bucket has in play: how many, in how many tracks, how long, and
     how they divide by the kind of moment, the kind of place, and light and heavy."""
