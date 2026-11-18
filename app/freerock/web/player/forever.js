@@ -182,6 +182,7 @@
       this.report = options.report || ((text) => { throw new Error(text); });
       this.bucket = null;        // the bucket in play: { key, bpm, bar, rate, cycle, form, changes, clips: Map }
       this.pending = null;       // another place's bucket, whose first phrases are being fetched
+      this.arriving = null;      // ...and the promise of its coming in (see settled)
       this.group = null;         // the five decks playing it
       this.next = null;          // the decks made ready for what follows, before their time has come
       // The pieces that were cut into, and how far each had got: the track a fight interrupted
@@ -437,7 +438,7 @@
         // and the new place takes over when they are here, so that it comes in whole.
         this.pending = fresh;
         const opening = this._nextItem(fresh, { fresh: true });
-        this._first(fresh, opening).then((plan) => this._serial(async () => {
+        this.arriving = this._first(fresh, opening).then((plan) => this._serial(async () => {
           if (this.pending !== fresh) return;            // yet another place was asked for meanwhile
           this.pending = null;
           this.bucket = fresh;
@@ -451,6 +452,13 @@
         })).catch((error) => this.report("The music for " + fresh.zone + " could not be started: " +
                                          String(error && error.stack || error)));
       });
+    }
+
+    // Once the place asked for last has come in (its first phrases fetched and the take-over laid down), or at once if
+    // none is on its way. The live page never waits for it; a test does, so that how busy the machine is cannot move
+    // when the new place comes in (it had made the offline render run on while the phrases were fetched).
+    settled() {
+      return this.arriving || Promise.resolve();
     }
 
     // Fetches the phrase each deck of a bucket would start with, at the strength the game asks
@@ -933,10 +941,10 @@
         // (Until when going back is still right: a fight's piece chosen ahead is kept, and must not go back later.)
         const until = Math.min(left.at + (slot === "fight" ? FIGHT_AGAIN : RESUME_WITHIN),
                                (left.began === undefined ? left.at : left.began) + RESUME_SPAN);
-        if (piece.seconds - from > 2 * piece.bar) return { piece, from, laps: 1, cast: this._cast(piece, left.casting), entry: "resume", began: left.began, until, sited: left.sited, fit: left.fit, zone: left.zone };
+        if (piece.seconds - from > 2 * piece.bar) return { piece, from, laps: 1, cast: this._cast(piece, left.casting), entry: "resume", began: left.began, until, sited: left.sited, fit: left.fit, zone: left.zone, rain: left.rain };
         // It was all but over when the fight came: the track goes on from its next piece.
         const onward = piece.meta.next ? index.get(piece.meta.next) : null;
-        if (onward && serves(onward)) return { piece: onward, from: 0, laps: 1, cast: this._cast(onward, left.casting), entry: "resume", began: left.began, until, sited: left.sited, fit: left.fit, zone: left.zone };
+        if (onward && serves(onward)) return { piece: onward, from: 0, laps: 1, cast: this._cast(onward, left.casting), entry: "resume", began: left.began, until, sited: left.sited, fit: left.fit, zone: left.zone, rain: left.rain };
       }
       const place = this.target.place, also = this.target.also || [];
       const off = (piece) => this._off(piece, ask, options.follow === true);
@@ -957,9 +965,10 @@
           const elsewhere = typeof this.target.zone === "string" && typeof after.zone === "string" && this.target.zone !== after.zone
             && now - this.zoneSince >= ZONE_SETTLE;
           const mine = next.meta.role;
-          const placed = mine === "boss" || mine === "battle" || mine === "storm" || (after.sited === true && !STAYS.includes(mine));
+          const placed = mine === "boss" || mine === "battle" || (mine === "storm" && after.rain === true)
+            || (after.sited === true && !STAYS.includes(mine));
           const over = placed && mine !== place && !also.includes(mine);
-          if (!elsewhere && !over) return { piece: next, from: 0, laps: 1, cast: this._cast(next, casting), entry: "continue", began: after.began, sited: after.sited, fit: after.fit, zone: after.zone };
+          if (!elsewhere && !over) return { piece: next, from: 0, laps: 1, cast: this._cast(next, casting), entry: "continue", began: after.began, sited: after.sited, fit: after.fit, zone: after.zone, rain: after.rain };
         }
       }
       // A track has ended, or the moment has moved on from it. Now and then, where the bucket
@@ -1248,7 +1257,7 @@
       for (let steps = 0; next && next.meta.story !== "rise" && steps < 6; steps++) next = next.meta.next ? index.get(next.meta.next) : null;
       if (!next || next.meta.story !== "rise" || next.meta.track !== meta.track) return false;
       const item = { piece: next, from: 0, laps: 1, cast: this._cast(next, group.casting), entry: "continue",
-                     began: group.began, sited: group.sited, fit: group.fit, zone: group.zone };
+                     began: group.began, sited: group.sited, fit: group.fit, zone: group.zone, rain: group.rain };
       await this._first(this.bucket, item);
       if (!this.started || this.group !== group || this._quiet()) return false;
       const when = Math.max(this._lineAfter(group, this.ctx.currentTime + NOTICE, 1), group.start);
@@ -1260,7 +1269,7 @@
     // Where a piece that is being left had got to, so that it can be gone back to.
     _leftAt(group, when, now) {
       return { key: this.bucket.key, piece: group.piece.id, position: (when - group.origin) % group.piece.seconds,
-               at: now, casting: group.casting, began: group.began, sited: group.sited, fit: group.fit, zone: group.zone };
+               at: now, casting: group.casting, began: group.began, sited: group.sited, fit: group.fit, zone: group.zone, rain: group.rain };
     }
 
     // What is playing gives way at `when`, over `fade`, to the piece chosen to take its place,
@@ -1399,6 +1408,9 @@
                       // zone changes the song (see _follow).
                       fit: item && typeof item.fit === "number" ? item.fit : piece ? this._mood(piece.meta) : 0,
                       zone: item && item.zone !== undefined ? item.zone : (typeof this.target.zone === "string" ? this.target.zone : null),
+                      // Whether it began in a rain storm: such a storm's song ends with the storm; one begun on a ride at full
+                      // tilt (a "storm" too) plays whole, a ride being no change of place.
+                      rain: item && item.rain !== undefined ? item.rain === true : this.target.rain_storm === true,
                       // A style may ask for longer or shorter blends than the usual.
                       blend: bucket.arc && bucket.arc.blend > 0 ? bucket.arc.blend : 1,
                       bed: ctx.createGain(), rest: ctx.createGain() };
@@ -2006,7 +2018,8 @@
       if ((before.zone || null) !== (this.target.zone || null)) {
         this.zoneSince = this.ctx.currentTime;
         this.followDue = this.ctx.currentTime + ZONE_SETTLE;
-      } else if (before.place !== this.target.place || before.sited !== this.target.sited) {
+      } else if (before.place !== this.target.place || before.sited !== this.target.sited
+                 || (before.rain_storm === true) !== (this.target.rain_storm === true)) {      // (rain setting in on a ride at full tilt)
         this.followDue = Math.max(this.followDue || 0, this.ctx.currentTime + SETTLE);
       }
       this._levels(before, wasQuiet);

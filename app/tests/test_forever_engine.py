@@ -478,6 +478,10 @@ async def test_a_camp_and_a_storm_that_sets_in_each_change_the_song(results):
     assert found["stormBackAt"] is not None and found["stormBackAt"] >= found["galeAt"] + 14.0, "the storm's track was cut: %s" % found
     # A long ride at full tilt (the game names it a storm too, but no rain) changes nothing.
     assert found["ride"] == ["walk"], "a ride at full tilt changed the song: %s" % found
+    # Rain setting in at 12 s on a ride (the place a storm already): four seconds, then the next bar line.
+    assert found["rainOnRideAt"] is not None and 16.0 <= found["rainOnRideAt"] <= 19.0, "rain on a ride did not bring the storm's music: %s" % found
+    # A storm's song begun on a ride plays its second part when the ride is over at 3 s, and walking music after it.
+    assert found["rideSong"] == ["sop", "sth", "walk"], "a ride's storm song did not play whole: %s" % found
     assert found["late"] == 0
 
 

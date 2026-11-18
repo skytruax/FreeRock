@@ -307,7 +307,7 @@ tests.silence = async () => {
 // Another place at another tempo: the old place's music fades away and the new comes in on its own grid.
 tests.newPlace = async () => {
   const slow = makeBucket("slow", 120000, 2);
-  const run = await render(40, { script: [[12, (engine) => engine.setBucket(slow)]] });
+  const run = await render(40, { script: [[12, async (engine) => { await engine.setBucket(slow); await engine.settled(); }]] });
   const d = run.data, log = run.engine.log;
   const old = log.filter((entry) => entry.at < 12 && entry.clip.startsWith("home"));
   const fresh = log.filter((entry) => entry.clip.startsWith("slow"));
@@ -517,7 +517,7 @@ tests.formGear = async () => {
 // Another place: the one that is playing plays on until the new place's first phrases are here.
 tests.formPlace = async () => {
   const there = makeFormBucket("there", 120000, 2);
-  const run = await render(60, { bucket: makeFormBucket("form", BAR, 2), script: [[20, (engine) => engine.setBucket(there)]] });
+  const run = await render(60, { bucket: makeFormBucket("form", BAR, 2), script: [[20, async (engine) => { await engine.setBucket(there); await engine.settled(); }]] });
   const fresh = run.engine.log.filter((entry) => entry.clip.startsWith("there"));
   const first = Math.min(...fresh.map((entry) => entry.at));
   return { firstNew: first, together: fresh.filter((entry) => Math.abs(entry.at - first) < 1e-6).length,
@@ -815,6 +815,17 @@ tests.pieceCampStorm = async () => {
                                    target: Object.assign(mix(1), { place: "wander", also: [], intensity: 0.4 }),
                                    script: [[5, (engine) => engine.setTarget({ place: "storm", also: ["wander"], intensity: 0.78, rain_storm: true })],
                                             [20.5, (engine) => engine.setTarget({ place: "wander", also: [], intensity: 0.4, rain_storm: false })]] });
+  // Rain setting in on a ride at full tilt (the place was a storm already): the storm's music comes all the same.
+  const rainOnRide = await render(30, { bucket: makePieces("rainride", [{ id: "walk", windows: 8 }, { id: "gale", windows: 2, role: "storm" }]),
+                                        target: Object.assign(mix(1), { place: "wander", also: [], intensity: 0.4 }),
+                                        script: [[3, (engine) => engine.setTarget({ place: "storm", also: ["wander"], intensity: 0.75, rain_storm: false })],
+                                                 [12, (engine) => engine.setTarget({ rain_storm: true })]] });
+  // A storm's song begun on a ride (no rain) plays whole when the ride is over: a ride is no change of place.
+  const rideSong = await render(20, { bucket: makePieces("ridesong", [{ id: "sop", windows: 1, then: "sth", story: "open", track: "s", role: "storm" },
+                                                                      { id: "sth", windows: 1, phase: "sop", story: "theme", track: "s", role: "storm" },
+                                                                      { id: "walk", windows: 4 }]),
+                                      target: Object.assign(mix(1), { place: "storm", also: ["wander"], intensity: 0.75, rain_storm: false }),
+                                      script: [[3, (engine) => engine.setTarget({ place: "wander", also: [], intensity: 0.4 })]] });
   // A long ride at full tilt, which the game also calls a storm: no change of place, and the song plays on.
   const ride = await render(30, { bucket: makePieces("ride", [{ id: "walk", windows: 8 }, { id: "gale", windows: 2, role: "storm" }]),
                                   target: Object.assign(mix(1), { place: "wander", also: [], intensity: 0.4 }),
@@ -828,7 +839,9 @@ tests.pieceCampStorm = async () => {
              const gale = storm.engine.log.filter((entry) => pieceOf(entry) === "gale");
              return gale.length ? Math.max(...gale.map((entry) => entry.at)) : null; })(),
            stormBackAt: first(storm.engine.log, "walk", 20), late: camp.engine.late + storm.engine.late,
-           ride: [...new Set(ride.engine.log.filter((entry) => entry.at < 30).map(pieceOf))] };
+           ride: [...new Set(ride.engine.log.filter((entry) => entry.at < 30).map(pieceOf))],
+           rainOnRideAt: first(rainOnRide.engine.log, "gale", 0),
+           rideSong: [...new Set(rideSong.engine.log.filter((entry) => entry.at < 20).map(pieceOf))] };
 };
 
 // A new track begins at its opening, whatever the last was doing when it ended ("for the whole songs to play"): here a
@@ -1103,7 +1116,7 @@ tests.pieceBan = async () => {
 tests.pieceOff = async () => {
   const bucket = makePieces("off", [{ id: "song", windows: 6 }], 3);
   const without = Object.assign({}, bucket, { pieces: {}, clips: bucket.clips.filter((clip) => !clip.piece) });
-  const run = await render(60, { bucket, script: [[9.2, (engine) => engine.setBucket(without)]] });
+  const run = await render(60, { bucket, script: [[9.2, async (engine) => { await engine.setBucket(without); await engine.settled(); }]] });
   const loose = run.engine.log.find((entry) => !entry.clip.includes("-song-"));
   const later = run.engine.log.filter((entry) => entry.at > 16).map((entry) => (entry.clip.includes("-song-") ? "piece" : "loose"));
   return { looseAt: loose ? loose.at : null, later: [...new Set(later)], quietest: quietest(run.data, 12, 58),
