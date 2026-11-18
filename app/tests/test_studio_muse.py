@@ -134,3 +134,40 @@ def test_percussion_is_written_on_a_drum_staff_each_note_naming_its_drum_and_a_r
     assert '<tremolo type="single">3</tremolo>' in roll and 'type="crescendo"' in roll      # a roll, growing to the moment
     with pytest.raises(ValueError):
         muse.score("Tam-tam", [Note(0.0, 4.0, 60, 0.8)], bpm=60.0)       # a tam-tam has one drum, and 60 is not it
+
+
+def test_a_part_that_crashes_musescore_is_played_a_bar_later_and_that_bar_cut_off(monkeypatch, tmp_path):
+    """(2026-11-17: MuseScore crashed on a tubular bell struck 5:56 into frost hammer's track at 116 beats a minute,
+    every time; a beat either side it played.) The recording is kept under the part's own name, and the note sounds
+    where it was written. Any other failure, and a second crash, go up."""
+    import numpy as np
+    import soundfile
+    monkeypatch.setattr(muse, "KEPT", tmp_path)
+    rate, bpm = 44100, 120.0
+    seen = []
+
+    def performed(part, text, name, made, profile, sound):
+        seen.append(name)
+        if len(seen) == 1:
+            raise RuntimeError("MuseScore did not perform %s (x):\nAppRun: line 26: 1 Segmentation fault" % part)
+        audio = np.zeros((rate * 5, 2), dtype=np.float32)
+        audio[int(3.0 * rate)] = 0.9                       # the note a bar later: beat 6 at 120 is 3 s
+        soundfile.write(str(made), audio, rate, format="FLAC", subtype="PCM_24")
+        return made
+    monkeypatch.setattr(muse, "_performed", performed)
+    made = muse.perform("Tubular Bells", [Note(2.0, 1.0, 64, 0.8)], bpm=bpm)
+    audio, got = soundfile.read(str(made), always_2d=True)
+    assert made.stem == seen[0] and len(seen) == 2, "not kept under the part's own name"
+    assert int(np.argmax(np.abs(audio[:, 0]))) == rate, "the note does not sound where it was written (beat 2: 1 s)"
+
+    def broken(part, text, name, made, profile, sound):
+        raise RuntimeError("MuseScore could not read the score of %s" % part)
+    monkeypatch.setattr(muse, "_performed", broken)
+    with pytest.raises(RuntimeError, match="could not read"):
+        muse.perform("Tubular Bells", [Note(3.0, 1.0, 65, 0.8)], bpm=bpm)
+
+    def crashing(part, text, name, made, profile, sound):
+        raise RuntimeError("Segmentation fault")
+    monkeypatch.setattr(muse, "_performed", crashing)
+    with pytest.raises(RuntimeError, match="and again with it a bar later"):
+        muse.perform("Tubular Bells", [Note(4.0, 1.0, 66, 0.8)], bpm=bpm)

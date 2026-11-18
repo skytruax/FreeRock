@@ -566,7 +566,35 @@ def perform(part: str, notes: list[Note], *, bpm: float, way: str = "", sound: s
     with mine:                                                 # two parts with the same notes: the second waits and takes the first one's recording
         if made.is_file():
             return made
-        return _performed(part, text, name, made, profile, sound)
+        try:
+            return _performed(part, text, name, made, profile, sound)
+        except RuntimeError as error:
+            if "Segmentation fault" not in str(error):
+                raise
+            return _performed_a_bar_later(part, notes, bpm, way, sound, swells, made, profile, error)
+
+
+def _performed_a_bar_later(part: str, notes: list[Note], bpm: float, way: str, sound: str | None,
+                           swells: list[tuple[float, float]] | None, made: Path, profile: str, crash: RuntimeError) -> Path:
+    """MuseScore 4 can crash on a note at one particular moment of a recording: on 2026-11-17 a tubular bell struck
+    5:56 into frost hammer's track at 116 beats a minute brought it down every time, while the same stroke a beat
+    either side, or the same score at 120, played (and nothing about the score was wrong). The part is played once
+    more a bar later and that bar is cut off the front of the recording, so every note sounds where it was written.
+    If that crashes too, both crashes are said."""
+    import dataclasses
+    import soundfile
+    later = [dataclasses.replace(note, start=note.start + 4.0) for note in notes]     # the score is always in 4/4
+    text = score(part, later, bpm=bpm, way=way, swells=[(beat + 4.0, amount) for beat, amount in swells] if swells else None)
+    name = hashlib.sha1((profile + "\n" + (sound or "") + "\n" + text).encode("utf-8")).hexdigest()[:20]
+    try:
+        shifted = _performed(part, text, name, KEPT / (name + ".flac"), profile, sound)
+    except RuntimeError as again:
+        raise RuntimeError("MuseScore crashed on %s, and again with it a bar later:\n%s\n%s" % (part, crash, again)) from again
+    audio, rate = soundfile.read(str(shifted), dtype="float32", always_2d=True)
+    packed = KEPT / ("%s.%s.part.flac" % (made.stem, uuid.uuid4().hex[:10]))
+    soundfile.write(str(packed), audio[int(round(4.0 * 60.0 / bpm * rate)):], rate, format="FLAC", subtype="PCM_24")
+    packed.replace(made)
+    return made
 
 
 def _performed(part: str, text: str, name: str, made: Path, profile: str, sound: str | None) -> Path:
