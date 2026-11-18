@@ -499,6 +499,37 @@ def read_rows(image: np.ndarray, look: int = 0) -> list[RowRead]:
     return reads
 
 
+def _rescued_rows(luma: np.ndarray, look: int, by_row: dict[int, list[RowRead]]) -> list[RowRead]:
+    """The rows of squares no single line of pixels could read, read off the lines that cross them averaged together:
+    where each line has a pixel or two thrown the wrong way by noise, their average has not (found 2026-11-17 by the
+    property test: squares at 70 of 255 over black with noise of 10 levels, every line of one row broken somewhere).
+    Where such a row lies is known from a row that was read: the rows are stacked one square apart."""
+    ceiling, least = _LOOKS[look]
+    found: list[RowRead] = []
+    for row, reads in by_row.items():
+        y = float(np.median([item.y for item in reads]))
+        pitch = float(np.median([item.pitch for item in reads]))
+        for missing in range(ROWS):
+            if missing in by_row:
+                continue
+            centre = y + (missing - row) * pitch
+            top, bottom = int(round(centre - pitch / 2.0 + 0.5)), int(round(centre + pitch / 2.0 - 0.5))
+            top, bottom = max(top, 0), min(bottom, luma.shape[0] - 1)
+            if bottom < top:
+                continue
+            line = luma[top:bottom + 1].mean(axis=0)
+            if ceiling is not None:
+                line = np.minimum(line, np.float32(ceiling))
+            high = ndimage.maximum_filter1d(line, size=_WINDOW, mode="nearest")
+            low = ndimage.minimum_filter1d(line, size=_WINDOW, mode="nearest")
+            threshold = (high + low) / 2.0
+            white = (line > threshold) & ((high - low) >= least)
+            found += [item for item in _scan_line(line, white, threshold, int(round(centre))) if item.row == missing]
+        if found:
+            break
+    return found
+
+
 def read(image: np.ndarray, look_first: int | None = None, every_look: bool = True) -> Reading:
     """Find the strip in a picture and read its frame.
 
@@ -521,6 +552,18 @@ def read(image: np.ndarray, look_first: int | None = None, every_look: bool = Tr
             return reading
         if _WORSE[reading.problem] > _WORSE[best.problem]:
             best = reading
+    if every_look:
+        # A noisy picture, every line of pixels with a pixel or two thrown the wrong way: each line is averaged with the
+        # lines above and below it and the picture looked at again. Squares three pixels tall or more come through
+        # whole, and the noise is more than halved (found 2026-11-17 by the property test: squares at 70 of 255 over
+        # black, three pixels each, with noise of 12 levels).
+        smooth = ndimage.uniform_filter1d(luma, size=3, axis=0, mode="nearest")
+        for look in order:
+            reading = _read_look(smooth, look)
+            if reading.ok:
+                return reading
+            if _WORSE[reading.problem] > _WORSE[best.problem]:
+                best = reading
     return best
 
 
@@ -532,6 +575,9 @@ def _read_look(luma: np.ndarray, look: int) -> Reading:
     by_row: dict[int, list[RowRead]] = {}
     for item in reads:
         by_row.setdefault(item.row, []).append(item)
+    if len(by_row) < ROWS:
+        for item in _rescued_rows(luma, look, by_row):
+            by_row.setdefault(item.row, []).append(item)
     rows_seen = tuple(sorted(by_row))
     if len(by_row) < ROWS:
         return Reading(rows_seen=rows_seen, problem="half a strip")
