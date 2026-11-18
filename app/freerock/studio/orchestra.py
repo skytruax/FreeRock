@@ -1184,6 +1184,7 @@ WORD = {"open": "open", "first": "theme", "second": "theme", "build": "rise", "a
         "climb": "rise", "summit": "moment", "close": "close"}
 THEMATIC = ("first", "second", "arrival", "valley", "summit")      # the parts in which a theme is sung whole
 FIGHTS = ("battle", "boss", "storm", "battleground")
+DANCE_GROOVES = ("jig", "reel", "waltz", "courtly")      # the grooves of dances: no war drums under them
 LONG = 480.0                   # seconds: about how long a track is
 SHORTEST, LONGEST = 455.0, 505.0
 # How the time is shared out. The summit is the longest part and the opening and the close the
@@ -2025,7 +2026,11 @@ class Take:
         # hand drums instead. Music for the night, the inn and the depths has none of this.
         walk = ch.role == "wander"
         hand = len(ch.kinds) < len(KINDS_ALL) and bool(set(ch.kinds) & {"desert", "jungle", "highland"})
-        self.has_war = self.fight or (walk and self.heavy)
+        # (2026-11-17, evening, played: "just a bit light and wimpy in general", "dont hear much war drums", "in all genres".
+        # Lively walking music of some weight has them too, softer (`soft_war`): not a dance, nor a hymn or a morning.)
+        lively = walk and ch.weight >= 0.6 and ch.busy >= 0.55 and not set(ch.grooves) & set(DANCE_GROOVES)
+        self.has_war = self.fight or (walk and self.heavy) or lively
+        self.soft_war = self.has_war and not self.fight and not self.heavy
         self.has_frames = not ch.band and (self.has_war or (walk and ch.weight >= 0.6 and hand))
         self.hand = hand                                         # hand drums go under its second theme
         self.forge = (walk or self.fight) and any("anvil" in name for name in ch.grooves)   # the "ting" of its groove is an anvil
@@ -3050,15 +3055,17 @@ class Take:
                 enter, whole = (0.0, 0.35) if part == "build" else (0.15, 0.5)
             else:
                 enter, whole = (0.3, 0.65) if part == "build" else (0.3, 0.6)
+                if self.soft_war:
+                    enter, whole = enter + 0.2, whole + 0.15            # lighter music: later up the rise, and softer
             if along < enter:
                 return None, 0.0
-            return ("low" if along < whole else "full"), 0.55 + 0.45 * along
+            return ("low" if along < whole else "full"), (0.55 + 0.45 * along) * (0.8 if self.soft_war else 1.0)
         if ch.band:
             return {"open": ("low", 0.6), "valley": ("single", 0.5)}.get(part, (None, 0.0)) if fight else (None, 0.0)
         if part == "arrival":
-            return "top", 0.9 if fight else 0.85
+            return ("full", 0.7) if self.soft_war else ("top", 0.9 if fight else 0.85)
         if part == "summit":
-            return "top", 1.0
+            return "top", 0.85 if self.soft_war else 1.0
         if part == "close":
             end = 0.75 if fight else 0.5
             return ("low", 0.7 * (1.0 - along / end)) if along < end else (None, 0.0)
@@ -3225,7 +3232,7 @@ class Take:
                 continue
             summit = part == "summit"
             rounds = [bar for bar in range(0, bars, period) if bars - bar >= period]          # where the theme comes round
-            if self.has_war:
+            if self.has_war and (summit or not self.soft_war):          # lighter music: the boom at its summit only
                 for bar in rounds:
                     self.put("drums", "boom", first + bar * beats, 1.0, 36, (1.0 if summit else 0.85) if bar == 0 else (0.75 if summit else 0.65))
             if self.has_gong and summit and not self.tam_tam:          # grim music has the tam-tam there (`colours`)

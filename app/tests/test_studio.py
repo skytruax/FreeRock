@@ -337,16 +337,20 @@ def test_the_big_drums_are_where_they_should_be_and_nowhere_else():
         hand = len(character.kinds) < len(orchestra.KINDS_ALL) and bool(set(character.kinds) & hand_places)
         forge = any("anvil" in groove for groove in character.grooves)
         want = {"swell"} if fight or character.weight >= 0.6 else set()
-        if fight or heavy:
+        # (Walking music of some weight has war drums too since 2026-11-17's "just a bit light and wimpy in general",
+        # "dont hear much war drums": softer, later up its rises, the boom at its summit only.)
+        war = fight or heavy or (walk and character.weight >= 0.6 and character.busy >= 0.55
+                                 and not set(character.grooves) & set(orchestra.DANCE_GROOVES))
+        if war:
             want |= {"war drums", "boom"}
-        if not character.band and (fight or heavy or (character.weight >= 0.6 and hand)):
+        if not character.band and (war or (character.weight >= 0.6 and hand)):
             want.add("frame drums")
         # (Grim heavy music has the tam-tam at its summit in the gong's place, and so has a boss: see `colours`.)
         kinds = set(character.kinds) if len(character.kinds) < len(orchestra.KINDS_ALL) else set()
         grim = heavy and (bool(kinds & {"haunted", "infernal"}) or character.role == "boss")
         if not character.band and (fight or heavy) and character.weight >= 0.9 and not grim:
             want.add("gong")
-        if forge or (not character.band and (fight or heavy) and len(character.kinds) < len(orchestra.KINDS_ALL)
+        if forge or (not character.band and war and len(character.kinds) < len(orchestra.KINDS_ALL)
                      and "infernal" in character.kinds):
             want.add("anvil")
         assert set(have) == want, "%s has %s, not %s" % (character.name, sorted(have), sorted(want))
@@ -412,11 +416,14 @@ def test_a_fight_has_war_drums_all_the_way_and_heavy_walking_music_from_each_ris
     assert sorted((note.start, note.pitch) for note in strokes(other, "summit")) != sorted((note.start, note.pitch) for note in summit)
 
 
-def test_lighter_music_of_the_desert_has_frame_drums_and_a_village_dance_has_neither():
+def test_lively_lighter_music_of_the_desert_has_frame_drums_and_soft_war_drums_and_a_village_dance_has_neither():
+    # (Its war drums since 2026-11-17's "just a bit light and wimpy in general", "dont hear much war drums": softer than a
+    # heavy piece's, from part of the way up its rises; the frame drums give them the summit.)
     caravan = orchestra.Take(orchestra.family(character_called("caravan"), 5, "f", "F"), 1)
-    assert set(drums_of(caravan)) == {"frame drums", "swell"}
+    assert caravan.soft_war
+    assert set(drums_of(caravan)) == {"frame drums", "swell", "war drums", "boom"}
     assert {part for part in orchestra.PARTS if any(name == "frame drums" for name, _ in played(caravan, "drums", part))} \
-        == {"second", "build", "arrival", "climb", "summit"}
+        == {"second", "build", "arrival", "climb"}
     dance = orchestra.Take(orchestra.family(character_called("village dance"), 5, "f", "F"), 1)
     assert set(drums_of(dance)) == {"swell"}
     # The kit's own bass drum is still the kit's: the deep stroke of the same name is another thing.

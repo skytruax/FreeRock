@@ -34,10 +34,13 @@ MASTER = 20261115
 # Where each channel sits when everyone is playing (LUFS at the moment, before the whole track
 # is brought to the bucket's level): the tune on top, the pad and the accompaniment under it.
 PLACE = {"lead": -17.0, "texture": -21.0, "rhythm": -21.5, "bass": -18.5, "drums": -21.0}       # an orchestra's drums are a few great strokes: by loudness they sit low
-LIGHT = {"drums": -24.0, "bass": -21.5}        # a light track's drums and bass sit further back
+# A light track's drums and bass sit further back (2026-11-17, evening, played: "just a bit light and wimpy in general",
+# "in all genres": 2 and 1.5 dB nearer than they were, -24 and -21.5).
+LIGHT = {"drums": -22.0, "bass": -20.0}
+SOFT_WAR_DRUMS = -19.5                         # where a lighter track's softer war drums sit (`orchestra.Take.soft_war`)
 WAR_DRUMS = -16.0                              # where the drums sit in a track that has war drums: up with the tune, the loudest strokes in the piece
 BAND = {"lead": -17.0, "rhythm": -18.5, "drums": -18.0, "bass": -19.5, "texture": -24.0}       # a band: guitars and drums up front
-BAND_LIGHT = {"drums": -21.0, "bass": -21.0, "rhythm": -20.0}
+BAND_LIGHT = {"drums": -19.5, "bass": -20.0, "rhythm": -19.0}      # (1 to 1.5 dB nearer since "light and wimpy", 2026-11-17)
 RIDE = 0.15                    # how far each part of the story is brought up towards the loudest part (it was 0.42, which
                                # took most of the written dynamics away: "rewrite all music to be more dynamic", 2026-11-16)
 # The least each channel is played at in each part of the story, so that the story is whole
@@ -352,7 +355,7 @@ def stage(fam: Family, take: int) -> dict:
     else:
         places = dict(PLACE, **(LIGHT if character.weight < 0.7 else {}))
         if any(voice.notes for name, voice in written.voices["drums"].items() if name.startswith("war drums")):
-            places["drums"] = WAR_DRUMS                 # war drums are meant to be heard, not only felt
+            places["drums"] = SOFT_WAR_DRUMS if written.soft_war else WAR_DRUMS     # war drums are meant to be heard, not only felt
     levels, gains = {}, {}
     for channel in list(parts):
         audio = parts[channel]

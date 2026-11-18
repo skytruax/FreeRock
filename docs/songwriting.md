@@ -497,7 +497,11 @@ notes for the orchestra, march, folk, hands, wood, rock and room kits.
 
 **The big drums** (`Take.big`, `Take.hands`, `Take.war_drums`). A fight has war drums nearly all the
 way; heavy walking music has them in each rise and its moment; lighter walking music of the desert,
-jungle and highlands (weight 0.6 or more) has frame drums. Night, inn, cave and camp music has none.
+jungle and highlands (weight 0.6 or more) has frame drums. Lively lighter walking music (weight 0.6 or
+more, busy 0.55 or more, and not a dance: no jig, reel, waltz or courtly groove) has them too, softer
+(`Take.soft_war`, since "just a bit light and wimpy in general", "dont hear much war drums", 2026-11-17):
+from halfway up a rise at 80%, under the arrival rather than on it, the deep stroke at the summit only,
+and frame drums with them; a hymn, a morning or a dance has none. Night, inn, cave and camp music has none.
 In walking music they come in low at 30% of a rise, play the whole ostinato from 60 to 65%, and grow;
 every drum strikes together on the bar at the moments; the close lets them fall away. A fight
 begins with every drum at once. `Take.war_cycle` writes the take's own ostinato of two or four bars:
@@ -864,7 +868,7 @@ chorus and the hall are the desk's now*.
   each sound a note, its sweep on controller 1 and its swell on controller 11.
 - **Levels.** Each voice is set against the others of its channel by where each is loudest (its
   `taste`, at least 0.35). Muse voices are measured to −30 LUFS where they play firmest, as the
-  studio's own players are. Each channel goes to its place at the last drop (`club.PLACE`: drums −14, bass −16.5, rhythm
+  studio's own players are. Each channel goes to its place at the last drop (`club.PLACE`: drums −13, bass −15.5 since "light and wimpy", rhythm
   −20, lead −19, texture −22 LUFS; drums −27 with no kick), never so far up that another section is
   more than 3 dB over it. The last drop goes to −13 LUFS with its peaks held under 0.89
   (`house.master_gains`), and the last 2 s fade out.
@@ -911,7 +915,8 @@ a stroke, and the bass owns what rings*.
   struck at 0.8 of its hardest or more), because *a channel that had one of each had no level between
   them*. This is one place where the desks differ, against "uniform processes eventually".
 - **Each channel** goes to its place by its loudness at the summit (`build.PLACE`: lead −17, texture
-  −21, rhythm −21.5, bass −18.5, drums −21 LUFS, or −16 with war drums), never so far up that another
+  −21, rhythm −21.5, bass −18.5, drums −21 LUFS, or −16 with war drums, −19.5 with soft ones; a light piece's drums
+  −22 and bass −20, 2 and 1.5 dB nearer than they were, and a light band's drums −19.5, bass −20, rhythm −19), never so far up that another
   part goes more than 3 dB over it, within ±18 dB, and drums never more than 6 dB up (`DRUMS_UP`:
   a light piece's taps had come out *16 dB up*).
 - `sounds.lines` also takes a `taste`, a turn of a whole voice. House sets it per voice (5.7). For

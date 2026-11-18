@@ -69,7 +69,8 @@ DUCK = {"bass": 0.5, "texture": 0.55, "rhythm": 0.72, "lead": 0.9}
 # pad takes three quarters of one, which is the pump that is heard.
 RECOVER = {"bass": 0.33, "texture": 0.75, "rhythm": 0.6, "lead": 0.5}
 # Where each channel sits where the track is fullest (LUFS), as the writer's own mix had them.
-PLACE = {"drums": -14.0, "bass": -16.5, "rhythm": -20.0, "lead": -19.0, "texture": -22.0}
+# (The kick and the bass 1 dB up, 2026-11-17, evening, played: "just a bit light and wimpy in general", "in all genres".)
+PLACE = {"drums": -13.0, "bass": -15.5, "rhythm": -20.0, "lead": -19.0, "texture": -22.0}
 CALM = {"drums": -18.0, "bass": -18.0, "lead": -18.0, "texture": -20.0}        # an inn, the night
 
 
