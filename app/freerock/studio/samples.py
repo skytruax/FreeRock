@@ -183,13 +183,16 @@ def _named(name: str) -> tuple[int | None, int, int]:
 
 def pitched(folder: Path, name: str, *, held: bool = True, attack: float = 4.0, release: float = 180.0,
             floor: float = -14.0, layers: tuple[float, ...] | None = None, credit: str = "",
-            only: str = "", calls: int | None = None) -> Patch:
+            only: str = "", calls: int | None = None, cents_within: float = 30.0) -> Patch:
     """Reads a folder of single notes into a patch. `layers` is how many dB under the hardest
     strength each softer one is played (softest first), for sets whose recordings were all
     brought to the same loudness; left out, the recordings' own loudness is kept. `only` keeps
     the files with that in their names. `calls` says what the set calls an octave (how many
     semitones its names are from the usual, where middle C is C4), for a folder whose
-    recordings have too little pitch to settle it: a tremolo, a rattle."""
+    recordings have too little pitch to settle it: a tremolo, a rattle. `cents_within` is how far
+    from its written note a recording's measured pitch is believed, and tuned to it: 30 cents for
+    sets played at A 440, more for an instrument with a scale of its own whose two takes of a note
+    agree (the FreePats bagpipe, 28 to 67 cents under)."""
     heard: dict[tuple[int, int], list[tuple[int, str, float]]] = {}       # (root, layer) -> [(turn, file, cents)]
     lengths: dict[str, float] = {}
     shortest = 1e9
@@ -210,7 +213,7 @@ def pitched(folder: Path, name: str, *, held: bool = True, attack: float = 4.0, 
         raise FileNotFoundError("No recordings in %s" % folder)
     # What the set calls an octave: the recordings that can be heard clearly settle it for the
     # ones that cannot (a plucked or a very short note has too little pitch to measure).
-    clear = [root - written for _, _, _, written, root, cents, sure in read if written is not None and sure >= 0.5 and abs(cents) <= 30.0]
+    clear = [root - written for _, _, _, written, root, cents, sure in read if written is not None and sure >= 0.5 and abs(cents) <= cents_within]
     if calls is None:
         if not clear:
             raise ValueError("None of the recordings in %s has a pitch that can be measured" % folder)
@@ -219,7 +222,7 @@ def pitched(folder: Path, name: str, *, held: bool = True, attack: float = 4.0, 
             raise ValueError("The recordings in %s do not agree on what an octave is called: %s" % (folder, sorted(set(clear))))
     for path, layer, turn, written, root, cents, sure in read:
         if written is not None:
-            sharp = cents if root == written + calls and sure >= 0.5 and abs(cents) <= 30.0 else 0.0
+            sharp = cents if root == written + calls and sure >= 0.5 and abs(cents) <= cents_within else 0.0
             root = written + calls
         elif sure < 0.5 or abs(cents) > 30.0:
             raise ValueError("%s does not say what note it is, and it cannot be measured" % path)

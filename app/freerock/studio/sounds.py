@@ -41,7 +41,7 @@ from .score import Note, Voice
 PATCHES = desk.VAR / "reaper" / "patches"          # each recorded instrument as read (kept, since reading measures every recording)
 LEVELS = desk.TEMPLATES / "levels.json"            # how many dB each template is turned by, to play at LEVEL
 LEVEL = -30.0                                      # LUFS: every instrument alone, at a firm strength, is brought to this
-V2, VC, SOL = "vsco2/", "vcsl/", "tinysol/"
+V2, VC, SOL, FP = "vsco2/", "vcsl/", "tinysol/", "freepats/"
 _STR, _WW, _BR = V2 + "Strings/", V2 + "Woodwinds/", V2 + "Brass/"
 _EDGE = VC + "Aerophones/Edge-blown Aerophones/"
 _ZITH = VC + "Chordophones/Zithers/"
@@ -96,6 +96,12 @@ RECORDED: dict[str, tuple[str, dict]] = {
     # chords from F3 were a harmonica stretched, and reedy where an accordion is full.
     "accordion long": (SOL + "Keyboards/Accordion/ordinario", dict(WIND, attack=30.0, release=200.0)),
     "accordion short": (SOL + "Keyboards/Accordion/ordinario", dict(WIND, attack=6.0, release=100.0)),
+    # FreePats' bagpipe (CC0), ready and NOT USED: a bagpipe in G recorded by Gilles Sadowski in 2020, its chanter from F4
+    # to G5, two takes a note, its scale its own (28 to 67 cents under A 440, both takes of a note agree, so each note is
+    # tuned to the band's). Tried on 2026-11-18 and set aside: held, and as a tune, its upper middle stood over its body
+    # (see the handbook, 8.8); MuseScore's english horn still plays the bagpipe's parts.
+    "bagpipe long": (FP + "Bagpipe/chanter", dict(WIND, attack=20.0, release=150.0, cents_within=80.0)),
+    "bagpipe short": (FP + "Bagpipe/chanter", dict(WIND, attack=5.0, release=90.0, cents_within=80.0)),
     # --- brass: TinySOL (IRCAM, CC BY 4.0), every semitone played soft, medium and loud, with no vibrato ---
     # Brass is the family that changes most with strength: a horn played loud is twenty decibels louder than one
     # played soft and has twenty-five more above 2.5 kHz. The brass there was before (VSCO 2) had one strength, a
@@ -515,7 +521,7 @@ def family(name: str) -> str:
         return "strings short" if name.endswith(("short", "pizz")) else "strings"
     if first == "violin":
         return "solo strings short" if name.endswith(("short", "pizz")) else "solo strings"
-    if first in ("flute", "piccolo", "oboe", "clarinet", "bassoon", "recorder", "ocarina", "harmonica", "accordion"):
+    if first in ("flute", "piccolo", "oboe", "clarinet", "bassoon", "recorder", "ocarina", "harmonica", "accordion", "bagpipe"):
         return "woodwind short" if name.endswith("short") else "woodwind"
     if first in ("horn", "trumpet", "trombone", "tuba"):
         return "brass short" if name.endswith("short") else "brass"
@@ -734,7 +740,7 @@ def drum_room() -> str:
                     low_boost=30.0, boost_freq=300.0, in_low_cut=4.0)
 
 
-LOW_CUT = {"harmonica": 200.0, "accordion": 110.0, "violins": 170.0, "violas": 115.0, "celli": 58.0, "basses": 30.0, "violin": 175.0, "flute": 230.0, "piccolo": 480.0, "oboe": 210.0,
+LOW_CUT = {"harmonica": 200.0, "accordion": 110.0, "bagpipe": 220.0, "violins": 170.0, "violas": 115.0, "celli": 58.0, "basses": 30.0, "violin": 175.0, "flute": 230.0, "piccolo": 480.0, "oboe": 210.0,
            "clarinet": 130.0, "bassoon": 52.0, "recorder": 220.0, "ocarina": 400.0, "horn": 60.0, "trumpet": 150.0, "trombone": 55.0, "tuba": 30.0}
 VOICING = desk.TEMPLATES / "voicing.json"          # what the ear worked out for each instrument's top (see `levels`)
 _voicing: dict[str, dict] | None = None
@@ -1083,7 +1089,7 @@ def level(name: str) -> dict[str, float]:
 # The further back, the more of the hall is heard with it and the less of its top.
 DEPTHS = (("violin", 0.0), ("viola", 0.0), ("celli", 0.0), ("basses", 0.05), ("strumstick", 0.25), ("harp", 0.3), ("folk harp", 0.3),
           ("psaltery", 0.3), ("zither", 0.3), ("harpsichord", 0.35), ("piano", 0.35), ("kalimba", 0.4), ("mbira", 0.4),
-          ("recorder", 0.4), ("ocarina", 0.4), ("harmonica", 0.3), ("accordion", 0.3), ("flute", 0.45), ("piccolo", 0.45), ("oboe", 0.45), ("clarinet", 0.45), ("bassoon", 0.45),
+          ("recorder", 0.4), ("ocarina", 0.4), ("harmonica", 0.3), ("accordion", 0.3), ("bagpipe", 0.35), ("flute", 0.45), ("piccolo", 0.45), ("oboe", 0.45), ("clarinet", 0.45), ("bassoon", 0.45),
           ("small organ", 0.5), ("horn", 0.6), ("balafon", 0.6), ("frame drum", 0.6), ("trumpet", 0.65), ("trombone", 0.65), ("tuba", 0.65),
           ("surge", 0.7), ("marimba", 0.7), ("vibes", 0.7), ("glock", 0.75), ("tube glock", 0.75), ("xylophone", 0.75), ("anvil", 0.75),
           ("hand chimes", 0.8), ("organ", 0.85), ("tubular bells", 0.85), ("war drum", 0.85), ("tom mallet", 0.85), ("kit", 0.85), ("avl", 0.85),

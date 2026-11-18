@@ -1268,6 +1268,20 @@ was then heard against the harmonica on one inn of each style: in the Warcraft t
 from +9.5, +10.2 and +18.6 dB over the liked stems at 1.8, 3.5 and 7 kHz to +2.7, -2.0 and -7.2, and
 its upper middle from 6.5 to 18 dB under its body (the reedy whine gone).
 
+The bagpipe was tried the same way and set aside, which taught the other half: *a held high reed is
+a whine, and a bagpipe's tune is one too*. FreePats' chanter (CC0, F4 to G5, its scale its own: 28 to
+67 cents under A 440, so `samples.pitched` is told to believe a measured pitch up to 80 cents off,
+`cents_within`, where its two takes of a note agree) holding a drone pad's long notes had the band's
+texture 30 to 34 dB over the liked stems from 1.8 to 7 kHz and its upper middle 1.5 dB *over* its
+body, where MuseScore's english horn had it 21.7 under; as the highland reel's tune its upper middle
+stood 7.6 dB over its body, where the tavern's and the drinking song's leads stand 5 to 6 under. It is
+on the drive and measured (`sounds.RECORDED`, "bagpipe long" and "short", not used); MuseScore's
+english horn still plays the bagpipe, until it is heard and chosen by ear, or drones that can be held
+are found (the set's own G2 drone is 2.4 s, too short to go round). And keep an instrument's range
+when the writing should not change: who sings the second theme is chosen by how far an instrument's
+home note sits from the first singer's, and the chanter's narrower range had moved the bagpipe into
+the band's leads.
+
 ### 8.9 Work in passes
 
 The night of 2026-11-16 set the first method: "make 10 of each genre listen to it with musescore,
