@@ -161,6 +161,21 @@ setting moves.
   What moves is the colour: the long rise is now opened on a wah, and the drummer turns to the ride
   every other sixteen bars. Read the meter's flag against the sheet before deciding what is wrong.
 
+- **A patch's loudest partial is not always its note.** Banners I's organ chords stood 28.8 dB over the
+  liked house chords at the top. Surge's House Organ is loudest at its fourth harmonic, two octaves
+  over its note, like an organ with its two-foot drawbar pulled all the way. The octave was right; the
+  colour was wrong for chords. Ten organs played Banners I's own chords through the chord chain, and
+  the LinnStrument set's Drawbar Organ 1 came 4.5 dB from the liked, in tune. In the song its chords
+  went from 23 to 34 dB over the liked in the top three octaves to within 7, centred at 590 Hz against
+  the liked 514 (1,658 before).
+- **An audition strikes its notes as the desk does** (`club._loud`: a voice's hardest note at 0.9).
+  Struck at the sheet's soft levels, Smooth Stabs read 6 dB darker than the liked chords at the top;
+  struck as the desk strikes, 19 to 27 dB brighter, as in the songs. A synth's filter follows how hard
+  it is struck.
+- **An edge asked for one part stays on that part.** The open top asked for the saw ("i wish i could
+  hear more of that saw synths top end") had reached every synth lead, and an inn's sung melody stood
+  20 dB over the liked leads at the top. Only the drop's big synths keep it now (`club.OPEN_TOP`).
+
 The nightly loop works on sheets and writes every lesson here: what was tried, what it was for, how
 it measured, what Sky's ear said, and what did not work ("the recursive loop should also update the
 music writing handbook as it learns more").

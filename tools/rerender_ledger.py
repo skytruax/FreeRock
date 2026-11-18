@@ -137,6 +137,11 @@ CHANGES = [
            "a harsher twin of the bass on its own notes through the second half of every drop of 32 bars or more, in over "
            "eight bars (deadmau5's 'Turning Point'; the boredom meter: Moonwell's bass one colour through 44 bars of a drop)",
            lambda p: p.style == "house" and p.character.role not in ("ember", "night", "camp")),
+    Change("House's drawbar organ; the open top for the big synths alone", datetime.datetime(2026, 11, 18, 16, 59), "",
+           "the chords' organ the LinnStrument set's Drawbar Organ 1 (Surge's House Organ, loudest two octaves over its note, had "
+           "put them 23 to 34 dB over the liked at the top); the open top asked for the saw kept to the drop's saw and super, "
+           "the calm melodies and the quiet pluck back to the gentler top",
+           lambda p: p.style == "house"),
 ]
 
 

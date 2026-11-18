@@ -185,6 +185,11 @@ SPAN = 4            # bars: a voice's level is read four at a time (a house phra
 UNDER = 0.6         # a note written under this part of the loudest in its four bars is a line under the tune: a doubling, an echo
 SUBBED = ("house bass pluck", "house bass saw")      # the basses that are heard more than felt: a sine goes under them
 HARSH = 0.55        # how far under the bass its harsh twin plays, once it is all the way in (`harsher`)
+# The drop's big synths, whose edge is the hook: their top is left open and their filter opens further than the band's
+# ("i wish i could hear more of that saw synths top end"). The other leads, a calm piece's sung melody and the riff's
+# pluck in the quiet, keep the gentler top (2026-11-18: the open top had reached them too, and an inn's tune stood
+# 20 dB over the liked leads there).
+OPEN_TOP = ("house lead saw", "house lead super")
 SUB_UNDER = 0.8     # ...this far under the bass it holds up (0.7 until the third pass: the liked basses have 3 to 7 dB more at 28 to 57 Hz)
 
 
@@ -374,12 +379,14 @@ def lines(heard: Heard, seed: int, work: Path) -> tuple[dict[str, list[desk.Line
                     # (2026-11-18, by ear, Rain on the Roofs: "i wish i could hear more of that saw synths top end". The cuts
                     # measured against the liked stems' average, 5 dB at 2.5 kHz and 8 dB from 3.5, hid the saw's edge: now
                     # only its very top eased, and a little air.)
-                    if synth_played:
+                    if synth_played and written in OPEN_TOP:
                         toned = sounds.equalise(low_cut=85.0, high_shelf=(7000.0, -2.0))
+                    elif synth_played:
+                        toned = sounds.equalise(low_cut=85.0, bands=((2500.0, -5.0, 1.0),), high_shelf=(3500.0, -8.0))
                     else:
                         toned = sounds.equalise(low_cut=85.0, bands=((1200.0, 3.0, 1.5),), high_shelf=(4000.0, 6.0))
                     # (...and the lead: tape, a chorus on a synth's, a longer echo from side to side, more room.)
-                    widened = [sounds.excite(0.15), sounds.ensemble(0.35), sounds.wide(1.3)] if synth_played else []
+                    widened = ([sounds.excite(0.15)] if written in OPEN_TOP else []) + [sounds.ensemble(0.35), sounds.wide(1.3)] if synth_played else []
                     line.effects = list(line.effects) + [toned, sounds.warm(0.35)] + widened + [sounds.echo(house.BPM, 0.3, left=3, right=4, again=0.42)]
                     line.send = max(line.send, 0.3)
                 elif channel == "texture":
@@ -545,9 +552,9 @@ def write(name: str, take: int) -> Sheet:
                      notes=[Note(at / BEAT, length / BEAT, int(round(pitch)), level) for at, length, pitch, level, _, _ in notes])
         lane: list[tuple[float, float]] = []
         for at, _, _, _, _, bright in sorted(notes):
-            # The tune's filter opens further than the band's: it is the hook, and its edge is what is heard (a theme's
-            # lead about 6 kHz, not 3; "i wish i could hear more of that saw synths top end").
-            beat, hz = at / BEAT, cutoff(0.35 + 0.65 * bright if channel == "lead" else bright)
+            # The drop's big synths open further than the band: the hook, whose edge is what is heard (a theme's lead
+            # about 6 kHz, not 3; "i wish i could hear more of that saw synths top end"). The other leads follow the band.
+            beat, hz = at / BEAT, cutoff(0.35 + 0.65 * bright if channel == "lead" and PLAYED[(table, sound)] in OPEN_TOP else bright)
             if lane and beat - lane[-1][0] < 1e-3:
                 lane[-1] = (lane[-1][0], max(lane[-1][1], hz))
             else:
@@ -722,9 +729,9 @@ def perform(sheet: Sheet) -> dict:
     for bus, _ in folders:
         (work / (bus.name + ".wav")).unlink()
     meta = dict(about["meta"])
-    meta["credit"] = ("Written by FreeRock's studio (studio.house); played in REAPER by the Surge XT synth (with Argitoth's Trance Lead 1, "
-                      "one of the patches that ship with it), MuseScore Studio's Muse Sounds (Muse Group) and MckAudio's TR-8 drum-machine "
-                      "recordings (CC0), put together by studio.club.")
+    meta["credit"] = ("Written by FreeRock's studio (studio.house); played in REAPER by the Surge XT synth (with Argitoth's Trance Lead 1 "
+                      "and the LinnStrument set's Drawbar Organ 1, patches that ship with it), MuseScore Studio's Muse Sounds (Muse Group) "
+                      "and MckAudio's TR-8 drum-machine recordings (CC0), put together by studio.club.")
     found = house.measure(meta, parts)
     folder = stage_root(VAR, "house") / name / str(take)
     write_track(folder, meta, parts)

@@ -587,6 +587,27 @@ def test_a_long_drops_bass_grows_harsher_halfway():
     assert not any(name.startswith("bass harsh") for name in club.write(calm.name, 1).parts["bass"])
 
 
+def test_only_the_drops_big_synths_keep_the_open_top():
+    # (2026-11-18: the open top asked for the saw, "i wish i could hear more of that saw synths top end", had reached an
+    # inn's sung melody too, 20 dB over the liked leads at the top.) The saw and the super open further than the band; every
+    # other lead follows its notes' brightness as the band does.
+    from freerock.studio import club
+    seen = set()
+    for name in ("ember-02", "coast-03"):
+        heard = club.listen(house.Take(house.family(name), 1))
+        sheet = club.write(name, 1)
+        for (channel, table, sound), notes in heard.notes.items():
+            if channel != "lead":
+                continue
+            opened = club.PLAYED[(table, sound)] in club.OPEN_TOP
+            seen.add(opened)
+            brightest = max(note[5] for note in notes)
+            want = club.cutoff(0.35 + 0.65 * brightest if opened else brightest)
+            lane = sheet.parts["lead"]["%s %s" % (table, sound)].effects.get("lowpass")
+            assert (abs(max(hz for _, hz in lane) - want) < 1.0) if lane else want >= 19999.0
+    assert seen == {True, False}
+
+
 def test_a_house_groove_changes_every_sixteen_bars():
     # (2026-11-18, the boredom meter: Breakwater's drums sounded the same for 40 bars of its theme, its maracas' sixteenths
     # under everything; "still some boring sounds in house". The hats turn and the percussion figures take turns.)

@@ -19,6 +19,12 @@ dictated, where it drove the change.
   second sixteen bars on the ride's bell.
 - **House's bass grows harsher through a long drop**: halfway through every drop of 32 bars or more, a
   harsher twin plays the bass's own notes, coming in over eight bars (deadmau5's "Turning Point").
+- **House's organ chords are a drawbar organ**: Surge's House Organ, loudest two octaves over its
+  note, had put Banners I's chords 23 to 34 dB over the liked at the top. Of ten organs played in its
+  own chords, the LinnStrument set's Drawbar Organ 1 came nearest the liked and in tune. The House
+  Organ stays for the organ bass.
+- **Only the drop's big synths keep the open top**: a calm piece's sung melody and the quiet riff's
+  pluck have the gentler top again (an inn's tune had stood 20 dB over the liked leads there).
 - **A judge that listens** ("find more music judging packages, that will rate a song"): Meta's
   Audiobox Aesthetics scores a take's enjoyment and production quality, whole and part by part
   (`tools/judge.py`), on this machine. It is a gate and a pointer for the sound, not a target.
