@@ -247,11 +247,14 @@ dynamically to match the mood in general".
    - **a new zone** (or a dungeon), once you have been in it 15 s (a corner cut across a border changes nothing; on a
      flight path the zone you left stands until you land);
    - **going into a place with music of its own**: an inn, a camp, a cave or mine, a town, a battleground (4 s after);
-   - **a storm setting in** (heavy rain for 4 s, then 4 s more);
+   - **a storm setting in** (heavy rain for 4 s, then 4 s more; not a long ride at full tilt, which the game also
+     calls a storm: its hard rock waits for the next song);
    - **a dungeon's boss** (on the next beat over one bar).
    Going **out** of an inn, camp, cave, town or battleground ends that place's song too; a storm's song ends where its
    part ends once the storm is over. Back in the zone the walking song was playing in, within 5 minutes and less than
-   8 minutes after it began, it is picked up at the bar it reached; otherwise a new one comes.
+   8 minutes after it began, it is picked up at the bar it reached; otherwise a new one comes. Only walking music is
+   gone back to: a cave's, an inn's, a camp's or a storm's song belongs to where it was. A new song always begins at
+   its opening.
 3. **Nothing else changes it**: not a subzone (whatever kind of land, shade or ground its name says), not nightfall, not
    the weather short of a storm, not a fight, not standing or sitting, not the calm after a fight.
 4. **Which song comes** (when one ends, or after a change), in this order: the moment (an inn's, a camp's, a cave's, a
@@ -288,6 +291,9 @@ dynamically to match the mood in general".
 - **Loch Modan was heard as sunny farmland** (its profile said "cheerful", mandolin, tin whistle): it is dwarven hill
   country, highland first, and not a light place.
 - **Camps and storms did not change the song**, and a camp's or a storm's song played on after it.
+- **Found by a made-up evening the next night** (`tools/soak.py`, Knight Rock): a long ride at full tilt changed the
+  song (it is a "storm" to the game); a song that ended early was followed by another song's middle; a cave's song
+  came back outdoors after the cave. All three mended.
 - **Still thin**: a kind of place in Knight Rock or House has few tracks of its own (Knight's light walking music for
   the hills and fields was two tunes of one character), so the round comes back sooner there; more are being written.
 

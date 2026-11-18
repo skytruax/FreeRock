@@ -813,8 +813,12 @@ tests.pieceCampStorm = async () => {
                                            [30.5, (engine) => engine.setTarget({ place: "wander", also: [], sited: false })]] });
   const storm = await render(50, { bucket: makePieces("gale", [{ id: "walk", windows: 8 }, { id: "gale", windows: 2, role: "storm" }]),
                                    target: Object.assign(mix(1), { place: "wander", also: [], intensity: 0.4 }),
-                                   script: [[5, (engine) => engine.setTarget({ place: "storm", also: ["wander"], intensity: 0.78 })],
-                                            [20.5, (engine) => engine.setTarget({ place: "wander", also: [], intensity: 0.4 })]] });
+                                   script: [[5, (engine) => engine.setTarget({ place: "storm", also: ["wander"], intensity: 0.78, rain_storm: true })],
+                                            [20.5, (engine) => engine.setTarget({ place: "wander", also: [], intensity: 0.4, rain_storm: false })]] });
+  // A long ride at full tilt, which the game also calls a storm: no change of place, and the song plays on.
+  const ride = await render(30, { bucket: makePieces("ride", [{ id: "walk", windows: 8 }, { id: "gale", windows: 2, role: "storm" }]),
+                                  target: Object.assign(mix(1), { place: "wander", also: [], intensity: 0.4 }),
+                                  script: [[5, (engine) => engine.setTarget({ place: "storm", also: ["wander"], intensity: 0.75, rain_storm: false })]] });
   const first = (log, id, after) => {
     const found = [...log].sort((a, b) => a.at - b.at).find((entry) => pieceOf(entry) === id && entry.at > after);
     return found ? found.at : null;
@@ -823,7 +827,33 @@ tests.pieceCampStorm = async () => {
            galeAt: first(storm.engine.log, "gale", 0), galeEnds: (() => {
              const gale = storm.engine.log.filter((entry) => pieceOf(entry) === "gale");
              return gale.length ? Math.max(...gale.map((entry) => entry.at)) : null; })(),
-           stormBackAt: first(storm.engine.log, "walk", 20), late: camp.engine.late + storm.engine.late };
+           stormBackAt: first(storm.engine.log, "walk", 20), late: camp.engine.late + storm.engine.late,
+           ride: [...new Set(ride.engine.log.filter((entry) => entry.at < 30).map(pieceOf))] };
+};
+
+// A new track begins at its opening, whatever the last was doing when it ended ("for the whole songs to play"): here a
+// storm's track, ended by the storm's end where its first part ends, is followed by a walking track from its start.
+// And a cave's song is never gone back to once the player has left the cave: back from a camp later, the walking song
+// comes back, not the cave's.
+tests.pieceStartsWhole = async () => {
+  const bucket = makePieces("whole", [{ id: "sop", windows: 1, then: "sth", story: "open", track: "s", role: "storm" },
+                                      { id: "sth", windows: 1, phase: "sop", story: "theme", track: "s", role: "storm" },
+                                      { id: "aop", windows: 2, then: "ath", story: "open", track: "a" },
+                                      { id: "ath", windows: 2, phase: "aop", story: "theme", track: "a" }]);
+  const run = await render(30, { bucket, target: Object.assign(mix(1), { place: "storm", also: ["wander"], intensity: 0.7, rain_storm: true }),
+                                 script: [[3, (engine) => engine.setTarget({ place: "wander", also: [], intensity: 0.4, rain_storm: false })]] });
+  const walking = [...run.engine.log].sort((a, b) => a.at - b.at).find((entry) => ["aop", "ath"].includes(pieceOf(entry)));
+  const places = await render(90, { bucket: makePieces("back", [{ id: "walk", windows: 11 }, { id: "deep", windows: 8, role: "depths" },
+                                                                 { id: "fire", windows: 8, role: "camp" }]),
+                                    target: Object.assign(mix(1), { place: "wander", also: [] }),
+                                    script: [[5, (engine) => engine.setTarget({ place: "depths", also: ["wander"], sited: true })],
+                                             [30.5, (engine) => engine.setTarget({ place: "wander", also: [], sited: false })],
+                                             [50.5, (engine) => engine.setTarget({ place: "camp", also: ["wander", "ember"], sited: true })],
+                                             [70.5, (engine) => engine.setTarget({ place: "wander", also: [], sited: false })]] });
+  // (The camp's own song goes on until the look 4 s after leaving it: what comes then is what counts.)
+  const after = [...places.engine.log].sort((a, b) => a.at - b.at).find((entry) => entry.at > 72 && pieceOf(entry) !== "fire");
+  return { firstWalking: walking ? pieceOf(walking) : null, afterCamp: after ? pieceOf(after) : null,
+           late: run.engine.late + places.engine.late };
 };
 
 // A border crossed in the last seconds of a piece, after the track's next piece was made ready:

@@ -129,6 +129,7 @@
   const FAR = 5.0;
   const TURN = 1.0;            // light and heavy take turns: the sort whose turn it is not counts this much against it
   const ALSO = 0.25;           // a kind of moment that takes turns with the one named (in tenths: 2.5), at the least
+  const STARTS_ELSEWHERE = 10; // a new track beginning anywhere but its opening: only where no opening will do
   const SETTING = 0.35;        // how much a piece written for other ground than the player's counts against it (see _setting)
   // The kinds of place whose music sits well in each other's: what is reached for before a track is heard a third time.
   const NEAR = { pastoral: ["highland", "regal", "mystic", "coast"], highland: ["pastoral", "regal", "frozen"], regal: ["pastoral", "highland", "infernal"],
@@ -160,7 +161,6 @@
   const RING = 2;              // bars a piece rings on under the next, when the two are in keys that sit together
   const RING_APART = 0.5;      // ...and when they are not
   const LAP_S = 40;            // a short piece on its own is played round until it has lasted about this long
-  const STORY_NEXT = { open: "theme", theme: "rise", rise: "moment", moment: "close", close: "open" };
   // The kinds of moment whose tracks play on when the moment is over: walking music, and the night's. (A camp's and a
   // storm's end with the camp or the storm: "but major place changes, inns, camps, or abrupt storms should change the
   // song", 2026-11-17, played.)
@@ -871,8 +871,10 @@
       // track never heard had come before the storm's own, "music is not matching mood", 2026-11-17, played.)
       let role = meta.role === place ? 0 : also.includes(meta.role) ? (fight ? 0.3 : Math.max(lean, ALSO)) : 1;
       if (follow && !fight) {
-        // (A storm that has set in is reckoned as a place the player stands in: "abrupt storms should change the song".)
-        if (this.target.sited === true || place === "storm") role = meta.role === place ? 0 : also.includes(meta.role) ? 0.5 : 1;
+        // (A storm that has set in is reckoned as a place the player stands in: "abrupt storms should change the song".
+        // Not a long ride at full tilt, which the game also calls a storm: a ride is no change of place.)
+        const storm = place === "storm" && this.target.rain_storm === true;
+        if (this.target.sited === true || storm) role = meta.role === place ? 0 : also.includes(meta.role) ? 0.5 : 1;
         else if (meta.role === "wander") role = 0;
       }
       // Then how dark or bright: the further a piece's shade from the place's, the less it suits.
@@ -968,9 +970,9 @@
       if (free && after && options.natural && this.random() < bucket.share) {
         return { piece: null, turns: 1 + Math.floor(this.random() * 2) };
       }
-      // A track that was left part of the way through is followed by a piece that stands where
-      // its next one would have; one that has ended, by a beginning.
-      const want = after && options.natural && after.piece.meta.next ? STORY_NEXT[after.piece.meta.story] || "open" : "open";
+      // A new track begins at its beginning, whatever the last was doing when it ended ("for the whole songs to play",
+      // 2026-11-17: a track ended early was followed by another track's moment, the middle of a song).
+      const want = "open";
       const turn = (piece) => {
         if (piece.meta.serves.includes(2) && !piece.meta.serves.includes(0)) return 0;      // a fight is a fight
         if (this.target.light === true) {
@@ -988,7 +990,7 @@
       let best = [], bestScore = [Infinity, Infinity, Infinity];
       for (const piece of index.values()) {
         if (piece.id === options.except && index.size > 1) continue;
-        const story = !piece.meta.story || piece.meta.story === want ? 0 : 0.25;
+        const story = !piece.meta.story || piece.meta.story === want ? 0 : STARTS_ELSEWHERE;
         const far = this._mood(piece.meta) >= 1 ? FAR : 0;
         const score = [off(piece) + turn(piece) + story + far + this._rotation(piece.meta), piece.plays,
                        this.pieceAt.has(piece.id) ? this.pieceAt.get(piece.id) : -1];
@@ -1304,7 +1306,7 @@
       // name choose the next song, and leave this one alone.
       const role = group.piece.meta.role, also = this.target.also || [], fit = this._mood(group.piece.meta);
       const land = typeof this.target.zone === "string" && typeof group.zone === "string" && this.target.zone !== group.zone;
-      const into = (this.target.sited === true || place === "storm") && role !== place;
+      const into = (this.target.sited === true || (place === "storm" && this.target.rain_storm === true)) && role !== place;
       const out = group.sited === true && !STAYS.includes(role) && role !== place && !also.includes(role);
       if (!land && !into && !out) return false;
       // (Only a look: the track that was left for this one is still remembered if the music
@@ -1320,7 +1322,9 @@
       const now = this.ctx.currentTime;
       const when = Math.max(this._lineAfter(group, now + NOTICE, 1), group.start);
       const fade = Math.min(BLEND_PLACE * group.bar, 6.0);
-      this.left.walk = this._leftAt(group, when, now);
+      // (Only walking music is remembered to go back to: a cave's, an inn's, a camp's or a storm's song belongs to where it
+      // was, and came back outdoors after the cave once.)
+      if (STAYS.includes(group.piece.meta.role)) this.left.walk = this._leftAt(group, when, now);
       this.movedAt = now;
       await this._takeOver(group, item, when, fade, fade);
       return true;

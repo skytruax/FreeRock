@@ -69,6 +69,9 @@ class Target:
     # own rise and moment, the same song further on ("fights shouldnt start new songs", "need to do a better job
     # dynamically to match the mood in general", 2026-11-17).
     fight: bool = False
+    # The storm is the weather's (it has set in), not a long ride at full tilt: only the weather's changes the song
+    # ("abrupt storms should change the song", 2026-11-17; a ride is no change of place).
+    rain_storm: bool = False
 
     def as_dict(self) -> dict:
         return {name: (list(value) if isinstance(value, tuple) else value)
@@ -488,7 +491,7 @@ class Director:
 
         # `place` is where the music goes now; `also` is what takes turns with it for as long as
         # it lasts, so that one part is never left to loop.
-        also, sited, lean = [], False, 0.0
+        also, sited, lean, rain_storm = [], False, 0.0, False
         if boss and not fallen:
             place = "boss"
             also.append("battle")
@@ -527,7 +530,7 @@ class Director:
             also.append("wander")
             why.append("in a town")
         elif m.in_storm and not state.indoors:
-            place = "storm"
+            place, rain_storm = "storm", True
             also.append("wander")
             why.append("a storm that has set in")
         elif m.charging:
@@ -629,4 +632,4 @@ class Director:
                       lowpass_hz=round(lowpass, 1), highpass_hz=round(highpass, 1),
                       reverb=round(min(reverb, 0.6), 3), volume=round(volume, 3), fade_s=fade,
                       intensity=round(intensity, 3), why=tuple(dict.fromkeys(why)),
-                      fight=bool(state.in_combat and not fallen))
+                      fight=bool(state.in_combat and not fallen), rain_storm=rain_storm)

@@ -476,7 +476,18 @@ async def test_a_camp_and_a_storm_that_sets_in_each_change_the_song(results):
     assert found["galeAt"] is not None and 9.0 <= found["galeAt"] <= 13.0, "the storm's music did not come: %s" % found
     # The storm is over at 20.5 s: its track plays its part out (16 s from where it began) and is not cut on the next bar.
     assert found["stormBackAt"] is not None and found["stormBackAt"] >= found["galeAt"] + 14.0, "the storm's track was cut: %s" % found
+    # A long ride at full tilt (the game names it a storm too, but no rain) changes nothing.
+    assert found["ride"] == ["walk"], "a ride at full tilt changed the song: %s" % found
     assert found["late"] == 0
+
+
+async def test_a_new_track_begins_at_its_opening_and_a_caves_song_is_not_gone_back_to_outside(results):
+    """("for the whole songs to play", 2026-11-17; found by a made-up evening, 2026-11-18: a storm's track ended early
+    was followed by another track's moment, and a cave's song came back outdoors after the cave.)"""
+    whole = of(results, "pieceStartsWhole")
+    assert whole["firstWalking"] == "aop", "a new track began in its middle: %s" % whole
+    assert whole["afterCamp"] == "walk", "back from the camp, the cave's song came back and not the walking song: %s" % whole
+    assert whole["late"] == 0
 
 
 async def test_a_border_crossed_in_the_last_seconds_of_a_piece_changes_the_music_where_the_track_ends(results):

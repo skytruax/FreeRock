@@ -317,6 +317,7 @@ def test_on_a_roll_and_on_the_move_the_music_stays_at_full_tilt_between_pulls():
     at = play(script, 60, start=STANDING)
     between = at(40)
     assert between.place == "storm" and between.also == ("wander",) and "at full tilt" in between.why
+    assert between.rain_storm is False, "a ride at full tilt is no rain storm: it does not change the song"
     assert between.bass > 0.8
 
 
@@ -462,8 +463,11 @@ def test_rain_brings_the_drums_and_a_rain_storm_the_whole_band():
     assert at(12).drums == 0.6 and at(12).bass == 0.0, "steady rain: the drums"
     storm = at(20)
     assert storm.bass > 0.8 and storm.drums > 0.8 and storm.lowpass_hz == 20000.0, "a storm: the whole band, not muffled"
-    assert "a rain storm: the whole band" in storm.why and storm.place == "wander"
+    assert "a rain storm: the whole band" in storm.why and storm.place == "wander" and storm.rain_storm is False
     assert at(24).place == "storm" and at(24).also == ("wander",)
+    # (Once it has set in, the weather's storm is a change of place for the player; a ride at full tilt is called a
+    # storm too, and is none.)
+    assert at(24).rain_storm is True and at(61).rain_storm is False
     assert at(59).place == "storm" and at(61).place == "wander", "it leaves twenty seconds after the weather clears"
 
 
