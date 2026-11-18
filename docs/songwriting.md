@@ -939,9 +939,11 @@ harmonica) closed at 5.5 kHz and shelved 14 dB from 2 kHz; xylophone, glock and 
 a battle's bass shelved 6 dB from 1.5 kHz; in the band only (`band=True`), the church organ and the rock
 organ closed at 6 kHz and shelved 10 dB from 3 kHz (the black chapel's had its texture 24 to 28 dB over
 the liked band stems; the orchestra's organ sits about 5 dB over its own and is left as it is). The rest of the
-band's texture and lead (the lead guitar, the reeds and pipes, the fiddle) are closed at 7.5 kHz and shelved 6 dB from
-4 kHz, as a guitar's cabinet and a keyboard's speaker fall away and leave the top to the cymbals: they had been 12 to 22
-dB over, and the first piece made with it came 4 to 5 dB nearer.
+band's texture and lead (the lead guitar, the reeds and pipes, the fiddle, the choir at the moments) fall away as a
+guitar's cabinet and a keyboard's speaker do, and leave the top to the cymbals: the texture closed at 5 kHz and shelved
+8 dB from 2.5 kHz, the lead closed at 6 kHz and shelved 6 dB from 3.5 kHz. The liked band stems are dark (their texture
+falls away from 900 Hz, 35 to 41 dB down at the top; their lead is a guitar through a cabinet, gone above 5 kHz); the
+band's had been 12 to 46 dB over, and a first cut at 7.5 kHz brought them only 4 to 5 dB nearer.
 
 ### 6.4 Buses
 

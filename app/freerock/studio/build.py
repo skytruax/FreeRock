@@ -197,12 +197,16 @@ def tamed_tone(name: str, instrument: str, band: bool = False, channel: str = ""
     if name == "trombone tutti":
         # (...and a trombone doubling a battle's bass line had the bass 9 to 13 dB over at the top.)
         return sounds.equalise(high_shelf=(1500.0, -6.0))
-    if band and channel in ("texture", "lead"):
-        # (Knight Rock's second families that evening, with its organs taken down: the rest of the band's texture and lead,
-        # the lead guitar, the shenai, the pan flute, the whistle and the fiddle, still 12 to 22 dB over the liked band stems
-        # from 7 kHz up. In a rock mix the cymbals own the top, and a guitar's cabinet, a keyboard's speaker and a reed fall
-        # away above it. Their bite at 2 to 4 kHz is kept.)
-        return sounds.equalise(high_cut=7500.0, high_shelf=(4000.0, -6.0))
+    if band and channel == "texture":
+        # (Knight Rock's second families that evening, with its organs taken down: the rest of the band's texture, the reeds
+        # and pipes and the choir at the moments, 12 to 46 dB over the liked band stems from 7 kHz up. Those stems are dark:
+        # their texture falls away from 900 Hz, 35 to 41 dB down at the top, as an organ through a turning speaker does. Closed
+        # at 7.5 kHz it came only 4 to 5 dB nearer, so it is closed lower.)
+        return sounds.equalise(high_cut=5000.0, high_shelf=(2500.0, -8.0))
+    if band and channel == "lead":
+        # (The band's lead guitar, fiddle and whistles, 10 to 20 dB over: the liked band's lead is a guitar through a cabinet,
+        # falling away above 5 kHz, where ours fizzed. Its bite at 1 to 3 kHz is kept.)
+        return sounds.equalise(high_cut=6000.0, high_shelf=(3500.0, -6.0))
     return None
 
 
