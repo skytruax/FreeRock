@@ -1,4 +1,4 @@
-# Secrets: API keys live in .env and must never be committed
+# Secrets: a .env is never committed
 .env
 .env.*
 

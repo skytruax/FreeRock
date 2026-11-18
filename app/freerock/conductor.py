@@ -62,8 +62,8 @@ class Conductor:
         self.bucket: forever.Bucket | None = None    # the bucket the players are playing from
         self.mix: dict[str, dict[str, Any]] | None = None    # which channels are up and how hard
         self._sent_bucket: str | None = None
-        # The song's moments of silence begin where its form comes round: the player is told
-        # about how much music there is between two and about how long one lasts.
+        # The moments of silence between songs: the player is told about how much music there is
+        # between two and about how long one lasts.
         self._silences = {"every_s": self.settings.rest_every_minutes * 60.0, "for_s": self.settings.rest_seconds}
 
     # --- where the player is --------------------------------------------------------------------

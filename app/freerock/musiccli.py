@@ -62,7 +62,7 @@ def _pieces_arguments(parser: argparse.ArgumentParser) -> None:
                         help="add: put the studio's staged tracks in the bucket; list: say what written pieces the "
                              "style has; drop: take pieces out for good")
     parser.add_argument("style", nargs="?", help="one of: %s (default: the style in force)" % ", ".join(Settings.GENRES))
-    parser.add_argument("source", nargs="?", help="for drop: what the pieces' source begins with, such as knight/ or song/")
+    parser.add_argument("source", nargs="?", help="for drop: what the pieces' source begins with, such as knight/")
     parser.add_argument("--zone", help="for a style with no bucket yet: the zone to begin one in")
     parser.add_argument("--port", type=int, default=8765,
                         help="where the FreeRock server listens, to check that it is stopped (default: %(default)s)")

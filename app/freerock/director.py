@@ -5,9 +5,9 @@ moment it is (and so what kind of music should be playing), how loud the drums, 
 rest of the band are, and the tone (muffled, echoing, thin). It holds the little bits of memory
 the rules need: how long a fight has lasted, when it ended, how long the player has been indoors.
 
-Two things move at different speeds. Layer levels and tone change at once and can be undone at
-once, so they follow the game directly. The section changes on a bar line and stays a while, so
-it waits until the game has stayed the same for a moment.
+Two things move at different speeds. The channels' levels and the tone change at once and can be
+undone at once, so they follow the game directly. The kind of music changes on a bar line and stays
+a while, so it waits until the game has stayed the same for a moment.
 
 Only state the game leaves unsealed is used. Health and threat are not available and are not
 needed: intensity comes from combat, what is targeted, boss encounters, where the player is, and
@@ -15,9 +15,9 @@ the weather (a rain storm brings the whole band in).
 
 The music follows what the player does, not only where they are. Moving brings the drums in and
 standing still takes them out; fights close together keep the band in between them; a level
-gained or a quest handed in gets the whole band for a moment. And no single part is left to
-loop: at night, in a cave, in a city and in a storm the part made for that joins the zone's
-other riffs instead of replacing them.
+gained or a quest handed in gets the whole band for a moment. And no one piece is heard over and
+over: at night, in a cave, in a city and in a storm the pieces made for that take turns with the
+walking music of the place instead of replacing it.
 """
 from __future__ import annotations
 
@@ -40,8 +40,8 @@ NIGHT_HUSH = 0.75     # and the drums' and the bass's least kept at three quarte
 class Target:
     """What the player should be doing right now."""
     place: str = "wander"
-    # Other kinds of section that take turns with `place` for as long as it lasts, so that one
-    # part is never left to loop: the zone's riffs in a cave, the Night part at night.
+    # Other kinds of music that take turns with `place` for as long as it lasts, so that no one piece
+    # is heard over and over: the walking music in a cave, the night pieces at night.
     also: tuple[str, ...] = ()
     # Whether `place` is named for where the player stands (a cave, an inn) and not for what is
     # going on (the calm after a fight): the forever song goes there within a few bars, and comes
@@ -53,7 +53,7 @@ class Target:
     lean: float = 0.0
     # How much of the least the drums and the bass are played at (a piece's floor) is kept: 1 all of it, at night less.
     hush: float = 1.0
-    bed: float = 1.0                  # layer levels, 0 to 1
+    bed: float = 1.0                  # channel levels, 0 to 1
     drums: float = 0.0
     bass: float = 0.0
     bed_highpass_hz: float = 110.0    # keeps the bass register clear of the bed while the bass is out
@@ -82,16 +82,16 @@ class Target:
 class Rules:
     """The numbers behind the rules, in one place so they can be tuned after real evenings.
 
-    One number, the intensity, says how much is going on. It picks the kind of section and how
-    much of the band plays, so the music climbs and comes down a ladder of loops:
+    One number, the intensity, says how much is going on. It picks the kind of music and how much
+    of the band plays, so the music climbs and comes down:
 
-        idle        the calm part joins the riffs, guitars alone
-        still       a riff, guitars alone
+        idle        the calm music joins the round, the band thinned
+        still       the tune and its chords, the drums and bass out
         on foot     the drums come in; keep going and the bass joins and the band fills out
-        riding      drums and bass at once; a long ride reaches the zone's hard-rock part
+        riding      drums and bass at once; a long ride brings in the storm's heavy music
         in sights   something to fight is targeted: the bass leans in
         a fight     the whole band, in the song that is playing: no other piece comes in for it
-        a boss      a dungeon's boss has music of its own: the heaviest part
+        a boss      a dungeon's boss has music of its own: the heaviest there is
     """
     # The rungs, as intensity from 0 to 1.
     idle: float = 0.10
@@ -122,7 +122,7 @@ class Rules:
     base_world: float = 0.25          # with no word on movement at all, as if standing
     base_dungeon: float = 0.40        # a dungeon is tenser than the open world
     inn_ceiling: float = 0.30         # inside an inn nothing but a fight rises above this
-    # Where the layers and the hard-rock part come in on the way up, and go on the way down.
+    # Where the channels and the heavy music come in on the way up, and go on the way down.
     # (2026-11-16, twice. In the afternoon: "theres not much difference between quet and full, we want more ...
     # drasticness", and a calm game was given no drums and a third of the bass, a fight bringing them in whole. Played
     # that evening: "the abruptness between fighting and not, its way too much now, it should only be a subtle
@@ -133,7 +133,7 @@ class Rules:
     bass_on: float = 0.55
     bass_off: float = 0.47
     bass_least: float = 0.7
-    charge_at: float = 0.70           # out of a fight, this much going on moves to the hard-rock part
+    charge_at: float = 0.70           # out of a fight, this much going on brings in the heavy music
     charge_off: float = 0.62
     decay_per_s: float = 0.12         # how fast the intensity comes down when things calm
     hold_after_combat_s: float = 3.0
@@ -143,7 +143,7 @@ class Rules:
     depths_release_s: float = 2.0
     rain_drums_at: float = 0.3        # rain this strong brings the drums in
     storm_at: float = 0.6             # rain this strong is a rain storm: the whole band comes in
-    storm_after_s: float = 4.0        # a storm that lasts this long moves to the Storm section
+    storm_after_s: float = 4.0        # a storm that lasts this long brings in the storm's music
     storm_release_at: float = 0.4
     storm_release_s: float = 20.0
     storm_floor: float = 0.6          # intensity at the edge of a storm...
@@ -152,7 +152,7 @@ class Rules:
     # Movement: the music follows your feet.
     moving_after_s: float = 0.2       # on the move this long before it counts
     still_after_s: float = 1.5        # stopped this long before it counts
-    linger_after_s: float = 15.0      # stopped this long and the calm part joins the rotation
+    linger_after_s: float = 15.0      # stopped this long and the calm music joins the round
     camp_after_s: float = 45.0        # stood this long out of doors and it is a camp: waiting on a spawn, a rare, a friend
     # Standing still quiets the music ("and standing still should quiet the tracks", 2026-11-16): every channel at
     # this much of its level on stopping, and at this much once stood a while. Moving brings it straight back.
@@ -222,7 +222,7 @@ def _share(value: float, low: float, high: float) -> float:
 
 
 def _step(level: float) -> float:
-    """A layer level in twentieths, so the player is not sent a new target for every hair."""
+    """A channel's level in twentieths, so the player is not sent a new target for every hair."""
     return round(level * 20.0) / 20.0
 
 
@@ -346,7 +346,7 @@ class Director:
             floor = rules.still
             why.append("standing still")
         # A dungeon is tenser. What full tilt is judged by (`pace`) leaves that out: it is for what the player is doing,
-        # and the tension alone once took seventeen seconds of walking in a dungeon to the hard-rock part.
+        # and the tension alone once took seventeen seconds of walking in a dungeon to the heavy music.
         pace = floor
         if dungeon and on_the_move is not None:
             floor += rules.base_dungeon - rules.base_world
@@ -445,7 +445,7 @@ class Director:
                 bed *= rules.still_bed
                 why.append("standing still: a little quieter")
 
-        # --- which section -------------------------------------------------------------------
+        # --- which music ---------------------------------------------------------------------
         if boss and m.combat_since is not None:
             m.reached_battle = True
 
@@ -481,7 +481,7 @@ class Director:
                 m.calm_weather_since = None
 
         # Out of a fight, with this much going on (a long ride, a roll between pulls), the music
-        # moves up to the zone's hard-rock part. It is what is going on now that counts, not the
+        # moves up to the heavy music. It is what is going on now that counts, not the
         # intensity still coming down from a fight that is over.
         drive = pace + rules.roll_lift * roll()
         if m.combat_since is None and not fallen and not inn and drive >= rules.charge_at:
@@ -490,7 +490,7 @@ class Director:
             m.charging = False
 
         # `place` is where the music goes now; `also` is what takes turns with it for as long as
-        # it lasts, so that one part is never left to loop.
+        # it lasts, so that no one piece is heard over and over.
         also, sited, lean, rain_storm = [], False, 0.0, False
         if boss and not fallen:
             place = "boss"

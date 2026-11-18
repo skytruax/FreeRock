@@ -4,9 +4,8 @@ The studio cannot hear. What it can do is what a mixing engineer does with a rec
 trust: lay the two side by side and compare. `profile` measures a recording: how its power is
 spread over the octaves (dull, boomy, thin, harsh), how hard its notes start, how far its peaks
 stand above its body, how even its level is, how wide it is, how long it rings. `reference`
-gives the same numbers for recordings that were listened to and liked: the stems of FreeRock's first
-days, each with the instrument it was asked for, measured once and kept in var/reaper/ear.json (the
-stems themselves are gone), so an instrument of the studio's can be held against the same
+gives the same numbers for recordings that were listened to and liked, each labelled with its
+instrument, measured once and kept in var/reaper/ear.json (the recordings themselves are gone), so an instrument of the studio's can be held against the same
 instrument there. `differs` says where two profiles part, and `top` turns
 the difference in their tops into settings for the channel equaliser.
 

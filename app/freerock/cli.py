@@ -104,12 +104,12 @@ add_command("serve", "run FreeRock: the game link, the music and the pages", _se
 add_command("sim", "play a scripted session against a running server", _sim_arguments, _sim)
 add_command("read", "read the strip out of a saved picture", _read_arguments, _read)
 
-# The music commands (settings, stems, pieces) live with the music and add themselves here.
+# The music commands (settings, pieces) live with the music and add themselves here.
 from freerock import musiccli  # noqa: E402,F401
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="freerock", description="FreeRock: generated game music that follows the game.")
+    parser = argparse.ArgumentParser(prog="freerock", description="FreeRock: music written for the game, that follows it.")
     commands = parser.add_subparsers(dest="command", required=True)
     for name, (help_text, configure, run) in _COMMANDS.items():
         sub = commands.add_parser(name, help=help_text)

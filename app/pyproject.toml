@@ -1,7 +1,7 @@
 [project]
 name = "freerock"
 version = "0.1.0"
-description = "Generated game music that follows World of Warcraft: Forever"
+description = "Music written for World of Warcraft: Forever, that follows the game"
 requires-python = ">=3.11,<3.14"
 dependencies = [
     "aiohttp>=3.9",
