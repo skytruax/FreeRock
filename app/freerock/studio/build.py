@@ -438,7 +438,8 @@ def stage(fam: Family, take: int) -> dict:
         "credit": "Written by FreeRock's studio (%s, %s); %sput together in REAPER, with the sfizz sampler on the VSCO 2 Community "
                   "Edition and VCSL recordings (Versilian Studios, CC0), the TinySOL recordings (Cella, Ghisi, Lostanlen, Levy, "
                   "Fineberg and Maresz, IRCAM, CC BY 4.0), Naked Drums (Wilkinson Audio, CC BY 4.0) and Big Rusty Drums (Karoryfer, "
-                  "CC0), the AVL drum kits (Glen MacArthur, CC BY-SA 3.0) and the Surge XT, ZynAddSubFX and Geonkick synths"
+                  "CC0), the FreePats bagpipe (Gilles Sadowski, CC0), the AVL drum kits (Glen MacArthur, CC BY-SA 3.0) and the Surge XT, "
+                  "ZynAddSubFX and Geonkick synths"
                   % (character.name, fam.metre, "its instruments performed by MuseScore Studio with Muse Sounds (Muse Group) and " if muse.available() else ""),
         "seed": fam.seed, "measured": {"sections": loudness, "channels": levels, "gains": gains},
     }

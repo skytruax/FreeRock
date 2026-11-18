@@ -22,8 +22,8 @@ turns one written voice into the REAPER tracks that play it.
     uv run --no-sync python -m freerock.studio.sounds        write and measure every instrument
 
 The sample sets: VSCO 2 Community Edition and VCSL (Versilian Studios, CC0), TinySOL (IRCAM,
-CC BY 4.0), Big Rusty Drums (Karoryfer, CC0); the AVL drum kits (Glen MacArthur, CC BY-SA
-3.0). See tools/stems/README.md.
+CC BY 4.0), Big Rusty Drums (Karoryfer, CC0), the FreePats bagpipe (Gilles Sadowski, CC0); the
+AVL drum kits (Glen MacArthur, CC BY-SA 3.0). See tools/stems/README.md.
 """
 from __future__ import annotations
 
@@ -96,10 +96,10 @@ RECORDED: dict[str, tuple[str, dict]] = {
     # chords from F3 were a harmonica stretched, and reedy where an accordion is full.
     "accordion long": (SOL + "Keyboards/Accordion/ordinario", dict(WIND, attack=30.0, release=200.0)),
     "accordion short": (SOL + "Keyboards/Accordion/ordinario", dict(WIND, attack=6.0, release=100.0)),
-    # FreePats' bagpipe (CC0), ready and NOT USED: a bagpipe in G recorded by Gilles Sadowski in 2020, its chanter from F4
-    # to G5, two takes a note, its scale its own (28 to 67 cents under A 440, both takes of a note agree, so each note is
-    # tuned to the band's). Tried on 2026-11-18 and set aside: held, and as a tune, its upper middle stood over its body
-    # (see the handbook, 8.8); MuseScore's english horn still plays the bagpipe's parts.
+    # FreePats' bagpipe (CC0): a bagpipe in G recorded by Gilles Sadowski in 2020, its chanter from F4 to G5, two takes a
+    # note, its scale its own (28 to 67 cents under A 440, both takes of a note agree, so each note is tuned to the
+    # band's). It plays the bagpipe's tunes since 2026-11-18 (heard against the english horn and chosen: "new horn sounds
+    # better"); held drones stay the english horn ("pipe drone", see the handbook, 8.8).
     "bagpipe long": (FP + "Bagpipe/chanter", dict(WIND, attack=20.0, release=150.0, cents_within=80.0)),
     "bagpipe short": (FP + "Bagpipe/chanter", dict(WIND, attack=5.0, release=90.0, cents_within=80.0)),
     # --- brass: TinySOL (IRCAM, CC BY 4.0), every semitone played soft, medium and loud, with no vibrato ---
@@ -387,7 +387,8 @@ SOUNDS: dict[str, Sound] = {
     "twelve string": Sound((Player("strumstick", seat=-0.25), Player("psaltery", octave=1, gain=-7.0, seat=-0.25))),
     "sitar": Sound((Player("zither bent", seat=-0.1),)), "koto": Sound((Player("zither", seat=-0.1),)),
     "kalimba": Sound((Player("kalimba", seat=0.2),)), "banjo": Sound((Player("strumstick", seat=0.25),)),
-    "bagpipe": Sound((Player("oboe plain", seat=0.0), Player("small organ", gain=-8.0, seat=0.0))),
+    "bagpipe": _blown("bagpipe", 0.0),         # FreePats' chanter, for the bagpipe's tunes
+    "pipe drone": Sound((Player("oboe plain", seat=0.0), Player("small organ", gain=-8.0, seat=0.0))),   # (MuseScore's english horn where it is there)
     "shenai": Sound((Player("oboe plain", seat=0.05),)),
     "choir": Sound((Player(CHOIR, gain=-3.0, seat=0.0),)), "oohs": Sound((Player(OOHS, gain=-3.0, seat=0.0),)),
     "timpani": Sound((Player("timpani", seat=-0.1),)),

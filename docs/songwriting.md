@@ -921,7 +921,7 @@ chorus and the hall are the desk's now*.
    split at 0.26 s (0.2 s for winds), registers split among sections, soft and loud recordings.
 
 With MuseScore there, it plays every pitched instrument but the pipe organ, the harmonica, the
-accordion and the banjo (a strumstick). The studio's own players have those,
+accordion, the bagpipe's tunes (FreePats' chanter) and the banjo (a strumstick). The studio's own players have those,
 all the drums (war drums, frame drums, taiko, great drum, melodic tom, the deep stroke, gong, anvil,
 cymbal swells and the kits) and the desk's layers: the Zyn pad, the Surge sub, and the kick, Naked
 Drums' bass drum through three microphones with a Geonkick sub under it, *short on purpose: a kick is
@@ -1281,9 +1281,12 @@ a whine, and a bagpipe's tune is one too*. FreePats' chanter (CC0, F4 to G5, its
 texture 30 to 34 dB over the liked stems from 1.8 to 7 kHz and its upper middle 1.5 dB *over* its
 body, where MuseScore's english horn had it 21.7 under; as the highland reel's tune its upper middle
 stood 7.6 dB over its body, where the tavern's and the drinking song's leads stand 5 to 6 under. It is
-on the drive and measured (`sounds.RECORDED`, "bagpipe long" and "short", not used); MuseScore's
-english horn still plays the bagpipe, until it is heard and chosen by ear, or drones that can be held
-are found (the set's own G2 drone is 2.4 s, too short to go round). And keep an instrument's range
+on the drive and measured (`sounds.RECORDED`, "bagpipe long" and "short"). Then it was *heard*: the
+reel's tune on the english horn and on the chanter, at one loudness, and the ear chose the chanter
+("new horn sounds better", 2026-11-18). So the chanter plays the bagpipe's tunes (`bagpipe`: the
+highland reel, the stone circle) and a held drone is `pipe drone`, MuseScore's english horn at the old
+range, until drones that can be held are found (the set's own G2 drone is 2.4 s, too short to go
+round). *The numbers find what to listen to; the ear decides.* And keep an instrument's range
 when the writing should not change: who sings the second theme is chosen by how far an instrument's
 home note sits from the first singer's, and the chanter's narrower range had moved the bagpipe into
 the band's leads.

@@ -90,7 +90,10 @@ PARTS: dict[str, tuple[tuple, ...]] = {
     "recorder": (("Flute", 0, 127, "", "Muse Woodwinds/Flute 2"),), "whistle": (("Piccolo", 0, 127, ""),),
     "pan flute": (("Flute", 0, 127, "", "Muse Woodwinds/Alto Flute"),), "shakuhachi": (("Flute", 0, 127, "", "Muse Woodwinds/Alto Flute"),),
     "ocarina": (("Flute", 0, 127, "", "Muse Woodwinds/Flute 1"),),
-    "shenai": (("Oboe", 0, 127, ""),), "bagpipe": (("English Horn", 0, 127, ""),),
+    "shenai": (("Oboe", 0, 127, ""),),
+    # The bagpipe's tunes are the studio's own since 2026-11-18 (FreePats' chanter, chosen by ear: "new horn sounds
+    # better"); its held drones stay MuseScore's english horn: held, the chanter's upper middle stood over its body.
+    "pipe drone": (("English Horn", 0, 127, ""),),
     # Colours added for variety (2026-11-16): sounds Muse has, given to a part of the nearest kind.
     "bass flute": (("Flute", 0, 127, "", "Muse Woodwinds/Bass Flute"),),
     "bass clarinet": (("Clarinet in B♭", 0, 127, "", "Muse Woodwinds/Bass Clarinet"),),

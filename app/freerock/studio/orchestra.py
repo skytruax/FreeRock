@@ -85,7 +85,7 @@ INSTRUMENTS = {
     "steel guitar": I(40, 84, 62, held=False), "mandolin": I(55, 91, 72, held=False),
     "twelve string": I(40, 84, 62, held=False), "sitar": I(48, 84, 64, held=False),
     "koto": I(48, 91, 67, held=False), "kalimba": I(60, 96, 76, held=False),
-    "banjo": I(48, 84, 64, held=False), "bagpipe": I(58, 82, 70, level=0.7),
+    "banjo": I(48, 84, 64, held=False), "bagpipe": I(61, 83, 72, level=0.7), "pipe drone": I(58, 82, 70, level=0.7),
     "fiddle": I(55, 96, 74), "shenai": I(58, 86, 70, level=0.8),
     "choir": I(48, 81, 64, early=0.05), "oohs": I(48, 84, 65, early=0.05),
     "timpani": I(36, 57, 45, held=False), "taiko": I(36, 60, 45, held=False),
@@ -203,7 +203,7 @@ CHARACTERS = (
     # --- highland ---------------------------------------------------------------------------
     C("highland reel", ("highland",), light=True, modes=("mixolydian", "dorian"), bpm=(104, 118), busy=0.8, weight=0.65,
       leads=("whistle", "fiddle", "bagpipe"), strong=("fiddle", "whistle"), under=("accordion",),
-      pads=("bagpipe", "strings"), pad_ways=("drone",), plucks=("steel guitar", "mandolin"), figures=("strum", "pulse"),
+      pads=("pipe drone", "strings"), pad_ways=("drone",), plucks=("steel guitar", "mandolin"), figures=("strum", "pulse"),
       basses=("acoustic bass", "celli pizz"), kit="march", drums=(), grooves=("reel", "march"), hall=(1.5, 0.17), lift=0.2,
       titles=(("Heather", "Cairn", "Tarn", "Piper's", "Snowmelt", "Shepherd's", "Windy", "Stag"),
               ("Reel", "Strathspey", "Jig", "Step", "Fling"))),
@@ -505,7 +505,7 @@ CHARACTERS = (
       figures=("strum",), basses=("picked bass",), kit="rock", drums=(), grooves=("tavern rock", "rock"), hall=(1.2, 0.13),
       lift=0.3, titles=(("Open", "Sunny", "Wagon", "Milestone", "Free", "Homeward"), ("Road", "Miles", "Wheels", "Ramble", "Highway"))),
     C("banner ride", ("pastoral", "regal", "highland"), style="knight", band=True, modes=("mixolydian", "dorian"), bpm=(118, 132),
-      busy=0.6, weight=0.95, leads=("lead guitar",), strong=("lead guitar",), under=(), pads=("rock organ", "bagpipe"),
+      busy=0.6, weight=0.95, leads=("lead guitar",), strong=("lead guitar",), under=(), pads=("rock organ", "pipe drone"),
       pad_ways=("drone",), plucks=("rhythm guitar",), figures=("riff",), basses=("picked bass",), kit="rock", drums=(),
       grooves=("rock", "rock ride"), hall=(1.3, 0.14), lift=0.4,
       titles=(("Banner", "Lionheart", "Steel", "Charger", "King's", "Shield"), ("Ride", "Knights", "Oath", "Thunder", "Vanguard"))),
@@ -535,7 +535,7 @@ CHARACTERS = (
       grooves=("tom rock",), hall=(1.4, 0.15), lift=0.3,
       titles=(("Jungle", "Tiger", "Vine", "Headhunter", "Gorilla", "Thunder Lizard"), ("Stomp", "Boogie", "Drums", "Crawl", "Fever"))),
     C("forge anthem", ("infernal", "regal"), style="knight", band=True, modes=("minor", "dorian"), bpm=(96, 108), busy=0.5, weight=1.0,
-      leads=("lead guitar",), strong=("lead guitar",), under=(), pads=("rock organ", "bagpipe"), pad_ways=("drone", "pad"),
+      leads=("lead guitar",), strong=("lead guitar",), under=(), pads=("rock organ", "pipe drone"), pad_ways=("drone", "pad"),
       plucks=("rhythm guitar",), figures=("riff", "hammer"), basses=("picked bass",), kit="rock", drums=(),
       grooves=("anvil rock",), hall=(1.6, 0.17), lift=0.4,
       titles=(("Forge", "Anvil", "Hammer", "Molten", "Ironclad", "Blacksmith's"), ("Anthem", "Thunder", "Law", "Fire", "Hymn"))),
@@ -545,7 +545,7 @@ CHARACTERS = (
       kit="room", drums=(), grooves=("brushes",), hall=(2.2, 0.24), lift=0.2,
       titles=(("Moon", "Silver", "Starlight", "Willow", "Dreaming", "Fae"), ("Glade", "Ballad", "Serenade", "Waters", "Lullaby"))),
     C("mountain stomp", ("highland", "frozen"), style="knight", band=True, modes=("dorian", "mixolydian"), bpm=(100, 110), busy=0.5, weight=0.95,
-      leads=("lead guitar",), strong=("lead guitar",), under=(), pads=("bagpipe", "rock organ"), pad_ways=("drone",),
+      leads=("lead guitar",), strong=("lead guitar",), under=(), pads=("pipe drone", "rock organ"), pad_ways=("drone",),
       plucks=("rhythm guitar",), figures=("riff",), basses=("picked bass",), kit="rock", drums=(), grooves=("half rock", "anvil rock"),
       hall=(1.5, 0.16), lift=0.35,
       titles=(("Mountain", "Stonefist", "Avalanche", "Iron Boot", "Highland", "Ram"), ("Stomp", "March", "Thunder", "Clan", "Pride"))),
@@ -1926,7 +1926,7 @@ GROOVES = {
 CHANNELS = ("texture", "lead", "rhythm", "drums", "bass")
 # Instruments that are there to hold chords and can carry a tune as well: who a second theme
 # may be given to when the leads are all of a kind.
-SINGERS = ("rock organ", "organ", "accordion", "choir", "oohs", "harmonica", "bagpipe", "shenai", "pan flute")
+SINGERS = ("rock organ", "organ", "accordion", "choir", "oohs", "harmonica", "bagpipe", "pipe drone", "shenai", "pan flute")
 # A section of an orchestra plays one note at a time. A chord for the strings is therefore a
 # line for each section, not a block: who takes which note, from the bottom up, by how many
 # notes the chord has. (The second violins are the violins again, on a part of their own.)
