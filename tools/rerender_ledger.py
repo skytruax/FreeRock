@@ -92,10 +92,16 @@ CHANGES = [
     Change("soft war drums for the slower light walks", datetime.datetime(2026, 11, 18, 8, 55), "",
            "the lighter walking music busy from 0.35 has soft war drums too (snowfall, mirage, frozen lake, desert shrine, ice fields)",
            lambda p: lively_walk(p, 0.35) and not lively_walk(p, 0.45)),
-    Change("House's filters ride the story", datetime.datetime(2026, 11, 18, 9, 39), "",
-           "the chords, pads and tune through a low-pass that opens as a track builds, is wide open at a drop and shuts for the "
-           "breakdown; the bass's bottom taken away before a drop; the pump deeper at a drop, lighter in a theme; the hats 3 dB "
-           "softer, the sixteenths between the eighths only at a drop ('too much high hat and not enough dynamic sound')",
+    # (A first House rework, the filters ridden by one rule for every track, reached the files at 09:39 and was replaced
+    # by the one below before any House take was made with it: House's lists were held.)
+    Change("a music sheet of its own", datetime.datetime(2026, 11, 18, 10, 44), "",
+           "every take written down whole as its music sheet beside its recordings, the golden rule ('the music sheet should be "
+           "a separate concept and asset for every track'); a take made before has none until it is performed again",
+           lambda p: True),
+    Change("House written as sheets, its effects marked by the music", datetime.datetime(2026, 11, 18, 10, 44), "",
+           "each part's low-pass follows its notes' brightness (the theme darker than the drop, the breakdown shut), the sub out "
+           "of each rise and the breakdown, a rise's last beats thinned from the bottom, the hats on a dry line of their own and "
+           "softer, the pump deeper at a drop ('too much high hat and not enough dynamic sound', 'this is boring generic crap')",
            lambda p: p.style == "house"),
 ]
 

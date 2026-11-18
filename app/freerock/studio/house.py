@@ -1067,8 +1067,13 @@ class Take:
                 notes = list(voiced)
                 if story == "moment":
                     notes = notes + [notes[-1] + 12 if notes[-1] + 12 <= 84 else notes[0] + 12]       # fuller at the drop
-                bright = {"open": 0.12 + 0.5 * inside / count, "theme": 0.55 + 0.2 * inside / count, "rise": 0.4 + 0.6 * (inside / count) ** 2,
+                # (2026-11-18: a theme half an octave to an octave darker than the drop, opening across it, as the records
+                # studied do: "the theme is darker than the drop".)
+                bright = {"open": 0.12 + 0.33 * inside / count, "theme": 0.5 + 0.2 * inside / count, "rise": 0.4 + 0.6 * (inside / count) ** 2,
                           "moment": 1.0, "close": 0.85 - 0.6 * inside / count}[story]
+                if self.broken(story, first):
+                    # (2026-11-18: the breakdown was as bright as a theme.) Dark, and opening only a little across it.
+                    bright = 0.22 + 0.18 * inside / count
                 level = 0.2 * (0.35 + 0.65 * energy) * trim(sound, 64)
                 if story == "open" and inside < (count // 4 if not fam.hard else 0):
                     continue
@@ -1295,7 +1300,9 @@ class Take:
                 bar, along = first + inside, inside / count
                 energy = self.energy(story, along, first)
                 voiced = self.changes.voicing(self.changes.chord(inside), 48, 69, voiced, spread)
-                bright = {"open": 0.25 + 0.4 * along, "theme": 0.5, "rise": 0.45 + 0.5 * along, "moment": 0.92, "close": 0.75 - 0.45 * along}[story]
+                bright = {"open": 0.25 + 0.25 * along, "theme": 0.47, "rise": 0.45 + 0.5 * along, "moment": 0.92, "close": 0.75 - 0.45 * along}[story]
+                if self.broken(story, first):
+                    bright = 0.22 + 0.18 * along
                 level = 0.2 * trim(sound, 60) * {"open": 0.75 + 0.25 * along, "theme": 0.7, "rise": 0.7 + 0.3 * along, "moment": 1.0,
                                                   "close": 0.95 - 0.45 * along}[story]
                 length = min(slot, count - inside) * BAR

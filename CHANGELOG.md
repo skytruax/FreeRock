@@ -3,6 +3,47 @@
 Newest first. Words in quotation marks are what was said while listening or playing, as typed or
 dictated, where it drove the change.
 
+## 2026-11-18, late morning: every track gets its own music sheet; effects the music asks for
+
+"the music sheet should be a separate concept and asset for every track, and updating it should be the
+golden rule, you are a musician were working on music.... the rest is plumbing"; "the music itself
+should denote the effects it shouldnt be standard"; "guitars should have effects in the 70s bro".
+
+- **The music sheet** (`score.Sheet`).
+  - Every new take is written down whole and kept beside its recordings as `sheet.json`: its form and
+    keys, every part's notes, swells and effect marks, who plays each part, and its history of
+    revisions with why. The revisions it replaces stay beside it.
+  - The writers make the first draft (`build.write`, `club.write`); the desk only performs a sheet
+    (`build.perform`, `club.perform`). Making a song better means revising its sheet and performing it
+    again.
+  - Performed from its sheet, a take makes exactly the REAPER project it did before (shown on three
+    takes of both styles, and read back from the file).
+  - `python -m freerock.studio.sheet show` lays a sheet out as a part chart, and `perform` plays it
+    again.
+- **Effects marked by the music.** A part's effect marks are where its own notes ask for them, never
+  one rule for every piece.
+  - The band's guitars, as a 1970s player works his pedals: a jet flanged by hand across a chord held
+    into an arrival, a wah rocked at the pace of a running solo, a cry across a long held note, a vibe
+    on a clean guitar ringing in the valley, a phaser on strummed chords where a passage comes back.
+    Riffs and chugs stay dry, as on the records. Waiting on the ear before the lanes use them.
+  - The studio's own REAPER effects play the marks (`studio/jsfx/pedals`: wah, phaser and flanger, in
+    time with the song or swept by hand; `studio/jsfx/sweep`: a resonant low-pass and a high-pass).
+    REAPER's bundled phaser starts its sweep again whenever a setting moves.
+- **House, from a study of how the records are made** ("too much high hat and not enough dynamic
+  sound", "study top dj techniques like deadmau5 and daft punk", "this is boring generic crap"):
+  - Each part's filter follows its own notes' brightness, where four fixed cuts had stood: the theme
+    darker than the drop, and the breakdown shut down dark. The chords' fixed top, which kept a drop
+    as dark as its theme, gave way to it.
+  - The sub leaves for each rise and the breakdown (26 dB down there, was 9), the last seven beats of
+    a rise are thinned from the bottom, and everything comes back on the drop's first beat.
+  - The hats are off the clap's bright chain and on a line of their own: high-passed, dry, 3 dB further
+    under the kick, with the sixteenths between the eighths only at a drop.
+  - The pump is deeper at a drop (the sub 14 dB, the pads 9) and swells back into the off-beat.
+  - Held until its demo passes.
+- **The songwriting handbook** opens with the sheet: what it is, how to read, revise and perform one,
+  how effects are marked, and what was learned. The nightly loop works on sheets and writes what it
+  learns there.
+
 ## 2026-11-18, morning: every style on the same ground, a real accordion, a bagpipe chosen by ear
 
 "make sure all our new location, song switch, signal stuff, persists across all genres"; "new horn

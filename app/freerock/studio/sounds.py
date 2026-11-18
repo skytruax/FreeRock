@@ -1317,13 +1317,62 @@ def _muse(voice: Voice, title: str, bpm: float, taste: float, room: float, seed:
     return out
 
 
+# The effect marks the desk plays (score.EFFECTS), and which setting of which of the studio's effects each one draws.
+PEDAL_MARKS = {"wah": 0, "wah depth": 2, "wah position": 3, "phaser": 4, "flanger": 7, "flanger depth": 10, "flanger position": 11}
+SWEEP_MARKS = {"lowpass": (0, 20.0, 20000.0), "highpass": (2, 20.0, 4000.0)}
+
+
+def marked(voice: Voice, bpm: float) -> list[str]:
+    """The effects a part's marks ask for, as REAPER plays them (2026-11-18: "the music itself should denote the effects
+    it shouldnt be standard"): the pedals (studio/jsfx/pedals) and the filters (studio/jsfx/sweep), each mark drawn as
+    that effect's envelope, set as the part's settings say. None for a part with no marks."""
+    marks, settings = voice.effects, voice.settings
+    unknown = set(marks) - set(PEDAL_MARKS) - set(SWEEP_MARKS)
+    if unknown:
+        raise ValueError("The desk does not play the effect marks %s" % ", ".join(sorted(unknown)))
+    second = 60.0 / bpm
+
+    def first(name: str, default: float) -> float:
+        return marks[name][0][1] if marks.get(name) else default
+    out = []
+    if any(marks.get(name) for name in PEDAL_MARKS):
+        effect = desk.js("freerock/pedals", first("wah", 0.0), settings.get("wah beats", 1.0), first("wah depth", 1.0), first("wah position", 0.5),
+                         first("phaser", 0.0), settings.get("phaser bars", 2.0), settings.get("phaser feedback", 0.45),
+                         first("flanger", 0.0), settings.get("flanger bars", 4.0), settings.get("flanger feedback", 0.6),
+                         first("flanger depth", 1.0), first("flanger position", 0.0))
+        for name, param in PEDAL_MARKS.items():
+            if marks.get(name):
+                effect = desk.automated(effect, param, [(at * second, value) for at, value in marks[name]], 0.0, 1.0)
+        out.append(effect)
+    if any(marks.get(name) for name in SWEEP_MARKS):
+        effect = desk.js("freerock/sweep", first("lowpass", 20000.0), settings.get("lowpass resonance", 0.2), first("highpass", 20.0),
+                         settings.get("highpass resonance", 0.0))
+        for name, (param, low, high) in SWEEP_MARKS.items():
+            if marks.get(name):
+                effect = desk.automated(effect, param, [(at * second, value) for at, value in marks[name]], low, high)
+        out.append(effect)
+    return out
+
+
 def lines(voice: Voice, title: str, bpm: float, *, taste: float = 1.0, room: float = 1.0, seed: int = 0,
           muse_level: float | None = None) -> list[desk.Line]:
     """The REAPER tracks that play one written voice. `taste` turns it up or down as a whole;
     `room` is how much hall the piece has (1 is the usual). Where MuseScore's orchestra is
     there (studio.muse), it plays the instruments it has; the drums, and whatever it has not,
     are the studio's own. `muse_level` measures MuseScore's recordings to a level (see `_muse`):
-    for a voice that shares its channel with the studio's own players."""
+    for a voice that shares its channel with the studio's own players. What the voice's effect
+    marks ask for (`marked`) goes on each of its tracks after the track's own tone, before its
+    echo, its tape and its room: where a pedalboard goes."""
+    made = _lines(voice, title, bpm, taste=taste, room=room, seed=seed, muse_level=muse_level)
+    pedals = marked(voice, bpm)
+    if pedals:
+        for line in made:
+            line.effects = list(line.effects[:1]) + pedals + list(line.effects[1:])
+    return made
+
+
+def _lines(voice: Voice, title: str, bpm: float, *, taste: float = 1.0, room: float = 1.0, seed: int = 0,
+           muse_level: float | None = None) -> list[desk.Line]:
     if not voice.drums and voice.instrument in muse.PARTS and muse.available():
         return _muse(voice, title, bpm, taste, room, seed, muse_level)
     if voice.drums:

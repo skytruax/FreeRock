@@ -11,9 +11,11 @@ played by instruments that are instruments.
     the drums             the drum-machine recordings the writer already used (MckAudio's TR-8 set, CC0), in the sampler
     the risers and air    what the writer makes out of noise, laid in as a recording
 
-A sound in the writer has a brightness for every note (how far its filter is open: it opens as
-a track builds). A voice is therefore laid over up to four tracks of the same instrument, each
-with its top closed a little less, and every note goes to the one its brightness calls for.
+What the writer asks for is taken down as the take's music sheet (`write`, score.Sheet), and
+the desk plays the sheet (`perform`): a sheet can be revised and played again. A sound in the
+writer has a brightness for every note (how far its filter is open: it opens as a track builds);
+on the sheet that is the part's low-pass, an effect mark that moves with the music, and where
+the form takes the bottom away (a rise, the breakdown) the part's high-pass is marked too.
 
 Under each stroke of the kick the bass, the pad and the chords give way and come back (the
 drawn volume curve of studio.build, deeper here: this is the music that curve comes from).
@@ -30,14 +32,14 @@ import math
 import sys
 import time
 from collections import defaultdict
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 import numpy as np
 
 from .. import analysis, forever
 from . import RATE, desk, house, muse, reaper, sfz, sounds, stage_root, write_track
-from .score import Note, Voice
+from .score import Note, Sheet, Voice
 
 VAR = Path(__file__).resolve().parents[3] / "var"
 PROJECTS = VAR / "reaper" / "projects"
@@ -58,35 +60,35 @@ PLAYED = {
     ("pad", "warm"): "house pad warm", ("pad", "strings"): "strings slow", ("pad", "super"): "house pad super", ("pad", "glass"): "house pad glass",
     ("pad", "hollow"): "house pad hollow", ("pad", "organ"): "house pad organ",
 }
-# How far a note's top is closed, by how bright the writer asks for it (under this much brightness: this cut, in Hz; 0 is open).
-BRIGHT = ((0.55, 900.0), (0.7, 2200.0), (0.85, 5000.0), (9.0, 0.0))
+RESONANCE = {"rhythm": 0.35, "texture": 0.15, "lead": 0.1, "bass": 0.0}       # how far each channel's low-pass sings as it moves
+
+
+def cutoff(bright: float) -> float:
+    """Where a part's low-pass stands for a note of this brightness (the writer's 0 to 1, as it opens over a track), in
+    Hz, set by the records studied (the house study's filter timeline): 350 Hz as a track begins (0.12), 1.6 kHz as its
+    open ends (0.45), 2 to 5 kHz across a theme (0.5 to 0.7), 550 Hz to 1.3 kHz through the breakdown (0.22 to 0.4), wide
+    open at a drop (1). (2026-11-18: the brightness was four fixed cuts, so a part's tone moved in steps and a drop was
+    the colour of its theme; "too much high hat and not enough dynamic sound".)"""
+    return min(max(350.0 * math.exp(4.594 * (bright - 0.12)), 200.0), 20000.0)
 KICKS = ("kick", "kick2", "punch", "boom")
+HATS_SOUNDS = ("hat", "open", "maracas", "cabasa", "tambourine", "ride")      # the drums on the hats' own line
 # How far each channel is turned down under a stroke of the kick, as a part of its level (studio.build.DUCK is the
 # orchestra's: 0.56 for its bass). The writer's own pump took 55 to 75% of the bass away and half of the pad.
-DUCK = {"bass": 0.4, "texture": 0.4, "rhythm": 0.6, "lead": 0.85}
+DUCK = {"bass": 0.2, "texture": 0.35, "rhythm": 0.45, "lead": 0.85}
 # How deep that goes in each part of the story, as a share of it (2026-11-18: "not enough dynamic sound", "study top dj
 # techniques like deadmau5 and daft punk": the pump is the drop's, all the way there, less in a theme, least where the
-# groove is only arriving). Deeper than before at a drop (the pad down 8 dB, was 5), shallower in a theme.
-PUMP = {"open": 0.5, "theme": 0.7, "rise": 0.6, "moment": 1.0, "close": 0.7}
+# groove is only arriving). At a drop the sub goes down 14 dB and the chords and pads 7 and 9, back in time for the
+# off-beat (the study of the records: the sub -12 to -18 dB, the chords and pads -6 to -12, swelling back).
+PUMP = {"open": 0.4, "theme": 0.7, "rise": 0.5, "moment": 1.0, "close": 0.7}
 # ...and how long each takes to come back, in beats. The bass is back in a third of a beat (about 150 ms at 110 BPM,
 # where the records studied put it), so the low end is clear for the kick and full again before the off-beat; the
 # pad takes three quarters of one, which is the pump that is heard.
-RECOVER = {"bass": 0.33, "texture": 0.75, "rhythm": 0.6, "lead": 0.5}
+RECOVER = {"bass": 0.33, "texture": 0.85, "rhythm": 0.7, "lead": 0.5}
 # Where each channel sits where the track is fullest (LUFS), as the writer's own mix had them.
 # (The kick and the bass 1 dB up, 2026-11-17, evening, played: "just a bit light and wimpy in general", "in all genres";
 # then half a dB more: "go a little harder this is not world of fairy craft".)
 PLACE = {"drums": -12.5, "bass": -15.0, "rhythm": -20.0, "lead": -19.0, "texture": -22.0}
 CALM = {"drums": -18.0, "bass": -18.0, "lead": -18.0, "texture": -20.0}        # an inn, the night
-# The filters a producer rides through a track (2026-11-18: "house sounds a little better but too much high hat and not
-# enough dynamic sound, study, use reaper plugins, do better", "this is boring generic crap", "yes you need effects over
-# time", "some of the instruments get boring"): the chords, the pads and the tune through a low-pass (studio/jsfx/sweep)
-# that is shut at the start and opens through the open and the theme, is wide open at a drop, shuts for the breakdown and
-# opens again across the rise, the resonance singing as it goes; the bass through a high-pass that takes its bottom away
-# over the last bars of a rise, so that the drop brings it back. (channel: the low-pass's lowest, in Hz, and its
-# resonance. The tune is shut only for the breakdown.)
-SWEPT = {"rhythm": (450.0, 0.45), "texture": (700.0, 0.2), "lead": (2000.0, 0.1)}
-OPEN_HZ = 20000.0
-THEME_HZ = 8000.0               # where a theme has opened to by its end: the rise opens the rest
 
 
 @dataclass
@@ -95,6 +97,8 @@ class Heard:
     notes: dict[tuple[str, str, str], list[tuple[float, float, float, float, float, float]]] = field(default_factory=lambda: defaultdict(list))
     hits: list[tuple[str, str, float, float, float]] = field(default_factory=list)      # drum, machine, seconds, level, pan
     airs: list = field(default_factory=list)       # what the texture is besides its notes: risers, wind, drips (house.Air)
+    # Each part's effect marks and their settings, from its sheet (score.EFFECTS): (channel, table, sound) -> (marks, settings).
+    marks: dict[tuple[str, str, str], tuple[dict, dict]] = field(default_factory=dict)
 
 
 class _Drum:
@@ -255,10 +259,10 @@ def voices(heard: Heard) -> list[tuple[str, str, str, str, float, list[Note], fl
                               taste * float(np.median([part for _, part in under]))))
         every: list[Note] = []
         for suffix, mine_notes, hard, level in parts:
+            # (Its brightness is the part's moving low-pass, one of its effect marks: see `write` and `cutoff`.)
             bands: dict[float, list[Note]] = defaultdict(list)
-            for (at, length, pitch, _, _, bright), loud in zip(mine_notes, hard):
-                cut = next(cut for under_bright, cut in BRIGHT if bright < under_bright)
-                bands[cut].append(Note(at / BEAT, max(length / BEAT, 0.05), int(round(pitch)), loud))
+            for (at, length, pitch, _, _, _), loud in zip(mine_notes, hard):
+                bands[0.0].append(Note(at / BEAT, max(length / BEAT, 0.05), int(round(pitch)), loud))
             for cut, mine in sorted(bands.items()):
                 out.append((channel, table, name + suffix, written, cut, mine, level, ride))
                 every += mine
@@ -280,9 +284,9 @@ def voices(heard: Heard) -> list[tuple[str, str, str, str, float, list[Note], fl
     return out
 
 
-def lines(heard: Heard, track: house.Take, work: Path) -> tuple[dict[str, list[desk.Line]], list[tuple[float, float]]]:
-    """The REAPER tracks of a take, by channel, and where its kick strikes ((beat, how hard))."""
-    seed = track.seed
+def lines(heard: Heard, seed: int, work: Path) -> tuple[dict[str, list[desk.Line]], list[tuple[float, float]]]:
+    """The REAPER tracks of a take, by channel, and where its kick strikes ((beat, how hard)). Each part's effect marks
+    (`Heard.marks`) go on its tracks."""
     out: dict[str, list[desk.Line]] = defaultdict(list)
     # ----- drums: the kick by itself, and everything else the machine strikes, in a small room
     used = sorted({name for name, *_ in heard.hits})
@@ -293,7 +297,8 @@ def lines(heard: Heard, track: house.Take, work: Path) -> tuple[dict[str, list[d
         hard = _loud([level for _, _, _, level, _ in heard.hits])
         sets: dict[str, list[Note]] = defaultdict(list)
         for (name, _, at, level, pan), loud in zip(heard.hits, hard):
-            which = "kick" if name in KICKS else "room"           # the writer strikes its kick dry and everything else into a room
+            # The writer strikes its kick dry and everything else into a room; the hats and shakers have a line of their own.
+            which = "kick" if name in KICKS else "hats" if name in HATS_SOUNDS else "room"
             sets[which].append(Note(at / BEAT, 0.25, keys[name], loud))
             if name in KICKS:
                 strokes.append((at / BEAT, loud))
@@ -304,6 +309,9 @@ def lines(heard: Heard, track: house.Take, work: Path) -> tuple[dict[str, list[d
             # (The clap, the snare and the hats 4 to 10 dB short from 900 Hz to 3.5 kHz against the liked stems, 2026-11-17;
             # with that lifted, the clap's and the snare's knock at 900 Hz was still 3 to 6 dB short in every take, 2026-11-18.)
             "room": ([sounds.equalise(low_cut=180.0, bands=((900.0, 3.0, 1.2), (2000.0, 3.0, 0.8))), sounds.warm(0.35)], 0.22, 0.6),
+            # (2026-11-18: "too much high hat". They shared the clap's chain: lifted 3 dB at 900 Hz and 2 kHz, through tape and
+            # into the hall. A hat in a good house record is high-passed, dry, its top eased, and well under the kick and clap.)
+            "hats": ([sounds.equalise(low_cut=500.0, high_shelf=(11000.0, -3.0))], 0.0, 0.42),
         }
         for which, notes in sets.items():
             effects, send, volume = chains[which]
@@ -318,8 +326,9 @@ def lines(heard: Heard, track: house.Take, work: Path) -> tuple[dict[str, list[d
             # 6 to 19 dB too much from 900 Hz to 3.5 kHz in the leads and keys, the pads 16 dB over at 3.5 kHz; MuseScore's
             # instruments had measured dull the night before. So each line is toned by what plays it.)
             synth_played = not (written in muse.PARTS and muse.available())
-            for line in sounds.lines(Voice(notes=mine, instrument=written), title, house.BPM, taste=taste, room=1.0, seed=seed,
-                                     muse_level=sounds.LEVEL):
+            effects, settings = heard.marks.get((channel, table, name.split(" ")[0]), ({}, {}))
+            for line in sounds.lines(Voice(notes=mine, instrument=written, effects=dict(effects), settings=dict(settings)), title, house.BPM,
+                                     taste=taste, room=1.0, seed=seed, muse_level=sounds.LEVEL):
                 if ride:
                     line.moves = list(ride)
                 if cut:
@@ -341,7 +350,9 @@ def lines(heard: Heard, track: house.Take, work: Path) -> tuple[dict[str, list[d
                     # (2026-11-17, early afternoon, by ear: "your house sounds cheesy bro more effects or something", the synths
                     # heard as presets: the chords turn slowly under a phaser, through tape, with more echo and more room.)
                     moved = [sounds.phase(0.35)] if synth_played else []
-                    line.effects = list(line.effects) + [sounds.equalise(low_cut=110.0, high_cut=6000.0, bands=tone, high_shelf=(2500.0, -16.0))] \
+                    # (2026-11-18: a moving low-pass is marked on each part now, shut in the themes and the breakdown and open at
+                    # a drop; with this top fixed at 6 kHz and 16 dB down from 2.5, a drop was as dark as its theme.)
+                    line.effects = list(line.effects) + [sounds.equalise(low_cut=110.0, bands=tone, high_shelf=(2500.0, -10.0))] \
                         + moved + [sounds.warm(0.3), sounds.echo(house.BPM, 0.26, left=3, right=4, again=0.36)]
                     line.send = max(line.send, 0.24)
                 elif channel == "lead":
@@ -432,71 +443,128 @@ def air_lines(airs: list) -> list[desk.Line]:
 
 
 def _curve(start: float, end: float, low: float, high: float, shape: float = 1.0, steps: int = 32) -> list[tuple[float, float]]:
-    """(seconds, Hz) from `low` to `high` evenly in pitch; a `shape` over 1 holds back and then goes, as a rise does."""
-    return [(start + (end - start) * index / steps, math.exp(math.log(low) + (math.log(high) - math.log(low)) * (index / steps) ** shape))
-            for index in range(steps + 1)]
+    """(time, Hz) from `low` to `high` evenly in pitch; a `shape` over 1 holds back and then goes, as a rise does. Its
+    ends are exactly `low` and `high`."""
+    def at(index: int) -> float:
+        if index in (0, steps):
+            return low if index == 0 else high
+        return math.exp(math.log(low) + (math.log(high) - math.log(low)) * (index / steps) ** shape)
+    return [(start + (end - start) * index / steps, at(index)) for index in range(steps + 1)]
 
 
-def filter_rides(track: house.Take) -> dict[str, str]:
-    """The low-pass of the chords, the pads and the tune, and the high-pass of the bass, drawn through a take (SWEPT):
-    each channel's filter as an effect for its bus, its frequency moving by a parameter envelope."""
-    bar = house.BAR
-    fam = track.family
-    rides = {}
-    for channel, (low, resonance) in SWEPT.items():
-        lead = channel == "lead"
-        if not lead and (fam.role in house.CALM_ROLES or fam.hard):
-            low = max(2.0 * low, 1500.0)           # an inn, a camp or a fight is never shut far down
-        points: list[tuple[float, float]] = []
-        here = OPEN_HZ if lead else low
-        for story, first, count in track.sections:
-            a, b = first * bar, (first + count) * bar
-            if track.broken(story, first):
-                # Shut over its first four bars; opening a little across the rest of it.
-                shut = low if lead else 1.5 * low
-                turn = a + min(4, count) * bar
-                points += _curve(a, turn, here, shut, steps=16) + _curve(turn, b, shut, 2.0 * shut, steps=16)
-                here = 2.0 * shut
-                continue
-            target = {"open": OPEN_HZ if lead else 3.0 * low, "theme": OPEN_HZ if lead else THEME_HZ, "rise": OPEN_HZ,
-                      "moment": OPEN_HZ}.get(story, OPEN_HZ if lead else 2.0 * low)        # the close shuts as it goes
-            points += _curve(a, b, here, target, shape=1.8 if story == "rise" else 1.0)
-            here = target
-        rides[channel] = desk.automated(desk.js("freerock/sweep", OPEN_HZ, resonance, 20.0, 0.0), 0, points, 20.0, 20000.0)
-    # The bass: its bottom taken away over the last four bars of each rise (two of a short one), back on the drop.
+def thinning(form: list[dict], channel: str, calm: bool) -> list[tuple[float, float]]:
+    """Where a part's bottom is taken away, as (beat, Hz) of its high-pass (2026-11-18, the study of the records): the
+    sub goes for the whole of each rise and comes back with everything on the drop's first beat; over a rise's last
+    seven beats the bass is thinned from 100 Hz to 250, the chords and pads from 60 Hz to 400; and at the breakdown the
+    bass is lifted out over its first four bars (30 Hz to 150), so that the drop has the whole bottom to bring back. A
+    calm piece (an inn, a camp, the night) keeps its bottom, and the tune has none of this."""
+    if calm or channel not in ("bass", "rhythm", "texture"):
+        return []
     points = [(0.0, 20.0)]
-    for story, first, count in track.sections:
-        if story == "rise":
-            end = (first + count) * bar
-            go = end - min(4, max(count // 2, 1)) * bar
-            points += _curve(go, end - 0.02, 20.0, 220.0, shape=1.4, steps=16) + [(end, 20.0)]
-    rides["bass"] = desk.automated(desk.js("freerock/sweep", OPEN_HZ, 0.0, 20.0, 0.25), 2, points, 20.0, 4000.0)
-    return rides
+    for section in form:
+        a, b = section["first"] * 4.0, (section["first"] + section["bars"]) * 4.0
+        if channel == "bass" and section.get("breakdown"):
+            points += [(a - 0.05, 20.0)] + _curve(a, a + min(16.0, b - a), 30.0, 150.0, steps=12) + [(b - 0.05, 150.0)]
+        elif section["story"] == "rise":
+            low, high = (100.0, 250.0) if channel == "bass" else (60.0, 400.0)
+            go = max(b - 7.0, a)
+            if channel == "bass":
+                points += [(a - 0.05, points[-1][1]), (a, low), (go, low)]
+            else:
+                points += [(go - 0.05, 20.0), (go, low)]
+            points += _curve(go, b - 0.05, low, high, shape=1.6, steps=12)[1:] + [(b, 20.0)]
+    return points
 
 
-def story_at(track: house.Take, beat: float) -> str:
-    """Which part of the story a beat of a take is in."""
+def story_at(sections: list[tuple[str, int, int]], beat: float) -> str:
+    """Which part of the story a beat is in ((story, first bar, bars) of each section)."""
     bar = beat / 4.0
-    for story, first, count in track.sections:
+    for story, first, count in sections:
         if first <= bar < first + count:
             return story
-    return track.sections[-1][0]
+    return sections[-1][0]
+
+
+def write(name: str, take: int) -> Sheet:
+    """A House take's music sheet, its first draft: what the writer (studio.house) asks to be played, taken down as it
+    writes (`listen`), every part with its effect marks. Each part's low-pass follows its notes' brightness as the
+    track opens and closes (`cutoff`), and its high-pass where the form takes the bottom away (`thinning`)."""
+    track = house.Take(house.family(name), take)
+    fam = track.family
+    heard = listen(track)
+    calm = fam.role in house.CALM_ROLES
+    form = [dict({"story": story, "first": first, "bars": count}, **({"breakdown": True} if track.broken(story, first) else {}))
+            for story, first, count in track.sections]
+    parts: dict[str, dict[str, Voice]] = {channel: {} for channel in forever.CHANNELS}
+    for (channel, table, sound), notes in sorted(heard.notes.items()):
+        part = Voice(instrument=PLAYED[(table, sound)],
+                     notes=[Note(at / BEAT, length / BEAT, int(round(pitch)), level) for at, length, pitch, level, _, _ in notes])
+        lane: list[tuple[float, float]] = []
+        for at, _, _, _, _, bright in sorted(notes):
+            beat, hz = at / BEAT, cutoff(bright)
+            if lane and beat - lane[-1][0] < 1e-3:
+                lane[-1] = (lane[-1][0], max(lane[-1][1], hz))
+            else:
+                lane.append((beat, hz))
+        if any(hz < 19999.0 for _, hz in lane):
+            part.mark("lowpass", lane)
+            part.set("lowpass resonance", RESONANCE.get(channel, 0.1))
+        thin = thinning(form, channel, calm)
+        if thin:
+            part.mark("highpass", thin)
+            part.set("highpass resonance", 0.25 if channel == "bass" else 0.15)
+        parts[channel]["%s %s" % (table, sound)] = part
+    machine = heard.hits[0][1] if heard.hits else ""
+    for drum, _, at, level, _ in heard.hits:
+        parts["drums"].setdefault(drum, Voice(drums=True, instrument="house kit " + machine)).notes.append(Note(at / BEAT, 0.25, 36, level))
+    meta = track.meta()
+    about = {"meta": meta, "frames": track.frames, "kick": bool(track.kick), "role": fam.role, "calm": calm, "seed": track.seed,
+             "machine": machine, "hard": fam.hard}
+    sheet = Sheet(style="house", family=name, take=take, title=meta["title"], tempo=float(house.BPM), beats=4.0, form=form, parts=parts,
+                  about=about, airs=[asdict(air) for air in heard.airs])
+    sheet.revised("the first draft", "written by the studio's house writer (%s, %s)" % (fam.palette, fam.groove), by="the writer")
+    return sheet
+
+
+def heard_from(sheet: Sheet) -> Heard:
+    """What a House sheet asks to be played, as the desk takes it (`Heard`)."""
+    heard = Heard()
+    for channel, parts in sheet.parts.items():
+        if channel == "drums":
+            continue
+        for part_name, part in parts.items():
+            table, sound = part_name.split(" ", 1)
+            heard.notes[(channel, table, sound)] = [(n.start * BEAT, n.length * BEAT, float(n.pitch), n.loud, 0.0, 1.0) for n in part.notes]
+            if part.effects:
+                heard.marks[(channel, table, sound)] = (part.effects, part.settings)
+    heard.hits = sorted(((drum, sheet.about["machine"], n.start * BEAT, n.loud, 0.0) for drum, part in sheet.parts.get("drums", {}).items()
+                         for n in part.notes), key=lambda hit: hit[2])
+    heard.airs = [house.Air(**air) for air in sheet.airs]
+    return heard
 
 
 def stage(name: str, take: int) -> dict:
-    """Writes one take of a house family, has REAPER play it, balances it and stages it."""
+    """Writes one take of a house family as its sheet and performs it (`write`, `perform`)."""
+    return perform(write(name, take))
+
+
+def perform(sheet: Sheet) -> dict:
+    """Plays a House sheet and stages it: MuseScore and Surge XT play its parts in REAPER with their marks, the drums from
+    the drum machine's recordings, each channel giving way under the kick as deep as its part of the story asks; then
+    each channel to its place, the mix rendered again in REAPER, and the track staged with its sheet beside it."""
     began = time.time()
-    track = house.Take(house.family(name), take)
-    fam = track.family
+    about = sheet.about
+    name, take = sheet.family, sheet.take
     work = PROJECTS / "house" / name / str(take)
     work.mkdir(parents=True, exist_ok=True)
-    heard = listen(track)
+    heard = heard_from(sheet)
+    sections = [(section["story"], section["first"], section["bars"]) for section in sheet.form]
+    frames = about["frames"]
     if muse.available():
         # MuseScore performs its instruments' lines several at a time before the project is put together.
         muse.prepare([(written, mine, float(house.BPM), []) for _, _, _, written, _, mine, _, _ in voices(heard) if written in muse.PARTS],
-                     seed=track.seed, workers=4)
-    under, strokes = lines(heard, track, work)
-    rides = filter_rides(track)
+                     seed=about["seed"], workers=4)
+    under, strokes = lines(heard, about["seed"], work)
     folders = []
     for channel in forever.CHANNELS:
         if not under.get(channel):
@@ -505,10 +573,11 @@ def stage(name: str, take: int) -> dict:
         for at, loud in sorted(strokes) if channel in DUCK else ():
             if at <= last:
                 continue
-            down = 1.0 - (1.0 - DUCK[channel]) * PUMP.get(story_at(track, at), 0.7) * min(loud / 0.8, 1.0)
-            # Down just before the stroke, held for a moment, back over the channel's own time.
+            down = 1.0 - (1.0 - DUCK[channel]) * PUMP.get(story_at(sections, at), 0.7) * min(loud / 0.8, 1.0)
+            # Down just before the stroke, held for a moment, and back over the channel's own time, slowly at first so
+            # that it swells into the off-beat.
             back = RECOVER[channel]
-            moves += [(at - 0.02, 1.0), (at, down), (at + 0.08, down), (at + back, 1.0)]
+            moves += [(at - 0.02, 1.0), (at, down), (at + 0.08, down), (at + 0.6 * back, down + 0.35 * (1.0 - down)), (at + back, 1.0)]
             last = at + back
         bus = sounds.bus(channel, style="house")
         if channel == "drums":
@@ -517,22 +586,19 @@ def stage(name: str, take: int) -> dict:
             # house stems: the strokes rose a third as fast as theirs through the orchestra's drum bus).
             bus = [sounds.equalise(low_cut=28.0, bands=((250.0, -3.0, 1.2),)), sounds.squeeze(-16.0, 2.5, 12.0, 120.0, 1.5),
                    sounds.ceiling(-1.0, push=1.5)]
-        if channel in rides:
-            # The filter rides last but for the ceiling, so its resonance is held under it too.
-            bus = list(bus[:-1]) + [rides[channel], bus[-1]]
         folders.append((desk.Line(channel, desk.bare(channel, []), effects=bus, moves=moves), under[channel]))
-    seconds = track.bars * house.BAR
+    seconds = sheet.bars * house.BAR
     rpp = work / "track.rpp"
     rpp.write_text(desk.project(folders, bpm=float(house.BPM), seconds=seconds, out=work, tail=forever.POST_S, hall=sounds.hall(1.5, top=6000.0)), encoding="utf-8")       # a darker room than the orchestra's
     with reaper.Display() as display:
         desk.render(rpp, display=display, timeout=300.0 + 12.0 * seconds)       # (see build.stage)
-    parts = desk.stems(work, [bus.name for bus, _ in folders], track.frames)
+    parts = desk.stems(work, [bus.name for bus, _ in folders], frames)
     # Each channel to its place by how loud it is where the track is fullest, as the writer's own mix did it. (Measured
     # here and done in REAPER, as a mixer would: see below.)
-    story, first, count = next(section for section in reversed(track.sections) if section[0] == "moment")     # the last drop
+    story, first, count = next(section for section in reversed(sections) if section[0] == "moment")     # the last drop
     a, b = int(round(first * house.BAR_FRAMES)), int(round((first + count) * house.BAR_FRAMES))
-    want = dict(PLACE, **(CALM if fam.role in house.CALM_ROLES else {}))
-    if not track.kick:
+    want = dict(PLACE, **(CALM if about["calm"] else {}))
+    if not about["kick"]:
         want["drums"] = -27.0
     faders = {}
     for channel in list(parts):
@@ -544,13 +610,13 @@ def stage(name: str, take: int) -> dict:
             continue
         # ...but never so far up that another part of the story goes more than 3 dB over the channel's place (as the
         # orchestra's desk does since 2026-11-17, night: a house tune soft at its drop and full in its theme blared there).
-        edges = [0] + [int(round((first + count) * house.BAR_FRAMES)) for _, first, count in track.sections]
+        edges = [0] + [int(round((first + count) * house.BAR_FRAMES)) for _, first, count in sections]
         have = max(have, max(analysis.loudness_lufs(parts[channel][low:high], RATE) for low, high in zip(edges, edges[1:])) - 3.0)
         faders[channel] = 10.0 ** ((want[channel] - have) / 20.0)
         parts[channel] = (parts[channel] * faders[channel]).astype(np.float32)
     # What is still ringing two seconds before the recording ends is eased away to nothing (as the writer's own render does).
     last = int(2.0 * RATE)
-    ease = np.ones(track.frames, dtype=np.float32)
+    ease = np.ones(frames, dtype=np.float32)
     ease[-last:] = 0.5 * (1.0 + np.cos(np.linspace(0.0, np.pi, last)))
     eased = {channel: audio * ease[:, None] for channel, audio in parts.items()}
     # The track to its level and its peaks under the ceiling (house.master), and if one channel alone would still be
@@ -566,15 +632,16 @@ def stage(name: str, take: int) -> dict:
     with reaper.Display() as display:
         parts = desk.mixdown(work, recorded, faders={channel: faders[channel] * up * extra for channel in parts},
                              ride=desk.ride_points(curve), bpm=float(house.BPM), seconds=seconds, tail=forever.POST_S,
-                             frames=track.frames, display=display, timeout=300.0 + seconds)
+                             frames=frames, display=display, timeout=300.0 + seconds)
     for bus, _ in folders:
         (work / (bus.name + ".wav")).unlink()
-    meta = track.meta()
+    meta = dict(about["meta"])
     meta["credit"] = ("Written by FreeRock's studio (studio.house); played in REAPER by the Surge XT synth, MuseScore Studio's Muse Sounds "
                       "(Muse Group) and MckAudio's TR-8 drum-machine recordings (CC0), put together by studio.club.")
     found = house.measure(meta, parts)
     folder = stage_root(VAR, "house") / name / str(take)
     write_track(folder, meta, parts)
+    sheet.save(folder / "sheet.json")
     found.update(family=name, take=take, title=meta["title"], seconds=round(seconds, 1), took=round(time.time() - began, 1),
                  voices=sorted("%s: %s %s -> %s" % (channel, table, sound, PLAYED[(table, sound)]) for channel, table, sound in heard.notes))
     scratch = folder / "measured.json.new"

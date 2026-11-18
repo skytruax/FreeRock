@@ -467,34 +467,51 @@ def _value_at(points: list[tuple[float, float]], seconds: float) -> float:
     return float(np.interp(seconds, [at for at, _ in points], [value for _, value in points]))
 
 
-def test_the_filters_open_as_a_track_builds_are_wide_open_at_a_drop_and_shut_for_the_breakdown():
-    # (2026-11-18: "not enough dynamic sound", "yes you need effects over time", "study top dj techniques like deadmau5
-    # and daft punk": the filter a producer rides over a build.)
+def test_a_parts_filter_is_marked_on_its_sheet_open_at_a_drop_and_shut_for_the_breakdown():
+    # (2026-11-18: "not enough dynamic sound", "yes you need effects over time", "the music itself should denote the
+    # effects": each part's low-pass follows its own notes' brightness, as the writer opens the track.)
     from freerock.studio import club
     fam = next(each for each in house.PLAN if not each.hard and each.role not in house.CALM_ROLES)
-    track = house.Take(fam, 1)
-    assert track.breakdown is not None
-    rides = club.filter_rides(track)
-    bar = house.BAR
-    for channel in ("rhythm", "texture"):
-        points = _envelope(rides[channel])
-        assert all(later >= earlier for (earlier, _), (later, _) in zip(points, points[1:]))
-        opening = [_value_at(points, at * bar) for at in range(0, track.sections[2][1] + 1, 4)]
-        assert opening[0] < 1000.0 and opening == sorted(opening), opening     # the open and the first theme only open
-        for story, first, count in track.sections:
-            middle = (first + count / 2) * bar
-            if story == "moment":
-                assert _value_at(points, middle) == club.OPEN_HZ
-            if track.broken(story, first):
-                assert _value_at(points, middle) < 2500.0
-    # The bass loses its bottom over the end of each rise, and has it back on the drop.
-    bass = _envelope(rides["bass"])
-    for story, first, count in track.sections:
-        if story == "rise":
-            end = (first + count) * bar
-            assert _value_at(bass, end - 0.05) > 150.0
+    sheet = club.write(fam.name, 1)
+    breakdown = next(section for section in sheet.form if section.get("breakdown"))
+    drops = [section for section in sheet.form if section["story"] == "moment"]
+    chords = [part for name, part in sheet.parts["rhythm"].items() if "lowpass" in part.effects]
+    assert chords
+    for part in chords:
+        lane = part.effects["lowpass"]
+        assert [at for at, _ in lane] == sorted(at for at, _ in lane)
+        middle = lambda section: (section["first"] + section["bars"] / 2) * 4.0      # noqa: E731
+        assert all(_value_at(lane, middle(drop)) >= 19000.0 for drop in drops)
+        assert _value_at(lane, middle(breakdown)) < 1500.0
+        assert _value_at(lane, middle(breakdown)) < _value_at(lane, middle(sheet.form[1])) < _value_at(lane, middle(drops[0]))
+    # The bass loses its bottom through each rise and over its last seven beats more, and has it all back on the drop.
+    bass = next(part for part in sheet.parts["bass"].values() if "highpass" in part.effects).effects["highpass"]
+    for section in sheet.form:
+        if section["story"] == "rise":
+            end = (section["first"] + section["bars"]) * 4.0
+            assert _value_at(bass, end - 0.1) > 200.0
+            assert _value_at(bass, section["first"] * 4.0 + 0.5) >= 100.0
             assert _value_at(bass, end + 0.01) == 20.0
-            assert _value_at(bass, first * bar) == 20.0
+    assert _value_at(bass, (breakdown["first"] + breakdown["bars"] / 2) * 4.0) >= 150.0
+    # ...and nothing of the kind in a calm piece.
+    calm = next(each for each in house.PLAN if each.role in house.CALM_ROLES)
+    assert not any("highpass" in part.effects for parts in club.write(calm.name, 1).parts.values() for part in parts.values())
+
+
+def test_a_house_sheet_reads_back_and_is_played_as_it_was_written(tmp_path):
+    from freerock.studio import club
+    fam = house.PLAN[0]
+    sheet = club.write(fam.name, 1)
+    sheet.save(tmp_path / "sheet.json")
+    again = club.heard_from(type(sheet).load(tmp_path / "sheet.json"))
+    heard = club.listen(house.Take(fam, 1))
+    assert set(again.notes) == set(heard.notes)
+    for key, notes in heard.notes.items():
+        assert [(round(at, 6), round(length, 6), round(pitch), round(level, 6)) for at, length, pitch, level, _, _ in notes] == \
+               [(round(at, 6), round(length, 6), round(pitch), round(level, 6)) for at, length, pitch, level, _, _ in again.notes[key]]
+    assert sorted((name, round(at, 6), round(level, 6)) for name, _, at, level, _ in heard.hits) == \
+           sorted((name, round(at, 6), round(level, 6)) for name, _, at, level, _ in again.hits)
+    assert len(again.airs) == len(heard.airs)
 
 
 def test_the_pump_is_deepest_at_a_drop():
@@ -502,7 +519,7 @@ def test_the_pump_is_deepest_at_a_drop():
     assert club.PUMP["moment"] == max(club.PUMP.values()) == 1.0
     track = house.Take(house.PLAN[0], 1)
     for story, first, count in track.sections:
-        assert club.story_at(track, (first + count / 2) * 4.0) == story
+        assert club.story_at(track.sections, (first + count / 2) * 4.0) == story
 
 
 def test_the_hats_between_the_eighths_come_only_at_a_drop():
@@ -519,7 +536,7 @@ def test_the_hats_between_the_eighths_come_only_at_a_drop():
     for name, _, at, _, _ in heard.hits:
         if name == "hat":
             bar = int((at + 0.02) // house.BAR)
-            story = club.story_at(track, bar * 4.0)
+            story = club.story_at(track.sections, bar * 4.0)
             per_bar[(story, bar)] = per_bar.get((story, bar), 0) + 1
     assert max(count for (story, _), count in per_bar.items() if story == "moment") >= 14
     assert max(count for (story, _), count in per_bar.items() if story != "moment") <= 8

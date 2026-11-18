@@ -26,7 +26,7 @@ import numpy as np
 from .. import analysis, forever
 from . import RATE, desk, muse, reaper, sounds, stage_root, write_track
 from .orchestra import CHANNELS, CHARACTERS, INSTRUMENTS, Family, Take, family, settings_of
-from .score import humanise
+from .score import Sheet, humanise
 
 VAR = Path(__file__).resolve().parents[3] / "var"
 PROJECTS = VAR / "reaper" / "projects"       # every track's REAPER project is kept here, to be opened and changed by hand
@@ -177,11 +177,19 @@ def crown_of(character) -> tuple[str, bool]:
 
 
 def folder_of(fam: Family, take: int) -> Path:
-    return stage_root(VAR, fam.character.style) / fam.name / str(take)
+    return folder_at(fam.character.style, fam.name, take)
+
+
+def folder_at(style: str, family: str, take: int) -> Path:
+    return stage_root(VAR, style) / family / str(take)
 
 
 def project_of(fam: Family, take: int) -> Path:
-    return PROJECTS / fam.character.style / fam.name / str(take) / "track.rpp"
+    return project_at(fam.character.style, fam.name, take)
+
+
+def project_at(style: str, family: str, take: int) -> Path:
+    return PROJECTS / style / family / str(take) / "track.rpp"
 
 
 def tamed_tone(name: str, instrument: str, band: bool = False, channel: str = "") -> str | None:
@@ -223,21 +231,24 @@ def tamed_tone(name: str, instrument: str, band: bool = False, channel: str = ""
 
 
 def stage(fam: Family, take: int) -> dict:
-    """Writes one take of a family, has REAPER play it, balances the channels and stages the
-    track. Returns what it measured. The REAPER project is kept (see `project_of`)."""
+    """Writes one take of a family as its sheet and performs it (`write`, `perform`). Returns what it measured. The
+    REAPER project is kept (see `project_of`), and the sheet beside the staged track."""
+    return perform(write(fam, take))
+
+
+def write(fam: Family, take: int) -> Sheet:
+    """A take's music sheet, its first draft (2026-11-18: "the music sheet should be a separate concept and asset for
+    every track, and updating it should be the golden rule"): the family's take as the writer writes it (orchestra.Take,
+    its effect marks with it), what the desk stacks on it where the story calls for more, every part played as a player
+    plays it (a few milliseconds early or late), and the strokes the other channels give way under."""
     character = fam.character
     written = Take(fam, take)
     rng = random.Random(fam.seed * 31 + take)
     bar_frames = fam.beats * 60.0 / fam.bpm * RATE
-    whole = int(round(fam.bars * bar_frames))
-    frames = whole + int(round(forever.POST_S * RATE))
     edges, bars = [0], 0
     for section in fam.sections:
         bars += section.bars
         edges.append(int(round(bars * bar_frames)))
-    # Where everyone is playing: the last and biggest of the story's moments.
-    moment = max(index for index, section in enumerate(fam.sections) if section.story == "moment")
-    room = character.hall[1] / 0.24
     # Where the kick strikes: the kit's bass drum (where the kick goes with it), the biggest war drum, the deep stroke.
     from .orchestra import KITS
     strokes: list[tuple[float, float]] = []
@@ -319,19 +330,56 @@ def stage(fam: Family, take: int) -> dict:
             for voice in written.voices[channel].values():
                 if voice.instrument == "guitar":
                     voice.instrument = "clean guitar"
+    form, first_bar = [], 0
+    for section in fam.sections:
+        written_as = {"story": section.story, "part": section.part, "first": first_bar, "bars": section.bars,
+                      "key": (fam.key.lifted(fam.lift) if section.lifted else fam.key).name, "chords": list(section.chords),
+                      "level": list(section.level)}
+        if section.lifted:
+            written_as["lifted"] = True
+        form.append(written_as)
+        first_bar += section.bars
+    about = {"character": character.name, "role": character.role, "kinds": list(character.kinds), "serves": list(character.serves),
+             "light": character.light, "weight": character.weight, "band": character.band, "hall": list(character.hall),
+             "metre": fam.metre, "seed": fam.seed, "tonic": fam.key.name, "settings": list(settings_of(character)),
+             "soft war": written.soft_war, "ducks under": [list(stroke) for stroke in strokes]}
+    sheet = Sheet(style=character.style, family=fam.name, take=take, title=fam.title, tempo=fam.bpm, beats=fam.beats, form=form,
+                  parts=written.voices, about=about)
+    sheet.revised("the first draft", "written by the studio's writer as %s (%s), and stacked on by its desk" % (character.name, fam.metre),
+                  by="the writer")
+    return sheet
+
+
+def perform(sheet: Sheet) -> dict:
+    """Plays a sheet and stages what it makes: MuseScore performs the instruments it has, REAPER plays the rest, each
+    channel is brought to its place and the story's levels ridden, and the track is staged with its sheet beside it.
+    Nothing here writes music: what is played is what the sheet says."""
+    about, voices, bpm, take = sheet.about, sheet.parts, sheet.tempo, sheet.take
+    bar_frames = sheet.beats * 60.0 / bpm * RATE
+    whole = int(round(sheet.bars * bar_frames))
+    frames = whole + int(round(forever.POST_S * RATE))
+    edges, bars = [0], 0
+    for section in sheet.form:
+        bars += section["bars"]
+        edges.append(int(round(bars * bar_frames)))
+    # Where everyone is playing: the last and biggest of the story's moments.
+    moment = max(index for index, section in enumerate(sheet.form) if section["story"] == "moment")
+    room = about["hall"][1] / 0.24
+    strokes = [(float(at), float(loud)) for at, loud in about["ducks under"]]
+    seed = about["seed"] * 31 + take
     if muse.available():
         # MuseScore performs every instrument it has, several at a time, before the project is put together.
-        muse.prepare([(voice.instrument, voice.notes, fam.bpm, voice.swells) for channel in CHANNELS for voice in written.voices[channel].values()
-                      if voice.notes and not voice.drums], seed=fam.seed * 31 + take, workers=MUSE_WORKERS)
+        muse.prepare([(voice.instrument, voice.notes, bpm, voice.swells) for channel in CHANNELS for voice in voices[channel].values()
+                      if voice.notes and not voice.drums], seed=seed, workers=MUSE_WORKERS)
     folders = []
     for channel in CHANNELS:
         under = []
-        for name, voice in written.voices[channel].items():
+        for name, voice in voices[channel].items():
             if not voice.notes:
                 continue
             taste = INSTRUMENTS[voice.instrument].level if voice.instrument in INSTRUMENTS else 1.0
-            made = sounds.lines(voice, name, fam.bpm, taste=taste, room=room, seed=fam.seed * 31 + take)
-            tamed = tamed_tone(name, voice.instrument, band=character.band, channel=channel)
+            made = sounds.lines(voice, name, bpm, taste=taste, room=room, seed=seed)
+            tamed = tamed_tone(name, voice.instrument, band=about["band"], channel=channel)
             if tamed:
                 for line in made:
                     line.effects = list(line.effects) + [tamed]
@@ -342,15 +390,15 @@ def stage(fam: Family, take: int) -> dict:
                 if loud < 0.45 or at <= last:
                     continue
                 down = 1.0 - (1.0 - DUCK[channel]) * min(loud / 0.85, 1.0)
-                beat_s = 60.0 / fam.bpm
+                beat_s = 60.0 / bpm
                 moves += [(at - 0.012 / beat_s, 1.0), (at, down), (at + 0.06 / beat_s, down), (at + 0.26 / beat_s, 1.0)]
                 last = at + 0.26 / beat_s
-            folders.append((desk.Line(channel, desk.bare(channel, []), effects=sounds.bus(channel, style=character.style), moves=moves), under))
-    rpp = project_of(fam, take)
+            folders.append((desk.Line(channel, desk.bare(channel, []), effects=sounds.bus(channel, style=sheet.style), moves=moves), under))
+    rpp = project_at(sheet.style, sheet.family, take)
     work = rpp.parent
     work.mkdir(parents=True, exist_ok=True)
-    rpp.write_text(desk.project(folders, bpm=fam.bpm, seconds=whole / RATE, out=work, tail=forever.POST_S,
-                                hall=sounds.hall(min(character.hall[0] * 1.3, 3.8))), encoding="utf-8")
+    rpp.write_text(desk.project(folders, bpm=bpm, seconds=whole / RATE, out=work, tail=forever.POST_S,
+                                hall=sounds.hall(min(about["hall"][0] * 1.3, 3.8))), encoding="utf-8")
     with reaper.Display() as display:
         # (A heavy piece on a machine that is doing other things renders at less than half speed: "lava fields" was
         # stopped twice, half a minute from its end, by a limit of twice its length. On the night of 2026-11-17, with
@@ -361,12 +409,12 @@ def stage(fam: Family, take: int) -> dict:
     parts = desk.stems(work, [bus.name for bus, _ in folders], frames)
     # Each channel to its place in the mix, by how loud it is where everyone is playing. (What follows is measured here
     # and done in REAPER, as a mixer would: see the end.)
-    if character.band:
-        places = dict(BAND, **(BAND_LIGHT if character.weight < 0.7 else {}))
+    if about["band"]:
+        places = dict(BAND, **(BAND_LIGHT if about["weight"] < 0.7 else {}))
     else:
-        places = dict(PLACE, **(LIGHT if character.weight < 0.7 else {}))
-        if any(voice.notes for name, voice in written.voices["drums"].items() if name.startswith("war drums")):
-            places["drums"] = SOFT_WAR_DRUMS if written.soft_war else WAR_DRUMS     # war drums are meant to be heard, not only felt
+        places = dict(PLACE, **(LIGHT if about["weight"] < 0.7 else {}))
+        if any(voice.notes for name, voice in voices["drums"].items() if name.startswith("war drums")):
+            places["drums"] = SOFT_WAR_DRUMS if about["soft war"] else WAR_DRUMS     # war drums are meant to be heard, not only felt
     levels, gains = {}, {}
     for channel in list(parts):
         audio = parts[channel]
@@ -374,12 +422,12 @@ def stage(fam: Family, take: int) -> dict:
         if loud < -60.0:
             loud = analysis.loudness_lufs(audio[:whole], RATE)
         if loud < -65.0:
-            written_notes = sum(len(voice.notes) for voice in written.voices[channel].values() if not voice.drums)
+            written_notes = sum(len(voice.notes) for voice in voices[channel].values() if not voice.drums)
             if written_notes >= 24:
                 # Written and not heard: something between the writer and the recording failed (2026-11-17, night: the
                 # Muse performances were laid into REAPER as the wrong kind of file, and three channels came out silent).
                 raise RuntimeError("The %s channel of %s %d has %d notes written and came out silent (%.1f LUFS)"
-                                   % (channel, fam.name, take, written_notes, loud))
+                                   % (channel, sheet.family, take, written_notes, loud))
             del parts[channel]                       # it plays nothing to speak of in this take
             continue
         # ...but never so far up that another part of the story goes more than 3 dB over the channel's place (2026-11-17,
@@ -418,7 +466,7 @@ def stage(fam: Family, take: int) -> dict:
     recorded = {channel: work / (channel + ".wav") for channel in parts}
     with reaper.Display() as display:
         parts = desk.mixdown(work, recorded, faders={channel: 10 ** (gains[channel] / 20.0) * scale for channel in parts},
-                             ride=desk.ride_points(curve), bpm=fam.bpm, seconds=whole / RATE, tail=forever.POST_S, frames=frames,
+                             ride=desk.ride_points(curve), bpm=bpm, seconds=whole / RATE, tail=forever.POST_S, frames=frames,
                              display=display, timeout=300.0 + whole / RATE)
     for bus, _ in folders:
         (work / (bus.name + ".wav")).unlink()      # the staged track has them; the project can make them again
@@ -426,15 +474,15 @@ def stage(fam: Family, take: int) -> dict:
     mix = sum(parts.values())
     loudness = [round(analysis.loudness_lufs(mix[first:last], RATE), 1) for first, last in zip(edges, edges[1:])]
     sections = []
-    for section in fam.sections:
-        told = {"story": section.story, "bars": section.bars}
-        if section.lifted:
-            told["tonic"] = fam.key.lifted(fam.lift).name
+    for section in sheet.form:
+        told = {"story": section["story"], "bars": section["bars"]}
+        if section.get("lifted"):
+            told["tonic"] = section["key"]
         sections.append(told)
     meta = {
-        "style": character.style, "family": fam.name, "take": take, "title": fam.title, "tempo": fam.bpm, "beats": fam.beats,
-        "bar_frames": bar_frames, "tonic": fam.key.name, "moods": list(character.kinds), "role": character.role,
-        "serves": list(character.serves), "light": character.light, "settings": list(settings_of(character)),
+        "style": sheet.style, "family": sheet.family, "take": take, "title": sheet.title, "tempo": bpm, "beats": sheet.beats,
+        "bar_frames": bar_frames, "tonic": about["tonic"], "moods": list(about["kinds"]), "role": about["role"],
+        "serves": list(about["serves"]), "light": about["light"], "settings": list(about["settings"]),
         "sections": sections, "floor": FLOOR,
         "follow": {"rhythm": ["lead"], "texture": ["lead"]}, "post_s": forever.POST_S,
         "credit": "Written by FreeRock's studio (%s, %s); %sput together in REAPER, with the sfizz sampler on the VSCO 2 Community "
@@ -442,11 +490,13 @@ def stage(fam: Family, take: int) -> dict:
                   "Fineberg and Maresz, IRCAM, CC BY 4.0), Naked Drums (Wilkinson Audio, CC BY 4.0) and Big Rusty Drums (Karoryfer, "
                   "CC0), the FreePats bagpipe (Gilles Sadowski, CC0), the AVL drum kits (Glen MacArthur, CC BY-SA 3.0) and the Surge XT, "
                   "ZynAddSubFX and Geonkick synths"
-                  % (character.name, fam.metre, "its instruments performed by MuseScore Studio with Muse Sounds (Muse Group) and " if muse.available() else ""),
-        "seed": fam.seed, "measured": {"sections": loudness, "channels": levels, "gains": gains},
+                  % (about["character"], about["metre"], "its instruments performed by MuseScore Studio with Muse Sounds (Muse Group) and " if muse.available() else ""),
+        "seed": about["seed"], "measured": {"sections": loudness, "channels": levels, "gains": gains},
     }
-    write_track(folder_of(fam, take), meta, parts)
-    return {"family": fam.name, "take": take, "title": fam.title, "seconds": round(whole / RATE), "sections": loudness,
+    folder = folder_at(sheet.style, sheet.family, take)
+    write_track(folder, meta, parts)
+    sheet.save(folder / "sheet.json")
+    return {"family": sheet.family, "take": take, "title": sheet.title, "seconds": round(whole / RATE), "sections": loudness,
             "channels": levels, "gains": gains}
 
 

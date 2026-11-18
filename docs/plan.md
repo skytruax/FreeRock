@@ -316,6 +316,16 @@ FreeRock/
 
 ## Still to do
 
+- **A sheet for every take.** Takes made before 2026-11-18 have none. Each gets its sheet when it is
+  performed again (the re-render ledger lists them), so that every track in the library can be
+  revised.
+- **The loop's revisions of sheets**: the musical edits it makes (re-voice a part, vary a passage,
+  hand a line to another instrument, mark an effect), each written into the sheet's history, heard
+  against the revision before, and kept only if it is better.
+- **Warcraft's effect marks**, in its own way (the orchestra's rooms and swells: a harp's echo thrown
+  at a phrase's end, a valley further into the hall).
+- **Keeping the sheets safe**: every revision is kept beside its take, and the sheets could also be
+  kept in a version history of their own (a decision for Sky).
 - **The player's record of what it played**, sent to the server and kept with each evening's log, so
   the mornings can count what played where, what came twice and what ran short.
 - **Windows on its own.** Server, sensor and player on the gaming PC alone, with the studio's work

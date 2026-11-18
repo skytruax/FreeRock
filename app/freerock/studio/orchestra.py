@@ -40,9 +40,10 @@ from __future__ import annotations
 
 import math
 import random
+import statistics
 from dataclasses import dataclass, field
 
-from .score import Voice
+from .score import Note, Voice
 from .theory import Chord, Key, Line, tones, voiced
 
 # ---------------------------------------------------------------------------------------------
@@ -1288,6 +1289,7 @@ DANCE_GROOVES = ("jig", "reel", "waltz", "courtly")      # the grooves of dances
 VALLEY_PAD = 0.55      # how far the pad's swell goes under in the valley, where the tune is a single soft player
 DELICATE = ("sparkle", "tick", "rain", "drip", "bog", "brushes", "none")      # grooves too fine for war drums under them
 LONG = 480.0                   # seconds: about how long a track is
+BAND_PEDALS = False            # a band's guitars' effect marks (Take.effects): a new sound, heard as a demo before it is used
 SHORTEST, LONGEST = 455.0, 505.0
 # How the time is shared out. The summit is the longest part and the opening and the close the
 # shortest; a fight hardly opens at all.
@@ -2107,7 +2109,7 @@ class Take:
         self.gaps = [(first + section.bars * self.beats - self.breath, first + section.bars * self.beats)
                      for section, first, _, _ in self.spans if section.part in ("build", "climb")]
         self.cast()
-        for write in (self.lead, self.texture, self.rhythm, self.bass, self.drums, self.war_drums, self.marks):
+        for write in (self.lead, self.texture, self.rhythm, self.bass, self.drums, self.war_drums, self.marks, self.effects):
             write()
 
     def breathing(self, at: float) -> bool:
@@ -3393,6 +3395,138 @@ class Take:
                 for bar in range(0, bars, 2 if summit else 4):
                     self.put("drums", "anvil", first + bar * beats + on, 0.5, 60, 0.75 if summit else 0.6)
         self.colours()
+
+    # --- effect marks --------------------------------------------------------------------------
+    def effects(self) -> None:
+        """Effect marks where the music asks for them, on the part that plays it (2026-11-18: "guitars should have
+        effects in the 70s bro", "the music itself should denote the effects it shouldnt be standard"). A band's
+        guitars, as a player of the time works his pedals:
+
+        - a rhythm guitar whose chords ring is coloured where a passage comes back, the first time it is heard dry:
+          by a phaser that sweeps once for each chord it holds, or in some takes by a slow flanger;
+        - a chord held into an arrival is flanged by hand across exactly that chord, and is dry when the arrival lands;
+        - the lead's busy runs at a moment go through a wah rocked at the pace of its own notes, and a long note held
+          at a moment is opened slowly from heel to toe (the cry);
+        - a clean guitar's broken chords that ring in the quiet go through a vibe.
+
+        Chugs, stabs and short notes stay dry, and so does everything where the music does not ask. The marks follow
+        this take's own notes, so no two takes have them in the same places. (Written once Sky's ear has passed the
+        demo, var/listen/sheets.html: `BAND_PEDALS`.)"""
+        if not self.ch.band or not BAND_PEDALS:
+            return
+        rng = random.Random(self.fam.seed * 7919 + self.take * 104729 + 17)      # its own: the writing's draws are not moved
+        depth = 0.6 if self.ch.light else 1.0
+        colour = rng.choice(("phaser", "phaser", "flanger"))                      # how this take colours a passage come back
+        heard: set[tuple[str, ...]] = set()
+        returns = []
+        for section, first, _, _ in self.spans:
+            harmony = tuple(section.chords)
+            returns.append(harmony in heard or section.part in ("valley", "summit"))
+            heard.add(harmony)
+        for channel, parts in self.voices.items():
+            for name, voice in parts.items():
+                if not voice.notes or voice.drums:
+                    continue
+                if voice.instrument == "rhythm guitar":
+                    self._ringing_marks(voice, returns, colour, depth)
+                elif voice.instrument == "lead guitar" and "twin" not in name:
+                    self._lead_marks(voice, depth)          # (a second guitar in harmony stays dry: the harmony is its colour)
+                elif voice.instrument == "guitar":
+                    self._vibe_marks(voice, depth)
+
+    def _notes_in(self, voice: Voice, first: float, last: float) -> list[Note]:
+        return [note for note in voice.notes if first - 1e-6 <= note.start < last - 1e-6]
+
+    @staticmethod
+    def _sounding(notes: list[Note], first: float, last: float) -> float:
+        """How much of a stretch a part sounds in, 0 to 1: strummed chords that run into each other near 1, palm-muted
+        chugs with air between them well under."""
+        spans = sorted((max(note.start, first), min(note.start + note.length, last)) for note in notes)
+        total, reach = 0.0, first
+        for start, end in spans:
+            if end > reach:
+                total += end - max(start, reach)
+                reach = end
+        return total / max(last - first, 1e-6)
+
+    def _ringing_marks(self, voice: Voice, returns: list[bool], colour: str, depth: float) -> None:
+        """A rhythm guitar's colour where a passage comes back and its chords ring, and its jet into an arrival."""
+        beats = self.beats
+        bars_a_chord: list[float] = []
+        for (section, first, _, _), back in zip(self.spans, returns):
+            last = first + section.bars * beats
+            notes = self._notes_in(voice, first, last)
+            if not notes:
+                continue
+            if section.story == "rise":
+                # The jet: a chord held two beats or more that rings into the arrival, flanged by hand from its first beat
+                # to the arrival, the delay drawn from short to long and back to the middle as the chord dies into it.
+                held = [note for note in notes if note.length >= 2.0 and note.start + note.length >= last - beats - self.breath]
+                if held:
+                    start = min(note.start for note in held)
+                    voice.mark("flanger", [(start - 0.25, 0.0), (start, depth), (last - 0.05, depth), (last, 0.0)])
+                    # By hand while it is in; sweeping in time again once it is out (a colour of this take may use it).
+                    voice.mark("flanger depth", [(start - 0.3, 1.0), (start - 0.25, 0.0), (last, 0.0), (last + 0.05, 1.0)])
+                    voice.mark("flanger position", [(start, 0.0), (start + 0.7 * (last - start), 1.0), (last, 0.55)])
+                continue
+            if not back or section.story == "moment" or self._sounding(notes, first, last) < 0.6:
+                continue                                    # heard for the first time, the moment itself, or a chug: dry
+            # One sweep for each chord as it is held: the bars from one change of chord to the next, as the section has them.
+            changes = 1 + sum(1 for before, after in zip(section.chords, section.chords[1:]) if after != before)
+            bars_a_chord.append(section.bars / changes)
+            fade = min(beats, 0.25 * section.bars * beats)
+            voice.mark(colour, [(first, 0.0), (first + fade, depth), (last - fade, depth), (last, 0.0)])
+        if bars_a_chord:
+            sweep = min(max(statistics.median(bars_a_chord), 0.5), 4.0)
+            voice.set("phaser bars" if colour == "phaser" else "flanger bars", sweep if colour == "phaser" else 2.0 * sweep)
+            voice.set("phaser feedback" if colour == "phaser" else "flanger feedback", 0.5 if colour == "phaser" else 0.4)
+        if "flanger" in voice.effects:
+            voice.set("flanger feedback", voice.settings.get("flanger feedback", 0.7))
+
+    def _lead_marks(self, voice: Voice, depth: float) -> None:
+        """The lead's wah at the moments: rocked at the pace of its own notes through a busy run (at the first moment
+        only where it runs hard, at the summit wherever it is busy), and opened by hand across a long held note."""
+        beats = self.beats
+        paces = []
+        for section, first, _, _ in self.spans:
+            if section.story != "moment":
+                continue
+            last = first + section.bars * beats
+            notes = self._notes_in(voice, first, last)
+            if not notes:
+                continue
+            onsets = sorted({round(note.start, 3) for note in notes})
+            gaps = [after - before for before, after in zip(onsets, onsets[1:]) if after - before > 0.05]
+            busy = len(onsets) / (last - first)
+            long_notes = [note for note in notes if note.length >= 2.0]
+            rocked = busy >= (1.0 if section.part == "summit" else 1.5) and bool(gaps)
+            if rocked:
+                paces.append(statistics.median(gaps))
+                voice.mark("wah", [(first, 0.0), (first + 0.5, depth), (last - 0.5, depth), (last, 0.0)])
+                voice.mark("wah depth", [(first, 0.9), (last, 0.9)])
+            for note in long_notes:
+                # The cry: rocking stops, the pedal goes back to the heel and is pushed down across the note.
+                begin, end = note.start, note.start + note.length
+                if not rocked:
+                    voice.mark("wah", [(begin - 0.1, 0.0), (begin, depth), (end - 0.1, depth), (end, 0.0)])
+                voice.mark("wah depth", [(begin - 0.05, 0.9), (begin, 0.0), (end - 0.05, 0.0), (end, 0.9)])
+                voice.mark("wah position", [(begin, 0.1), (begin + 0.75 * (end - begin), 0.95), (end, 0.95)])
+        if paces:
+            pace = statistics.median(paces)
+            voice.set("wah beats", 0.5 if pace <= 0.3 else 1.0)       # rocked in eighths over sixteenths, else on every beat
+
+    def _vibe_marks(self, voice: Voice, depth: float) -> None:
+        """A clean guitar's vibe where its broken chords ring in the quiet."""
+        beats = self.beats
+        for section, first, _, _ in self.spans:
+            last = first + section.bars * beats
+            notes = self._notes_in(voice, first, last)
+            if not notes or max(section.level) > 0.55 or self._sounding(notes, first, last) < 0.5:
+                continue
+            fade = min(2.0, 0.25 * section.bars * beats)
+            voice.mark("phaser", [(first, 0.0), (first + fade, 0.85 * depth), (last - fade, 0.85 * depth), (last, 0.0)])
+            voice.set("phaser bars", 0.5)
+            voice.set("phaser feedback", 0.35)
 
     def colours(self) -> None:
         """What Muse Percussion adds (see `cast`). The tam-tam: struck at the summit of grim

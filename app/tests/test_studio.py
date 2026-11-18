@@ -798,3 +798,117 @@ def test_an_effect_moves_through_the_piece():
     steps = desk.sweep(0.0, 8.0, 250, 16000, steps=6)
     ratios = {round(b[1] / a[1], 6) for a, b in zip(steps, steps[1:])}
     assert len(ratios) == 1 and steps[0][1] == 250 and round(steps[-1][1]) == 16000      # the same step in pitch each time
+
+
+# ---------------------------------------------------------------------------------------------
+# The music sheet (2026-11-18: "the music sheet should be a separate concept and asset for every track, and updating it
+# should be the golden rule", "remember your music sheets are your core principal and most important asset")
+# ---------------------------------------------------------------------------------------------
+def _a_sheet() -> score.Sheet:
+    lead = score.Voice(instrument="lead guitar", pan=0.2, shift=0.012, swells=[(0.0, 0.4), (8.0, 0.9)])
+    lead.add(0.0, 1.5, 64, 0.81234567)
+    lead.add(1.5 + 1e-7, 0.25, 66, 0.5)
+    lead.mark("wah", [(0.0, 0.0), (4.0, 1.0)])
+    lead.set("wah beats", 0.5)
+    kit = score.Voice(instrument="kit rock", drums=True)
+    kit.add(0.0, 0.5, 36, 0.9)
+    return score.Sheet(style="knight", family="a-family-1", take=2, title="A Title", tempo=104.0, beats=4.0,
+                       form=[{"story": "open", "part": "open", "first": 0, "bars": 2, "key": "D dorian", "chords": ["i", "i"], "level": [0.3, 0.5]}],
+                       parts={"lead": {"lead guitar": lead}, "drums": {"kit": kit}}, about={"band": True, "ducks under": [[0.0, 0.9]]})
+
+
+def test_a_sheet_reads_back_exactly_as_it_was_written_and_keeps_the_revision_it_replaces(tmp_path):
+    sheet = _a_sheet()
+    sheet.revised("the first draft", "a test", by="the writer")
+    path = tmp_path / "sheet.json"
+    sheet.save(path)
+    again = score.Sheet.load(path)
+    assert again == sheet
+    assert again.parts["lead"]["lead guitar"].notes[1].start == 1.5 + 1e-7       # every number exactly as written
+    again.parts["lead"]["lead guitar"].notes[0].pitch = 62
+    again.revised("the first note a tone lower", "it clashed with the chord", by="the loop")
+    again.save(path)
+    assert score.Sheet.load(path).revision == 2
+    assert score.Sheet.load(tmp_path / "sheet.r1.json").parts["lead"]["lead guitar"].notes[0].pitch == 64
+
+
+def test_only_the_effect_marks_and_settings_the_desk_knows_can_be_written():
+    voice = score.Voice(instrument="lead guitar")
+    with pytest.raises(ValueError):
+        voice.mark("chorus", [(0.0, 1.0)])
+    with pytest.raises(ValueError):
+        voice.set("wah speed", 1.0)
+    voice.mark("wah", [(4.0, 1.0)])
+    voice.mark("wah", [(0.0, 0.0)])
+    assert voice.effects["wah"] == [(0.0, 0.0), (4.0, 1.0)]           # marks join in time order
+
+
+def test_the_desk_plays_a_parts_effect_marks_on_its_tracks():
+    from freerock.studio import desk, sounds
+    voice = score.Voice(instrument="lead guitar")
+    voice.mark("wah", [(0.0, 0.0), (8.0, 1.0)])
+    voice.mark("lowpass", [(0.0, 400.0), (8.0, 20000.0)])
+    voice.set("wah beats", 0.5)
+    pedals, sweep = sounds.marked(voice, 120.0)
+    assert pedals.startswith("<JS freerock/pedals") and sweep.startswith("<JS freerock/sweep")
+    settings = pedals.splitlines()[1].split()
+    assert float(settings[1]) == 0.5                                      # the wah rocked in eighths
+    points = [(float(at), float(value)) for _, at, value, _ in (row.split() for row in pedals.splitlines() if row.startswith("PT "))]
+    assert points == [(desk.LEAD, 0.0), (desk.LEAD + 4.0, 1.0)]           # beats at 120 to the minute: seconds
+    assert "<PARMENV 0 20 20000" in sweep
+    assert sounds.marked(score.Voice(instrument="lead guitar"), 120.0) == []
+    with pytest.raises(ValueError):
+        sounds.marked(score.Voice(instrument="lead guitar", effects={"chorus": [(0.0, 1.0)]}), 120.0)
+
+
+def _family(name: str) -> orchestra.Family:
+    return next(fam for fam, _ in build.plan() if fam.name == name)
+
+
+def test_a_bands_guitars_are_marked_where_their_own_music_asks(monkeypatch):
+    # (2026-11-18: "guitars should have effects in the 70s bro", "the music itself should denote the effects it shouldnt
+    # be standard".) Hammer Thunder: its lead rocks a wah only through the summit, where it runs, and cries on the long
+    # notes of its first arrival; its rhythm guitar's jets end on the arrivals; the second guitar in harmony is dry.
+    monkeypatch.setattr(orchestra, "BAND_PEDALS", True)
+    take = orchestra.Take(_family("infernal-forge-anthem-1"), 3)
+    beats = take.beats
+    starts = {section.part: first for section, first, _, _ in take.spans}
+    ends = {section.part: first + section.bars * beats for section, first, _, _ in take.spans}
+    lead = take.voices["lead"]["lead guitar"]
+    wah = lead.effects["wah"]
+    on = lambda at: float(np.interp(at, [a for a, _ in wah], [v for _, v in wah]))       # noqa: E731
+    assert on((starts["summit"] + ends["summit"]) / 2) == 1.0
+    long_notes = [note for note in lead.notes if starts["arrival"] <= note.start < ends["arrival"] and note.length >= 2.0]
+    assert long_notes and all(on(note.start + note.length / 2) == 1.0 for note in long_notes)
+    between = [note for note in lead.notes if starts["arrival"] <= note.start < ends["arrival"] and note.length < 1.0
+               and not any(other.start <= note.start < other.start + other.length for other in long_notes)]
+    assert between and all(on(note.start) == 0.0 for note in between)
+    assert not take.voices["lead"]["lead guitar twin"].effects
+    jets = take.voices["rhythm"]["rhythm guitar"].effects["flanger"]
+    for at, value in jets:
+        if value > 0:
+            assert any(starts["build"] <= at <= ends["build"] or starts["climb"] <= at <= ends["climb"] for _ in [0])
+    assert max(at for at, _ in jets) in (ends["build"], ends["climb"])
+
+
+def test_a_bands_pedals_wait_for_the_ear():
+    # A new sound is heard as a demo before it is used (the plan's principles): until BAND_PEDALS, no marks are written.
+    assert orchestra.BAND_PEDALS is False
+    take = orchestra.Take(_family("infernal-forge-anthem-1"), 3)
+    assert not any(voice.effects for parts in take.voices.values() for voice in parts.values())
+
+
+def test_an_orchestra_is_not_given_a_bands_pedals(monkeypatch):
+    monkeypatch.setattr(orchestra, "BAND_PEDALS", True)
+    take = orchestra.Take(_family("frozen-whiteout-2"), 2)
+    assert not any(voice.effects for parts in take.voices.values() for voice in parts.values())
+
+
+def test_a_take_is_written_down_whole_as_its_sheet():
+    fam = _family("infernal-forge-anthem-1")
+    sheet = build.write(fam, 3)
+    assert (sheet.style, sheet.family, sheet.take, sheet.title, sheet.tempo) == ("knight", fam.name, 3, fam.title, fam.bpm)
+    assert sheet.bars == fam.bars and [section["story"] for section in sheet.form] == [section.story for section in fam.sections]
+    assert {"band", "hall", "weight", "seed", "tonic", "ducks under", "soft war", "character", "metre"} <= set(sheet.about)
+    assert sheet.history[0]["by"] == "the writer"
+    assert sheet.parts["bass"]["sub at the moments"].notes                                # what the desk stacks is on it too

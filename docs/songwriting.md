@@ -19,6 +19,108 @@ plays where.
 
 ---
 
+## 0. The music sheet: the golden rule
+
+"The music sheet should be a separate concept and asset for every track, and updating it should be
+the golden rule, you are a musician were working on music.... the rest is plumbing"; "remember your
+music sheets are your core principal and most important asset" (2026-11-18).
+
+### 0.1 What a sheet is
+
+Every take has its own sheet (`score.Sheet`), kept beside its recordings as
+`var/studio/<style>/<family>/<take>/sheet.json`. When a sheet is saved over, the revision it replaces
+stays beside it as `sheet.r<N>.json`. A sheet holds:
+
+- **the form**: each section's story word and part, its first bar and length, its key and chords, and
+  how hard it is played from start to end (House: which theme is the breakdown);
+- **every part**, by channel: who plays it (`instrument`), its notes, its swells (the expression
+  pedal), its **effect marks** (what moves, beat by beat) and their settings;
+- **about**: what the desk needs to perform it and the player to choose it (the character, the room,
+  band or orchestra, light or heavy, the strokes the others duck under);
+- **airs** (House): the risers, wind and weather;
+- **history**: every revision, with what, why, by whom and when.
+
+The writers (`orchestra.Take` with `build.write`, `house.Take` with `club.write`) make only the first
+draft. The desk (`build.perform`, `club.perform`) only performs a sheet. Every number is kept exactly:
+a note rounded off by a hundred-thousandth of a beat moved a MIDI tick and sent a part back to
+MuseScore to be performed again.
+
+### 0.2 Reading, revising and performing one
+
+    uv run --no-sync --with numba python -m freerock.studio.sheet show knight/infernal-forge-anthem-1/3
+    uv run --no-sync --with numba python -m freerock.studio.sheet perform knight/infernal-forge-anthem-1/3
+
+`show` lays the sheet out like a part chart: a row for each part, a column for each section, how many
+notes a bar it plays there, and its marks (w wah, p phaser, f flanger, l the low-pass closed, h the
+high-pass in). Then the history.
+
+A revision is a change to the music, made as a musician would: a part re-voiced, a passage varied, a
+line handed to another instrument, an effect marked where the music asks for one. It is written into
+the history with why (`Sheet.revised`), saved, and performed again. Changing the writers' code
+reaches only first drafts.
+
+### 0.3 Effects are marked by the music
+
+"The music itself should denote the effects it shouldnt be standard." An effect is marked on the part
+that plays it, where that take's own notes ask for it, never laid on by one rule for every piece. The
+marks the desk plays (`score.EFFECTS`):
+
+- the pedals (`studio/jsfx/pedals`): wah, wah depth and position, phaser, flanger, flanger depth
+  and position;
+- the filters (`studio/jsfx/sweep`): low-pass and high-pass.
+
+Their settings that stay put are in `score.SETTINGS`. Both effects are the studio's own, so they can
+move through a piece without a click. REAPER's bundled phaser starts its sweep again whenever a
+setting moves.
+
+**Knight Rock, a band's guitars** (`orchestra.Take.effects`), as a player of the 1970s works his pedals
+("guitars should have effects in the 70s bro"):
+
+- A rhythm guitar that sounds most of the time (strummed chords, 60% or more) is coloured where a
+  passage comes back. The first time a passage is heard it is dry. The colour is a phaser that sweeps
+  once per chord, or in some takes a slow flanger.
+- A chord held two beats or more into an arrival is flanged by hand across exactly that chord (the
+  jet), and is dry when the arrival lands.
+- The lead's wah at the moments:
+  - rocked at the pace of its own notes where it runs (at the first arrival only where it runs hard,
+    at the summit wherever it is busy);
+  - opened slowly from heel to toe across a long held note (the cry).
+- A second guitar playing the harmony stays dry: the harmony is its colour.
+- A clean guitar's ringing broken chords get a vibe in the quiet valley.
+- Chugs and riffs with air between their hits stay dry, as on the records they come from.
+
+**House** (`club.write`):
+
+- **The low-pass.** Each part's low-pass follows its own notes' brightness (`club.cutoff`): a drop
+  wide open, a theme half an octave to an octave darker, opening across it, and the breakdown shut
+  under 1.5 kHz.
+- **The high-pass**, by the form (`club.thinning`):
+  - the sub leaves for the whole of each rise;
+  - over a rise's last seven beats the bass, chords and pads are thinned from the bottom;
+  - the bass is lifted out over the breakdown's first four bars;
+  - everything returns on the drop's first beat.
+- **Calm pieces** (an inn, a camp, the night) keep their bottom.
+
+### 0.4 What was learned (2026-11-18)
+
+- **One rule for every piece sounds standard.** The first pedal demo put a phaser in every theme and
+  a jet in every rise, by rule. Marks taken from the notes land in different places in each take, and
+  only where a player would use them.
+- **A filter can only open as far as the part's fixed tone lets it.** House's chords had a fixed top
+  (cut at 6 kHz, 16 dB down from 2.5 kHz), measured against the liked stems on average. A drop was as
+  dark as its theme until that top gave way to the moving low-pass.
+- **House: level is not where the contrast lives.** The records studied swing little in loudness
+  ("Strobe": 5.8 LU). Their contrast is in brightness, density, the sub and the pump: the sub came out
+  of the breakdown by 26 dB, where before it held on at -9.
+- **The hats**: off the clap's bright chain, onto a line of their own (high-passed at 500 Hz, dry, no
+  tape), 3 dB further under the kick ("too much high hat").
+
+The nightly loop works on sheets and writes every lesson here: what was tried, what it was for, how
+it measured, what Sky's ear said, and what did not work ("the recursive loop should also update the
+music writing handbook as it learns more").
+
+---
+
 ## 1. What the music is for, and the brief
 
 ### 1.1 What it is for
@@ -857,9 +959,10 @@ chorus and the hall are the desk's now*.
 - **Effects.** Tape on the chords, the lead and the drum room; a light chorus on synth leads; slow
   phasers on the chords (about eight bars a turn) and the pads (slower); a longer echo from side to
   side on the lead and the chords; more of the (darker) hall on everything but the bass.
-- **Brightness over lines** (`club.BRIGHT`). A voice is split over up to four tracks of the same
-  instrument, closed at 900 Hz (brightness under 0.55), 2.2 kHz (under 0.7), 5 kHz (under 0.85) or
-  open, and each note goes to the track its brightness calls for.
+- **Brightness as a moving filter** (`club.cutoff`, since 2026-11-18). Each part's brightness is its
+  low-pass, an effect mark on its sheet that moves with the music (see 0.3). Until then a voice was
+  split over up to four tracks closed at fixed points (900 Hz, 2.2 kHz, 5 kHz or open), so its tone
+  moved in steps and a drop was the colour of its theme.
 - **Four-bar rides** (`club._spans`, `club._ride`). *Surge XT's patches play a note alike however hard
   it is struck*, so a synth voice's level rides its track's volume four bars at a time (`SPAN`), read
   from the loudest note there, its loudest four bars at full. *Not their mean: the drop's second time
@@ -874,15 +977,20 @@ chorus and the hall are the desk's now*.
   the sub is the part that is felt*.
 - **The kit** (`club.kit_file`). The TR-8 recordings the writer used become an SFZ instrument for
   sfizz, one key per drum. The kick has its own dry track (its stroke brought out, under 30 Hz cut,
-  parallel compression, no hall). Everything else is a `room` track, 3 dB more present at 2 kHz, with
-  0.22 of it sent to the hall.
-- **Ducking** (`club.DUCK`, `club.RECOVER`). Under every kick each channel dips and comes back over
-  its own time: the bass to 0.5, back in a third of a beat (*about 150 ms at 110 BPM, where the records
-  studied put it*); the pad to 0.55 over three quarters of a beat, *the pump that is heard*; the chords
-  to 0.72 over 0.6; the lead to 0.9 over 0.5.
+  parallel compression, no hall). The hats, shakers, tambourine and ride have a line of their own
+  (`club.HATS_SOUNDS`, since 2026-11-18, "too much high hat"): high-passed at 500 Hz, the top eased
+  3 dB above 11 kHz, dry, no tape, at 0.42. Everything else is a `room` track, 3 dB more present at
+  900 Hz and 2 kHz, with 0.22 of it sent to the hall.
+- **Ducking** (`club.DUCK`, `club.RECOVER`, `club.PUMP`). Under every kick each channel dips and comes
+  back over its own time, slowly at first so that it swells into the off-beat. At a drop: the bass to
+  0.2 (14 dB down), back in a third of a beat (*about 150 ms at 110 BPM, where the records studied put
+  it*); the pad to 0.35 over 0.85 of a beat, *the pump that is heard*; the chords to 0.45 over 0.7; the
+  lead to 0.85 over 0.5. The depth follows the story (`PUMP`): all of it at a drop, 0.7 of it in a theme
+  and the close, 0.5 in a rise, 0.4 in the open; none in the breakdown, which has no kick. (Until
+  2026-11-18 the bass went only to 0.5 and the chords to 0.72 everywhere: "not enough dynamic sound".)
 - **Tone.** Bass closed above 1.8 kHz with its top shelved down from 800 Hz, narrowed, dry. Chords
-  cut under 110 Hz, shelved down 16 dB from 2.5 kHz and closed from 6 kHz, with an echo of three
-  and four sixteenths. Lead cut under 120 Hz with the same echo, Surge's taken down at 2.5 kHz and
+  cut under 110 Hz and shelved down 10 dB from 2.5 kHz (16 dB and closed from 6 kHz until the moving
+  low-pass took over, 2026-11-18), with an echo of three and four sixteenths. Lead cut under 120 Hz with the same echo, Surge's taken down at 2.5 kHz and
   shelved 8 dB from 3.5 kHz, MuseScore's lifted at 1.2 kHz. Pads cut under 200 Hz, shelved 12 dB
   down and closed at 3.5 kHz (Surge) or 4.5 kHz (Muse), with a chorus; the air closed at 5 kHz.
   House's hall is darker than the orchestra's (nothing above 6 kHz). Each setting is dated in the

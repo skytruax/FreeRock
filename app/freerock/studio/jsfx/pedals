@@ -4,7 +4,9 @@ desc: FreeRock pedals (a 1970s guitar's wah, phaser and flanger, in time with th
 // phaser and a flanger, each swept in time with the song (REAPER's own beat), so a sweep lands where the bars do.
 // Each pedal has its own mix, and the mixes can move through a piece by a parameter envelope: a mix glides over 20 ms
 // and nothing restarts when it moves (REAPER's bundled phaser starts its sweep again whenever a setting changes, so it
-// cannot be faded in and out). Copied into REAPER's Effects folder by freerock.studio.reaper.configure.
+// cannot be faded in and out). The wah and the flanger can also be swept by hand (depth 0, the position drawn by the
+// piece's marks), as a held wah is opened across a long note or a tape is flanged across a held chord; the hand moves
+// glide over 10 ms. Copied into REAPER's Effects folder by freerock.studio.reaper.configure.
 
 slider1:0<0,1,0.001>Wah mix
 slider2:1<0.125,8,0.125>Wah beats a rock (toe down on the beat)
@@ -16,6 +18,8 @@ slider7:0.45<0,0.9,0.01>Phaser feedback
 slider8:0<0,1,0.001>Flanger mix
 slider9:4<0.25,16,0.25>Flanger bars a sweep
 slider10:0.6<0,0.95,0.01>Flanger feedback
+slider11:1<0,1,0.01>Flanger depth (0 sweeps it by hand)
+slider12:0<0,1,0.001>Flanger position (by hand: 0 the shortest delay, 1 the longest)
 
 in_pin:left input
 in_pin:right input
@@ -31,9 +35,11 @@ stages = 2 * SIZE;      // the phaser's memory: what went into and came out of e
 memset(bufL, 0, 2 * SIZE + 16);
 write = 0;
 wm = slider1; pm = slider5; fm = slider8;
+wd = slider3; wp = slider4; fd = slider11; fp = slider12;
 fbL = fbR = 0;
 lowL = bandL = lowR = bandR = 0;
 smooth = 1 - exp(-1 / (0.02 * srate));
+hand = 1 - exp(-1 / (0.01 * srate));
 beats = 0;
 DAMP = 0.2;             // the wah's band: about a fifth of its middle wide
 
@@ -48,12 +54,16 @@ beats += step;
 wm += (slider1 - wm) * smooth;
 pm += (slider5 - pm) * smooth;
 fm += (slider8 - fm) * smooth;
+wd += (slider3 - wd) * hand;
+wp += (slider4 - wp) * hand;
+fd += (slider11 - fd) * hand;
+fp += (slider12 - fp) * hand;
 outL = spl0;
 outR = spl1;
 
 // --- the wah: a resonant band from 400 Hz (heel) to 2.2 kHz (toe), rocked toe down on the beat, or held
 rock = 0.5 + 0.5 * cos(2 * $pi * beats / slider2);
-pos = slider4 * (1 - slider3) + rock * slider3;
+pos = wp * (1 - wd) + rock * wd;
 fw = 400 * pow(5.5, pos);
 f = 2 * sin($pi * min(fw, srate / 8) / srate);
 lowL += f * bandL; highL = outL - lowL - DAMP * bandL; bandL += f * highL;
@@ -89,6 +99,7 @@ outR += pm * (0.5 * (outR + xR) - outR);
 // --- the flanger: a delay from 0.8 to 6 ms and back once in so many bars (evenly to the ear), fed back
 fl = beats / (slider9 * bar); fl -= floor(fl);
 tri = fl < 0.5 ? 2 * fl : 2 - 2 * fl;
+tri = fd * tri + (1 - fd) * fp;
 dL = 0.0008 * pow(7.5, tri) * srate;
 dR = dL * 1.07;
 rd = write - dL; rd < 0 ? rd += SIZE;
