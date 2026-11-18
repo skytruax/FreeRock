@@ -218,7 +218,9 @@ Two things share these words.
 A light piece is written lighter: its pad three semitones higher (five until "go a little harder this
 is not world of fairy craft", 2026-11-17: high airy pads were half the fairy sound, and high pasture,
 harvest home, harbour town and lakeside reverie gave up their celesta, glockenspiel and vibraphone
-for mandolin and guitar), its arrival's second player a
+for mandolin and guitar; and the snow's accompaniment, all celesta and glockenspiel, read 21 dB short in the
+middle and 16 dB over at the top, so frozen cavern, frozen lake, ice fields, aurora and ice cave play pizzicato
+where they had the glockenspiel, and the frost camp a guitar, 2026-11-18), its arrival's second player a
 third above the tune, the desk's kick only on the bar and at 0.6, and no sub, low brass or bell at
 its moments (`build.stage`). Drums and
 bass sit further back where the weight is under 0.7 (`build.LIGHT`, `build.BAND_LIGHT`). Light
