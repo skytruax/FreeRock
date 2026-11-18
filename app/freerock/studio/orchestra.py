@@ -1297,8 +1297,10 @@ VALLEY_PAD = 0.55      # how far the pad's swell goes under in the valley, where
 REEDS = ("pipe drone", "bagpipe", "accordion", "harmonica")
 DELICATE = ("sparkle", "tick", "rain", "drip", "bog", "brushes", "none")      # grooves too fine for war drums under them
 LONG = 480.0                   # seconds: about how long a track is
-BAND_PEDALS = False            # a band's guitars' effect marks (Take.effects): a new sound, heard as a demo before it is used
-ORCHESTRA_MARKS = False        # ...and an orchestra's (Take._orchestra_marks): the same
+# A band's guitars' effect marks (Take.effects) and an orchestra's (Take._orchestra_marks): new sounds, heard as demos
+# before they were used (var/listen/now.html), then "k keep going" (2026-11-18, 14:25).
+BAND_PEDALS = True
+ORCHESTRA_MARKS = True
 STRUCK = ("harp", "celesta", "glockenspiel", "bells", "marimba", "music box", "dulcimer", "xylophone", "handbells", "harpsichord",
           "pizzicato")         # what a plucked or struck line is played on: its phrase's last note can hang in an echo
 DISTANT = ("strings", "strings slow", "tremolo", "choir", "oohs")      # the pads that go further off in the valley
@@ -3424,8 +3426,8 @@ class Take:
         - a clean guitar's broken chords that ring in the quiet go through a vibe.
 
         Chugs, stabs and short notes stay dry, and so does everything where the music does not ask. The marks follow
-        this take's own notes, so no two takes have them in the same places. (Written once Sky's ear has passed the
-        demo, var/listen/sheets.html: `BAND_PEDALS`.)"""
+        this take's own notes, so no two takes have them in the same places. (`BAND_PEDALS`, on since the demos were
+        heard, var/listen/now.html.)"""
         if not self.ch.band:
             if ORCHESTRA_MARKS:
                 self._orchestra_marks()

@@ -118,6 +118,16 @@ CHANGES = [
            "same for 40 bars); the drop's lead Argitoth's Trance Lead 1, the nearest of nine to the liked house leads, its last "
            "sixteen bars answered phrase by phrase, the chords phased there; MuseScore's chords given a gentler top of their own",
            lambda p: p.style == "house"),
+    Change("the band's 1970s pedals", datetime.datetime(2026, 11, 18, 14, 47), "",
+           "a band's guitars marked where their own notes ask: a jet flanged by hand into an arrival, a wah rocked through a "
+           "running solo, a cry across a long note, a vibe in the valley, a phaser on strummed chords where a passage comes back "
+           "('guitars should have effects in the 70s bro')",
+           lambda p: p.style == "knight" and any(name in getattr(p.character, part, ()) for part in ("leads", "plucks", "strong")
+                                                  for name in ("lead guitar", "rhythm guitar", "guitar"))),
+    Change("an orchestra's effects that move", datetime.datetime(2026, 11, 18, 14, 47), "",
+           "the valley's string and choir pads further off, closing their top and opening at the climb; a harp's, a celesta's, "
+           "the bells' last note of each phrase left to hang in an echo ('this might apply to other genres too')",
+           lambda p: p.style == "warcraft"),
 ]
 
 

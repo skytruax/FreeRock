@@ -137,6 +137,12 @@ setting moves.
   a patch is heard for its tuning in its own music too, not only its shape (`analysis.estimate_key` on
   the audition clip). Trance Lead 1 is tuned up in its own state (`desk.surge`, "@+22") and plays at
   +4; Anthemish 2, in tune, is the second synth.
+- **The ear over the average** ("Rain on the Roofs I is okay i wish i could hear more of that saw synths
+  top end"). The saw lead's chain still carried cuts measured against the liked stems' average (5 dB at
+  2.5 kHz, 8 dB from 3.5 kHz), and its moving filter sat at 3.2 kHz in a theme: the hook's edge was
+  gone. Now only its very top is eased (2 dB above 7 kHz), with a little air, and the tune's filter
+  opens further than the band's (a theme's lead about 6 kHz). A liked stem's average is a guide to
+  where a part sits, not a ceiling on what makes it sing.
 - **A reed does not hold the valley's drone.** King's Oath's valley drone was the english horn, held
   24 bars under a soft guitar. Pushed up into its upper register by the old bagpipe's floor it whined,
   and MuseScore's english horn hardly follows its dynamics (as loud at pianissimo as at piano): it

@@ -369,12 +369,15 @@ def lines(heard: Heard, seed: int, work: Path) -> tuple[dict[str, list[desk.Line
                     # under the liked ones at the top.)
                     # (2026-11-18, "it sounds hollow": open from 85 Hz, not 120, so the lead has its body, and a synth's
                     # wider: more chorus, spread.)
+                    # (2026-11-18, by ear, Rain on the Roofs: "i wish i could hear more of that saw synths top end". The cuts
+                    # measured against the liked stems' average, 5 dB at 2.5 kHz and 8 dB from 3.5, hid the saw's edge: now
+                    # only its very top eased, and a little air.)
                     if synth_played:
-                        toned = sounds.equalise(low_cut=85.0, bands=((2500.0, -5.0, 1.0),), high_shelf=(3500.0, -8.0))
+                        toned = sounds.equalise(low_cut=85.0, high_shelf=(7000.0, -2.0))
                     else:
                         toned = sounds.equalise(low_cut=85.0, bands=((1200.0, 3.0, 1.5),), high_shelf=(4000.0, 6.0))
                     # (...and the lead: tape, a chorus on a synth's, a longer echo from side to side, more room.)
-                    widened = [sounds.ensemble(0.35), sounds.wide(1.3)] if synth_played else []
+                    widened = [sounds.excite(0.15), sounds.ensemble(0.35), sounds.wide(1.3)] if synth_played else []
                     line.effects = list(line.effects) + [toned, sounds.warm(0.35)] + widened + [sounds.echo(house.BPM, 0.3, left=3, right=4, again=0.42)]
                     line.send = max(line.send, 0.3)
                 elif channel == "texture":
@@ -540,7 +543,9 @@ def write(name: str, take: int) -> Sheet:
                      notes=[Note(at / BEAT, length / BEAT, int(round(pitch)), level) for at, length, pitch, level, _, _ in notes])
         lane: list[tuple[float, float]] = []
         for at, _, _, _, _, bright in sorted(notes):
-            beat, hz = at / BEAT, cutoff(bright)
+            # The tune's filter opens further than the band's: it is the hook, and its edge is what is heard (a theme's
+            # lead about 6 kHz, not 3; "i wish i could hear more of that saw synths top end").
+            beat, hz = at / BEAT, cutoff(0.35 + 0.65 * bright if channel == "lead" else bright)
             if lane and beat - lane[-1][0] < 1e-3:
                 lane[-1] = (lane[-1][0], max(lane[-1][1], hz))
             else:

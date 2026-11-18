@@ -891,10 +891,14 @@ def test_a_bands_guitars_are_marked_where_their_own_music_asks(monkeypatch):
     assert max(at for at, _ in jets) in (ends["build"], ends["climb"])
 
 
-def test_a_bands_pedals_wait_for_the_ear():
-    # A new sound is heard as a demo before it is used (the plan's principles): until BAND_PEDALS, no marks are written.
-    assert orchestra.BAND_PEDALS is False
-    take = orchestra.Take(_family("infernal-forge-anthem-1"), 3)
+def test_a_bands_pedals_can_be_switched_off():
+    # A new sound is heard as a demo before it is used (the plan's principles): the switch that held the pedals back until
+    # the demos were heard ("k keep going", 2026-11-18) still takes every mark away.
+    assert orchestra.BAND_PEDALS is True and orchestra.ORCHESTRA_MARKS is True
+    import pytest as _pytest
+    with _pytest.MonkeyPatch.context() as patch:
+        patch.setattr(orchestra, "BAND_PEDALS", False)
+        take = orchestra.Take(_family("infernal-forge-anthem-1"), 3)
     assert not any(voice.effects for parts in take.voices.values() for voice in parts.values())
 
 
