@@ -771,3 +771,16 @@ def test_the_bass_moves_through_the_chords_as_a_real_bass_does():
         notes_seen += len(line)
     assert repeats / moves < 0.4, "the bass repeats its note %.0f%% of the time" % (100 * repeats / moves)
     assert off / notes_seen > 0.15, "the bass is on the root %.0f%% of the time" % (100 - 100 * off / notes_seen)
+
+
+def test_every_character_has_ground_the_atlas_knows():
+    # The player prefers the piece written for the ground underfoot (woods, water, heights...): every character of every
+    # style must say its ground, or that never reaches it (2026-11-18: 23 of Knight Rock's characters and 24 of
+    # Warcraft's had none).
+    from freerock import atlas
+    from freerock.studio import orchestra
+    names = {name for name, _ in atlas.SETTINGS}
+    for character in orchestra.CHARACTERS:
+        ground = orchestra.settings_of(character)
+        assert ground, "%s has no ground" % character.name
+        assert set(ground) <= names, "%s: %s" % (character.name, ground)

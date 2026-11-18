@@ -1946,6 +1946,25 @@ SETTINGS_OF: dict[str, tuple[str, ...]] = {
     "witch storm": ("graves", "woods"),
     "hill country": ("heights", "road"), "harvest boogie": ("fields", "settlement"), "iron vow": ("heights",),
     "free company": ("road", "fields"),
+    # The rest of Knight Rock's (2026-11-18: "make sure all our new location, song switch, signal stuff, persists across
+    # all genres": 23 of its characters had no ground, so the player's preference for the piece written for the ground
+    # underfoot never reached them).
+    "open road": ("road", "fields"), "banner ride": ("road", "fields"), "black chapel": ("graves", "sacred"),
+    "lantern walk": ("woods", "road"), "sand rider": ("wastes", "road"), "oasis shuffle": ("water", "wastes"),
+    "jungle stomp": ("woods",), "forge anthem": ("works", "heights"), "moon glade": ("woods", "sacred"),
+    "mountain stomp": ("heights",), "tavern rock": ("settlement",), "storm rider": ("road", "heights"),
+    "battle cry": ("fields", "fort"), "war machine": ("works", "fort"), "dragon": ("heights", "ruins"),
+    "night watch": ("fort", "settlement"), "deep mine": ("works",), "campfire": ("road", "woods"),
+    "bayou boogie": ("water", "woods"), "sea dog": ("water",), "frost hammer": ("heights", "works"),
+    "glow cave": ("water",), "low tunnel": ("works", "ruins"),
+    # ...and the Warcraft characters that had none (the same day): the inns, caves, storms, fights, bosses and towns.
+    "tavern": ("settlement",), "hearth": ("settlement",), "cavern": ("heights", "works"), "crystal cave": ("water", "sacred"),
+    "tempest": ("fields", "heights"), "skirmish": ("fields", "road"), "warband": ("wastes", "fort"),
+    "unquiet dead": ("graves", "ruins"), "titan": ("ruins", "heights"), "wild hunt": ("woods",), "blizzard": ("heights",),
+    "dread lord": ("ruins", "graves"), "wild king": ("woods", "ruins"), "alliance town": ("settlement", "fort"),
+    "town square": ("settlement",), "battleground": ("fields", "fort"), "siege line": ("fort", "fields"),
+    "deep tide": ("water",), "fallen crusade": ("ruins", "sacred"), "bog beast": ("water",), "sea king": ("water",),
+    "sea storm": ("water",), "frost wyrm": ("heights", "ruins"), "whiteout": ("heights",),
     "village dance": ("settlement", "fields"), "morning fields": ("fields",), "riverside waltz": ("water", "fields"),
     "long road home": ("road", "fields"), "highland reel": ("heights", "settlement"), "snowfall": ("heights", "woods"),
     "mountain pass": ("heights", "road"), "moorland ride": ("heights", "road"), "requiem": ("graves", "sacred"),

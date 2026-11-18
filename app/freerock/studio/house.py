@@ -773,6 +773,24 @@ STABS = (
 ARPS = ("up", "down", "updown", "pedal", "skip")
 
 
+
+# The ground a House family is written for, as the orchestra's characters have theirs (orchestra.SETTINGS_OF), so that
+# the player's preference for the piece written for the ground underfoot reaches House too (2026-11-18: "make sure all
+# our new location, song switch, signal stuff, persists across all genres"): by its role where the role is a place of
+# its own, otherwise by its first kind of place.
+GROUND_OF_ROLE = {"ember": ("settlement",), "camp": ("road", "woods"), "depths": ("works",), "town": ("settlement",),
+                  "battleground": ("fields", "fort"), "boss": ("ruins",), "battle": ("fields",)}
+GROUND_OF_KIND = {"pastoral": ("fields",), "highland": ("heights",), "frozen": ("heights", "water"), "marsh": ("water",),
+                  "coast": ("water",), "jungle": ("woods",), "haunted": ("graves", "woods"), "mystic": ("woods", "sacred"),
+                  "regal": ("settlement",), "desert": ("wastes",), "infernal": ("works", "wastes")}
+
+
+def ground(fam) -> tuple[str, ...]:
+    if fam.role in GROUND_OF_ROLE:
+        return GROUND_OF_ROLE[fam.role]
+    return GROUND_OF_KIND.get(fam.moods[0], ()) if fam.moods else ()
+
+
 class Take:
     """One whole track over a family's changes."""
 
@@ -1307,7 +1325,7 @@ class Take:
         return {
             "style": "house", "family": fam.name, "take": self.take, "title": "%s %s" % (fam.title, NUMERALS[self.take]),
             "tempo": BPM, "beats": 4, "bar_frames": BAR_FRAMES, "tonic": fam.key, "moods": list(fam.moods), "role": fam.role,
-            "serves": list(fam.serves), "light": fam.light,
+            "serves": list(fam.serves), "light": fam.light, "settings": list(ground(fam)),
             "sections": [{"story": story, "bars": count} for story, _, count in self.sections],
             "floor": floor, "follow": {"rhythm": ["lead"]}, "post_s": POST_S,
             # How far under a track's usual level this one is meant to play: music for an inn or

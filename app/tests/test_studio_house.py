@@ -444,3 +444,13 @@ def test_the_fm_bass_has_a_growl_beside_it_as_the_sub_has(monkeypatch):
     heard.notes[("bass", "bass", "fm")].append((0.0, house.BAR, 40.0, 0.5, 0.0, 1.0))
     lines = {name: (written, cut) for _, _, name, written, cut, *_ in club.voices(heard)}
     assert lines["fm growl"] == ("house bass saw", 900.0) and "fm sub" not in lines
+
+
+def test_every_house_family_has_ground_the_atlas_knows():
+    # As every orchestra character does (test_studio), so that the player's preference for the ground underfoot reaches
+    # House (2026-11-18: none of House's pieces had one).
+    from freerock import atlas
+    names = {name for name, _ in atlas.SETTINGS}
+    for fam in house.PLAN:
+        ground = house.ground(fam)
+        assert ground and set(ground) <= names, "%s: %s" % (fam.name, ground)
