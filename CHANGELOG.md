@@ -17,6 +17,13 @@ show me".
   short run, the peak held near the end and the key note last, in the key's own pentatonic, high on
   the neck, with a tape echo and no pedal, 5 dB over the band (handbook 4.10). `orchestra.SOLOS`
   switches it off.
+- **A long opening's bass goes with its chords**: where an opening of 16 bars or more leaves the key
+  chord, the held key note moves to that chord's root and back (Gull's Edge's basses had held one note
+  27 bars of its 28-bar opening, under its flat-seventh chords as well).
+- **The lead is leveled where the summit has no solo**: the desk brings each channel to its place by
+  its loudness at the summit; with the solo there, its lift turned the whole lead channel down and the
+  solo came out level with the rhythm guitars. Now the lead is measured over the summit after its
+  solo, so the solo stands over the band.
 - **A part can stand louder than its instrument**: a part's `gain db` setting turns every track that
   plays it up or down by that much (the solo's lift).
 - **A heavy band's second theme rings**: the rhythm guitar strikes each chord once and holds it under

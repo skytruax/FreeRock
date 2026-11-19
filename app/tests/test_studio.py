@@ -927,6 +927,24 @@ def test_the_desk_plays_a_parts_effect_marks_on_its_tracks():
         sounds.marked(score.Voice(instrument="lead guitar", effects={"chorus": [(0.0, 1.0)]}), 120.0)
 
 
+def test_a_long_openings_bass_goes_with_its_chords():
+    # (2026-11-18, the boredom meter: Gull's Edge's basses held the key note 27 bars of its 28-bar opening.) Where a long
+    # opening's harmony leaves home, the held bass goes with the chord, and comes back with it.
+    take = orchestra.Take(_family("highland-cliffside-wind-1"), 1)
+    beats = take.beats
+    section, first, key, chords = take.spans[0]
+    assert section.part == "open" and section.bars >= 16
+    notes = sorted((note for voice in take.voices["bass"].values() for note in voice.notes if note.start < first + section.bars * beats),
+                   key=lambda note: note.start)
+    away = [bar for bar, chord in enumerate(chords) if chord.root % 7 != 0]
+    assert away
+    for bar in away:
+        under = [note.pitch for note in notes if bar * beats <= note.start - first < (bar + 1) * beats]
+        assert under and all((pitch - key.pitch(chords[bar].root, 40)) % 12 == 0 for pitch in under)
+    home = [note.pitch for note in notes if note.start - first < beats]
+    assert home and all((pitch - key.tonic) % 12 == 0 for pitch in home)
+
+
 def test_a_part_can_stand_louder_than_its_instrument(monkeypatch):
     # (2026-11-18: the sung solo, played at the lead's own level, was 2 dB under the rhythm guitars.) A part's "gain db"
     # turns every track that plays it up by that much; a part without it is as its instrument stands.

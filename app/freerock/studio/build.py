@@ -364,6 +364,15 @@ def perform(sheet: Sheet) -> dict:
         edges.append(int(round(bars * bar_frames)))
     # Where everyone is playing: the last and biggest of the story's moments.
     moment = max(index for index, section in enumerate(sheet.form) if section["story"] == "moment")
+    # A guitar solo at the summit stands over the band by its own `gain db` (orchestra.SOLO_LIFT). The lead's place is
+    # measured where the summit has no solo, so that the lift is not taken back (2026-11-18: measured over the solo, the
+    # whole lead channel was turned down by the lift, and the solo came out level with the rhythm guitars).
+    soloed = [note for name, voice in voices.get("lead", {}).items() if name.endswith(" solo") for note in voice.notes]
+    solo_span = None
+    if soloed:
+        beat_frames = 60.0 / bpm * RATE
+        solo_span = (int(min(note.start for note in soloed) * beat_frames),
+                     int(max(note.start + note.length for note in soloed) * beat_frames))
     room = about["hall"][1] / 0.24
     strokes = [(float(at), float(loud)) for at, loud in about["ducks under"]]
     seed = about["seed"] * 31 + take
@@ -418,7 +427,10 @@ def perform(sheet: Sheet) -> dict:
     levels, gains = {}, {}
     for channel in list(parts):
         audio = parts[channel]
-        loud = analysis.loudness_lufs(audio[edges[moment]:edges[moment + 1]], RATE)
+        where = (edges[moment], edges[moment + 1])
+        if channel == "lead" and solo_span and solo_span[1] < edges[moment + 1] - 4 * int(bar_frames):
+            where = (max(solo_span[1], edges[moment]), edges[moment + 1])          # the summit after its solo
+        loud = analysis.loudness_lufs(audio[where[0]:where[1]], RATE)
         if loud < -60.0:
             loud = analysis.loudness_lufs(audio[:whole], RATE)
         if loud < -65.0:
@@ -433,7 +445,10 @@ def perform(sheet: Sheet) -> dict:
         # ...but never so far up that another part of the story goes more than 3 dB over the channel's place (2026-11-17,
         # night: a frost night's tune was a glockenspiel and slow violins at its moments, and a flute and handbells,
         # which carry far more when played as softly, in its rises; brought up by its moments, the rises blared).
-        parts_of = [analysis.loudness_lufs(audio[first:last], RATE) for first, last in zip(edges, edges[1:])]
+        spans = list(zip(edges, edges[1:]))
+        if channel == "lead" and solo_span:
+            spans[moment] = where                                                  # (the solo is meant to stand over)
+        parts_of = [analysis.loudness_lufs(audio[first:last], RATE) for first, last in spans]
         loud = max(loud, max(parts_of) - 3.0)
         gain = min(max(places[channel] - loud, -18.0), 18.0)
         if channel == "drums":

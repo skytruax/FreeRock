@@ -171,6 +171,10 @@ CHANGES = [
            "the solo in two-bar sentences with breaths, held notes on the chords, one run, the peak held late, in the key's "
            "pentatonic, with an echo and no wah (the first was runs and bends under a rocking wah: 'all wammy no chill')",
            lambda p: p.style == "knight" and p.character.band and tuple(getattr(p.character, "strong", ()))[:1] == ("lead guitar",)),
+    Change("a long opening's bass goes with its chords", datetime.datetime(2026, 11, 19, 0, 0), "",
+           "where an opening of 16 bars or more leaves the key chord, the held key note moves to that chord's root and back "
+           "(Gull's Edge: one note 27 bars)",
+           lambda p: p.style != "house" and p.character.weight >= 0.8),
     Change("a heavy band's second theme rings", datetime.datetime(2026, 11, 18, 23, 0), "",
            "the rhythm guitar strikes each chord of the second theme once and holds it, no chugs (it had one distorted colour "
            "through both themes, 42 to 64 bars)",

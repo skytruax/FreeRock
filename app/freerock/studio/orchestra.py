@@ -3219,7 +3219,13 @@ class Take:
                     continue
                 if part == "open":
                     if self.heavy or bar >= bars // 2:
-                        self.put("bass", name, bar_at, beats, key.pitch(0, inst.home - 5), loud * 0.8)      # the key note, held
+                        # The key note, held; but in a long opening it goes with the chord where the harmony leaves home and
+                        # comes back with it (2026-11-18, the boredom meter: Gull's Edge's basses held one note 27 bars of
+                        # a 28-bar opening, under its flat-seventh chords as well).
+                        held = key.pitch(0, inst.home - 5)
+                        if bars >= 16 and chord.root % 7 != 0:
+                            held = root
+                        self.put("bass", name, bar_at, beats, held, loud * 0.8)
                     continue
                 # One way of playing for the first theme and what is made of it, another for the
                 # second; long notes where the story is quiet; and at the top of the climb the

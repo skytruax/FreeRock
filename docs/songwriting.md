@@ -850,7 +850,9 @@ eighths above. Every note of the lead guitar is moved onto the key's minor penta
 
 *A riff band opens on one guitar alone, and the second guitar, the chugs and the band come in
 together with the first theme.* In heavy band music the opening's riff is the LP alone (`single
-guitar`), thin, without chugs or licks. The bass holds the key note under it. The drums play the
+guitar`), thin, without chugs or licks. The bass holds the key note under it, and in an opening of
+16 bars or more goes with the chord where the harmony leaves home (the riff's fourth, a flat
+seventh) and comes back with it: the boredom meter had found one held note 27 bars long. The drums play the
 groove on every other bar of the opening's first half, and on its last bar the sticks count the
 band in. The reason was measured: *distorted guitars hardly grow softer when played softly*, and the
 band's pieces swung 8 dB from quietest to loudest where the orchestra's swung 18.
@@ -962,7 +964,8 @@ Wing") and the way a singer phrases:
   behind it, so the held notes sing on into the room; and the summit has no wah on the lead at all.
 - **It stands over the band**: 5 dB over the lead's usual level (`orchestra.SOLO_LIFT`, the part's
   `gain db`). Played at the lead's own level it was 2 dB under the rhythm guitars and 4 under the
-  twin guitars' theme after it.
+  twin guitars' theme after it. The desk measures the lead's place over the summit after the solo
+  (`build.perform`): measured over the solo, the lift had turned the whole lead channel down.
 - **Never the same twice**: each take draws its own solo from the family's seed and the take.
 - `orchestra.SOLOS = False` takes it away and gives the summit back to the twins.
 
