@@ -3,6 +3,20 @@
 Newest first. Words in quotation marks are what was said while listening or playing, as typed or
 dictated, where it drove the change.
 
+## 2026-11-19, morning: three judges in the loop
+
+"find out if there are packages python or otherwise that are somehow subjective about music sounding
+good for a genre"; "use the best 3 and use the output to improve the songs"; "add the judges to the
+readme and other documentation and guides add it to the recursive loop for all genres".
+
+- **Three judges that listen** (`tools/judges.py`): TuneJury, an open reward model that predicts how
+  much a listener would prefer a piece of instrumental music against a brief, each style against its
+  own; SongEval's musicality, memorability, coherence and clarity of structure; and Audiobox
+  Aesthetics' enjoyment and production quality. Each part of a song's story is judged on its own, at one
+  level. `--watch` judges every take as it is made, in every style, into `var/passes/judged3.jsonl`.
+  They run on this machine; no audio leaves it. Voters and pointers, never targets (handbook 7.7,
+  README, plan).
+
 ## 2026-11-19, morning: the band's own licks
 
 "hearing that same guitar riff climb in too many knight songs"; "cant you study acdc and do different

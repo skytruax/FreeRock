@@ -1458,6 +1458,31 @@ Ridge scored PQ 7.83. Under a full load of renders it takes about six minutes a 
 
     "var/tools/judges/.venv/bin/python" -I tools/judge.py knight/anywhere-banner-war-2/1 --parts
 
+**The three judges** (2026-11-19: "find out if there are packages python or otherwise that are somehow
+subjective about music sounding good for a genre", "use the best 3 and use the output to improve the
+songs", "add it to the recursive loop for all genres"). `tools/judges.py` scores a take with three
+models, in the same environment:
+
+| Judge | What it says | Learned from | Hears |
+|---|---|---|---|
+| TuneJury (2026) | how much a listener would prefer it, as music of the brief it is given | 17,500 choices between two pieces (Music Arena, MusicPrefs, AIME, SongEval); made for instrumental music | LAION-CLAP-Music and MERT-v1-330M, 20 s of each part |
+| SongEval (2025) | coherence, musicality, memorability, clarity of structure (and a singer's breathing, which means nothing here) | professional listeners' ratings of 2,399 whole songs | MuQ, two minutes from the first theme on |
+| Audiobox Aesthetics (2025) | enjoyment (CE), usefulness (CU), production complexity (PC) and quality (PQ) | Meta's rated speech, sound and music | 20 s of each part, 16 kHz mono |
+
+Each style has its brief (`judges.BRIEFS`), so TuneJury hears a Knight Rock take as hard rock and a
+Warcraft one as a fantasy soundtrack; the empty brief is scored beside it, the authors' safe reading
+where a brief is far from what it learned. Every excerpt is set to one level first, so that loudness
+does not sway a judge. Read them as voters and pointers: rank a family's takes, find the part of a
+take that scores under the rest, and judge a change to the writer on the same takes before and after
+(the demos). None was made for long instrumental game music or for stems, and their numbers are not
+targets: a change is kept for what the ear and the studies say, with the judges as one voice more.
+
+    "var/tools/judges/.venv/bin/python" -I tools/judges.py knight/pastoral-banner-ride-1/5 --folder <a demo's folder> --label after
+    "var/tools/judges/.venv/bin/python" -I tools/judges.py --watch --since "2026-11-19 08:30"     (the loop)
+
+The records go to `var/passes/judged3.jsonl`, one a take. On this laptop's processors it takes a few
+minutes a take; a GPU would take seconds (an RX 5700 XT is RDNA1, which ROCm does not support).
+
 ## 8. How to make and change music
 
 ### 8.1 Before you start
@@ -1654,11 +1679,16 @@ night".
    lanes render new pieces only, ordered by where the owner plays (the server's `var/log/link-*.jsonl`
    names the zones; `atlas.kinds_for` gives their kinds of place).
 2. When a list is finished, study it once: `study.py` for the swing, the octaves against the liked
-   stems and the tune's repeated bars; `stem_interest.py` for each channel alone; `score_view.py` for
-   the writing; the ear for one instrument. Listen for what a musician would hear: a place that
+   stems and the tune's repeated bars; `boredom.py` for a channel that does not move; the three judges
+   (7.7, `judges.py --watch` scores every take as it is made, in every style) for how a listener would
+   take it as music of its kind, part by part; `stem_interest.py` for each channel alone;
+   `score_view.py` for the writing; the ear for one instrument. Listen for what a musician would hear: a place that
    repeats, a tune that does not sing, a channel wrong for its place, too many players for a quiet one.
 3. Change the writer or the desk where the study points, with what was measured, dated, in the
-   comment beside the change: the comments in this code are its history. The change goes into the
+   comment beside the change: the comments in this code are its history. A change is heard first on
+   one or two takes against the same takes before (a demo), by the studies and by the judges; the
+   judges' part-by-part scores across a style's takes point at what to change next (the parts and the
+   kinds of take that score lowest). The change goes into the
    pieces still to come. Nothing is rendered again by day.
 4. At night (`var/passes/lane-tonight`, from 23:00) every staged track rendered with code older than
    its style's latest change is rendered again, once. A `render_some` run keeps the code it started

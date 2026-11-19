@@ -247,8 +247,12 @@ Three things are read every morning, strongest first:
   - **Holdouts** that are watched but never steer: Audiobox's enjoyment score, MuQ-Eval.
   - **A critic in words**: Qwen3-Omni (Apache-2.0, about 22 GB of memory), as a fault-finder for
     sections whose hints a measurement has to confirm. It agrees with experts only weakly (about 0.3).
-  - **In use since 2026-11-18**: Audiobox Aesthetics (`tools/judge.py`, in `var/tools/judges` with
-    PyTorch for the processor alone). It did not tell an opened rise and a turned cymbal from the take
+  - **In use since 2026-11-19, in the loop for every style**: TuneJury (a style's brief and the music:
+    how much a listener would prefer it; made for instrumental music), SongEval (musicality,
+    memorability, coherence, clarity of structure) and Audiobox Aesthetics, all three in
+    `tools/judges.py` (`var/tools/judges`, PyTorch for the processor alone). `--watch` judges every take
+    as it is made; the studies read the scores; each change to the writer is judged on its demo takes
+    before and after. Since 2026-11-18 Audiobox alone (`tools/judge.py`). It did not tell an opened rise and a turned cymbal from the take
     without them (CE 6.85 and 6.83): it hears production, so it gates the sound, and the boredom meter
     and the studies judge the writing.
 - **The boredom meter** (the answer to "some of the instruments get boring"): for each stem, a

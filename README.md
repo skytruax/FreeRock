@@ -334,7 +334,20 @@ ten octaves from 20 Hz to 20 kHz and sets it against the stems that were liked. 
 also checked as they render: the moment has to be the loudest part, nothing may clip, the chords
 and the tune have to be in tune and in the key, and the drums on time.
 
-**5. Keep.** A finished track is written as a 24-bit FLAC stem for each channel that plays, with
+**5. Judge.** Three judges that listen score every new take, in every style, on this machine
+(`tools/judges.py`, in an environment of its own under `var/tools/judges`; no audio leaves it):
+[TuneJury](https://github.com/yonghyunk1m/TuneJury), which predicts how much a listener would prefer
+a piece as music of its kind (each style is judged against its own brief, "instrumental 1970s hard
+rock, a riff band...", "orchestral fantasy adventure game soundtrack...", "progressive house...");
+[SongEval](https://github.com/ASLP-lab/SongEval)'s musicality, memorability, coherence and clarity of
+structure, learned from professional listeners' ratings; and Meta's
+[Audiobox Aesthetics](https://github.com/facebookresearch/audiobox-aesthetics) for enjoyment and
+production quality. They hear each part of a song's story, so they point at the weak part as well as
+the weak take, and every change to the writing is judged on the same takes before and after. None of
+them was trained on long instrumental game music, so they vote and point rather than being chased:
+the owner's ear decides. `--watch` judges each take as it is made.
+
+**6. Keep.** A finished track is written as a 24-bit FLAC stem for each channel that plays, with
 its sections, its kinds of place and moment, its key and its tempo (`track.json`). `freerock
 pieces add` cuts new tracks into pieces and puts them in its style's bucket as 16-bit FLAC
 (`tools/fresh_bucket.py` rebuilds a bucket from everything staged, takes made again included). What
@@ -343,7 +356,7 @@ part by where each sits in its track: a bucket built again takes it all back, so
 take heard music for new (`freerock/playbook.py`). `tools/listen.py` makes a listening
 page for every track: the whole mix to play, and a mixer with a fader for each channel.
 
-**6. Overnight.** Rendering is heavy (REAPER, MuseScore and the sampler for every channel of
+**7. Overnight.** Rendering is heavy (REAPER, MuseScore and the sampler for every channel of
 every section), so tracks are queued in lists and rendered in lanes: a quarter of the machine
 by day, all of it at night, and half while the game is being played. Buckets are rebuilt only
 while the game is off.
@@ -446,4 +459,7 @@ VSCO-2 CE, VCSL and Karoryfer's instruments (CC0); the AVL drum kits by Glen Mac
 3.0); Naked Drums by Wilkinson Audio (CC BY 4.0); TinySOL by Cella, Ghisi, Lostanlen, Lévy,
 Fineberg and Maresz at IRCAM (CC BY 4.0); the TR-8 recordings from MckAudio (CC0); Surge XT,
 sfizz, Dragonfly Reverb, x42, Calf and the other free plug-ins in REAPER. Each one, and its
-licence, is listed in [tools/stems/README.md](tools/stems/README.md).
+licence, is listed in [tools/stems/README.md](tools/stems/README.md). The judges are fetched, not
+shipped: TuneJury (Kim, Lee, Xia, Ma, Koo, Saito, Zhong, Mitsufuji and Donahue; CC BY-NC 4.0) with
+LAION-CLAP and MERT, SongEval (ASLP at NPU; CC BY-NC-SA 4.0) with MuQ, and Audiobox Aesthetics (Meta;
+CC BY 4.0). Their non-commercial licences suit music kept for its owner's own playing.
