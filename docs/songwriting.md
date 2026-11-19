@@ -1009,6 +1009,9 @@ the 60 families are light: *the house is meant to be mostly light* (the test).
   twice as fast again, climbing*; in two takes of three its last beat is left empty, *the breath
   before the drop*. The calm roles stir a shaker, a rim or the hats instead.
 - **Crashes** at the start of each theme and drop, and every eight bars of a drop.
+- **A theme after a drop begins on the other figure**: its hats turned and the other percussion, so
+  the groove changes where the drop ends (each section had counted its sixteen bars from its own
+  start, and Ambush III's drums stayed the same 32 bars from its drop through the theme after it).
 - **The close lets the band go one at a time, the hats first**: at its first bar they thin to two
   strokes and an open hat, the clap leaves halfway, the kick two bars from the end. (The drop's groove
   had run on into the close for 20 bars: Mirage I and III.)
@@ -1064,6 +1067,12 @@ middle, not over the band*. Nothing goes above A6.
 
 The soft voice is the palette's next lead after the chosen one. **Pads** (`Take.texture`) hold each
 loop slot's chord, voiced from C3 to A4, brightest at the drops (0.92).
+
+**The lead is ridden at the desk, not turned down** (`club.ridden`): it stands at its place at the
+drop, and a part of the story that would stand more than 3 dB over that is brought down to it on the
+lead's own volume envelope, as a mixer rides a fader. (Set as the other channels are, by the drop but
+never letting another part over, a lead loud in its rises was turned down whole: Blades III's riff 15
+dB under its rises.)
 
 **The bigger of a lead's two voices plays the drops** (`house.LEAD_WEIGHT`): the saws and the brass
 carry a drop; a plucked or struck voice sits between; a hollow square, a pipe or a whistle is the

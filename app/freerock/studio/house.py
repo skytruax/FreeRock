@@ -933,8 +933,15 @@ class Take:
                     continue                             # a ghost of a note left out here and there
                 hit(wet, sound, bar, step, level * loud, pan)
 
+        drops = 0                                     # drops already heard: a theme after one starts on the other figure
         for story, first, count in self.sections:
             build = 4 if count >= 16 else 2
+            # (2026-11-19, the boredom meter: Ambush III's drums were the same 32 bars from its first drop through the theme
+            # after it, each section counting its sixteen bars from its own start: a theme after a drop now begins where the
+            # drop's figure turns, so the change lands at the drop's end.)
+            shift = drops % 2 if story == "theme" else 0
+            if story == "moment":
+                drops += 1
             for inside in range(count):
                 bar, energy = first + inside, self.energy(story, inside / count, first)
                 groove = (story in ("theme", "moment") and not self.broken(story, first)) or (story == "close" and inside < count - 2) \
@@ -955,7 +962,7 @@ class Take:
                     # Every second sixteen bars the hats turn to another figure, and back (HAT_TURNS). As the close
                     # begins they thin to two strokes and an open hat: the first of the band to leave (2026-11-19, the
                     # boredom meter: Mirage I's and III's last drop ran on into the close in one groove for 20 bars).
-                    turned = HAT_TURNS.get(hat_figure, hat_figure) if (inside // 16) % 2 == 1 else hat_figure
+                    turned = HAT_TURNS.get(hat_figure, hat_figure) if (inside // 16 + shift) % 2 == 1 else hat_figure
                     if story == "close":
                         turned = "sparse" if hat_figure != "sparse" else "off"
                     for sound, steps in HATS[turned].items():
@@ -973,7 +980,7 @@ class Take:
                     # One bright layer at a time (the house study; the boredom meter: Breakwater's maracas ran their
                     # sixteenths under everything for the whole theme): outside a drop the two percussion figures take
                     # turns, sixteen bars each; at a drop both play.
-                    odd = (inside // 16) % 2 == 1
+                    odd = (inside // 16 + shift) % 2 == 1
                     block = inside // 16
                     if story == "moment":
                         # A drop builds block by block: the first figure, then both, then the second alone.

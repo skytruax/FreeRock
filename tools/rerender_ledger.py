@@ -175,6 +175,12 @@ CHANGES = [
            "where an opening of 16 bars or more leaves the key chord, the held key note moves to that chord's root and back "
            "(Gull's Edge: one note 27 bars)",
            lambda p: p.style != "house" and p.character.weight >= 0.8),
+    Change("a House theme after a drop begins on the other figure", datetime.datetime(2026, 11, 19, 3, 30), "",
+           "the theme after a drop begins with the hats turned and the other percussion (Ambush III: one groove 32 bars)",
+           lambda p: p.style == "house"),
+    Change("House's lead ridden, not turned down", datetime.datetime(2026, 11, 19, 3, 30), "",
+           "the lead at its place at the drop, a part over that ridden down on its own envelope (Blades III's riff 15 dB under)",
+           lambda p: p.style == "house"),
     Change("House's bigger lead voice plays the drops", datetime.datetime(2026, 11, 19, 3, 0), "",
            "of a lead's two voices the bigger plays the drops (Hammerfall III's drops had the hollow square, its themes the super)",
            lambda p: p.style == "house"),

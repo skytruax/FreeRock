@@ -692,3 +692,40 @@ def test_the_bigger_lead_voice_plays_the_drops():
             quiet = gentle if drops == chosen else chosen
             assert house.LEAD_WEIGHT.get(drops, 1) >= house.LEAD_WEIGHT.get(quiet, 1)
     assert set(house.LEAD_WEIGHT) >= {voice for palette in house.PALETTES.values() for voice in palette["lead"]}
+
+
+def test_a_channel_is_ridden_down_only_where_it_would_stand_over_its_place():
+    # (2026-11-19: Blades III's riff was 15 dB under its rises at the drops, the whole lead channel turned down by its rises.)
+    # The lead stands at its place at the drop; a part that would stand more than 3 dB over it is ridden down to that.
+    from freerock import analysis
+    from freerock.studio import club
+    rate = club.RATE
+    t = np.arange(rate * 9) / rate
+    loud = [-20.0, -8.0, -20.0]
+    audio = np.concatenate([(np.sin(2 * np.pi * 660 * t[:rate * 3]) * 10 ** (db / 20)).astype(np.float32) for db in loud])[:, None].repeat(2, axis=1)
+    spans = [(0, rate * 3), (rate * 3, rate * 6), (rate * 6, rate * 9)]
+    have = [analysis.loudness_lufs(audio[a:b], rate) for a, b in spans]
+    ceiling = have[0] + 3.0
+    curve = club.ridden(audio, spans, ceiling, rate // 2)
+    assert curve is not None
+    after = [analysis.loudness_lufs((audio * curve[:, None])[a:b], rate) for a, b in spans]
+    assert abs(after[1] - ceiling) < 0.6 and abs(after[0] - have[0]) < 0.6 and abs(after[2] - have[2]) < 0.6
+    assert club.ridden(audio * np.float32(0.01), spans, ceiling, rate // 2) is None
+
+
+def test_a_theme_after_a_drop_does_not_play_the_drops_groove():
+    # (2026-11-19, the boredom meter: Ambush III's drums were the same 32 bars from its first drop through the theme after
+    # it.) The theme that follows a drop starts on the other figure: its first bars' hats and percussion are not the drop's.
+    from freerock.studio import club
+    take = house.Take(house.family("battle-03"), 3)
+    heard = club.listen(take)
+    sections = list(take.sections)
+    index = next(i for i, (story, _, _) in enumerate(sections) if story == "moment")
+    story, first, count = sections[index + 1]
+    assert story == "theme"
+    drop_first, drop_count = sections[index][1], sections[index][2]
+
+    def struck(a: int, b: int) -> set[tuple[str, float]]:
+        return {(name, round((at / house.BAR) % 1.0, 3)) for name, _, at, _, _ in heard.hits if a * house.BAR <= at < b * house.BAR
+                and name not in ("kick", "kick2", "punch", "crash")}
+    assert struck(drop_first + drop_count - 4, drop_first + drop_count) != struck(first, first + 4)

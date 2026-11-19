@@ -20,6 +20,15 @@ show me".
 - **A long opening's bass goes with its chords**: where an opening of 16 bars or more leaves the key
   chord, the held key note moves to that chord's root and back (Gull's Edge's basses had held one note
   27 bars of its 28-bar opening, under its flat-seventh chords as well).
+- **A House theme after a drop does not play the drop's groove**: each section counted its sixteen
+  bars from its own start, so the theme after a drop began on the drop's hats and percussion (Ambush
+  III: the drums the same 32 bars). It now begins on the other figure, and the change lands where the
+  drop ends.
+- **House's lead is ridden, not turned down**: the desk set each channel by the drop but never let
+  another part stand more than 3 dB over its place, so a lead loud in its rises was turned down whole
+  and its drop buried (Blades III: the riff 15 dB under its rises). The lead now stands at its place at
+  the drop, and only a part that would stand more than 3 dB over it is ridden down, on the lead's own
+  volume envelope (`club.ridden`).
 - **House's bigger lead voice plays the drops**: a lead's main voice played the drops and the next
   in its palette the quiet places, so a take that drew the hollow square had the seven-saw super in its
   themes and the square at its drops (Hammerfall III: the lead 12 dB louder outside the drop than in

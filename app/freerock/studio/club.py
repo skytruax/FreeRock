@@ -636,6 +636,28 @@ def heard_from(sheet: Sheet) -> Heard:
     return heard
 
 
+def ridden(audio: np.ndarray, spans: list[tuple[int, int]], ceiling: float, ease: int) -> np.ndarray | None:
+    """A channel ridden down where a part of the story would stand over `ceiling` (LUFS): the gain for each sample,
+    each such part brought down to it and eased from one part's gain to the next over `ease` samples at the joins; None
+    where every part is under it already."""
+    gains = []
+    for low, high in spans:
+        loud = analysis.loudness_lufs(audio[low:high], RATE) if high > low else -100.0
+        gains.append(10.0 ** ((ceiling - loud) / 20.0) if loud > ceiling else 1.0)
+    if all(gain == 1.0 for gain in gains):
+        return None
+    curve = np.ones(len(audio), dtype=np.float32)
+    for (low, high), gain in zip(spans, gains):
+        curve[low:min(high, len(curve))] = gain
+    if spans:
+        curve[spans[-1][1]:] = gains[-1]
+    for index, (low, _) in enumerate(spans[1:], start=1):
+        start, end = max(low - ease // 2, 0), min(low + ease // 2, len(curve))
+        if end > start:
+            curve[start:end] = np.linspace(gains[index - 1], gains[index], end - start, dtype=np.float32)
+    return curve
+
+
 def stage(name: str, take: int) -> dict:
     """Writes one take of a house family as its sheet and performs it (`write`, `perform`)."""
     return perform(write(name, take))
@@ -694,6 +716,7 @@ def perform(sheet: Sheet) -> dict:
     if not about["kick"]:
         want["drums"] = -27.0
     faders = {}
+    alone: dict[str, list[tuple[float, float]]] = {}
     for channel in list(parts):
         have = analysis.loudness_lufs(parts[channel][a:b], RATE)
         if have < -70.0:
@@ -704,6 +727,17 @@ def perform(sheet: Sheet) -> dict:
         # ...but never so far up that another part of the story goes more than 3 dB over the channel's place (as the
         # orchestra's desk does since 2026-11-17, night: a house tune soft at its drop and full in its theme blared there).
         edges = [0] + [int(round((first + count) * house.BAR_FRAMES)) for _, first, count in sections]
+        if channel == "lead":
+            # The hook stands at its place at the drop, and a part of the story that would stand more than 3 dB over it is
+            # ridden down to that on the lead's own volume envelope, as a mixer rides a fader (2026-11-19: Blades III's
+            # riff was 15 dB under its rises at the drops, the whole channel turned down by its rises).
+            faders[channel] = 10.0 ** ((want[channel] - have) / 20.0)
+            parts[channel] = (parts[channel] * faders[channel]).astype(np.float32)
+            ride = ridden(parts[channel], list(zip(edges, edges[1:])), want[channel] + 3.0, int(house.BAR_FRAMES))
+            if ride is not None:
+                parts[channel] = (parts[channel] * ride[:, None]).astype(np.float32)
+                alone[channel] = desk.ride_points(ride)
+            continue
         have = max(have, max(analysis.loudness_lufs(parts[channel][low:high], RATE) for low, high in zip(edges, edges[1:])) - 3.0)
         faders[channel] = 10.0 ** ((want[channel] - have) / 20.0)
         parts[channel] = (parts[channel] * faders[channel]).astype(np.float32)
@@ -725,7 +759,7 @@ def perform(sheet: Sheet) -> dict:
     with reaper.Display() as display:
         parts = desk.mixdown(work, recorded, faders={channel: faders[channel] * up * extra for channel in parts},
                              ride=desk.ride_points(curve), bpm=float(house.BPM), seconds=seconds, tail=forever.POST_S,
-                             frames=frames, display=display, timeout=300.0 + seconds)
+                             frames=frames, display=display, timeout=300.0 + seconds, alone=alone)
     for bus, _ in folders:
         (work / (bus.name + ".wav")).unlink()
     meta = dict(about["meta"])
