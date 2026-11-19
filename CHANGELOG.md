@@ -8,12 +8,21 @@ dictated, where it drove the change.
 "i want fucking guitar solos in my knight rock, study eddie vedder and pearl jam"; "make me one and
 show me".
 
-- **A band's lead guitar takes a solo at the summit**: where the summit states its theme more than
-  once, the first time round is the lead guitar alone over the band, and the theme comes back after
-  it with the twin guitars. Two-bar phrases from the tune's own motif, climbing an octave, quickening
-  into runs and a repeated lick, peaking on a held bend and landing on the key note; bent notes, the
-  blues scale, the wah rocked through the runs. Studied from Mike McCready's playing in Pearl Jam
-  (handbook 4.10). Each take's solo is its own. `orchestra.SOLOS` switches it off.
+- **A band's lead guitar takes a solo at the summit**, sung rather than shredded: where the summit
+  states its theme more than once, the first time round is the lead guitar alone over the band, then
+  the theme with the twin guitars. The first version (heard in the game at 21:55) was runs and grace
+  note "bends" under a wah rocked through the whole summit: "all wammy no chill", "thats not a guitar
+  solo thats a solo effect track", "do better". Now: two-bar sentences with a breath between them,
+  the tune's opening as its first words, notes held over the chords, a double stop or two, one
+  short run, the peak held near the end and the key note last, in the key's own pentatonic, high on
+  the neck, with a tape echo and no pedal, 5 dB over the band (handbook 4.10). `orchestra.SOLOS`
+  switches it off.
+- **A part can stand louder than its instrument**: a part's `gain db` setting turns every track that
+  plays it up or down by that much (the solo's lift).
+- **A heavy band's second theme rings**: the rhythm guitar strikes each chord once and holds it under
+  the second theme's singer, and the riff comes back with the rise. The boredom meter had found its
+  rhythm guitar one colour through both themes (Free Blades 64 bars, Bastion March 42): a riff and a
+  strum on one distorted guitar sound the same. `orchestra.RING_SECOND` switches it off.
 - **A song asked for by name, once** ("and then let me restart the player and make sure it plays some
   how this time as a one off"): the player's address can name a track and where to begin
   (`/player?cue=knight/<family>/<take>&at=climb`). When the music begins, that track plays from there

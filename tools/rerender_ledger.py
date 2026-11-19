@@ -162,11 +162,19 @@ CHANGES = [
            "a harmonica, the English horn's drone or an accordion holds a note no longer than a breath (5, 6 and 9 seconds), "
            "played as breaths of whole bars (Moonshine Blues' harmonica had held one chord a minute)",
            lambda p: p.style != "house" and any(plays(p, name) for name in ("harmonica", "accordion", "pipe drone"))),
-    Change("a band's lead guitar takes a solo", datetime.datetime(2026, 11, 18, 21, 40), "",
+    Change("a band's lead guitar takes a solo", datetime.datetime(2026, 11, 18, 21, 16), "7709caa",
            "where the summit states its theme more than once, the first time round is the lead guitar's solo over the band "
            "(two-bar phrases from the tune's motif, climbing an octave, bends, runs and a repeated lick, the wah rocked), "
            "then the theme with the twin guitars",
            lambda p: p.style == "knight" and p.character.band and tuple(getattr(p.character, "strong", ()))[:1] == ("lead guitar",)),
+    Change("the guitar solo is sung", datetime.datetime(2026, 11, 18, 23, 0), "",
+           "the solo in two-bar sentences with breaths, held notes on the chords, one run, the peak held late, in the key's "
+           "pentatonic, with an echo and no wah (the first was runs and bends under a rocking wah: 'all wammy no chill')",
+           lambda p: p.style == "knight" and p.character.band and tuple(getattr(p.character, "strong", ()))[:1] == ("lead guitar",)),
+    Change("a heavy band's second theme rings", datetime.datetime(2026, 11, 18, 23, 0), "",
+           "the rhythm guitar strikes each chord of the second theme once and holds it, no chugs (it had one distorted colour "
+           "through both themes, 42 to 64 bars)",
+           lambda p: p.style == "knight" and p.character.band and not p.meta.get("light")),
 ]
 
 

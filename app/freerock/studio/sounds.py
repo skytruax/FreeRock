@@ -1387,6 +1387,10 @@ def lines(voice: Voice, title: str, bpm: float, *, taste: float = 1.0, room: flo
     marks ask for (`marked`) goes on each of its tracks after the track's own tone, before its
     echo, its tape and its room: where a pedalboard goes."""
     made = _lines(voice, title, bpm, taste=taste, room=room, seed=seed, muse_level=muse_level)
+    lift = voice.settings.get("gain db", 0.0)
+    if lift:
+        for line in made:
+            line.volume *= _db(lift)                    # (a part set to stand out from its instrument's level: a solo)
     pedals = marked(voice, bpm)
     if pedals:
         for line in made:

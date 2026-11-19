@@ -56,6 +56,7 @@ SETTINGS = {
     "echo feedback": "how much of each repeat comes round again, 0 to 0.9",
     "lowpass resonance": "0 to 1",
     "highpass resonance": "0 to 1",
+    "gain db": "how much louder (or, below 0, softer) the part stands than its instrument does, in dB: a solo over the band",
 }
 
 

@@ -918,6 +918,11 @@ before the bar line it reaches and taken up again on it. A bagpipe's bag holds i
   takes one (4.10).
 - In heavy band music the second theme goes to a pad that can sing: the Hammond, a bagpipe, a
   shenai, a pan flute or the choir. Lighter bands pass it between their leads.
+- *Under it the band opens out*: the rhythm guitar strikes each chord once and lets it ring through
+  the bar (the lick still answers every second bar), with no chugs, and the riff comes back with the
+  rise (`orchestra.RING_SECOND`). The boredom meter had found a heavy band's rhythm guitar one colour
+  through both themes, 42 to 64 bars: a riff and then a strum or a chug are different notes on one
+  distorted sound, and the ear hears the sound.
 - *A band's riff guitars are the band's whole accompaniment*: heavy band music has no second figure;
   lighter bands do.
 - War drums play only in a band's rises (and in a fight, as it opens and in its valley).
@@ -928,27 +933,38 @@ before the bar line it reaches and taken up again on it. A bagpipe's bag holds i
 *A band whose lead is the lead guitar takes a solo at the summit* ("i want fucking guitar solos in my
 knight rock, study eddie vedder and pearl jam", 2026-11-18). Where the summit states its theme more
 than once, the first time round is the lead guitar alone over the band (the riff, the bass and the
-drums as written), and the theme comes back after it with the twin guitars. `orchestra.guitar_solo`
-writes it the way the long blues-rock solos are built, studied from how Mike McCready plays Pearl
-Jam's "Alive" (his own words and lessons on it; no notes taken from it):
+drums as written), and the theme comes back after it with the twin guitars.
 
-- **Phrases of two bars, like sentences.** In Pearl Jam the singer and the guitar answer each other;
-  Knight Rock has no singer, so the solo is the voice.
-- **It starts from the tune.** The tune's first four notes are the motif: stated, then answered two
-  steps higher, ending on a bent note held to the end of the bar.
-- **It develops, then quickens.** Eighths that arch up and down end on a bend; then a run down, a
-  three-note lick played over and over, and a run up into a bend. Sixteenths up to 150 BPM (120 in
-  compound time), eighths above.
-- **It climbs an octave** to its peak: the highest note bent up and held, then a run down.
-- **It lands**: the motif once more, slower, to the key note held.
-- **The blues and the bends.** Every note goes onto the key's minor pentatonic (4.3), the scale his
-  solos are phrased in, after Hendrix and Stevie Ray Vaughan. A bend is a grace note a step below,
-  then the note: the string pushed up. The lead's own marks rock the wah at the pace of its notes
-  through the summit's runs and let every long note cry, which is how he plays it live.
-- **Never the same twice.** He has said he does not play the solo the same way live. Each take's solo
-  draws its own choices from the family's seed and the take, so no two takes share a solo, and the
-  rest of the take is written as it was.
-- `orchestra.SOLOS = False` takes the solo away and gives the summit back to the twins.
+*A solo is sung, not shredded.* The first one was runs and bends from end to end, every bend a grace
+note a step below its note, under a wah rocked at the pace of the notes through the whole summit,
+and every long note made to cry. Heard in the game: "all wammy no chill", "thats not a guitar solo
+thats a solo effect track". A bend written as two sampled notes is a chirp, not a bend, and a pedal
+that never stops is the thing you hear instead of the tune. `orchestra.guitar_solo` now writes it
+the way Mike McCready plays a slow Pearl Jam song ("Yellow Ledbetter", after Hendrix's "Little
+Wing") and the way a singer phrases:
+
+- **Sentences of two bars**, each ending on a note held over its chord and a breath (a beat or
+  more) before the next. Knight Rock has no singer, so the solo is the voice.
+- **Its first words are the tune's own opening**, on the band's stop chord; then answered and
+  turned upwards; then carried higher in eighths.
+- **A held note doubled a third below** now and then, as McCready and Hendrix voice them.
+- **It builds**: one short figure (da-da-DUM) a note higher each time, then **one quick run** (six
+  notes) to just under the top.
+- **The peak is the highest note of the chord under it, held two bars' worth of beats, and nothing
+  before it goes as high**; then down by step, and the tune's opening once more, slower, to the
+  key note held.
+- **Notes on strong beats are notes of the chord**; everything is in the key's own five notes: the
+  major pentatonic in a major key or mixolydian (sweet), the minor in a minor key or dorian (blue).
+  It is not moved onto the blues scale as the lead's other lines are.
+- **It sits high on the neck**: the octave is chosen so that the peak comes nearest the top of the
+  guitar's reach.
+- **No pedal on it.** It is a voice of its own (`lead guitar solo`) with a tape echo a dotted eighth
+  behind it, so the held notes sing on into the room; and the summit has no wah on the lead at all.
+- **It stands over the band**: 5 dB over the lead's usual level (`orchestra.SOLO_LIFT`, the part's
+  `gain db`). Played at the lead's own level it was 2 dB under the rhythm guitars and 4 under the
+  twin guitars' theme after it.
+- **Never the same twice**: each take draws its own solo from the family's seed and the take.
+- `orchestra.SOLOS = False` takes it away and gives the summit back to the twins.
 
 ---
 

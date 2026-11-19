@@ -927,6 +927,22 @@ def test_the_desk_plays_a_parts_effect_marks_on_its_tracks():
         sounds.marked(score.Voice(instrument="lead guitar", effects={"chorus": [(0.0, 1.0)]}), 120.0)
 
 
+def test_a_part_can_stand_louder_than_its_instrument(monkeypatch):
+    # (2026-11-18: the sung solo, played at the lead's own level, was 2 dB under the rhythm guitars.) A part's "gain db"
+    # turns every track that plays it up by that much; a part without it is as its instrument stands.
+    from freerock.studio import desk, sounds
+    made = [desk.Line("a", desk.bare("a", []), volume=0.5), desk.Line("b", desk.bare("b", []), volume=0.25)]
+    monkeypatch.setattr(sounds, "_lines", lambda voice, title, bpm, **_: [desk.Line(line.name, line.template, volume=line.volume) for line in made])
+    plain = sounds.lines(score.Voice(instrument="lead guitar"), "plain", 120.0)
+    lifted_voice = score.Voice(instrument="lead guitar")
+    lifted_voice.set("gain db", 6.0)
+    lifted = sounds.lines(lifted_voice, "solo", 120.0)
+    assert [line.volume for line in plain] == [0.5, 0.25]
+    assert [round(line.volume / before.volume, 3) for line, before in zip(lifted, plain)] == [round(10 ** (6.0 / 20), 3)] * 2
+    take = orchestra.Take(_family("anywhere-banner-war-2"), 1)
+    assert take.voices["lead"]["lead guitar solo"].settings["gain db"] == orchestra.SOLO_LIFT > 0
+
+
 def _family(name: str) -> orchestra.Family:
     return next(fam for fam, _ in build.plan() if fam.name == name)
 
@@ -936,6 +952,7 @@ def test_a_bands_guitars_are_marked_where_their_own_music_asks(monkeypatch):
     # be standard".) Hammer Thunder: its lead rocks a wah only through the summit, where it runs, and cries on the long
     # notes of its first arrival; its rhythm guitar's jets end on the arrivals; the second guitar in harmony is dry.
     monkeypatch.setattr(orchestra, "BAND_PEDALS", True)
+    monkeypatch.setattr(orchestra, "SOLOS", False)              # (with its solo, the summit has no pedal: see the solo's test)
     take = orchestra.Take(_family("infernal-forge-anthem-1"), 3)
     beats = take.beats
     starts = {section.part: first for section, first, _, _ in take.spans}
@@ -1076,33 +1093,77 @@ def test_a_wind_player_breathes():
 
 
 def test_a_bands_lead_guitar_takes_a_solo_at_the_summit():
-    # ("i want fucking guitar solos in my knight rock, study eddie vedder and pearl jam", 2026-11-18.) The summit's first
-    # time round is the lead guitar's solo over the band: on the blues scale, climbing about an octave, quickening into
-    # runs, its busiest stretch rocked on the wah; then the theme comes back with the twin guitars.
-    take = orchestra.Take(_family("anywhere-banner-war-2"), 1)
-    beats, period = take.beats, take.fam.period
-    first = next(first for section, first, _, _ in take.spans if section.part == "summit")
-    lead = take.voices["lead"]["lead guitar"]
-    solo = [note for note in lead.notes if first <= note.start < first + period * beats]
-    tonic = next(key for section, _, key, _ in take.spans if section.part == "summit").tonic
-    assert len(solo) >= 4 * period
-    assert all((note.pitch - tonic) % 12 in orchestra.BLUES for note in solo)
-    quarter = period * beats / 4
-    early = [note.pitch for note in solo if note.start < first + quarter]
-    late = [note.pitch for note in solo if note.start >= first + 3 * quarter]
-    assert max(late) >= max(early) + 5                                    # it climbs
-    typical = lambda notes: float(np.median([note.length for note in notes]))        # noqa: E731   (a bend's grace is short anywhere)
-    assert typical([n for n in solo if first + 2 * quarter <= n.start < first + 3 * quarter]) < typical([n for n in solo if n.start < first + quarter])
-    twin = take.voices["lead"]["lead guitar twin"]
-    assert not [note for note in twin.notes if first <= note.start < first + period * beats]      # no twin under the solo...
-    assert [note for note in twin.notes if note.start >= first + period * beats]                   # ...and the twins after it
-    wah = lead.effects["wah"]
-    assert float(np.interp(first + 2.5 * quarter, [a for a, _ in wah], [v for _, v in wah])) > 0.5
+    # ("i want fucking guitar solos in my knight rock, study eddie vedder and pearl jam"; of the first one, runs and bends
+    # under a wah from end to end: "all wammy no chill", "thats not a guitar solo thats a solo effect track", 2026-11-18.)
+    # The summit's first time round is the lead guitar's solo, sung: sentences with a breath between them, notes held over
+    # the chords, in the key's own five notes, one quick run, the highest note held near the end and the key note last; no
+    # pedal on it, an echo behind it; then the theme comes back with the twin guitars.
+    for name, number in (("anywhere-banner-war-2", 1), ("pastoral-free-company-2", 4)):
+        take = orchestra.Take(_family(name), number)
+        beats, period = take.beats, take.fam.period
+        first = next(first for section, first, _, _ in take.spans if section.part == "summit")
+        key = next(key for section, _, key, _ in take.spans if section.part == "summit")
+        voice = take.voices["lead"]["lead guitar solo"]
+        solo = sorted(voice.notes, key=lambda note: note.start)
+        assert solo and all(first <= note.start < first + period * beats for note in solo)
+        bright = orchestra.MODES[key.mode][2] == 4
+        five = {0, 2, 4, 7, 9} if bright else {0, 3, 5, 7, 10}
+        assert sum((note.pitch - key.tonic) % 12 in five for note in solo) >= 0.85 * len(solo)
+        breaths, reached = 0, solo[0].start + solo[0].length
+        for note in solo[1:]:
+            breaths += note.start - reached >= 0.5 - 1e-6
+            reached = max(reached, note.start + note.length)
+        assert breaths >= period // 2 - 2, "sentences without a breath between them: %d" % breaths
+        assert sum(note.length >= 1.5 for note in solo) >= period // 4
+        assert sum(note.length < 0.4 for note in solo) <= 0.2 * len(solo), "it shreds"
+        top = max(solo, key=lambda note: (note.pitch, -note.start))
+        assert top.start >= first + 0.5 * period * beats and top.length >= 2.0
+        assert (solo[-1].pitch - key.tonic) % 12 == 0 and solo[-1].length >= 1.5
+        assert "wah" not in voice.effects and "echo" in voice.effects
+        lead = take.voices["lead"]["lead guitar"]
+        assert not [point for point in lead.effects.get("wah", []) if point[0] >= first and point[1] > 0]
+        twin = take.voices["lead"]["lead guitar twin"]
+        assert not [note for note in twin.notes if first <= note.start < first + period * beats]      # no twin under the solo...
+        assert [note for note in twin.notes if note.start >= first + period * beats]                   # ...and the twins after it
     import pytest as _pytest
     with _pytest.MonkeyPatch.context() as patch:
         patch.setattr(orchestra, "SOLOS", False)
         plain = orchestra.Take(_family("anywhere-banner-war-2"), 1)
-    assert [note for note in plain.voices["lead"]["lead guitar twin"].notes if first <= note.start < first + period * beats]
+    first = next(first for section, first, _, _ in plain.spans if section.part == "summit")
+    assert "lead guitar solo" not in plain.voices["lead"]
+    assert [note for note in plain.voices["lead"]["lead guitar twin"].notes if first <= note.start < first + plain.fam.period * plain.beats]
+
+
+def test_a_heavy_bands_second_theme_rings():
+    # (2026-11-18, the boredom meter: a heavy band's rhythm guitar had one distorted colour through both its themes, 42 to 64
+    # bars.) In the second theme each chord is struck once and held, with no chugs between; the first theme is as it was,
+    # and a light band is left alone.
+    def themes(name: str, take: int) -> dict[str, list]:
+        made = orchestra.Take(_family(name), take)
+        out = {}
+        for section, first, _, _ in made.spans:
+            if section.part in ("first", "second"):
+                last = first + section.bars * made.beats
+                out[section.part] = [(voice_name, note) for voice_name, voice in made.voices["rhythm"].items()
+                                     for note in voice.notes if first <= note.start < last]
+        return out
+    heavy = themes("anywhere-banner-war-2", 1)
+    chords = [note for name, note in heavy["second"] if name == "rhythm guitar"]
+    assert chords and float(np.median([note.length for note in chords])) >= 2.5
+    assert not [name for name, _ in heavy["second"] if name == "muted guitar"]
+    assert float(np.median([note.length for name, note in heavy["first"] if name == "rhythm guitar"])) < 1.5
+    import pytest as _pytest
+    with _pytest.MonkeyPatch.context() as patch:
+        patch.setattr(orchestra, "RING_SECOND", False)
+        plain = themes("anywhere-banner-war-2", 1)
+    assert float(np.median([note.length for name, note in plain["second"] if name == "rhythm guitar"])) < 1.5
+    assert [(name, note.start, note.pitch) for name, note in plain["first"]] == [(name, note.start, note.pitch) for name, note in heavy["first"]]
+    light = themes("highland-hill-country-1", 5)
+    with _pytest.MonkeyPatch.context() as patch:
+        patch.setattr(orchestra, "RING_SECOND", False)
+        light_plain = themes("highland-hill-country-1", 5)
+    assert [(name, note.start, note.pitch, note.length) for name, note in light["second"]] == \
+        [(name, note.start, note.pitch, note.length) for name, note in light_plain["second"]]
 
 
 def test_a_bands_pedals_can_be_switched_off():
