@@ -31,8 +31,9 @@ dictated, where it drove the change.
 - **A storm's rain falls under the full band**: hard in the opening, the rises and the close, softer
   in the themes and drops. Over a bright pad it had covered the music (Thunderhead I's texture centred
   at 4.8 kHz; now 1.8, the liked 0.4).
-- **A heavy band's long opening opens on a wah**: its lone guitar is dry for the first half, then the
-  wah opens by hand until the band comes in (Cobra Fever's riff had gone 20 bars without a change).
+- **A long opening opens on a wah**: the guitar that carries its riff (a heavy band's lone guitar, or
+  the rhythm guitar where the band opens together) is dry for the first half, then the wah opens by hand
+  until the band comes in (Cobra Fever's riff had gone 20 bars without a change, Hammer Thunder's 16).
 - **A light band's clean guitar shimmers**: where it is the band's whole accompaniment (Lantern Walk had
   no effect at all), the vibe comes in with the second theme and stays through the moments.
 - **A play book** ("make a db so nightly bucket builds dont reset our playlist"): every play, love and

@@ -3450,7 +3450,7 @@ class Take:
           by a phaser that sweeps once for each chord it holds, or in some takes by a slow flanger;
         - a chord held into an arrival is flanged by hand across exactly that chord, and is dry when the arrival lands;
         - a long rise opens on the rhythm guitar's wah, held at the heel as it begins and brought by hand to the toe, and so
-          does a heavy band's long opening, on its lone guitar, across its second half;
+          does a long opening, on the guitar that carries its riff, across its second half;
         - the lead's busy runs at a moment go through a wah rocked at the pace of its own notes, and a long note held
           at a moment is opened slowly from heel to toe (the cry);
         - a clean guitar's broken chords that ring in the quiet go through a vibe, and where the clean guitar is the band's
@@ -3481,6 +3481,7 @@ class Take:
                     continue
                 if voice.instrument == "rhythm guitar":
                     self._ringing_marks(voice, returns, colour, depth)
+                    self._opening_marks(voice, depth)
                 elif voice.instrument == "lead guitar" and "twin" not in name:
                     self._lead_marks(voice, depth)          # (a second guitar in harmony stays dry: the harmony is its colour)
                 elif voice.instrument == "guitar":
@@ -3614,17 +3615,21 @@ class Take:
             voice.set("wah beats", 0.5 if pace <= 0.3 else 1.0)       # rocked in eighths over sixteenths, else on every beat
 
     def _opening_marks(self, voice: Voice, depth: float) -> None:
-        """A heavy band's lone opening guitar in a long opening (16 bars or more: Cobra Fever's riff went 20 bars without a
-        change, 2026-11-18): dry for the first half, then the wah held at the heel and opened by hand to the toe by its
-        last bar, slowly at first, and let go as the band comes in with the first theme, as a long rise opens."""
+        """The guitar that carries a long opening's riff (16 bars or more: Cobra Fever's lone guitar went 20 bars without
+        a change, 2026-11-18; in Hammer Thunder's fifth take the band opens together and the rhythm guitar carried the
+        16): dry for the first half, then the wah held at the heel and opened by hand to the toe by its last bar, slowly
+        at first, and let go as the band comes in with the first theme, as a long rise opens. A guitar that only counts
+        the band in at the opening's end is left dry."""
         beats = self.beats
         for section, first, _, _ in self.spans:
             if section.story != "open" or section.bars < 16:
                 continue
             last = first + section.bars * beats
-            if not self._notes_in(voice, first, last):
-                continue
             begin, end = first + (section.bars // 2) * beats, last - 0.25
+            halves = section.bars - section.bars // 2
+            playing = sum(1 for bar in range(halves) if self._notes_in(voice, begin + bar * beats, begin + (bar + 1) * beats))
+            if playing < 0.75 * halves:
+                continue                                    # (a riff of short strokes plays in every bar: that is carrying it)
             voice.mark("wah", [(begin - 0.25, 0.0), (begin + beats, 0.55 * depth), (end - 0.25, 0.55 * depth), (end, 0.0)])
             voice.mark("wah depth", [(begin - 0.3, 0.0), (end, 0.0)])
             voice.mark("wah position", [(begin, 0.05), (begin + 0.6 * (end - begin), 0.4), (end - 0.25, 0.95)])

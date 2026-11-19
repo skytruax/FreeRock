@@ -1038,6 +1038,23 @@ def test_a_long_openings_lone_guitar_opens_on_a_wah_as_the_band_comes_in():
     assert all(value == 0.0 for _, value in single.effects["wah depth"])
 
 
+def test_a_long_opening_played_by_the_whole_band_opens_on_the_rhythm_guitars_wah():
+    # (2026-11-18, Hammer Thunder's fifth take: the band opens together and the rhythm guitar carried the 16 bars.) The
+    # guitar that carries the riff takes the opening's wah; one that only counts the band in at the end stays dry.
+    at = lambda points, x: float(np.interp(x, [a for a, _ in points], [v for _, v in points])) if points else 0.0   # noqa: E731
+    take = orchestra.Take(_family("infernal-forge-anthem-1"), 5)
+    section, first = next((section, first) for section, first, _, _ in take.spans if section.story == "open")
+    last = first + section.bars * take.beats
+    rhythm = take.voices["rhythm"]["rhythm guitar"]
+    assert not any(voice.instrument == "single guitar" and voice.notes for parts in take.voices.values() for voice in parts.values())
+    assert at(rhythm.effects["wah"], first + 0.25 * (last - first)) == 0.0
+    assert at(rhythm.effects["wah"], first + 0.75 * (last - first)) > 0.5
+    lone = orchestra.Take(_family("desert-sand-rider-1"), 4)
+    section, first = next((section, first) for section, first, _, _ in lone.spans if section.story == "open")
+    last = first + section.bars * lone.beats
+    assert at(lone.voices["rhythm"]["rhythm guitar"].effects.get("wah", []), first + 0.75 * (last - first)) == 0.0
+
+
 def test_a_bands_pedals_can_be_switched_off():
     # A new sound is heard as a demo before it is used (the plan's principles): the switch that held the pedals back until
     # the demos were heard ("k keep going", 2026-11-18) still takes every mark away.
