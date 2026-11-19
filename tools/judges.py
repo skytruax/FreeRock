@@ -22,7 +22,8 @@ Each take is one line in var/passes/judged3.jsonl. All of it runs on this machin
     "var/tools/judges/.venv/bin/python" tools/judges.py knight/pastoral-banner-ride-1/5 house/coast-03/1 ...
     ... --folder <a staged take's folder, a demo's> [--label "the licks, after"]   (--threads N, default 4)
     ... --watch --since "2026-11-19 08:30"      the loop: every take of every style staged (or made again) since then and
-                                                 not judged since, as it comes, oldest first; looks again every 5 minutes
+                                                 not judged since, newest first, the list read again after each; looks again
+                                                 every 5 minutes when none is waiting
 """
 from __future__ import annotations
 
@@ -188,7 +189,9 @@ def line(record: dict) -> str:
 
 
 def waiting(since: float) -> list[Path]:
-    """The staged takes of every style written since a time and not judged since they were written, oldest first."""
+    """The staged takes of every style written since a time and not judged since they were written, newest first: a
+    judgment takes ten to twenty-five minutes beside the renders, about as long as a take takes to make, so the newest
+    code is heard first and the older takes are judged as the time allows."""
     judged: dict[str, float] = {}
     log = VAR / "passes" / "judged3.jsonl"
     if log.exists():
@@ -202,7 +205,7 @@ def waiting(since: float) -> list[Path]:
         folder = meta.parent.resolve()
         if made >= since and judged.get(str(folder), 0.0) < made - 60 and any((folder / (c + ".flac")).is_file() for c in CHANNELS):
             found.append((made, folder))
-    return [folder for _, folder in sorted(found)]
+    return [folder for _, folder in sorted(found, reverse=True)]
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -224,12 +227,13 @@ def main(argv: list[str] | None = None) -> int:
     if args.watch:
         since = datetime.datetime.fromisoformat(args.since).timestamp() if args.since else time.time()
         while True:
-            for folder in waiting(since):
-                # A take still being written has its stems replaced one by one: only one written a minute ago or more.
-                if time.time() - (folder / "track.json").stat().st_mtime < 60:
-                    continue
-                print(line(judge(bench, folder, args.label)), flush=True)
-            time.sleep(300)
+            # A take still being written has its stems replaced one by one: only one written a minute ago or more. The list
+            # is read again after every judgment, so a take staged meanwhile is next.
+            ready = [folder for folder in waiting(since) if time.time() - (folder / "track.json").stat().st_mtime >= 60]
+            if not ready:
+                time.sleep(300)
+                continue
+            print(line(judge(bench, ready[0], args.label)), flush=True)
     return 0
 
 

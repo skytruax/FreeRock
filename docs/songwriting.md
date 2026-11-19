@@ -878,7 +878,10 @@ seventh's, leading back to the root), *pedal* (the low root alone, palm-muted, o
 the chords), or *push* (a stab on the last off-beat). **The second turn is a variation of the first**
 (`Take._varied`): the same run a step of the scale away, the other curl, the double stops the other way
 round, the turn chord answered by stabs. *SongEval's coherence had fallen on King's Oath with two
-unrelated turns.*
+unrelated turns.* **The riff listens to the lead** (`orchestra.MOVES_LISTEN`, `Take._rubs`, 2026-11-19,
+13:20): the rhythm guitar is written after the lead, and where the lead sounds a note a semitone or a
+tritone from the chord the move would strike (its major third under the IV's chord), the riff stays on
+its own chord there; on King's Oath 12 of its 80 moves.
 
 *Until 19 November every band song answered its riff with the same two runs, a walk up to the fifth
 (3, 5, 6, 7 semitones over the root) at the end of every fourth bar and a run down the blues scale
@@ -1019,6 +1022,22 @@ knight rock, study eddie vedder and pearl jam", 2026-11-18). Where the summit st
 than once, the first time round is the lead guitar alone over the band (the riff, the bass and the
 drums as written), and the theme comes back after it with the twin guitars.
 
+*Most songs have one, each its own, and it moves* (2026-11-19, 13:15: "most songs should have
+solos", "and they should be original each time", "i think you need the solos to do some flange shit
+like move a little"; `orchestra.MOST_SOLOS`, `ORIGINAL_SOLOS`, `SOLO_FLANGER`). Whoever leads the
+band's summit takes it (`orchestra.SOLOISTS`): the fiddle, the mandolin, the harmonica and the whistle
+as well as the lead guitar, so the fiddle bands and the whistle's and harmonica's songs have solos of
+their own; a whistle sounds one note at a time, so its solo has no double stops, octaves or doubled
+notes. A summit of the theme and half of it again has room for one (the half after it), and where the
+theme is eight bars and the summit states it three times or more, the solo takes two of them: sixteen
+bars. Of the plan's band takes 142 in 144 have one (two Tavern Rock takes state the summit's theme
+once). Each solo draws its own: three figures out of ten (one of them at least a riff of quick notes),
+where they fall among its sentences (after the call and its answer; first of all; between the call and
+its answer; or with the call carried higher between them), its own way through each figure, and its
+call's rhythm; no two of the plan's 142 are the same. Under it a flanger sweeps in time, a little:
+in from its first bar, a half again more at its peak, out as it ends; its own sweep (a bar, two or
+four) and its own bite. It moves; it is never rocked by hand nor laid on every note.
+
 *A solo is sung, not shredded.* The first one was runs and bends from end to end, every bend a grace
 note a step below its note, under a wah rocked at the pace of the notes through the whole summit,
 and every long note made to cry. Heard in the game: "all wammy no chill", "thats not a guitar solo
@@ -1035,7 +1054,12 @@ Wing") and the way a singer phrases:
 - **Outside the solo the lead answers itself** (`orchestra.LEAD_ANSWERS`, `Take.answer`, 2026-11-19):
   where the tune holds a note two and a half beats or more and its next phrase begins within two and a
   half beats, the breath takes a run of four quick notes of the blues scale into the next phrase's
-  first note, every other long note, so the tune still sings.
+  first note, every other long note, so the tune still sings. Since 13:20 that day the run is the
+  first theme's opening played quick (`orchestra.ANSWERS_SING_THE_THEME`, `Take._theme_head`): its
+  shape on the blues scale's ladder, ending on the step beside the next phrase's first note, turned
+  upside down where the phrase begins on the other side of the held note; a scale run only where it
+  would leap more than a sixth or leave the range. The song's own idea answers it, not a stock run
+  (the judges scored it the same or a little over the scale runs on King's Oath).
 - **It builds**: one short figure (da-da-DUM) a note higher each time, then **one quick run** (six
   notes) to just under the top.
 - **Its middle riffs, the way Angus Young plays** (`orchestra.ANGUS`, 2026-11-19: "couldnt you do more
@@ -1050,7 +1074,14 @@ Wing") and the way a singer phrases:
   in a row, then the run, out of six: those four and *the cascade* (a run down from the top in
   triplets, a note of the chord and the two under it, then the same a note lower) and *the pedal
   lick* (a high note of the chord picked again and again with a line falling under it, Chuck Berry's
-  and Angus's). An eight-bar solo trades its answer for one. The call, the peak and the way home stay sung, every sentence still ends
+  and Angus's). An eight-bar solo trades its answer for one. Since 13:15 the ten figures are those six, each
+  with its own way (the run in threes or fours, down or up; the trill a step or a third; the pedal over
+  the line or under it; the cascade falling or climbing; the double stops climbing or falling; the
+  repeated note against the note under it or over it), and four more: *octaves* (the tune's opening
+  with the note an octave under each, as Wes Montgomery and Hendrix play a line), *the echo* (quick
+  notes about a note of the chord, the same a step lower each beat), *the push* (one note picked in
+  threes against the beat, 3+3+2 or 3+2+3) and *the slide* (two long notes, each slid onto from three
+  quick notes under it, a fiddler's or a slide guitar's). The call, the peak and the way home stay sung, every sentence still ends
   on a held note and a breath, and the notes stay in the key's five: fast notes are now about half,
   where the sung solo of 18 November kept them under a fifth (two thirds since the three riffs) ("it shreds" was about the pedal and the
   chirping bends, not about speed).
@@ -1062,8 +1093,9 @@ Wing") and the way a singer phrases:
   It is not moved onto the blues scale as the lead's other lines are.
 - **It sits high on the neck**: the octave is chosen so that the peak comes nearest the top of the
   guitar's reach.
-- **No pedal on it.** It is a voice of its own (`lead guitar solo`) with a tape echo a dotted eighth
-  behind it, so the held notes sing on into the room; and the summit has no wah on the lead at all.
+- **No pedal rocked on it.** It is a voice of its own (`lead guitar solo`, `fiddle solo`...) with a tape
+  echo a dotted eighth behind it, so the held notes sing on into the room, and a flanger sweeping in
+  time under it, a little, since 13:15; the summit has no wah on the lead at all.
 - **It stands over the band**: 5 dB over the lead's usual level (`orchestra.SOLO_LIFT`, the part's
   `gain db`). Played at the lead's own level it was 2 dB under the rhythm guitars and 4 under the
   twin guitars' theme after it. The desk measures the lead's place over the summit after the solo
@@ -1073,7 +1105,8 @@ Wing") and the way a singer phrases:
   own volume envelope in the mix: a light band's theme after the solo has a fiddle and the twin
   guitars on it, and the channel set by that had left Barnyard Jamboree's solo under the guitars.
   `tools/lift_solos.py` does the same to a staged take without making it again.
-- **Never the same twice**: each take draws its own solo from the family's seed and the take.
+- **Never the same twice**: each take draws its own solo from the family's seed and the take: its
+  figures, its form and each figure's way (above).
 - `orchestra.SOLOS = False` takes it away and gives the summit back to the twins.
 
 ---
@@ -1509,7 +1542,9 @@ octaves, its loudness and the figure its top strikes in sixteen steps. Its colou
 bar) has a top band of its own since 2026-11-19: the share of the bar above 4 kHz, which moving by
 more than 3 dB ends a run; a drummer's turn from the hat to the ride under a kick on every beat had
 hardly moved the cepstrum (House's Moonwell I: 44 bars of one colour before, 16 after). A heavy
-band's cymbal turns still move its top under 3 dB: they are too quiet in the mix to tell apart. It reports the longest
+band's cymbal turns still moved its top under 3 dB, too quiet in the mix to tell apart; since 19 November, 13:10,
+the band kits' top is opened 3.5 dB from 5 kHz (`sounds.chain`; the study had the drums 3.7 dB under the liked
+stems there). It reports the longest
 stretch that does not move, and flags 16 bars or more. Read a flag against the sheet: a close that
 peels its groove away a quiet layer at a time reads as unchanged, and a part can change its notes
 and still sound the same (0.4).
@@ -1556,6 +1591,19 @@ take's riff, fills and lead for memorability and coherence; the tune and the cho
 the stops, fills and contrast between parts for clarity; the ending and each part's energy for
 TuneJury; the desk for Audiobox. One or two takes are made with the change and judged against
 themselves before; the change is kept if its score rises and nothing else falls beyond its noise.
+
+**A before and after is one take only if nothing else moves** (2026-11-19, 13:00). The judges give
+the same scores to the same audio (King's Oath's morning take judged twice: SongEval identical to the
+hundredth). But the orchestra's writers drew from one generator, the lead first and the rest after
+it, and each instrument's place in the stereo field was drawn from it too as it first played: a
+change to the close, or a part brought in anywhere, drew every later riff, bass line and groove of
+the take anew. Two demos of King's Oath with the same first two minutes on paper came back with
+other drums and another bass there, and SongEval 0.08 apart. Since then the cast and the lead keep
+the take's generator (its tunes are drawn first and stay as they were), each instrument's place is
+drawn from its own name, and the rhythm guitar and the drum cycles have their own (`Take.own`): a
+switch turned in one part changes that part alone (ROCK_ENDING the close, LEAD_ANSWERS the lead).
+A change still has to move a score by more than its noise on two takes before it counts; a fall
+within the noise is not a target.
 
 The records go to `var/passes/judged3.jsonl`, one a take. On this laptop's processors it takes a few
 minutes a take; a GPU would take seconds (an RX 5700 XT is RDNA1, which ROCm does not support).

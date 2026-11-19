@@ -809,7 +809,14 @@ def chain(name: str, bpm: float) -> list[str]:
         # A kit behind a band. (Measured in "Lance Cry" against the rock kits that were liked, 2026-11-16: 4.5 dB too
         # much from 320 Hz to 5 kHz, 4 dB too little at 160 to 320 Hz, and strokes that rose 9 dB in ten milliseconds
         # where the liked ones rise 16: more stroke, less of what rings, the box down, the shell up, less tape.)
-        return [punch(0.5, 0.0), equalise(low_cut=32.0, low_shelf=(200.0, 2.0), bands=((480.0, -4.0, 1.4), (2200.0, -2.0, 1.6))),
+        # (2026-11-19: the cymbals 3.7 dB under the liked drum stems at the top, Lightning Runner, and the drummer's turn
+        # from the hat to the ride moving the top under 3 dB, too little to tell: the top opened from 5 kHz. Measured alone
+        # it moves the kits' level 0.1 dB. NB: measured afresh through this chain the two kits come out about 5 dB under
+        # their faders in levels.json (-9.8 and -10.2 against -4.7 and -4.5): the band's drums have been heard, liked and
+        # balanced against the liked stems at the faders as they are, so `python -m freerock.studio.sounds` is not run on
+        # "Drumkit#kit" without bringing the band's drums down 5 dB with it.)
+        return [punch(0.5, 0.0), equalise(low_cut=32.0, low_shelf=(200.0, 2.0), bands=((480.0, -4.0, 1.4), (2200.0, -2.0, 1.6)),
+                                         high_shelf=(5000.0, 3.5)),
                 smash(0.3), warm(0.15)]
     if kind == "woodwind" and _dry(name):
         # Recorded close: the keys and the breath are nearer than they are from a seat in the hall.

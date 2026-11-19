@@ -32,6 +32,14 @@ LEVERS = {
 }
 
 
+# Targets already worked on, by (change, score): what answered each. A target answered is listed with its answer and not
+# taken again until a new pair of that change says it still falls.
+ANSWERED = {
+    ("licks", "coherence"): "the second turn a variation of the first (2026-11-19, 50afba7)",
+    ("licks", "musicality"): "the second turn a variation of the first (2026-11-19, 50afba7)",
+}
+
+
 def scores(record: dict) -> dict[str, float]:
     song, box = record["songeval"], record["audiobox"]["mean"]
     return {"TuneJury": record["tunejury"]["brief"], "TuneJury plain": record["tunejury"]["plain"],
@@ -73,6 +81,7 @@ def main(argv: list[str]) -> int:
             found = change_of(row["folder"])
             if found:
                 pairs.setdefault((found[0], row["take"]), {})[found[1]] = row
+        falls: dict[tuple[str, str], list[tuple[float, str]]] = {}
         for (change, take), sides in sorted(pairs.items()):
             if "before" not in sides or "after" not in sides:
                 continue
@@ -82,7 +91,18 @@ def main(argv: list[str]) -> int:
             print("   %-12s %-28s %s" % (change, sides["after"]["title"][:28], text))
             for name, delta in moved.items():
                 if delta < 0:
-                    targets.append((0, "%s fell %.2f after %s (%s): %s" % (name, -delta, change, sides["after"]["title"], LEVERS[name])))
+                    falls.setdefault((change, name), []).append((delta, sides["after"]["title"]))
+        # A fall is a target where it shows on two takes, or on one by twice the judge's noise (2026-11-19: two demos of one
+        # take, the same notes in SongEval's two minutes, came back 0.08 apart when the accompaniment's draws had moved).
+        for (change, name), found in sorted(falls.items()):
+            worst = min(delta for delta, _ in found)
+            titles = ", ".join(title for _, title in found)
+            if (change, name) in ANSWERED:
+                print("   (answered: %s fell up to %.2f after %s; %s)" % (name, -worst, change, ANSWERED[(change, name)]))
+            elif len(found) >= 2 or -worst > 2 * NOISE[name]:
+                targets.append((0, "%s fell up to %.2f after %s (%s): %s" % (name, -worst, change, titles, LEVERS[name])))
+            else:
+                print("   (watch: %s fell %.2f after %s on %s alone, within twice its noise)" % (name, -worst, change, titles))
         pool = list(staged.values()) or mine
         # The part of the story each score falls lowest in.
         by_part: dict[str, dict[str, list[float]]] = {}

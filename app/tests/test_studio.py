@@ -1007,7 +1007,15 @@ def test_a_bands_guitars_are_marked_where_their_own_music_asks(monkeypatch):
                and not any(other.start <= note.start < other.start + other.length for other in long_notes)]
     assert between and all(on(note.start) == 0.0 for note in between)
     assert not take.voices["lead"]["lead guitar twin"].effects
-    jets = take.voices["rhythm"]["rhythm guitar"].effects["flanger"]
+    # The jet, where a take's rhythm guitar holds a chord into an arrival (since each writer draws on its own, 2026-11-19,
+    # the third take's riff no longer holds one there: the first of the family's takes that does).
+    candidates = [(name, number) for name in ("infernal-forge-anthem-1", "infernal-forge-anthem-2", "pastoral-banner-ride-1")
+                  for number in range(1, 7)]
+    jetting = next(made for made in (orchestra.Take(_family(name), number) for name, number in candidates)
+                   if "flanger" in made.voices["rhythm"]["rhythm guitar"].effects)
+    starts = {section.part: first for section, first, _, _ in jetting.spans}
+    ends = {section.part: first + section.bars * jetting.beats for section, first, _, _ in jetting.spans}
+    jets = jetting.voices["rhythm"]["rhythm guitar"].effects["flanger"]
     for at, value in jets:
         if value > 0:
             assert any(starts["build"] <= at <= ends["build"] or starts["climb"] <= at <= ends["climb"] for _ in [0])
@@ -1145,7 +1153,10 @@ def test_a_bands_lead_guitar_takes_a_solo_at_the_summit():
         key = next(key for section, _, key, _ in take.spans if section.part == "summit")
         voice = take.voices["lead"]["lead guitar solo"]
         solo = sorted(voice.notes, key=lambda note: note.start)
-        assert solo and all(first <= note.start < first + period * beats for note in solo)
+        # (Sixteen bars where the theme is eight and the summit states it three times or more, since 2026-11-19.)
+        turns = 2 if period <= 8 else 1
+        assert solo and all(first <= note.start < first + turns * period * beats for note in solo)
+        period *= turns
         bright = orchestra.MODES[key.mode][2] == 4
         five = {0, 2, 4, 7, 9} if bright else {0, 3, 5, 7, 10}
         assert sum((note.pitch - key.tonic) % 12 in five for note in solo) >= 0.85 * len(solo)
@@ -1181,6 +1192,80 @@ def test_a_bands_lead_guitar_takes_a_solo_at_the_summit():
     first = next(first for section, first, _, _ in plain.spans if section.part == "summit")
     assert "lead guitar solo" not in plain.voices["lead"]
     assert [note for note in plain.voices["lead"]["lead guitar twin"].notes if first <= note.start < first + plain.fam.period * plain.beats]
+
+
+def test_most_band_songs_have_a_solo_each_its_own_and_moving():
+    # (2026-11-19, 13:15: "most songs should have solos", "and they should be original each time", "i think you need the
+    # solos to do some flange shit like move a little".) Whoever leads a band's summit takes the solo: a fiddle, a mandolin,
+    # a harmonica or a whistle as well as the lead guitar; nearly every band take has one. Each is its own: its figures, its
+    # form and each figure's way drawn for it, so that no two of a family's takes (or of the plan's) play the same solo. A
+    # whistle never sounds two notes at once. A flanger sweeps under every solo, in time, a little, and opens toward its peak.
+    import sys
+    from collections import Counter
+    seen = []
+    real = orchestra.guitar_solo
+    def traced(*args, **kwargs):
+        found = {}
+        def tracer(frame, event, arg):
+            if frame.f_code is real.__code__:
+                if event == "return":
+                    found["kinds"] = tuple(frame.f_locals.get("kinds", []))
+                    found["ways"] = tuple(sorted((key, str(value)) for key, value in frame.f_locals.get("ways", {}).items()))
+                return tracer
+            return None
+        before = sys.gettrace()
+        sys.settrace(tracer)
+        try:
+            return real(*args, **kwargs)
+        finally:
+            sys.settrace(before)
+            seen.append(found)
+    import pytest as _pytest
+    fams = [fam for fam, _ in build.plan() if fam.character.style == "knight" and fam.character.band]
+    who, takes = Counter(), 0
+    whistled = None
+    with _pytest.MonkeyPatch.context() as patch:
+        patch.setattr(orchestra, "guitar_solo", traced)
+        for fam in fams[::3]:
+            for number in (1, 2):
+                made = orchestra.Take(fam, number)
+                takes += 1
+                solos = [(name, voice) for name, voice in made.voices["lead"].items() if name.endswith(" solo")]
+                if not solos:
+                    continue
+                name, voice = solos[0]
+                who[name] += 1
+                player = name[:-len(" solo")]
+                assert player in orchestra.SOLOISTS and player in tuple(made.ch.strong) + tuple(made.ch.leads)
+                flanger = dict(voice.effects).get("flanger")
+                assert flanger and max(value for _, value in flanger) > 0, "%s: no flanger under its solo" % fam.name
+                assert "wah" not in voice.effects and "echo" in voice.effects
+                assert voice.settings.get("flanger bars") in (1.0, 2.0, 4.0)
+                peak = max(voice.notes, key=lambda note: (note.pitch, -note.start)).start
+                at_peak = float(np.interp(peak + 0.01, [a for a, _ in flanger], [v for _, v in flanger]))
+                assert at_peak >= max(value for _, value in flanger[:2])      # opening toward the peak
+                if name == "whistle solo":
+                    whistled = voice
+    assert sum(who.values()) >= 0.9 * takes, "only %d of %d band takes have a solo" % (sum(who.values()), takes)
+    assert len(who) >= 3, "the solos are all one instrument's: %s" % dict(who)
+    assert len({(item["kinds"], item["ways"]) for item in seen}) == len(seen), "two solos the same"
+    assert len({item["kinds"] for item in seen}) >= 0.6 * len(seen), "the same form and figures again and again"
+    figures = Counter(kind for item in seen for kind in item["kinds"] if kind in orchestra.SOLO_FIGURES)
+    assert len(figures) >= 8, "few of the ten figures heard: %s" % dict(figures)
+    if whistled is None:
+        fam = next(fam for fam in fams if tuple(fam.character.strong)[:1] == ("whistle",))
+        made = next(made for made in (orchestra.Take(fam, number) for number in range(1, 7)) if "whistle solo" in made.voices["lead"])
+        whistled = made.voices["lead"]["whistle solo"]
+    starts = Counter(round(note.start, 4) for note in whistled.notes)
+    assert max(starts.values()) == 1, "a whistle sounding two notes at once"
+    with _pytest.MonkeyPatch.context() as patch:
+        patch.setattr(orchestra, "MOST_SOLOS", False)
+        patch.setattr(orchestra, "SOLO_FLANGER", False)
+        fiddled = next(fam for fam in fams if tuple(fam.character.strong)[:1] == ("fiddle",))
+        plain = orchestra.Take(fiddled, 1)
+        assert not [name for name in plain.voices["lead"] if name.endswith(" solo")]
+        guitar = orchestra.Take(_family("anywhere-banner-war-2"), 1)
+        assert "flanger" not in guitar.voices["lead"]["lead guitar solo"].effects
 
 
 def test_a_heavy_bands_second_theme_rings():
@@ -1390,6 +1475,44 @@ def test_a_band_takes_riff_moves_its_own_way_and_its_lead_answers_itself():
     plain_lead = plain.voices["lead"]["lead guitar"].notes
     assert len(lead) >= len(plain_lead) + 8                                  # its answers: runs of quick notes into the next
     assert not any(any((note.pitch - root) % 12 == 5 for note in notes) for bar, root, at, notes in theme_bars(plain) if bar % 2 == 0)
+
+
+def test_a_band_leads_answers_sing_the_first_themes_opening():
+    # (2026-11-19, the judges: SongEval's coherence and musicality fell with the answers' scale runs.) With
+    # ANSWERS_SING_THE_THEME the lead's answers are the first theme's opening played quick, its shape on the ladder of the
+    # blues scale (or that shape upside down, where the phrase it leads into begins on the other side of the held note),
+    # ending on the step beside the next phrase's first note.
+    from freerock.studio.orchestra import BLUES
+    import pytest as _pytest
+    for name, take in (("anywhere-storm-rider-1", 4), ("pastoral-free-company-2", 4), ("pastoral-banner-ride-2", 1)):
+        fam = _family(name)
+        with _pytest.MonkeyPatch.context() as patch:
+            patch.setattr(orchestra, "ANSWERS_SING_THE_THEME", True)
+            made = orchestra.Take(fam, take)
+        ordered = sorted(made.voices["lead"]["lead guitar"].notes, key=lambda note: (note.start, note.pitch))
+        head = made._theme_head(ordered)
+        assert head is not None and len(head) == 4
+        tonic = made.spans[0][2].tonic
+        ladder = sorted({tonic + 12 * octave + step for octave in range(1, 9) for step in BLUES})
+        place = lambda pitch: min(range(len(ladder)), key=lambda index: abs(ladder[index] - pitch))
+        shape = [place(each) - place(head[0]) for each in head]
+        quick = 0.25 if fam.bpm <= 150 else 0.5
+        runs, sung = 0, 0
+        index = 0
+        while index + 4 < len(ordered):
+            four = ordered[index:index + 4]
+            if all(abs(note.length - quick * 0.92) < 1e-6 for note in four) and all(
+                    abs(b.start - a.start - quick) < 1e-6 for a, b in zip(four, four[1:])):
+                runs += 1
+                steps = [place(note.pitch) - place(four[0].pitch) for note in four]
+                sung += steps in (shape, [-each for each in shape])
+                goal = ordered[index + 4]
+                assert abs(place(goal.pitch) - place(four[-1].pitch)) == 1 or goal.start - four[-1].start > quick + 1e-6
+                index += 4
+            else:
+                index += 1
+        assert runs >= 2, "%s/%d: no answers" % (name, take)
+        assert sung >= 0.8 * runs, "%s/%d: %d of its %d answers sing the theme's opening" % (name, take, sung, runs)
 
 
 def test_a_heavy_bands_close_ends_as_a_rock_band_ends():

@@ -3,6 +3,36 @@
 Newest first. Words in quotation marks are what was said while listening or playing, as typed or
 dictated, where it drove the change.
 
+## 2026-11-19, afternoon: solos in most songs, each its own and moving; each writer its own draws
+
+"most songs should have solos", "and they should be original each time", "i think you need the solos to
+do some flange shit like move a little".
+
+- **Whoever leads the band's summit takes the solo** (handbook 4.10): the fiddle, the mandolin, the
+  harmonica and the whistle as well as the lead guitar. A summit of the theme and a half has room for
+  one, and where the theme is eight bars the solo takes two of its turns, sixteen bars. 142 of the
+  plan's 144 band takes have one, where 44 of the 50 lead-guitar songs and none of the 22 others had.
+  `orchestra.MOST_SOLOS` takes it back.
+- **Each solo is its own**: three figures drawn from ten (four new: octaves, the echo, the push in
+  threes against the beat, the slide), one of them at least a riff of quick notes; where they fall
+  among its sentences, four ways; each figure its own way (in threes or fours, down or up, a step or a
+  third...); the call's own rhythm. No two of the 142 are the same. `orchestra.ORIGINAL_SOLOS`.
+- **A flanger sweeps under every solo, a little**: in time, one, two or four bars a sweep, opening a
+  half again at the peak. Never rocked by hand nor laid on every note (the wah of 18 November was
+  "all wammy no chill"). `orchestra.SOLO_FLANGER`.
+- **The lead's answers sing the first theme's opening**, quick, into its next phrase; and **the riff
+  waits** where its move would strike a chord a semitone from the note the lead holds (handbook 4.3).
+- **Each writer draws on its own** (`Take.own`): the rhythm guitar, the drum cycles and each
+  instrument's place had drawn from the lead's generator after it, so that a change to the close drew
+  every later riff and groove of a take anew, and a change's before and after were two takes (two
+  King's Oath demos with the same first two minutes on paper came back 0.08 apart on SongEval). The
+  tunes stay as they were; every take's riff and grooves are drawn once more, and from now on a switch
+  turned in one part changes that part alone.
+- **The band kits' top opened** 3.5 dB from 5 kHz: the cymbals 3.7 dB under the liked drum stems, and
+  the drummer's turns from the hat to the ride too quiet to hear (handbook 7.7).
+- **The judges**: the watch judges the newest take first; the report counts a fall only on two takes or
+  by twice the judge's noise, and keeps what answered a target (the riff moves' falls are within it).
+
 ## 2026-11-19, midday: the bass's break, the solo's second round
 
 "angus solo sounds pretty good iterate on those"; "do bass solos too"; "do that on more than one song".

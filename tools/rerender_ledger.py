@@ -235,6 +235,14 @@ CHANGES = [
            "the first bars of a heavy band's climb are the bass's, alone over light drums, into the band's entry; the solo's "
            "middle three of Angus's figures from six (the cascade and the pedal lick new)",
            lambda p: p.style == "knight" and p.character.band and p.character.weight >= 0.8),
+    Change("solos in most band songs, each its own, moving", datetime.datetime(2026, 11, 19, 14, 3), "",
+           "whoever leads the summit takes the solo (fiddle, mandolin, harmonica, whistle, lead guitar), sixteen bars where the "
+           "theme is eight; three figures of ten, its own form and ways; a flanger sweeping under it",
+           lambda p: p.style == "knight" and p.character.band),
+    Change("a band's answers sing its theme, its riff listens, its cymbals open", datetime.datetime(2026, 11, 19, 14, 3), "",
+           "the lead's answers are the first theme's opening played quick; the riff's move waits where it would rub against "
+           "the lead; the band kits' top 3.5 dB up from 5 kHz",
+           lambda p: p.style == "knight" and p.character.band),
     Change("an orchestra's long moment goes up a gear", datetime.datetime(2026, 11, 19, 10, 43), "d6baa7f",
            "every second eight-bar phrase of an arrival or summit of sixteen bars or more: the accompaniment an octave up, "
            "the lines over the pad to the horns, the drums busier, the cymbal twice as often (16 to 24 bars of one colour)",

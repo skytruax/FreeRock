@@ -1305,6 +1305,19 @@ LONG = 480.0                   # seconds: about how long a track is
 # before they were used (var/listen/now.html), then "k keep going" (2026-11-18, 14:25).
 BAND_PEDALS = True
 SOLOS = True             # a band's lead guitar takes a solo at the summit (guitar_solo); False takes it away
+# (2026-11-19, 13:15: "most songs should have solos", "and they should be original each time", "i think you need the solos to
+# do some flange shit like move a little".)
+MOST_SOLOS = True        # whoever leads the band's summit takes the solo, and a summit of a theme and a half has one; False: the
+                         # lead guitar alone, where the theme comes round twice
+ORIGINAL_SOLOS = True    # each solo draws its own form, its own way through each figure and from ten figures; False: those of 12:05
+SOLO_FLANGER = True      # a flanger sweeps slowly under the solo, a little (Take._solo_marks); False: the echo alone
+# Who may take a band's solo, and whether they can sound two notes at once (double stops, octaves, a held note doubled):
+SOLOISTS = {"lead guitar": True, "fiddle": True, "mandolin": True, "harmonica": True, "whistle": False}
+# The figures a solo's middle is made of, three drawn for each solo: Angus Young's and Chuck Berry's (the repeated note, the
+# run in threes or fours, the trill, the double stops, the cascade, the pedal lick), the octaves Wes Montgomery and Hendrix
+# play a tune in, a figure echoed a step lower each beat, one note picked in threes against the beat, and notes slid into.
+SOLO_FIGURES = ("repeat", "sequence", "trill", "stops", "cascade", "pedal", "octaves", "echo", "stutter", "slide")
+RIFFY = ("repeat", "sequence", "trill", "cascade")      # (each solo has one of these at least: a riff of quick notes)
 RING_SECOND = True       # a heavy band's second theme rings: its rhythm guitar holds each chord (Take.rhythm); False chugs on
 SOLO_LIFT = 5.0          # dB the solo stands over the lead's usual level (Take._solo_marks)
 CLIMBS = True            # a heavy band's rise climbs where one chord is held long (Take.rhythm, Take.bass); False plays on as it was
@@ -1321,6 +1334,11 @@ OWN_LICKS = True         # each band take answers its riff with fills of its own
 ANGUS = True             # the solo's middle riffs the way Angus Young plays them (guitar_solo); False: the sung solo of 11-18 alone
 RIFF_MOVES = True        # a band take's riff moves inside the bar, its own way (Take.riff_move); False: one chord struck in rhythm
 LEAD_ANSWERS = True      # a band's lead guitar answers its own long notes with a run into its next (Take.sing); False: it holds them
+# (2026-11-19, 13:20, the judges on King's Oath: neither the riff's moves nor the lead's answers had taken SongEval down,
+# within its noise either way; the answers sung from the theme scored the same or a little over the scale runs. Kept for
+# what they are: the song's own idea in its answers, and no chord struck against the note the lead holds.)
+ANSWERS_SING_THE_THEME = True    # the lead's answers are the first theme's opening played quick (Take._answered); False: a scale run
+MOVES_LISTEN = True      # a riff's move to another chord waits where the lead holds a note a semitone or a tritone from it (Take._rubs)
 ROCK_ENDING = True       # a heavy band's close ends as a rock band ends (Take.ending); False: it dies away as an orchestra's does
 BASS_SOLO = True         # a heavy band's bass leads it back in after the valley, alone (Take.bass_break); False: the band climbs together
 # The bass's riffs for its break, a bar each over the chord's root in semitones, as (beat, beats, interval) in a bar of four.
@@ -2117,7 +2135,7 @@ BLUES = (0, 3, 5, 7, 10)
 
 
 def guitar_solo(rng: random.Random, tune: Line, bars: int, beats: float, pulse: float, bpm: float, chords: list[Chord],
-                mode: str, low: int, high: int) -> Line:
+                mode: str, low: int, high: int, two: bool = True) -> Line:
     """A guitar solo over `bars` bars, in scale steps of the key: sung, not shredded. ("i want fucking guitar solos in my
     knight rock, study eddie vedder and pearl jam"; of the first one, all runs and bends under a wah rocked from end to
     end: "all wammy no chill", "thats not a guitar solo thats a solo effect track", "do better", 2026-11-18.)
@@ -2128,7 +2146,12 @@ def guitar_solo(rng: random.Random, tune: Line, bars: int, beats: float, pulse: 
     third below; the figures grow shorter as it builds, one quick run near the top, the highest note held long, and the
     tune's opening again to come home on the key note. A note on a strong beat is a note of the chord under it. In the
     key's own five notes: the major pentatonic in a major key, the minor in a minor one. `low` and `high` are the lowest
-    and highest steps the guitar should go to."""
+    and highest steps the guitar should go to.
+
+    Whoever leads the band takes it (MOST_SOLOS: a fiddle, a mandolin, a harmonica, a whistle as well as the lead guitar);
+    `two` is whether that player can sound two notes at once (a whistle cannot: no double stops, octaves or doubled
+    notes). Each solo is its own (ORIGINAL_SOLOS, 2026-11-19: "and they should be original each time"): its figures drawn
+    from ten, where they fall among its sentences, and its own way through each figure."""
     bright = MODES[mode][2] == 4 and MODES[mode][1] == 2
     five = (0, 1, 2, 4, 5) if bright else (0, 2, 3, 4, 6)
     span = 2 * beats
@@ -2229,12 +2252,50 @@ def guitar_solo(rng: random.Random, tune: Line, bars: int, beats: float, pulse: 
     while len(middle) < phrases - 4:
         middle.insert(2, "carry")
     kinds = (["call", "answer"] + middle[:max(phrases - 4, 0)] + ["peak", "home"]) if phrases >= 4 else ["call", "home"]
-    if ANGUS and phrases >= 4:
+    ways = {"repeat": "under", "sequence": "down 3", "trill": 1, "cascade": "down", "pedal": "top", "stops": "up", "echo": 1,
+            "stutter": (3, 3, 2), "call": 0}
+    if ANGUS and phrases >= 4 and ORIGINAL_SOLOS:
+        # (2026-11-19, 13:15: "most songs should have solos", "and they should be original each time".) Three figures drawn
+        # from ten, one of them at least a riff of quick notes (the repeated note, the run, the trill, the cascade); where they
+        # fall among the sung sentences: after the call and its answer, first of all, between the call and its answer, or
+        # with the call carried higher between them; and each figure's own way: the run in threes or in fours, down the five
+        # or up it; the trill a step wide or a third; the pedal over its line or under it; the cascade falling or climbing;
+        # the double stops climbing or falling; the repeated note against the note under it or over it; the echo a step
+        # lower each beat or two; the push 3+3+2 or 3+2+3; and the call's own rhythm.
+        riffs = [kind for kind in SOLO_FIGURES if two or kind not in ("stops", "octaves")]
+        rng.shuffle(riffs)
+        if not any(kind in RIFFY for kind in riffs[:3]):
+            found = next(index for index, kind in enumerate(riffs) if kind in RIFFY)
+            riffs[2], riffs[found] = riffs[found], riffs[2]
+        form = rng.choice(("sung", "riff first", "answered", "climbing"))
+        ways = {"repeat": rng.choice(("under", "over")), "sequence": rng.choice(("down 3", "down 4", "up 3", "up 4")),
+                "trill": rng.choice((1, 2)), "cascade": rng.choice(("down", "up")), "pedal": rng.choice(("top", "bottom")),
+                "stops": rng.choice(("up", "down")), "echo": rng.choice((1, 2)), "stutter": rng.choice(((3, 3, 2), (3, 2, 3))),
+                "call": rng.randrange(3)}
+        if phrases >= 8:
+            middle = {"sung": ["call", "answer", riffs[0], riffs[1], riffs[2], "run"],
+                      "riff first": [riffs[0], "call", riffs[1], "answer", riffs[2], "run"],
+                      "answered": ["call", riffs[0], "answer", riffs[1], riffs[2], "run"],
+                      "climbing": ["call", riffs[0], "carry", riffs[1], riffs[2], "run"]}[form]
+            extra = 3
+            while len(middle) < phrases - 2:
+                middle.insert(len(middle) - 1, riffs[extra % len(riffs)])        # a longer solo draws more of them
+                extra += 1
+            kinds = middle[:phrases - 2] + ["peak", "home"]
+        elif phrases >= 6:
+            middle = {"sung": ["call", "answer", riffs[0]], "riff first": [riffs[0], "call", riffs[1]],
+                      "answered": ["call", riffs[0], "answer"], "climbing": ["call", riffs[0], "carry"]}[form]
+            kinds = middle + ["carry"] * (phrases - 6) + ["run", "peak", "home"]
+        else:
+            # An eight-bar solo: one figure or two before its peak.
+            kinds = {"sung": ["call", riffs[0]], "riff first": [riffs[0], "call"], "answered": [riffs[0], riffs[1]],
+                     "climbing": [riffs[0], "carry"]}[form] + ["peak", "home"]
+    elif ANGUS and phrases >= 4:
         # (2026-11-19: "couldnt you do more complex riffs in the solo part like angus".) The middle of the solo riffs: two of
         # Angus Young's figures, drawn for this solo (the repeated note, the run down in threes, the trill, Chuck Berry's
         # double stops), a sung sentence between them, and the quick run up to the peak; the call, the peak and the way
         # home are still sung. A short solo trades its answer for one riff.
-        riffs = ["repeat", "sequence", "trill", "stops", "cascade", "pedal"]
+        riffs = [kind for kind in ("repeat", "sequence", "trill", "stops", "cascade", "pedal") if two or kind != "stops"]
         rng.shuffle(riffs)
         if phrases >= 8:
             # (2026-11-19, 12:05: "angus solo sounds pretty good iterate on those".) Three of his figures in a row, then the
@@ -2262,8 +2323,11 @@ def guitar_solo(rng: random.Random, tune: Line, bars: int, beats: float, pulse: 
         weight = 0.72 + 0.26 * along
         second = at + beats                                  # the second bar's downbeat
         if kind == "call":
-            # The tune's own opening, sung, from the band's stop chord on: its last note held over the chord.
-            rhythm = fit([(0.0, 1.5), (1.5, 0.5), (2.0, 0.5), (2.5, 1.5), (4.0, 3.0)])
+            # The tune's own opening, sung, from the band's stop chord on: its last note held over the chord. (Each solo its
+            # own rhythm for it: as the tune has it, from a pickup, or pushed.)
+            rhythm = fit(([(0.0, 1.5), (1.5, 0.5), (2.0, 0.5), (2.5, 1.5), (4.0, 3.0)],
+                          [(0.5, 0.5), (1.0, 1.0), (2.0, 0.5), (2.5, 1.5), (4.0, 3.0)],
+                          [(0.0, 1.0), (1.0, 0.5), (1.5, 1.0), (2.5, 1.5), (4.0, 3.0)])[ways["call"]])
             steps = motif[:len(rhythm) - 1] + [tone(motif[min(3, len(motif) - 1)], second, ceiling)]
             put(at, rhythm, steps, weight)
         elif kind == "answer":
@@ -2286,7 +2350,7 @@ def guitar_solo(rng: random.Random, tune: Line, bars: int, beats: float, pulse: 
             rhythm = fit([(0.5, 0.5), (1.0, 0.5), (1.5, 1.0), (2.5, 0.5), (3.0, 1.0), (4.0, 3.0)])
             steps = [start, up(start), start, down(start), start][:len(rhythm) - 1]
             steps.append(tone(up(start), second))
-            put(at, rhythm, steps, weight, double=True)
+            put(at, rhythm, steps, weight, double=two)
         elif kind == "build":
             # Two bars of one short figure, the second a note higher each time: da-da-DUM, and on.
             for half in range(2):
@@ -2307,70 +2371,145 @@ def guitar_solo(rng: random.Random, tune: Line, bars: int, beats: float, pulse: 
         elif kind == "repeat":
             # Angus's repeated note: a high note of the chord picked against the note under it, fast, then held; the second
             # bar a note higher, half as long, and a note of the chord held into the breath.
-            high_note = tone(down(ceiling), at, ceiling)
+            over = ways["repeat"] == "over"                     # (against the note over it: from a note further down)
+
+            def other(step: int) -> int:
+                # Against the note over it or under it; at the ceiling, under it: never the same note twice over.
+                found = min(up(step), ceiling) if over else down(step)
+                return found if found != step else down(step)
+            high_note = tone(down(ceiling, 2 if over else 1), at, ceiling)
             count = max(int(round((beats - 1.0) / fast)), 2)
             rhythm = [(each * fast, fast) for each in range(count)] + [(count * fast, beats - count * fast)]
-            steps = [high_note if each % 2 == 0 else down(high_note) for each in range(count)] + [high_note]
+            steps = [high_note if each % 2 == 0 else other(high_note) for each in range(count)] + [high_note]
             upper = min(tone(up(high_note), second, ceiling), ceiling)
+            if upper == high_note:
+                upper = min(up(high_note), ceiling) if up(high_note) <= ceiling else down(high_note)   # it moves, a note on
             again = max(int(round(beats / 2 / fast)), 2)
             rhythm += [(beats + each * fast, fast) for each in range(again)] + [(beats + again * fast, 1.0)]
-            steps += [upper if each % 2 == 0 else down(upper) for each in range(again)] + [tone(upper, second + again * fast, ceiling)]
+            steps += [upper if each % 2 == 0 else other(upper) for each in range(again)] + [tone(upper, second + again * fast, ceiling)]
             put(at, rhythm, steps, weight)
         elif kind == "sequence":
             # A run down the five in threes (a note and the two under it, then the same from the note under it), fast for a
             # bar, onto a note of the chord held through the second.
-            head = tone(down(ceiling), at, ceiling)
-            count = max(int(round(beats / fast)), 3)
+            # (Each solo its own: in threes or in fours, down the five or up it from lower down.)
+            group = int(ways["sequence"][-1])
+            move = up if ways["sequence"].startswith("up") else down
+            head = tone(down(ceiling, 2 * group) if move is up else down(ceiling), at, ceiling)
+            count = max(int(round(beats / fast)), group)
             steps = []
             while len(steps) < count:
-                steps += [head, down(head), down(head, 2)]
-                head = down(head)
+                steps += [move(head, each) for each in range(group)]
+                head = move(head)
             steps = steps[:count]
             rhythm = [(each * fast, fast) for each in range(count)] + [(beats, beats)]
-            steps.append(tone(down(steps[-1]), second, ceiling))
+            steps.append(tone(move(steps[-1]), second, ceiling))
             put(at, rhythm, steps, weight)
         elif kind == "trill":
             # A trill, hammered on and pulled off between a note of the chord and the note over it for a bar, then a fall by
             # step onto the chord.
-            note = tone(down(ceiling, 2), at, ceiling)
+            width = ways["trill"]                               # (a step wide, or a third)
+            note = tone(down(ceiling, 1 + width), at, ceiling)
             count = max(int(round(beats / fast)), 2)
             rhythm = [(each * fast, fast) for each in range(count)] + [(beats, 0.5), (beats + 0.5, 0.5), (beats + 1.0, 1.0)]
-            steps = [note if each % 2 == 0 else min(up(note), ceiling) for each in range(count)]
+            steps = [note if each % 2 == 0 else min(up(note, width), ceiling) for each in range(count)]
             steps += [down(note), down(note, 2), tone(down(note, 3), second + 1.0, ceiling)]
             put(at, rhythm, steps, weight)
         elif kind == "stops":
             # Double stops, as Chuck Berry played them and Angus plays them: two notes struck together on each beat and
             # off-beat, a note higher every two, then the top pair held with its third under it.
-            under = tone(down(ceiling, 4), at, ceiling)
+            falling = ways["stops"] == "down"                   # (or from high, falling a note every two)
+            under = tone(down(ceiling, 1 if falling else 4), at, ceiling)
             hits = max(int(round(beats / 0.5)), 2)
             for each in range(hits):
-                note = min(up(under, each // 2), ceiling)
+                note = down(under, each // 2) if falling else min(up(under, each // 2), ceiling)
                 for pair, step in enumerate((note, down(note))):
                     if not (at + each * 0.5 < at_peak and step > ceiling):
                         out.append((at + each * 0.5, 0.42, keep(step), min(weight + (0.06 if each % 2 == 0 else 0.0), 1.0) * (1.0 if pair == 0 else 0.85)))
-            put(at, [(beats, beats)], [tone(min(up(under, hits // 2), ceiling), second, ceiling)], weight, double=True)
+            last_pair = down(under, hits // 2) if falling else min(up(under, hits // 2), ceiling)
+            put(at, [(beats, beats)], [tone(last_pair, second, ceiling)], weight, double=True)
         elif kind == "cascade":
             # Angus's run down from the top in triplets: a note of the chord and the two under it, then the same from the note
             # under it, three to the beat (two in a fast or compound bar) for a bar, onto a note of the chord held.
             step = 1.0 / 3.0 if pulse == 1.0 and bpm <= 150 else 2.0 / 3.0 if pulse == 1.0 else pulse / 2.0
-            head = tone(down(ceiling), at, ceiling)
+            move = up if ways["cascade"] == "up" else down        # (or climbing to the top from under it)
+            head = tone(down(ceiling, 7) if move is up else down(ceiling), at, ceiling)
             count = max(int(round(beats / step)), 3)
             steps = []
             while len(steps) < count:
-                steps += [head, down(head), down(head, 2)]
-                head = down(head)
+                steps += [head, move(head), move(head, 2)]
+                head = move(head)
             steps = steps[:count]
             rhythm = [(each * step, step) for each in range(count)] + [(beats, beats)]
-            steps.append(tone(down(steps[-1]), second, ceiling))
+            steps.append(tone(move(steps[-1]), second, ceiling))
             put(at, rhythm, steps, weight)
         elif kind == "pedal":
             # The pedal lick (Chuck Berry's, and Angus's): a high note of the chord picked again and again, a line falling under
             # it between the picks, fast, for a bar; then the line's last note held.
-            top_note = tone(down(ceiling), at, ceiling)
             count = max(int(round(beats / fast)) // 2 * 2, 2)
-            steps = [top_note if each % 2 == 0 else down(top_note, 1 + each // 2) for each in range(count)]
+            if ways["pedal"] == "top":
+                top_note = tone(down(ceiling), at, ceiling)
+                steps = [top_note if each % 2 == 0 else down(top_note, 1 + each // 2) for each in range(count)]
+                steps.append(tone(down(top_note, 1 + count // 2), second, ceiling))
+            else:
+                # Under it: a low note of the chord picked again and again, a line climbing over it between the picks.
+                bottom = tone(down(ceiling, 7), at, ceiling)
+                steps = [bottom if each % 2 == 0 else min(up(bottom, 1 + each // 2), ceiling) for each in range(count)]
+                steps.append(tone(min(up(bottom, 1 + count // 2), ceiling), second, ceiling))
             rhythm = [(each * fast, fast) for each in range(count)] + [(beats, beats)]
-            steps.append(tone(down(top_note, 1 + count // 2), second, ceiling))
+            put(at, rhythm, steps, weight)
+        elif kind == "octaves":
+            # The tune's opening in octaves, as Wes Montgomery and Hendrix play a line: each note with the one an octave
+            # under it, its last held.
+            rhythm = fit([(0.0, 1.0), (1.0, 1.0), (2.0, 0.5), (2.5, 1.5), (4.0, 3.0)])
+            line = [min(step, ceiling) for step in motif[:len(rhythm) - 1]] + [tone(motif[1], second, ceiling)]
+            begun = len(out)
+            put(at, rhythm, line, weight)
+            for start_at, length, step, loud in out[begun:]:
+                if step - 7 >= low:
+                    out.append((start_at, length, step - 7, loud * 0.85))
+        elif kind == "echo":
+            # A figure of a beat, echoed: quick notes about a note of the chord (on it, under it, on it, over it), the same a
+            # step lower each beat (or two), and the last held through the second bar.
+            shape = (0, -1, 0, 1) if fast <= 0.25 else (0, -1)
+            head = tone(down(ceiling), at, ceiling)
+            rhythm, steps = [], []
+            count = max(int(beats + 1e-6), 1)
+            for beat in range(count):
+                centre = down(head, beat * ways["echo"])
+                for index, near in enumerate(shape):
+                    rhythm.append((beat + index * fast, fast))
+                    steps.append(up(centre, near) if near > 0 else down(centre, -near))
+            rhythm.append((beats, beats))
+            steps.append(tone(down(head, count * ways["echo"]), second, ceiling))
+            put(at, rhythm, steps, weight)
+        elif kind == "stutter":
+            # One note picked in threes against the beat (3+3+2 sixteenths, or 3+2+3: the push rock drives on), every other
+            # stroke a note higher, across a bar; then a note of the chord held.
+            note = tone(down(ceiling, 2), at, ceiling)
+            rhythm, steps, on, stroke = [], [], 0.0, 0
+            while on < beats - 1e-6:
+                for size in ways["stutter"]:
+                    if on >= beats - 1e-6:
+                        break
+                    rhythm.append((on, min(size * fast, beats - on)))
+                    steps.append(note if stroke % 2 == 0 else min(up(note), ceiling))
+                    on += size * fast
+                    stroke += 1
+            rhythm.append((beats, beats))
+            steps.append(tone(up(note), second, ceiling))
+            put(at, rhythm, steps, weight)
+        elif kind == "slide":
+            # Two long notes, each slid onto from three notes under it, quick, as a fiddler or a slide guitar comes onto a
+            # note: the first a note of the chord, the second higher.
+            grace = max(fast / 2, 0.125)
+            rhythm, steps = [], []
+            for half in range(2):
+                goal = tone(down(ceiling, 3 - 2 * half), at + half * beats, ceiling)
+                for each in range(3):
+                    rhythm.append((half * beats + each * grace, grace))
+                    steps.append(down(goal, 3 - each))
+                rhythm.append((half * beats + 3 * grace, beats - 3 * grace))
+                steps.append(goal)
             put(at, rhythm, steps, weight)
         elif kind == "run":
             # The one quick run, up to a note under the top, held; then down by step onto the chord.
@@ -2435,7 +2574,8 @@ class Take:
 
     def __init__(self, fam: Family, take: int):
         self.fam, self.take, self.ch = fam, take, fam.character
-        self.rng = random.Random(fam.seed * 9973 + take * 7919 + 5)
+        self.rng = random.Random(fam.seed * 9973 + take * 7919 + 5)    # the cast and the lead's: the tunes are drawn first from it
+        self._streams: dict[str, random.Random] = {}
         self.beats, self.group = fam.beats, fam.group
         # What the feet tap: a quarter note, or in six-eight and seven-eight an eighth.
         self.pulse = 0.5 if any(size % 1 for size in self.group) else 1.0
@@ -2467,6 +2607,15 @@ class Take:
         for write in (self.lead, self.answer, self.make_room, self.texture, self.rhythm, self.bass, self.drums, self.war_drums, self.marks,
                       self.breathe, self.effects):
             write()
+
+    def own(self, what: str) -> random.Random:
+        """A writer's own generator (2026-11-19, the judges: the rhythm guitar, the bass and the drums drew from the lead's,
+        after it, and each instrument's place too as it was first played, so that a change to the close or a part brought in
+        anywhere drew every later riff and groove of the take anew, and a change's before and after were two takes). The cast
+        and the lead keep the take's; each other writer that draws has its own, the same one however often it is asked for."""
+        if what not in self._streams:
+            self._streams[what] = random.Random("%s/%d/%d" % (what, self.fam.seed, self.take))
+        return self._streams[what]
 
     def breathing(self, at: float) -> bool:
         """Whether a moment is in the breath before an arrival."""
@@ -2553,7 +2702,9 @@ class Take:
     def voice(self, channel: str, name: str, tag: str = "") -> Voice:
         have = self.voices[channel]
         if name + tag not in have:
-            have[name + tag] = Voice(shift=INSTRUMENTS[name].early, pan=self.rng.uniform(-0.35, 0.35), instrument=name)
+            # Where it sits is drawn from its own name, so that a part brought in anywhere moves no one else's draws.
+            place = random.Random("pan/%d/%d/%s" % (self.fam.seed, self.take, name + tag))
+            have[name + tag] = Voice(shift=INSTRUMENTS[name].early, pan=place.uniform(-0.35, 0.35), instrument=name)
         return have[name + tag]
 
     def kit(self) -> Voice:
@@ -2649,15 +2800,37 @@ class Take:
                 if first <= at + 1e-6:
                     found = key
             return found
-        placed = self._answered([[note.start, note.length, note.pitch, note.loud] for note in ordered], key_at, INSTRUMENTS["lead guitar"])
+        head = self._theme_head(ordered) if ANSWERS_SING_THE_THEME else None
+        placed = self._answered([[note.start, note.length, note.pitch, note.loud] for note in ordered], key_at, INSTRUMENTS["lead guitar"],
+                                head)
         voice.notes = [Note(start, length, pitch, loud) for start, length, pitch, loud in placed]
 
-    def _answered(self, placed: list, key_at, inst) -> list:
+    def _theme_head(self, ordered: list) -> list[int] | None:
+        """The first theme's opening on the lead guitar: the pitches of its first four notes (one to an onset), or None where
+        the song has no first theme or its lead plays fewer than four notes there."""
+        for section, first, _, _ in self.spans:
+            if section.part == "first":
+                end = first + section.bars * self.beats
+                onsets: dict[float, int] = {}
+                for note in ordered:
+                    if first - 1e-6 <= note.start < end:
+                        onsets.setdefault(round(note.start, 4), note.pitch)
+                head = [onsets[at] for at in sorted(onsets)][:4]
+                return head if len(head) == 4 and len(set(head)) > 1 else None
+        return None
+
+    def _answered(self, placed: list, key_at, inst, head: list[int] | None = None) -> list:
         """A band's lead guitar answers its own long notes (2026-11-19: "still need more complex leads and riffs"): where the
         tune holds a note two and a half beats or more and its next phrase begins within two and a half beats of the hold's
         end, the breath between them takes a run into the next phrase's first note, four quick notes of the blues scale
         (the minor pentatonic) climbing or falling to it, ending as that note begins; the held note keeps a beat and a half
-        at least. Every other long note, so the tune still sings."""
+        at least. Every other long note, so the tune still sings.
+
+        With the first theme's opening (`head`, ANSWERS_SING_THE_THEME; 2026-11-19, the judges: SongEval's coherence and
+        musicality fell with the answers' scale runs, figures that are no part of the song): the run is that opening's shape
+        on the same ladder of the blues scale, quick, set so that its last note is the step beside the next phrase's first,
+        approached the way the opening's own last move goes. Where it would leap more than a sixth from the held note or
+        leave the guitar's range, the scale run is played."""
         fast = 0.25 if self.fam.bpm <= 150 else 0.5
         count = int(round(1.0 / fast))
         out, answered = [], 0
@@ -2673,6 +2846,12 @@ class Take:
                 continue
             goal = following[2]
             scale = sorted({key_at(start).tonic + 12 * octave + step for octave in range(1, 9) for step in BLUES})
+            sung = self._head_run(head, scale, pitch, goal, count) if head else None
+            if sung and all(inst.low <= note <= inst.high for note in sung):
+                out.append([start, min(length, begin - start - 0.04), pitch, weight])
+                for each, note in enumerate(sung):
+                    out.append([begin + each * fast, fast * 0.92, note, min(weight * (0.82 + 0.04 * each), 1.0)])
+                continue
             if goal >= pitch:
                 run = [note for note in scale if pitch < note < goal][-count:]
                 while len(run) < count:
@@ -2688,6 +2867,49 @@ class Take:
             for each, note in enumerate(run):
                 out.append([begin + each * fast, fast * 0.92, note, min(weight * (0.82 + 0.04 * each), 1.0)])
         return out
+
+    def _rubs(self, at: float, length: float, shape: tuple) -> bool:
+        """Whether the lead guitar sounds a note, across a chord struck at `at` for `length` beats, a semitone or a tritone from
+        one of the chord's (MOVES_LISTEN; 2026-11-19, the judges: SongEval's musicality fell with the riff's moves). The rhythm
+        guitar is written after the lead, so it can listen: where the tune holds the major third of the I, the IV's chord
+        would rub a semitone against it, and the riff stays on the I there."""
+        voice = self.voices["lead"].get("lead guitar")
+        if voice is None or not voice.notes:
+            return False
+        if getattr(self, "_lead_index", None) is None or self._lead_index[0] is not voice.notes:
+            ordered = sorted(voice.notes, key=lambda note: note.start)
+            self._lead_index = (voice.notes, ordered, [note.start for note in ordered],
+                                max((note.length for note in ordered), default=0.0))
+        _, ordered, starts, longest = self._lead_index
+        import bisect
+        for note in ordered[bisect.bisect_left(starts, at - longest):bisect.bisect_left(starts, at + length)]:
+            if note.start < at + length and note.start + note.length > at + 0.05:
+                if any((note.pitch - pitch) % 12 in (1, 6, 11) for pitch in shape):
+                    return True
+        return False
+
+    @staticmethod
+    def _head_run(head: list[int], scale: list[int], held: int, goal: int, count: int) -> list[int] | None:
+        """The first theme's opening as an answer's run (see `_answered`): its last `count` notes' shape in steps of the
+        ladder `scale`, set to end on the step beside `goal`, or None where it does not fit. Where the opening climbs and the
+        next phrase begins below the held note (or the other way round), the shape is turned upside down: the same figure
+        falling into the phrase."""
+        place = lambda pitch: min(range(len(scale)), key=lambda index: abs(scale[index] - pitch))
+        steps = [place(each) for each in head[-count:]]
+        shape = [each - steps[0] for each in steps]
+        if len(set(shape)) < 2:
+            return None
+        if shape[-1] * (goal - held) < 0:
+            shape = [-each for each in shape]
+        rising = shape[-1] > shape[-2] if shape[-1] != shape[-2] else goal >= held
+        last = place(goal) + (-1 if rising else 1)
+        indices = [last - shape[-1] + each for each in shape]
+        if min(indices) < 0 or max(indices) >= len(scale):
+            return None
+        run = [scale[index] for index in indices]
+        if abs(run[0] - held) > 9 or run[-1] == goal:
+            return None
+        return run
 
     def spots(self, where: str) -> list[tuple[float, float]]:
         """The moments in a bar a drum pattern names, each with how strongly it is struck."""
@@ -2934,21 +3156,35 @@ class Take:
                 # than once, the first time has only the slower line under it, so that the
                 # two themes together are the last thing to arrive.
                 stated = turns(bars)
-                several = sum(1 for _, full in stated if full) > 1
+                whole_turns = sum(1 for _, full in stated if full)
+                several = whole_turns > 1
                 below = ch.under or ((other,) if other not in strong else ())
                 soloist = ch.band and strong[0] == "lead guitar" and several and SOLOS
+                solo_turns = 1
+                if MOST_SOLOS:
+                    # (2026-11-19, 13:15: "most songs should have solos".) Whoever leads the band's summit takes it, the fiddle,
+                    # the mandolin, the harmonica or the whistle as well as the lead guitar; and a summit of the theme and half
+                    # of it again has room for one, the half after it. Where the theme is eight bars and the summit states it
+                    # three times or more, the solo takes two of them: sixteen bars, as a solo wants.
+                    soloist = ch.band and strong[0] in SOLOISTS and whole_turns >= 1 and len(stated) > 1 and SOLOS
+                    if period <= 8 and whole_turns >= 3 and stated[1][1]:
+                        solo_turns = 2
                 for index, (bar, full) in enumerate(stated):
                     use = (tune, again, adorned)[index % 3] if full else tune.cut(half, whole)
                     loud = self.hard(section.level[0])
+                    if soloist and 0 < index < solo_turns:
+                        continue                                  # (the solo's second eight bars)
                     if soloist and index == 0 and full:
                         # The guitar solo: the summit's first time round is the lead's alone over the band, and the theme
                         # comes back after it, the twin guitars with it. On a voice of its own, so that it has its own
                         # colour (an echo, no pedal) and keeps the five notes of the key it is written in.
                         own = random.Random(fam.seed * 31 + self.take * 7 + 5)          # its own draws: the take's are as they were
-                        guitar = INSTRUMENTS["lead guitar"]
-                        reach = [step for step in range(-14, 22) if guitar.low + 2 <= key.pitch(step, guitar.home) <= guitar.high]
-                        mine = [chords[min(bar + each, len(chords) - 1)] for each in range(period)]
-                        sing("lead guitar", guitar_solo(own, tune, period, beats, self.pulse, fam.bpm, mine, key.mode, min(reach), max(reach)),
+                        player = INSTRUMENTS[strong[0]]
+                        reach = [step for step in range(-14, 22) if player.low + 2 <= key.pitch(step, player.home) <= player.high]
+                        length = period * solo_turns
+                        mine = [chords[min(bar + each, len(chords) - 1)] for each in range(length)]
+                        sing(strong[0], guitar_solo(own, tune, length, beats, self.pulse, fam.bpm, mine, key.mode, min(reach), max(reach),
+                                                    two=SOLOISTS.get(strong[0], True)),
                              bar, loud, tag=" solo")
                         self.soloed = True
                         continue
@@ -3100,7 +3336,7 @@ class Take:
 
     # --- the accompaniment -------------------------------------------------------------------
     def rhythm(self) -> None:
-        ch, rng, beats, pulse, starts = self.ch, self.rng, self.beats, self.pulse, self.starts
+        ch, rng, beats, pulse, starts = self.ch, self.own("rhythm"), self.beats, self.pulse, self.starts
         half = pulse / 2 if pulse == 1.0 else pulse
         slots = int(round(beats / half))
 
@@ -3266,6 +3502,8 @@ class Take:
                     elif length is not None and move == "drop" and on >= beats - 1.0 and (on, length) != chords_struck[0] \
                             and root - 2 >= INSTRUMENTS["rhythm guitar"].low:
                         shape = (root - 2, root + 5, root + 10)        # the flat seventh's chord into the next bar
+                    if shape is not power and MOVES_LISTEN and self._rubs(bar_at + on, length * 0.92, shape):
+                        shape = power                                  # the singer holds a note the move would rub against
                     shaped.append((on, length, shape))
                 for on, length, shape in sorted(shaped, key=lambda hit: hit[0]):
                     if self.breathing(bar_at + on):
@@ -4050,7 +4288,7 @@ class Take:
 
         With the cycle comes its last bar once more, ending in a run down the drums from the
         smallest into the first beat of the bar after: that is played in every fourth bar."""
-        rng, beats, pulse, starts = self.rng, self.beats, self.pulse, self.starts
+        rng, beats, pulse, starts = self.own("drum cycle"), self.beats, self.pulse, self.starts
         busy = self.ch.busy
         pickup = rng.choice((((-0.5, 0.6),), ((-0.5, 0.5), (-0.25, 0.7)), ((-0.25, 0.65),)))
         length = rng.choice((2, 2, 4))
@@ -4091,7 +4329,7 @@ class Take:
     def frame_cycle(self) -> list[list[tuple[float, int, float]]]:
         """Two bars for the frame drums, of this take's own: the low stroke on the strong
         beats, the high one on some of the beats between, and quiet strokes in the gaps."""
-        rng, beats, pulse, starts = self.rng, self.beats, self.pulse, self.starts
+        rng, beats, pulse, starts = self.own("frame cycle"), self.beats, self.pulse, self.starts
         busy = self.ch.busy
         cycle = []
         for _ in range(2):
@@ -4258,7 +4496,7 @@ class Take:
                 if voice.instrument == "rhythm guitar":
                     self._ringing_marks(voice, returns, colour, depth)
                     self._opening_marks(voice, depth)
-                elif voice.instrument == "lead guitar" and "solo" in name:
+                elif name.endswith(" solo"):
                     self._solo_marks(voice, depth)
                 elif voice.instrument == "lead guitar" and "twin" not in name:
                     self._lead_marks(voice, depth)          # (a second guitar in harmony stays dry: the harmony is its colour)
@@ -4402,6 +4640,19 @@ class Take:
         voice.mark("echo", [(first - 0.1, 0.0), (first, send), (last, send), (last + 1.5, 0.0)])
         voice.set("echo beats", 0.75)
         voice.set("echo feedback", 0.3)
+        if SOLO_FLANGER:
+            # (2026-11-19, 13:15: "i think you need the solos to do some flange shit like move a little".) A flanger sweeping
+            # in time under it, a little: in from its first bar, opening a little more toward its peak, its highest note, and
+            # out as it ends. Each solo its own sweep (one bar, two or four) and its own bite (the feedback). Never rocked by
+            # hand, never on every note: it moves, it does not cry.
+            mine = random.Random("solo flanger/%d/%d/%s" % (self.fam.seed, self.take, voice.instrument))
+            amount = 0.3 if depth >= 1.0 else 0.24
+            peak = max(voice.notes, key=lambda note: (note.pitch, -note.start)).start
+            ease = min(self.beats, max(peak - first, 0.5) / 2)
+            voice.mark("flanger", [(first - 0.1, 0.0), (first + ease, amount), (max(peak, first + ease + 0.05), amount * 1.5),
+                                   (max(last - self.beats, peak + 0.1), amount * 1.2), (last + 0.5, 0.0)])
+            voice.set("flanger bars", mine.choice((1.0, 2.0, 2.0, 4.0)))
+            voice.set("flanger feedback", mine.choice((0.3, 0.45, 0.6)))
         # Over the band, as a solo stands: played at the lead's level it was 2 dB under the rhythm guitars and 4 under the
         # twin guitars' theme after it (Free Blades' demo, 22:25).
         voice.set("gain db", SOLO_LIFT)
