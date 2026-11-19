@@ -79,20 +79,29 @@ def level(audio: np.ndarray) -> np.ndarray:
     return np.clip(audio * (10 ** (LEVEL_DB / 20.0) / rms), -1.0, 1.0).astype(np.float32)
 
 
-def parts_of(meta: dict, audio: np.ndarray, rate: int) -> list[tuple[str, np.ndarray]]:
-    """Twenty seconds from the middle of each part of the story (the whole part where it is shorter, none under five seconds)."""
+def parts_of(meta: dict, audio: np.ndarray, rate: int, names: list[str] | None = None) -> list[tuple[str, np.ndarray]]:
+    """Twenty seconds from the middle of each part of the story (the whole part where it is shorter, none under five seconds),
+    by the part's own name on the sheet (open, first, second, build, arrival, valley, climb, summit, close); a take without a
+    sheet numbers its story's words (a story has three themes, two rises and two moments: 2026-11-19, by the story word alone
+    the later parts had stood in for the earlier)."""
     out, at = [], 0
-    for section in meta["sections"]:
+    seen: dict[str, int] = {}
+    for index, section in enumerate(meta["sections"]):
         frames = int(round(section["bars"] * meta["bar_frames"]))
         piece = audio[at:at + frames]
         at += frames
+        if names and index < len(names):
+            name = names[index]
+        else:
+            seen[section["story"]] = seen.get(section["story"], 0) + 1
+            name = "%s %d" % (section["story"], seen[section["story"]])
         if len(piece) < 5 * rate:
             continue
         keep = int(EXCERPT_S * rate)
         if len(piece) > keep:
             start = (len(piece) - keep) // 2
             piece = piece[start:start + keep]
-        out.append((section.get("part") or section["story"], level(piece)))
+        out.append((name, level(piece)))
     return out
 
 
@@ -147,7 +156,9 @@ def judge(bench: Bench, folder: Path, label: str = "") -> dict:
     meta = json.loads((folder / "track.json").read_text(encoding="utf-8"))
     style = folder.parent.parent.name if folder.parent.parent.name in BRIEFS else meta.get("style", "knight")
     audio, rate = mix(folder)
-    pieces = parts_of(meta, audio, rate)
+    sheet = folder / "sheet.json"
+    names = [part["part"] for part in json.loads(sheet.read_text(encoding="utf-8"))["form"]] if sheet.is_file() else None
+    pieces = parts_of(meta, audio, rate, names)
     brief = BRIEFS.get(style, "")
     tune = {part: {"brief": bench.tune(piece, rate, brief), "plain": bench.tune(piece, rate, "")} for part, piece in pieces}
     box = {part: bench.box(piece, rate) for part, piece in pieces}
