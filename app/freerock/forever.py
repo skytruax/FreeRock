@@ -22,6 +22,7 @@ import numpy as np
 import soundfile
 
 from . import analysis, atlas, composer
+from .playbook import PlayBook
 
 RATE, CHANNELS_OUT = 48000, 2
 
@@ -213,8 +214,9 @@ class Bucket:
     """One style's music on disk: its written pieces, each kept as the stretches of its parts.
     It is named for the place it was begun in."""
 
-    def __init__(self, root: Path, zone: str, genre: str, bpm: int, tonic: str):
+    def __init__(self, root: Path, zone: str, genre: str, bpm: int, tonic: str, book: PlayBook | None = None):
         self.root, self.zone, self.genre, self.bpm, self.tonic = Path(root), zone, genre, bpm, tonic
+        self.book = book                                   # what has been played, loved and banned, kept apart (playbook)
         self.folder = self.root / genre / zone
         self.clips: list[Clip] = []
         self.pieces: dict[str, dict[str, Any]] = {}       # written music: what each piece is, by its id
@@ -405,18 +407,70 @@ class Bucket:
                         setattr(clip, name, value)
         if found:
             self._save()
+            if self.book is not None:
+                self.book.mark(self.genre, self._keys(found), loved=loved, banned=banned)
         return found
 
     def played(self, clip_ids: list[str]) -> None:
-        """Counts one more play for each of these parts. A part the bucket does not have (the
-        page is still playing another bucket's) is passed over."""
-        wanted, found = set(clip_ids), False
+        """Counts one more play for each of these parts, here and in the book. A part the bucket does
+        not have (the page is still playing another bucket's) is passed over."""
+        wanted, found = set(clip_ids), []
         for clip in self.clips:
             if clip.id in wanted:
                 clip.plays += 1
-                found = True
+                found.append(clip)
         if found:
             self._save()
+            if self.book is not None:
+                self.book.played(self.genre, self._keys(found))
+
+    def places(self) -> dict[str, tuple[str, int]]:
+        """Each written piece's track and its place in it, counted along the track from its first piece."""
+        pointed = {meta.get("next") for meta in self.pieces.values()}
+        out: dict[str, tuple[str, int]] = {}
+        for first in self.pieces:
+            if first in pointed:
+                continue                                   # not the first piece of its track
+            at, current, seen = 0, first, set()
+            while current in self.pieces and current not in seen:
+                seen.add(current)
+                out[current] = (str(self.pieces[current].get("track") or self.pieces[current].get("source", "")), at)
+                at += 1
+                current = self.pieces[current].get("next")
+        return out
+
+    def _keys(self, clips: list[Clip]) -> list[tuple]:
+        """Where each of these parts sits, as the book knows it: (track, place, channel, tier, stretch)."""
+        places = self.places()
+        return [places[clip.piece] + (clip.channel, clip.tier, clip.order) for clip in clips if clip.piece in places]
+
+    def sync_book(self) -> int:
+        """The bucket and the book agree: what the bucket has of plays, loves and bans goes into the book (the most
+        plays either has), and each part takes back what the book has for its place, so that a part put in again (a
+        whole build, a track rendered again) is not taken for new. Returns how many parts changed here."""
+        if self.book is None:
+            return 0
+        places = self.places()
+        mine = {places[clip.piece] + (clip.channel, clip.tier, clip.order): (clip.plays, clip.loved, clip.banned)
+                for clip in self.clips if clip.piece in places and (clip.plays or clip.loved or clip.banned)}
+        self.book.remember(self.genre, mine)
+        kept = self.book.marks(self.genre)
+        changed = 0
+        for clip in self.clips:
+            place = places.get(clip.piece)
+            had = kept.get(place + (clip.channel, clip.tier, clip.order)) if place else None
+            if not had:
+                continue
+            plays, loved, banned = max(clip.plays, had[0]), had[1], had[2]
+            if (plays, loved, banned) != (clip.plays, clip.loved, clip.banned):
+                clip.plays, clip.loved, clip.banned = plays, loved, banned
+                changed += 1
+            for name, value in (("loved", loved), ("banned", banned)):
+                if value:
+                    self.pieces[clip.piece][name] = True        # a love or a ban is the whole piece's
+        if changed:
+            self._save()
+        return changed
 
     def samples(self, clip_id: str) -> bytes:
         """A stretch of a part, and what the music went on to, as 16-bit little-endian stereo."""
@@ -467,6 +521,8 @@ class Buckets:
 
     def __init__(self, root: Path):
         self.root = Path(root)
+        # What has been played, loved and banned, beside the buckets: a bucket built again takes it back (playbook).
+        self.book = PlayBook(self.root.parent / "plays.sqlite3")
         self._have: dict[str, Bucket] = {}
         self._home: dict[str, Bucket] = {}       # the one bucket each style plays from
 
@@ -474,7 +530,8 @@ class Buckets:
         profile = composer.for_genre(atlas.profile_for(place_name), genre)
         key = "%s/%s" % (genre, profile.key)
         if key not in self._have:
-            self._have[key] = Bucket(self.root, profile.key, genre, profile.bpm, profile.tonic)
+            self._have[key] = Bucket(self.root, profile.key, genre, profile.bpm, profile.tonic, book=self.book)
+            self._have[key].sync_book()
         return self._have[key]
 
     def home(self, genre: str, place_name: str | None) -> Bucket | None:
@@ -504,7 +561,8 @@ class Buckets:
             if not index.is_file():
                 raise KeyError("No bucket %r" % key)
             kept = json.loads(index.read_text(encoding="utf-8"))
-            self._have[key] = Bucket(self.root, zone, genre, kept["bpm"], kept["tonic"])
+            self._have[key] = Bucket(self.root, zone, genre, kept["bpm"], kept["tonic"], book=self.book)
+            self._have[key].sync_book()
         return self._have[key]
 
 

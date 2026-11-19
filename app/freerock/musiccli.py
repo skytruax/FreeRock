@@ -110,6 +110,7 @@ def _pieces(arguments: argparse.Namespace) -> int:
         _print_summary(bucket)
         return 0
     done = pieces.add_staged(bucket, settings.var_dir, style)
+    taken = bucket.sync_book()                     # what was played, loved and banned at these places before (playbook)
     failed = 0
     for folder, ids, problem in done:
         name = "%s/%s" % (folder.parent.name, folder.name)
@@ -122,6 +123,8 @@ def _pieces(arguments: argparse.Namespace) -> int:
           % (len(done), composer.GENRES[style]["label"], sum(1 for _, ids, problem in done if ids),
              bucket.key, sum(1 for _, ids, problem in done if not ids and not problem),
              ", %d could not be put in (see above)" % failed if failed else ""))
+    if taken:
+        print("%d parts took back what the play book had for them." % taken)
     _print_summary(bucket)
     return 1 if failed else 0
 

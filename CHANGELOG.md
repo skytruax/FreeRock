@@ -35,6 +35,10 @@ dictated, where it drove the change.
   wah opens by hand until the band comes in (Cobra Fever's riff had gone 20 bars without a change).
 - **A light band's clean guitar shimmers**: where it is the band's whole accompaniment (Lantern Walk had
   no effect at all), the vibe comes in with the second theme and stays through the moments.
+- **A play book** ("make a db so nightly bucket builds dont reset our playlist"): every play, love and
+  ban also goes into `var/plays.sqlite3`, part by part by where each sits in its track, and every bucket
+  takes back what the book has for it when it is loaded or built (`freerock/playbook.py`,
+  `Bucket.sync_book`). Nothing a build does resets what has been heard.
 - **A whole bucket build keeps what was played, loved and banned** ("make sure whats played is marked
   as played"): it had put every part back at no plays, so the player took them all for new (the
   morning's build had forgotten the night before's), and a love or a ban would have gone the same way.

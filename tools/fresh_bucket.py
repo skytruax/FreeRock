@@ -59,6 +59,7 @@ def main(argv: list[str]) -> int:
         elif made:
             put += 1
     carried = pieces.restore_marks(bucket, marks)
+    carried += bucket.sync_book()                 # and what the play book has kept, from builds before this one
     after = pieces.summary(bucket)
     print("%s: %d tracks put in; the bucket now has %d pieces in %d tracks, %.0f minutes" % (style, put, after["pieces"], after["tracks"], after["minutes"]))
     print("%s: %d parts kept what they had been: their plays, loves and bans (%d had any)" % (style, carried, len(marks)))

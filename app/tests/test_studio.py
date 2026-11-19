@@ -776,6 +776,43 @@ def test_a_whole_build_keeps_what_was_played_loved_and_banned(tmp_path):
     assert sorted(clip.plays for clip in again.clips if clip.plays) == [2]
 
 
+def test_the_play_book_keeps_what_was_heard_through_any_build(tmp_path):
+    # ("make a db so nightly bucket builds dont reset our playlist", 2026-11-18.) Plays, loves and bans go into a book
+    # beside the buckets as they happen; a bucket whose pieces are all taken out and put in again, or loaded afresh from
+    # its folder, takes them back from the book.
+    from freerock import pieces
+    from freerock.playbook import PlayBook
+    made_track(tmp_path / "studio" / "warcraft" / "test-family" / "1")
+    made_track(tmp_path / "studio" / "warcraft" / "test-family" / "2", take=2)
+    shelf = forever.Buckets(tmp_path / "buckets")
+    bucket = shelf.get("Duskwood", "warcraft")
+    assert bucket.book is not None and bucket.book.path == tmp_path / "plays.sqlite3"
+    for folder in studio.staged(tmp_path, "warcraft"):
+        studio.import_track(bucket, folder)
+    first, last = bucket.clips[0], bucket.clips[-1]
+    bucket.played([first.id])
+    bucket.played([first.id])
+    bucket.mark([last.id], banned=True)
+    book = PlayBook(tmp_path / "plays.sqlite3").marks("warcraft")
+    assert sorted(plays for plays, _, _ in book.values() if plays) == [2]
+    assert sum(1 for _, _, banned in book.values() if banned) == sum(1 for clip in bucket.clips if clip.banned) >= 1
+    # Every piece out and in again, as a whole build does it, without the build's own carrying over: the book alone.
+    pieces.drop_from(bucket, "warcraft/")
+    for folder in studio.staged(tmp_path, "warcraft"):
+        studio.import_track(bucket, folder)
+    assert all(clip.plays == 0 and not clip.banned for clip in bucket.clips)
+    assert bucket.sync_book() >= 2
+    assert sorted(clip.plays for clip in bucket.clips if clip.plays) == [2]
+    banned = [clip for clip in bucket.clips if clip.banned]
+    assert banned and all(bucket.pieces[clip.piece].get("banned") for clip in banned)
+    # A bucket loaded from its folder after its plays were lost there takes them back too.
+    for clip in bucket.clips:
+        clip.plays, clip.banned = 0, False
+    bucket._save()
+    again = forever.Buckets(tmp_path / "buckets").by_key(bucket.key)
+    assert sorted(clip.plays for clip in again.clips if clip.plays) == [2] and any(clip.banned for clip in again.clips)
+
+
 def test_the_bass_moves_through_the_chords_as_a_real_bass_does():
     # Measured against 72 movements of the orchestral repertoire, a bass line repeats its note about one time in four
     # and moves by step two times in five (tools/orchestra_study.py). The written bass of the orchestra's walking music

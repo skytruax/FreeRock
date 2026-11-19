@@ -71,20 +71,8 @@ def drop_from(bucket: forever.Bucket, source: str) -> int:
 
 
 def _places(bucket: forever.Bucket) -> dict[str, tuple[str, int]]:
-    """Each written piece's track and its place in it, counted along the track from its first piece."""
-    pieces = bucket.pieces
-    pointed = {meta.get("next") for meta in pieces.values()}
-    out: dict[str, tuple[str, int]] = {}
-    for first in pieces:
-        if first in pointed:
-            continue                                   # not the first piece of its track
-        at, current, seen = 0, first, set()
-        while current in pieces and current not in seen:
-            seen.add(current)
-            out[current] = (str(pieces[current].get("track") or pieces[current].get("source", "")), at)
-            at += 1
-            current = pieces[current].get("next")
-    return out
+    """Each written piece's track and its place in it (`forever.Bucket.places`)."""
+    return bucket.places()
 
 
 def marks_of(bucket: forever.Bucket) -> dict[tuple, tuple[int, bool, bool]]:

@@ -331,7 +331,10 @@ and the tune have to be in tune and in the key, and the drums on time.
 **5. Keep.** A finished track is written as a 24-bit FLAC stem for each channel that plays, with
 its sections, its kinds of place and moment, its key and its tempo (`track.json`). `freerock
 pieces add` cuts new tracks into pieces and puts them in its style's bucket as 16-bit FLAC
-(`tools/fresh_bucket.py` rebuilds a bucket from everything staged, takes made again included). `tools/listen.py` makes a listening
+(`tools/fresh_bucket.py` rebuilds a bucket from everything staged, takes made again included). What
+has been played, loved and banned is kept apart from the buckets, in `var/plays.sqlite3`, part by
+part by where each sits in its track: a bucket built again takes it all back, so the player does not
+take heard music for new (`freerock/playbook.py`). `tools/listen.py` makes a listening
 page for every track: the whole mix to play, and a mixer with a fader for each channel.
 
 **6. Overnight.** Rendering is heavy (REAPER, MuseScore and the sampler for every channel of
