@@ -1542,6 +1542,23 @@ def test_a_band_leads_answers_sing_the_first_themes_opening():
         assert sung >= 0.8 * runs, "%s/%d: %d of its %d answers sing the theme's opening" % (name, take, sung, runs)
 
 
+def test_a_band_groove_on_the_ride_turns_to_the_hat():
+    # (2026-11-19, the meter: the fights' drums one colour 40 bars.) A band's groove that keeps time on the ride has a turn of
+    # its own every second sixteen bars, to the closed hat, the same figure a little softer; a groove on the hat still turns
+    # to the ride; TURNS_TO_HAT takes the new turn back.
+    import pytest as _pytest
+    made = orchestra.Take(_family("pastoral-battle-cry-1"), 4)
+    on_ride = [("ride", "pulses", 0.5), ("boom", "kick busy", 0.95), ("snare", "back", 0.95)]
+    assert made.cymbal(on_ride, 3) == on_ride
+    turned = made.cymbal(on_ride, 19)
+    assert turned[0][:2] == ("hat", "pulses") and turned[0][2] < 0.5 and turned[1:] == on_ride[1:]
+    on_hat = [("hat", "halves", 0.6), ("boom", "kick busy", 0.95)]
+    assert made.cymbal(on_hat, 19)[0][0] == "ride"
+    with _pytest.MonkeyPatch.context() as patch:
+        patch.setattr(orchestra, "TURNS_TO_HAT", False)
+        assert made.cymbal(on_ride, 19) == on_ride
+
+
 def test_under_a_solo_the_rhythm_guitar_comps():
     # (2026-11-19, the boredom meter: the rhythm guitar one colour 34 to 50 bars from the summit through the close in three of
     # four new heavy takes, its riff and fills played on under the solo.) Where a solo plays, the rhythm guitar strikes its

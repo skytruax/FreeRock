@@ -3,6 +3,16 @@
 Newest first. Words in quotation marks are what was said while listening or playing, as typed or
 dictated, where it drove the change.
 
+## 2026-11-19, evening: the drummer's ride turns to the hat
+
+- **A band's groove that keeps time on the ride turns to the closed hat** for its second sixteen bars of a
+  theme (handbook 4.8, `orchestra.TURNS_TO_HAT`): it had had no turn at all. (In the fights the meter still
+  hears the drums one colour 40 bars: their grooves turn from the hat to the ride, which the meter cannot
+  tell apart under the guitars; the ear can.)
+- The first Knight takes on 066bbfc: the tune 2.0 dB over the rhythm guitar in the first theme (Blood
+  Machine, Lance Cry), the solo needing no lift over the comping guitar. House's second take, the first with
+  its theme singing: SongEval memorability 3.00, Knight's own level.
+
 ## 2026-11-19, afternoon: the band's tune on top; the guitar comps under the solo; House's theme sings
 
 - **A band's tune stands 2 dB over its rhythm guitars wherever it sings** (handbook 4.1, `build.TUNE_LIFT`):

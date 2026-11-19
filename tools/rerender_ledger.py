@@ -248,6 +248,10 @@ CHANGES = [
            "level with them in the first theme, median -0.4 dB over 144 takes); under a solo the rhythm guitar strikes the chord "
            "on the bar's first beat with the muted string after it, no fills",
            lambda p: p.style == "knight" and p.character.band),
+    Change("a band's ride groove turns to the hat", datetime.datetime(2026, 11, 19, 17, 36), "",
+           "a groove that keeps time on the ride turns to the closed hat for its second sixteen bars of a theme (it had had "
+           "nowhere to turn)",
+           lambda p: p.style == "knight" and p.character.band),
     Change("House's theme sings from its fifth bar", datetime.datetime(2026, 11, 19, 16, 28), "",
            "the tune's opening phrases every four bars from the theme's fifth bar, softly (eight bars of tune in thirty-two had "
            "left the theme a groove waiting for one)",

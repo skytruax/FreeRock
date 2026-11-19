@@ -954,7 +954,9 @@ moment.
 
 The cymbal turns (`Take.cymbal`). In a theme, a drummer keeps time on the hat for sixteen bars and
 on the ride for the next sixteen, the same figure a little softer. On a groove of the toms, with no
-cymbal keeping time, the ride joins softly for those sixteen bars and leaves again. A tavern's
+cymbal keeping time, the ride joins softly for those sixteen bars and leaves again. A groove that keeps
+time on the ride turns to the closed hat for its second sixteen, tighter after the wash (`orchestra.TURNS_TO_HAT`,
+2026-11-19: it had had nowhere to turn). A tavern's
 tambourine and side stick, and a theme the drums sit out, stay as they are. At a heavy band's moment
 the drummer rides it out the same way: the open hat or the ride goes over to the ride's bell for the
 second sixteen bars, or the bell joins a groove of the toms. A light band's moment is left alone.

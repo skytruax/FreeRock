@@ -1314,6 +1314,7 @@ SOLO_FLANGER = True      # a flanger sweeps slowly under the solo, a little (Tak
 # (2026-11-19, 16:15, the boredom meter on the day's new heavy takes: the rhythm guitar one colour 34 to 50 bars from the
 # summit through the close in three of four, the riff played on under the solo as everywhere else.)
 SOLO_COMP = True         # under a solo the rhythm guitar comps: the chord on the bar's first beat, muted eighths after, no fills
+TURNS_TO_HAT = True      # a band's groove on the ride turns to the hat for its second sixteen bars (Take.cymbal); False: it stays
 # Who may take a band's solo, and whether they can sound two notes at once (double stops, octaves, a held note doubled):
 SOLOISTS = {"lead guitar": True, "fiddle": True, "mandolin": True, "harmonica": True, "whistle": False}
 # The figures a solo's middle is made of, three drawn for each solo: Angus Young's and Chuck Berry's (the repeated note, the
@@ -4064,6 +4065,11 @@ class Take:
             return [("ride", layer[1], 0.9 * layer[2]) + tuple(layer[3:]) if layer[0] in ("hat", "hat open") else layer for layer in layers]
         if any(layer[0] in ("tom", "tom low") for layer in layers) and not any(layer[0] in ("hat open", "ride") for layer in layers):
             return list(layers) + [("ride", "halves", 0.35)]
+        if TURNS_TO_HAT and any(layer[0] == "ride" for layer in layers) and not any(layer[0] in ("hat", "hat open") for layer in layers):
+            # A groove that keeps time on the ride turns to the closed hat for its second sixteen bars, the same figure a
+            # little softer: tighter after the wash (2026-11-19, the boredom meter: the fights' drums one colour 40 and 41
+            # bars, Blood Machine and Lance Cry, their groove on the ride with nowhere to turn).
+            return [("hat", layer[1], 0.85 * layer[2]) + tuple(layer[3:]) if layer[0] == "ride" else layer for layer in layers]
         return layers
 
     def drums(self) -> None:
