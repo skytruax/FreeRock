@@ -583,13 +583,16 @@ def ride_points(curve: np.ndarray, *, step: int = 480, tolerance_db: float = 0.1
 
 
 def mixdown(work: Path, recorded: dict[str, Path], *, faders: dict[str, float], ride: list[tuple[float, float]], bpm: float,
-            seconds: float, tail: float, frames: int, display: str, timeout: float = 600.0) -> dict[str, np.ndarray]:
+            seconds: float, tail: float, frames: int, display: str, timeout: float = 600.0,
+            alone: dict[str, list[tuple[float, float]]] | None = None) -> dict[str, np.ndarray]:
     """The last of the mix, done in REAPER (2026-11-17, night: "remember to use reaper and plugins for effects and
     mixing"). Each channel's stem, as REAPER rendered it from the track's own project, is laid on a track of its own
     in a project of its own (`mix.rpp`, kept beside the track's project, to be opened and changed by hand): its fader
     where the measurements put it (`faders`, as gains), and the turns the whole takes through the story (the ride of
     each part towards the loudest, the peaks held under the ceiling, the end faded away: `ride`, (seconds, gain)
-    points, the same for every channel) as its volume envelope. REAPER plays it and renders each channel again."""
+    points, the same for every channel) as its volume envelope. A channel may have a move of its own as well (`alone`,
+    (seconds, gain) points on its stem's track: a guitar solo brought up over the band). REAPER plays it and renders
+    each channel again."""
     out = work / "mixed"
     out.mkdir(parents=True, exist_ok=True)
     moves = [(at * bpm / 60.0, gain) for at, gain in ride]
@@ -599,7 +602,9 @@ def mixdown(work: Path, recorded: dict[str, Path], *, faders: dict[str, float], 
             raise ValueError("The mix has no fader for the %s" % channel)
         length = soundfile.info(str(path)).duration
         # The stem begins with the LEAD of silence every render begins with: laid that much early, it lines up again.
-        stem = Line(channel + " stem", bare(channel + " stem", []), volume=faders[channel], clips=[(-LEAD, length, str(path))])
+        own = [(at * bpm / 60.0, gain) for at, gain in (alone or {}).get(channel, [])]
+        stem = Line(channel + " stem", bare(channel + " stem", []), volume=faders[channel], clips=[(-LEAD, length, str(path))],
+                    moves=own)
         folders.append((Line(channel, bare(channel, []), moves=moves), [stem]))
     rpp = work / "mix.rpp"
     rpp.write_text(project(folders, bpm=bpm, seconds=seconds, out=out, tail=tail), encoding="utf-8")

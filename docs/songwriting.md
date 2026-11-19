@@ -965,7 +965,12 @@ Wing") and the way a singer phrases:
 - **It stands over the band**: 5 dB over the lead's usual level (`orchestra.SOLO_LIFT`, the part's
   `gain db`). Played at the lead's own level it was 2 dB under the rhythm guitars and 4 under the
   twin guitars' theme after it. The desk measures the lead's place over the summit after the solo
-  (`build.perform`): measured over the solo, the lift had turned the whole lead channel down.
+  (`build.perform`): measured over the solo, the lift had turned the whole lead channel down. And
+  where the solo plays it is measured against the rhythm guitars and brought up until it stands
+  1.5 dB over them (`build.solo_lift`, at most 8 dB, eased in and out over a beat), on the lead stem's
+  own volume envelope in the mix: a light band's theme after the solo has a fiddle and the twin
+  guitars on it, and the channel set by that had left Barnyard Jamboree's solo under the guitars.
+  `tools/lift_solos.py` does the same to a staged take without making it again.
 - **Never the same twice**: each take draws its own solo from the family's seed and the take.
 - `orchestra.SOLOS = False` takes it away and gives the summit back to the twins.
 

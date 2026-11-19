@@ -945,6 +945,28 @@ def test_a_long_openings_bass_goes_with_its_chords():
     assert home and all((pitch - key.tonic) % 12 == 0 for pitch in home)
 
 
+def test_a_solo_is_brought_up_over_the_rhythm_guitars_where_it_plays():
+    # (2026-11-19: Barnyard Jamboree's solo came out 3.4 dB under the rhythm guitars.) The lead is brought up where the
+    # solo plays until it stands SOLO_OVER dB over them, eased in and out, and no further than SOLO_MOST; a solo already
+    # over them is left as it is.
+    from freerock import analysis
+    from freerock.studio import build
+    rate = build.RATE
+    t = np.arange(rate * 8) / rate
+    tone = lambda hz, db: (np.sin(2 * np.pi * hz * t) * 10 ** (db / 20)).astype(np.float32)[:, None].repeat(2, axis=1)  # noqa: E731
+    span = (2 * rate, 6 * rate)
+    parts = {"lead": tone(880.0, -26.0), "rhythm": tone(220.0, -20.0)}
+    lift, curve = build.solo_lift(parts, span, rate // 2)
+    assert 0 < lift <= build.SOLO_MOST and curve is not None
+    lifted = parts["lead"] * curve[:, None]
+    over = analysis.loudness_lufs(lifted[span[0]:span[1]], rate) - analysis.loudness_lufs(parts["rhythm"][span[0]:span[1]], rate)
+    assert abs(over - build.SOLO_OVER) < 0.3 or lift == build.SOLO_MOST
+    assert curve[0] == 1.0 and curve[-1] == 1.0 and 1.0 < curve[span[0] - rate // 4] < curve[span[0]]      # eased in
+    loud = {"lead": tone(880.0, -12.0), "rhythm": tone(220.0, -20.0)}
+    assert build.solo_lift(loud, span, rate // 2) == (0.0, None)
+    assert build.solo_lift({"lead": tone(880.0, -40.0), "rhythm": tone(220.0, -10.0)}, span, rate // 2)[0] == build.SOLO_MOST
+
+
 def test_a_part_can_stand_louder_than_its_instrument(monkeypatch):
     # (2026-11-18: the sung solo, played at the lead's own level, was 2 dB under the rhythm guitars.) A part's "gain db"
     # turns every track that plays it up by that much; a part without it is as its instrument stands.

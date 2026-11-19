@@ -20,6 +20,10 @@ show me".
 - **A long opening's bass goes with its chords**: where an opening of 16 bars or more leaves the key
   chord, the held key note moves to that chord's root and back (Gull's Edge's basses had held one note
   27 bars of its 28-bar opening, under its flat-seventh chords as well).
+- **A solo is measured against the rhythm guitars where it plays**, and brought up until it stands
+  1.5 dB over them, on the lead stem's own volume envelope in REAPER's mix (Barnyard Jamboree's had
+  come out under them: a light band's theme after its solo is played by a fiddle and the twin
+  guitars too). `tools/lift_solos.py` does it to a staged take without making it again.
 - **The lead is leveled where the summit has no solo**: the desk brings each channel to its place by
   its loudness at the summit; with the solo there, its lift turned the whole lead channel down and the
   solo came out level with the rhythm guitars. Now the lead is measured over the summit after its

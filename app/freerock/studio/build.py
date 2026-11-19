@@ -350,6 +350,35 @@ def write(fam: Family, take: int) -> Sheet:
     return sheet
 
 
+SOLO_OVER = 1.5          # dB a guitar solo stands over the rhythm guitars where it plays, measured (`solo_lift`)
+SOLO_MOST = 8.0          # ...and the most it is brought up
+
+
+def solo_lift(parts: dict[str, np.ndarray], span: tuple[int, int], ramp: int) -> tuple[float, np.ndarray | None]:
+    """How far the lead channel is brought up where a guitar solo plays, so that it stands SOLO_OVER dB over the rhythm
+    guitars there (2026-11-19: Barnyard Jamboree's solo came out 3.4 dB under them, its channel set by the theme after it,
+    where a fiddle and the twin guitars play it): the gain in dB and the gain for each sample, eased in and out over
+    `ramp` samples; nothing where it already stands over them."""
+    if "lead" not in parts or "rhythm" not in parts:
+        return 0.0, None
+    first, last = span
+    lead = analysis.loudness_lufs(parts["lead"][first:last], RATE)
+    band = analysis.loudness_lufs(parts["rhythm"][first:last], RATE)
+    if lead < -70.0 or band < -70.0:
+        return 0.0, None
+    lift = min(band + SOLO_OVER - lead, SOLO_MOST)
+    if lift <= 0.1:
+        return 0.0, None
+    gain = np.float32(10 ** (lift / 20.0))
+    curve = np.ones(len(parts["lead"]), dtype=np.float32)
+    curve[first:last] = gain
+    up = max(first - ramp, 0)
+    curve[up:first] = np.linspace(1.0, gain, first - up, dtype=np.float32)
+    down = min(last + ramp, len(curve))
+    curve[last:down] = np.linspace(gain, 1.0, down - last, dtype=np.float32)
+    return round(float(lift), 2), curve
+
+
 def perform(sheet: Sheet) -> dict:
     """Plays a sheet and stages what it makes: MuseScore performs the instruments it has, REAPER plays the rest, each
     channel is brought to its place and the story's levels ridden, and the track is staged with its sheet beside it.
@@ -458,6 +487,14 @@ def perform(sheet: Sheet) -> dict:
         parts[channel] = audio * np.float32(10 ** (gain / 20.0))
         levels[channel] = round(loud + gain, 1)
         gains[channel] = gain
+    # A guitar solo stands over the band, measured where it plays (`solo_lift`): its own move on the lead's stem.
+    alone: dict[str, list[tuple[float, float]]] = {}
+    solo_db = 0.0
+    if solo_span:
+        solo_db, lift_curve = solo_lift(parts, solo_span, int(beat_frames))
+        if lift_curve is not None:
+            parts["lead"] = parts["lead"] * lift_curve[:, None]
+            alone["lead"] = desk.ride_points(lift_curve)
     # The story keeps its shape but not its extremes: music behind a game cannot drop to a
     # whisper. Every part of the story is brought some of the way up to the loudest, the whole
     # band together, easing from one level to the next over three seconds at each join.
@@ -482,7 +519,7 @@ def perform(sheet: Sheet) -> dict:
     with reaper.Display() as display:
         parts = desk.mixdown(work, recorded, faders={channel: 10 ** (gains[channel] / 20.0) * scale for channel in parts},
                              ride=desk.ride_points(curve), bpm=bpm, seconds=whole / RATE, tail=forever.POST_S, frames=frames,
-                             display=display, timeout=300.0 + whole / RATE)
+                             display=display, timeout=300.0 + whole / RATE, alone=alone)
     for bus, _ in folders:
         (work / (bus.name + ".wav")).unlink()      # the staged track has them; the project can make them again
     gains = {channel: round(gain, 1) for channel, gain in gains.items()}
@@ -508,6 +545,8 @@ def perform(sheet: Sheet) -> dict:
                   % (about["character"], about["metre"], "its instruments performed by MuseScore Studio with Muse Sounds (Muse Group) and " if muse.available() else ""),
         "seed": about["seed"], "measured": {"sections": loudness, "channels": levels, "gains": gains},
     }
+    if solo_db:
+        meta["measured"]["solo lift"] = solo_db            # dB the lead was brought up where its solo plays
     folder = folder_at(sheet.style, sheet.family, take)
     write_track(folder, meta, parts)
     sheet.save(folder / "sheet.json")
