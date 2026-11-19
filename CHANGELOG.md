@@ -20,6 +20,12 @@ show me".
 - **A long opening's bass goes with its chords**: where an opening of 16 bars or more leaves the key
   chord, the held key note moves to that chord's root and back (Gull's Edge's basses had held one note
   27 bars of its 28-bar opening, under its flat-seventh chords as well).
+- **House's bigger lead voice plays the drops**: a lead's main voice played the drops and the next
+  in its palette the quiet places, so a take that drew the hollow square had the seven-saw super in its
+  themes and the square at its drops (Hammerfall III: the lead 12 dB louder outside the drop than in
+  it). Of the two, the bigger now plays the drops (`house.LEAD_WEIGHT`).
+- **House's hats thin as the close begins**: two strokes and an open hat, the first of the band to
+  leave; the drop's groove had run on into the close for 20 bars (Mirage I and III).
 - **A solo is measured against the rhythm guitars where it plays**, and brought up until it stands
   1.5 dB over them, on the lead stem's own volume envelope in REAPER's mix (Barnyard Jamboree's had
   come out under them: a light band's theme after its solo is played by a fiddle and the twin

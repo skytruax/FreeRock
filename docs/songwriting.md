@@ -1009,6 +1009,9 @@ the 60 families are light: *the house is meant to be mostly light* (the test).
   twice as fast again, climbing*; in two takes of three its last beat is left empty, *the breath
   before the drop*. The calm roles stir a shaker, a rim or the hats instead.
 - **Crashes** at the start of each theme and drop, and every eight bars of a drop.
+- **The close lets the band go one at a time, the hats first**: at its first bar they thin to two
+  strokes and an open hat, the clap leaves halfway, the kick two bars from the end. (The drop's groove
+  had run on into the close for 20 bars: Mirage I and III.)
 
 At the desk (`club.lines`) the kick is struck dry and everything else into a small room, whose
 equaliser lifts the clap's, the snare's and the hats' presence at 2 kHz (*4 to 10 dB short from 900
@@ -1061,6 +1064,11 @@ middle, not over the band*. Nothing goes above A6.
 
 The soft voice is the palette's next lead after the chosen one. **Pads** (`Take.texture`) hold each
 loop slot's chord, voiced from C3 to A4, brightest at the drops (0.92).
+
+**The bigger of a lead's two voices plays the drops** (`house.LEAD_WEIGHT`): the saws and the brass
+carry a drop; a plucked or struck voice sits between; a hollow square, a pipe or a whistle is the
+gentle one for the quiet places. (A take that drew the hollow square had played the seven-saw super
+in its themes and the square at its drops: Hammerfall III, the lead 12 dB louder outside the drop.)
 
 ### 5.5 Waves, drops and breakdowns; risers and air
 

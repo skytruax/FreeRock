@@ -168,6 +168,10 @@ KEYS = {
     "brass": Patch(wave=SAW, voices=4, detune=16, spread=0.6, cutoff=600, env=2.6, env_decay=0.35, res=0.1, attack=0.03,
                    decay=0.3, sustain=0.7, release=0.15, highpass=150),
 }
+# How big a lead voice is, for which plays the drops and which the quiet places (`Take.lead`): the saws and the brass
+# carry a drop, a plucked or struck voice sits between, a hollow square, a pipe or a whistle is the gentle one.
+LEAD_WEIGHT = {"super": 3, "saw": 3, "brass": 3, "oud": 2, "keys": 2, "glass": 2, "bell": 2, "pluck": 2, "string": 2,
+               "harp": 1, "marimba": 1, "hollow": 1, "pipe": 1, "flute": 1, "whistle": 1}
 LEADS = {
     "saw": Patch(wave=SAW, voices=3, detune=14, spread=0.4, cutoff=3200, env=1.2, env_decay=0.25, res=0.15, attack=0.008,
                  decay=0.25, sustain=0.75, release=0.22, vib_rate=5.5, vib_depth=10, vib_delay=0.25, glide=0.035, highpass=200),
@@ -948,8 +952,12 @@ class Take:
                             for step in back_steps:
                                 for sound in backbeat:
                                     hit(wet, sound, bar, step, 0.56 if sound != "snap" else 0.5)
-                    # Every second sixteen bars the hats turn to another figure, and back (HAT_TURNS).
+                    # Every second sixteen bars the hats turn to another figure, and back (HAT_TURNS). As the close
+                    # begins they thin to two strokes and an open hat: the first of the band to leave (2026-11-19, the
+                    # boredom meter: Mirage I's and III's last drop ran on into the close in one groove for 20 bars).
                     turned = HAT_TURNS.get(hat_figure, hat_figure) if (inside // 16) % 2 == 1 else hat_figure
+                    if story == "close":
+                        turned = "sparse" if hat_figure != "sparse" else "off"
                     for sound, steps in HATS[turned].items():
                         if sound == "open" and story == "theme" and inside < 8 and len(HATS[turned]) > 1:
                             continue
@@ -1180,8 +1188,13 @@ class Take:
         out = self.blank()
         names = self.palette["lead"]
         chosen = self.pick("lead", names)
+        gentle = names[(names.index(chosen) + 1) % len(names)]
         main = LEADS[chosen]
-        soft = LEADS[names[(names.index(chosen) + 1) % len(names)]]      # the same tune in a gentler voice, for the quiet places
+        soft = LEADS[gentle]      # the same tune in a gentler voice, for the quiet places
+        if LEAD_WEIGHT.get(gentle, 1) > LEAD_WEIGHT.get(chosen, 1):
+            # The bigger voice at the drops (2026-11-19: Hammerfall III's drops had the hollow square and its themes the
+            # seven-saw super; the lead was 12 dB louder outside the drop than in it).
+            main, soft = soft, main
         doubled = self.pick("lead-double", ("octave", "third", "octave")) if fam.role not in CALM_ROLES else ""
         tune = self.tune
         late = None

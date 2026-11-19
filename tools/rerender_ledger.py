@@ -175,6 +175,12 @@ CHANGES = [
            "where an opening of 16 bars or more leaves the key chord, the held key note moves to that chord's root and back "
            "(Gull's Edge: one note 27 bars)",
            lambda p: p.style != "house" and p.character.weight >= 0.8),
+    Change("House's bigger lead voice plays the drops", datetime.datetime(2026, 11, 19, 3, 0), "",
+           "of a lead's two voices the bigger plays the drops (Hammerfall III's drops had the hollow square, its themes the super)",
+           lambda p: p.style == "house"),
+    Change("House's hats thin as the close begins", datetime.datetime(2026, 11, 19, 3, 0), "",
+           "at the close's first bar the hats thin to two strokes and an open hat (the drop's groove had run on 20 bars)",
+           lambda p: p.style == "house"),
     Change("a heavy band's second theme rings", datetime.datetime(2026, 11, 18, 23, 0), "",
            "the rhythm guitar strikes each chord of the second theme once and holds it, no chugs (it had one distorted colour "
            "through both themes, 42 to 64 bars)",

@@ -655,3 +655,40 @@ def test_a_house_groove_changes_every_sixteen_bars():
         return {name for name, _, at, _, _ in heard.hits if a <= at < b}
     blocks = [struck(block) for block in range(bars // 16)]
     assert len(blocks) >= 2 and all(here != after for here, after in zip(blocks, blocks[1:]))
+
+
+def test_the_hats_thin_as_the_close_begins():
+    # (2026-11-19, the boredom meter: Mirage I's and III's last drop ran on into the close in one groove for 20 bars.) The
+    # hats leave the drop's figure at the close's first bar: two strokes and an open hat, the first of the band to leave.
+    from freerock.studio import club
+    for name in ("desert-04", "coast-03"):
+        take = house.Take(house.family(name), 3)
+        heard = club.listen(take)
+        sections = list(take.sections)
+        drop = max(index for index, (story, _, _) in enumerate(sections) if story == "moment")
+        story, close, count = sections[-1]
+        assert story == "close" and drop == len(sections) - 2
+
+        def hats(first: int, last: int) -> set[tuple[str, float]]:
+            return {(sound, round((at / house.BAR) % 1.0, 3)) for sound, _, at, _, _ in heard.hits
+                    if sound in ("hat", "open") and first * house.BAR <= at < last * house.BAR}
+        before, after = hats(close - 4, close), hats(close, close + 4)
+        assert before and after and before != after
+        assert len(after) < len(before)
+
+
+def test_the_bigger_lead_voice_plays_the_drops():
+    # (2026-11-19: Hammerfall III's drops had the hollow square and its themes the seven-saw super: the lead 12 dB louder
+    # outside the drop than in it.) Of the two voices a lead has, the bigger plays the drops.
+    for name in ("infernal-02", "highland-01", "desert-03", "haunted-01"):
+        for take_number in (1, 2, 3):
+            take = house.Take(house.family(name), take_number)
+            if take.tune.riff:
+                continue
+            names = take.palette["lead"]
+            chosen = take.pick("lead", names)
+            gentle = names[(names.index(chosen) + 1) % len(names)]
+            drops = chosen if house.LEAD_WEIGHT.get(chosen, 1) >= house.LEAD_WEIGHT.get(gentle, 1) else gentle
+            quiet = gentle if drops == chosen else chosen
+            assert house.LEAD_WEIGHT.get(drops, 1) >= house.LEAD_WEIGHT.get(quiet, 1)
+    assert set(house.LEAD_WEIGHT) >= {voice for palette in house.PALETTES.values() for voice in palette["lead"]}
