@@ -1075,6 +1075,36 @@ def test_a_wind_player_breathes():
     assert "bagpipe" not in orchestra.BREATH
 
 
+def test_a_bands_lead_guitar_takes_a_solo_at_the_summit():
+    # ("i want fucking guitar solos in my knight rock, study eddie vedder and pearl jam", 2026-11-18.) The summit's first
+    # time round is the lead guitar's solo over the band: on the blues scale, climbing about an octave, quickening into
+    # runs, its busiest stretch rocked on the wah; then the theme comes back with the twin guitars.
+    take = orchestra.Take(_family("anywhere-banner-war-2"), 1)
+    beats, period = take.beats, take.fam.period
+    first = next(first for section, first, _, _ in take.spans if section.part == "summit")
+    lead = take.voices["lead"]["lead guitar"]
+    solo = [note for note in lead.notes if first <= note.start < first + period * beats]
+    tonic = next(key for section, _, key, _ in take.spans if section.part == "summit").tonic
+    assert len(solo) >= 4 * period
+    assert all((note.pitch - tonic) % 12 in orchestra.BLUES for note in solo)
+    quarter = period * beats / 4
+    early = [note.pitch for note in solo if note.start < first + quarter]
+    late = [note.pitch for note in solo if note.start >= first + 3 * quarter]
+    assert max(late) >= max(early) + 5                                    # it climbs
+    typical = lambda notes: float(np.median([note.length for note in notes]))        # noqa: E731   (a bend's grace is short anywhere)
+    assert typical([n for n in solo if first + 2 * quarter <= n.start < first + 3 * quarter]) < typical([n for n in solo if n.start < first + quarter])
+    twin = take.voices["lead"]["lead guitar twin"]
+    assert not [note for note in twin.notes if first <= note.start < first + period * beats]      # no twin under the solo...
+    assert [note for note in twin.notes if note.start >= first + period * beats]                   # ...and the twins after it
+    wah = lead.effects["wah"]
+    assert float(np.interp(first + 2.5 * quarter, [a for a, _ in wah], [v for _, v in wah])) > 0.5
+    import pytest as _pytest
+    with _pytest.MonkeyPatch.context() as patch:
+        patch.setattr(orchestra, "SOLOS", False)
+        plain = orchestra.Take(_family("anywhere-banner-war-2"), 1)
+    assert [note for note in plain.voices["lead"]["lead guitar twin"].notes if first <= note.start < first + period * beats]
+
+
 def test_a_bands_pedals_can_be_switched_off():
     # A new sound is heard as a demo before it is used (the plan's principles): the switch that held the pedals back until
     # the demos were heard ("k keep going", 2026-11-18) still takes every mark away.

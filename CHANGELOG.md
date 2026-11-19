@@ -3,6 +3,18 @@
 Newest first. Words in quotation marks are what was said while listening or playing, as typed or
 dictated, where it drove the change.
 
+## 2026-11-18, evening: guitar solos
+
+"i want fucking guitar solos in my knight rock, study eddie vedder and pearl jam"; "make me one and
+show me".
+
+- **A band's lead guitar takes a solo at the summit**: where the summit states its theme more than
+  once, the first time round is the lead guitar alone over the band, and the theme comes back after
+  it with the twin guitars. Two-bar phrases from the tune's own motif, climbing an octave, quickening
+  into runs and a repeated lick, peaking on a held bend and landing on the key note; bent notes, the
+  blues scale, the wah rocked through the runs. Studied from Mike McCready's playing in Pearl Jam
+  (handbook 4.10). Each take's solo is its own. `orchestra.SOLOS` switches it off.
+
 ## 2026-11-18, afternoon: the pedals on; drums, rises and basses that move
 
 "k keep going"; "some of the instruments get boring figure out how to get more especially in house";

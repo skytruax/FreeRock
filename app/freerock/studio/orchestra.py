@@ -1304,6 +1304,7 @@ LONG = 480.0                   # seconds: about how long a track is
 # A band's guitars' effect marks (Take.effects) and an orchestra's (Take._orchestra_marks): new sounds, heard as demos
 # before they were used (var/listen/now.html), then "k keep going" (2026-11-18, 14:25).
 BAND_PEDALS = True
+SOLOS = True             # a band's lead guitar takes a solo at the summit (guitar_solo); False takes it away
 VIBE_QUIET = 0.55        # a passage this soft or softer is the quiet one, where a clean guitar's broken chords take the vibe
 ORCHESTRA_MARKS = True
 STRUCK = ("harp", "celesta", "glockenspiel", "bells", "marimba", "music box", "dulcimer", "xylophone", "handbells", "harpsichord",
@@ -2066,6 +2067,92 @@ def settings_of(character: Character) -> tuple[str, ...]:
 BLUES = (0, 3, 5, 7, 10)
 
 
+def guitar_solo(rng: random.Random, tune: Line, bars: int, beats: float, pulse: float, bpm: float) -> Line:
+    """A guitar solo over `bars` bars, in scale steps (the lead guitar's notes go onto the blues scale as it plays them),
+    the way the long blues-rock solos are built ("i want fucking guitar solos in my knight rock, study eddie vedder and
+    pearl jam", 2026-11-18: Hendrix's way, and after him the early nineties': the solo never played the same twice).
+    Two bars to a phrase, like sentences. A motif from the tune's first notes is stated and answered higher, ending on a
+    bent, held note; the lines develop in eighths, arching and bending; then quicken into runs and a repeated lick, the
+    whole climbing an octave; the peak is the highest note bent up and held, then a run down; and the motif comes back
+    to land on the key note. Busy runs are rocked on the wah and long notes cry, as the lead's marks already have it."""
+    simple = pulse == 1.0
+    eighth = 0.5
+    fast = 0.25 if bpm <= (150 if simple else 120) else 0.5
+    ordered = sorted(tune.notes)
+    motif = [step for _, _, step, _ in ordered[:4]] or [0, 2, 4]
+    floor = min((step for _, _, step, _ in ordered), default=0)
+    out: list[tuple[float, float, int, float]] = []
+
+    def note(at: float, length: float, step: int, weight: float) -> None:
+        out.append((at, max(length, 0.1), step, min(max(weight, 0.3), 1.0)))
+
+    def bend(at: float, length: float, step: int, weight: float) -> None:
+        # Reached from the step below, as a bent string is: a grace note a tenth of a beat long, then the note held.
+        grace = min(0.12, length / 4)
+        note(at, grace, step - 1, weight * 0.85)
+        note(at + grace, length - grace, step, weight)
+
+    def run(at: float, count: int, top: int, down: bool, weight: float) -> float:
+        for index in range(count):
+            note(at + index * fast, fast, top - index if down else top - count + 1 + index, weight + 0.1 * index / max(count, 1))
+        return at + count * fast
+
+    phrases = max(bars // 2, 1)
+    span = 2 * beats
+    for index in range(phrases):
+        at = index * span
+        along = index / max(phrases - 1, 1)
+        centre = floor + 2 + round(along * 7)                # an octave climbed across the solo
+        weight = 0.75 + 0.25 * along
+        if index == phrases - 1 and phrases > 1:
+            # The landing: the motif once more, slower, to the key note held, a breath before what comes next.
+            t = at
+            for step in motif[:3]:
+                note(t, eighth * 2, step + 7 * (centre >= floor + 7), weight)
+                t += eighth * 2
+            home = 7 if centre >= floor + 7 else 0
+            note(t, max(span - (t - at) - 0.5, 0.5), home, 1.0)
+        elif along < 0.3:
+            # The motif stated, then answered two steps higher, ending on a bend held to the bar's end.
+            t = at
+            for step in motif:
+                note(t, eighth, step, weight)
+                t += eighth
+            note(t, beats - (t - at), motif[-1], weight)
+            t = at + beats
+            answer = [step + 2 for step in motif[:3]]
+            for step in answer:
+                note(t, eighth, step, weight)
+                t += eighth
+            bend(t, at + span - t - 0.25, answer[-1] + 1, weight + 0.05)
+        elif along < 0.6:
+            # Eighths that arch up and down, then a bend held: the line developing.
+            t, rise = at, rng.choice((3, 4, 5))
+            for step in list(range(centre, centre + rise)) + list(range(centre + rise, centre - 1, -1)):
+                if t >= at + span - 1.5:
+                    break
+                note(t, eighth, step, weight)
+                t += eighth
+            bend(t, at + span - t - 0.25, centre + rng.choice((2, 3, 4)), weight + 0.1)
+        elif along < 0.85:
+            # Quickening: a run down, a repeated lick of three, and a run up into a bend.
+            top = centre + 5
+            t = run(at, int(round(beats / fast / 2)), top, True, weight)
+            cell = [top, top - 1, top - 3]
+            while t < at + beats + beats / 2 - 1e-6:
+                for step in cell:
+                    note(t, fast, step, weight + 0.05)
+                    t += fast
+            t = run(t, max(int(round((at + span - 1.0 - t) / fast)), 2), top + 2, False, weight)
+            bend(t, max(at + span - t - 0.1, 0.5), top + 3, 1.0)
+        else:
+            # The peak: the highest note bent up and held, then a run down.
+            peak = floor + 11 + rng.choice((0, 1, 2))
+            bend(at, span - 1.0, peak, 1.0)
+            run(at + span - 1.0, int(round(1.0 / fast)), peak - 1, True, 0.95)
+    return Line(sorted(out))
+
+
 def blues(pitch: int, tonic: int) -> int:
     for move in (0, -1, 1, -2, 2):
         if (pitch + move - tonic) % 12 in BLUES:
@@ -2540,9 +2627,16 @@ class Take:
                 stated = turns(bars)
                 several = sum(1 for _, full in stated if full) > 1
                 below = ch.under or ((other,) if other not in strong else ())
+                soloist = ch.band and strong[0] == "lead guitar" and several and SOLOS
                 for index, (bar, full) in enumerate(stated):
                     use = (tune, again, adorned)[index % 3] if full else tune.cut(half, whole)
                     loud = self.hard(section.level[0])
+                    if soloist and index == 0 and full:
+                        # The guitar solo: the summit's first time round is the lead's alone over the band, and the theme
+                        # comes back after it, the twin guitars with it.
+                        own = random.Random(fam.seed * 31 + self.take * 7 + 5)          # its own draws: the take's are as they were
+                        sing("lead guitar", guitar_solo(own, tune, period, beats, self.pulse, fam.bpm), bar, loud)
+                        continue
                     sing(strong[0], use, bar, loud)
                     if len(strong) > 1:
                         sing(strong[1], use, bar, loud * 0.95, octave=octave_of(strong[1], strong[0]))

@@ -914,13 +914,41 @@ before the bar line it reaches and taken up again on it. A bagpipe's bag holds i
 
 - At the arrival and summit of heavy band music the first bar is a stop: one chord struck together
   and left to ring, the bass on one note, the kit's hit alone. Then the riff.
-- At the summit the lead is doubled a third above: twin guitars.
+- At the summit the lead is doubled a third above: twin guitars, after the lead guitar's solo where it
+  takes one (4.10).
 - In heavy band music the second theme goes to a pad that can sing: the Hammond, a bagpipe, a
   shenai, a pan flute or the choir. Lighter bands pass it between their leads.
 - *A band's riff guitars are the band's whole accompaniment*: heavy band music has no second figure;
   lighter bands do.
 - War drums play only in a band's rises (and in a fight, as it opens and in its valley).
 - Knight Rock has no town or battleground music; its walking music plays there.
+
+### 4.10 The guitar solo
+
+*A band whose lead is the lead guitar takes a solo at the summit* ("i want fucking guitar solos in my
+knight rock, study eddie vedder and pearl jam", 2026-11-18). Where the summit states its theme more
+than once, the first time round is the lead guitar alone over the band (the riff, the bass and the
+drums as written), and the theme comes back after it with the twin guitars. `orchestra.guitar_solo`
+writes it the way the long blues-rock solos are built, studied from how Mike McCready plays Pearl
+Jam's "Alive" (his own words and lessons on it; no notes taken from it):
+
+- **Phrases of two bars, like sentences.** In Pearl Jam the singer and the guitar answer each other;
+  Knight Rock has no singer, so the solo is the voice.
+- **It starts from the tune.** The tune's first four notes are the motif: stated, then answered two
+  steps higher, ending on a bent note held to the end of the bar.
+- **It develops, then quickens.** Eighths that arch up and down end on a bend; then a run down, a
+  three-note lick played over and over, and a run up into a bend. Sixteenths up to 150 BPM (120 in
+  compound time), eighths above.
+- **It climbs an octave** to its peak: the highest note bent up and held, then a run down.
+- **It lands**: the motif once more, slower, to the key note held.
+- **The blues and the bends.** Every note goes onto the key's minor pentatonic (4.3), the scale his
+  solos are phrased in, after Hendrix and Stevie Ray Vaughan. A bend is a grace note a step below,
+  then the note: the string pushed up. The lead's own marks rock the wah at the pace of its notes
+  through the summit's runs and let every long note cry, which is how he plays it live.
+- **Never the same twice.** He has said he does not play the solo the same way live. Each take's solo
+  draws its own choices from the family's seed and the take, so no two takes share a solo, and the
+  rest of the take is written as it was.
+- `orchestra.SOLOS = False` takes the solo away and gives the summit back to the twins.
 
 ---
 
