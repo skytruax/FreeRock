@@ -968,6 +968,23 @@ def test_a_heavy_bands_drummer_rides_out_a_long_moment_on_the_bell():
                    for note in light.voices["drums"]["kit"].notes)
 
 
+def test_a_light_bands_clean_guitar_shimmers_from_its_second_theme():
+    # (2026-11-18, Lantern Walk: a light band whose clean guitar is its whole accompaniment had no mark at all.) Dry
+    # through the first theme, the vibe from the second theme on and through the moments, the rises left as they are; a band
+    # with a rhythm guitar keeps the vibe for its quiet passages alone.
+    def shimmer(name: str, take: int) -> dict[str, float]:
+        made = orchestra.Take(_family(name), take)
+        guitar = next(voice for parts in made.voices.values() for voice in parts.values() if voice.instrument == "guitar")
+        lane = guitar.effects.get("phaser", [])
+        at = lambda x: float(np.interp(x, [a for a, _ in lane], [v for _, v in lane])) if lane else 0.0      # noqa: E731
+        return {section.part: at(first + section.bars * made.beats / 2) for section, first, _, _ in made.spans}
+    light = shimmer("haunted-lantern-walk-1", 4)
+    assert light["first"] == 0.0 and light["build"] == 0.0 and light["climb"] == 0.0
+    assert light["second"] > 0.4 and light["arrival"] > 0.4 and light["summit"] > 0.4
+    band = shimmer("pastoral-banner-ride-1", 5)
+    assert all(value == 0.0 for part, value in band.items() if part not in ("valley", "open", "close"))
+
+
 def test_a_bands_pedals_can_be_switched_off():
     # A new sound is heard as a demo before it is used (the plan's principles): the switch that held the pedals back until
     # the demos were heard ("k keep going", 2026-11-18) still takes every mark away.

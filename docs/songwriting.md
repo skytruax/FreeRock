@@ -91,6 +91,10 @@ setting moves.
   - opened slowly from heel to toe across a long held note (the cry).
 - A second guitar playing the harmony stays dry: the harmony is its colour.
 - A clean guitar's ringing broken chords get a vibe in the quiet valley.
+- Where the clean guitar is the band's whole accompaniment (a light band with no rhythm guitar), it is
+  dry through the first theme. The vibe comes in with the second theme and stays through the moments,
+  where a light band's arpeggios want the shimmer that a heavy band's arrival, struck dry, does not.
+  The rises are left as they are.
 - Chugs and riffs with air between their hits stay dry, as on the records they come from.
 
 **House** (`club.write`):

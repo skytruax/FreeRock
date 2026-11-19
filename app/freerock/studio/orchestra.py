@@ -1300,6 +1300,7 @@ LONG = 480.0                   # seconds: about how long a track is
 # A band's guitars' effect marks (Take.effects) and an orchestra's (Take._orchestra_marks): new sounds, heard as demos
 # before they were used (var/listen/now.html), then "k keep going" (2026-11-18, 14:25).
 BAND_PEDALS = True
+VIBE_QUIET = 0.55        # a passage this soft or softer is the quiet one, where a clean guitar's broken chords take the vibe
 ORCHESTRA_MARKS = True
 STRUCK = ("harp", "celesta", "glockenspiel", "bells", "marimba", "music box", "dulcimer", "xylophone", "handbells", "harpsichord",
           "pizzicato")         # what a plucked or struck line is played on: its phrase's last note can hang in an echo
@@ -3451,7 +3452,8 @@ class Take:
         - a long rise opens on the rhythm guitar's wah, held at the heel as it begins and brought by hand to the toe;
         - the lead's busy runs at a moment go through a wah rocked at the pace of its own notes, and a long note held
           at a moment is opened slowly from heel to toe (the cry);
-        - a clean guitar's broken chords that ring in the quiet go through a vibe.
+        - a clean guitar's broken chords that ring in the quiet go through a vibe, and where the clean guitar is the band's
+          whole accompaniment, wherever a passage comes back.
 
         Chugs, stabs and short notes stay dry, and so does everything where the music does not ask. The marks follow
         this take's own notes, so no two takes have them in the same places. (`BAND_PEDALS`, on since the demos were
@@ -3471,6 +3473,7 @@ class Take:
             harmony = tuple(section.chords)
             returns.append(harmony in heard or section.part in ("valley", "summit"))
             heard.add(harmony)
+        riffs = any(voice.instrument == "rhythm guitar" and voice.notes for parts in self.voices.values() for voice in parts.values())
         for channel, parts in self.voices.items():
             for name, voice in parts.items():
                 if not voice.notes or voice.drums:
@@ -3481,6 +3484,8 @@ class Take:
                     self._lead_marks(voice, depth)          # (a second guitar in harmony stays dry: the harmony is its colour)
                 elif voice.instrument == "guitar":
                     self._vibe_marks(voice, depth)
+                    if not riffs:
+                        self._shimmer_marks(voice, depth)
 
     def _orchestra_marks(self) -> None:
         """An orchestra's effects, where its music asks (2026-11-18: "this might apply to other genres too"): the valley
@@ -3605,13 +3610,29 @@ class Take:
             pace = statistics.median(paces)
             voice.set("wah beats", 0.5 if pace <= 0.3 else 1.0)       # rocked in eighths over sixteenths, else on every beat
 
+    def _shimmer_marks(self, voice: Voice, depth: float) -> None:
+        """A clean guitar that is the band's whole accompaniment (a light band's broken chords, with no rhythm guitar:
+        Lantern Walk, 2026-11-18, had no mark at all, its guitar playing only where the music is above the quiet): dry
+        through the first theme, the vibe coming in with the second and staying through the moments, where a light band's
+        arpeggios want the shimmer that a heavy band's arrival, struck dry, does not. The rises are left as they are."""
+        beats = self.beats
+        for section, first, _, _ in self.spans:
+            if section.part not in ("second", "arrival", "summit") or max(section.level) <= VIBE_QUIET:
+                continue                                    # (the quiet passages are the vibe's own: `_vibe_marks`)
+            last = first + section.bars * beats
+            notes = self._notes_in(voice, first, last)
+            if not notes or self._sounding(notes, first, last) < 0.5:
+                continue
+            fade = min(2.0, 0.25 * section.bars * beats)
+            voice.mark("phaser", [(first, 0.0), (first + fade, 0.85 * depth), (last - fade, 0.85 * depth), (last, 0.0)])
+
     def _vibe_marks(self, voice: Voice, depth: float) -> None:
         """A clean guitar's vibe where its broken chords ring in the quiet."""
         beats = self.beats
         for section, first, _, _ in self.spans:
             last = first + section.bars * beats
             notes = self._notes_in(voice, first, last)
-            if not notes or max(section.level) > 0.55 or self._sounding(notes, first, last) < 0.5:
+            if not notes or max(section.level) > VIBE_QUIET or self._sounding(notes, first, last) < 0.5:
                 continue
             fade = min(2.0, 0.25 * section.bars * beats)
             voice.mark("phaser", [(first, 0.0), (first + fade, 0.85 * depth), (last - fade, 0.85 * depth), (last, 0.0)])

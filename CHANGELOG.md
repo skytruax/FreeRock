@@ -31,6 +31,8 @@ dictated, where it drove the change.
 - **A storm's rain falls under the full band**: hard in the opening, the rises and the close, softer
   in the themes and drops. Over a bright pad it had covered the music (Thunderhead I's texture centred
   at 4.8 kHz; now 1.8, the liked 0.4).
+- **A light band's clean guitar shimmers**: where it is the band's whole accompaniment (Lantern Walk had
+  no effect at all), the vibe comes in with the second theme and stays through the moments.
 - **A whole bucket build keeps what was played, loved and banned** ("make sure whats played is marked
   as played"): it had put every part back at no plays, so the player took them all for new (the
   morning's build had forgotten the night before's), and a love or a ban would have gone the same way.

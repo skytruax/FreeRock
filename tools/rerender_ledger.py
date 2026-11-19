@@ -150,6 +150,10 @@ CHANGES = [
            "a storm's rain at 0.4 in the opening, rises and close and 0.25 under the themes and drops (over a bright pad it had "
            "covered the music)",
            lambda p: p.style == "house" and p.character.role == "storm"),
+    Change("a light band's clean guitar shimmers", datetime.datetime(2026, 11, 18, 19, 6), "",
+           "where the clean guitar is a band's whole accompaniment, the vibe from its second theme through its moments "
+           "(Lantern Walk had no effect at all)",
+           lambda p: p.style == "knight" and any("guitar" in getattr(p.character, part, ()) for part in ("plucks", "strong", "leads"))),
 ]
 
 
