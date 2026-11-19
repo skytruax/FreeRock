@@ -1309,6 +1309,21 @@ RING_SECOND = True       # a heavy band's second theme rings: its rhythm guitar 
 SOLO_LIFT = 5.0          # dB the solo stands over the lead's usual level (Take._solo_marks)
 CLIMBS = True            # a heavy band's rise climbs where one chord is held long (Take.rhythm, Take.bass); False plays on as it was
 LONG_HOLD = 9            # bars of one chord in a rise that make it a long one
+OPENS_OUT = True         # a heavy band's drummer opens the hat for the second theme, as its guitars ring (Take.drums)
+DIGS_IN = True           # a heavy band's long moment digs in at its half: the bass's octaves, the crash every other bar
+OWN_LICKS = True         # each band take answers its riff with fills of its own (Take.fills); False: the one run and walk-up of 11-17
+# A riff band's fills (2026-11-19: "hearing that same guitar riff climb in too many knight songs", "cant you study acdc and do
+# different licks"). Every band song had answered its riff with the same two runs: the walk up to the fifth (b3, 4, b5, 5) at
+# the end of every fourth bar and the blues run down at the end of every second, about 32 times a song, in every song. From
+# the lessons on Malcolm's and Angus's playing: fills in the minor pentatonic with the blues note, the major pentatonic mixed
+# in where the key is major; double stops; the minor third hammered to the major; chords struck on the offbeat; space, a
+# chord left to ring rather than filled; the flat seventh's chord as a turn back to the root. Semitones over the riff's root.
+FILL_RUNS = ((10, 7, 5, 3), (12, 10, 7, 5), (7, 5, 3, 0), (15, 12, 10, 7), (5, 3, 0, -2), (12, 7, 10, 5), (7, 6, 5, 3),
+             (10, 7, 6, 5), (7, 10, 7, 5), (12, 10, 12, 7), (3, 0, -2, -5), (5, 7, 10, 12))     # mostly falling into the chord
+BRIGHT_RUNS = ((9, 7, 4, 2), (12, 9, 7, 4), (4, 2, 0, -3), (7, 9, 7, 4), (9, 12, 9, 7), (2, 4, 7, 9))   # the major pentatonic
+CURLS = ((3, 4, 0), (3, 4, 7), (10, 3, 4, 0))                                    # the minor third hammered to the major
+DOUBLE_STOPS = (((7, 12), (5, 10)), ((3, 7), (5, 9)), ((5, 9), (3, 7)), ((10, 15), (7, 12)), ((7, 12), (7, 12)), ((5, 10), (3, 7)))
+MAJORISH = ("major", "mixolydian", "lydian")
 
 
 def held_runs(symbols: list[str]) -> list[tuple[int, int]]:
@@ -2943,6 +2958,8 @@ class Take:
         # One riff and one pattern for the first theme and what is made of it, and another for
         # the second: a take that has only one figure to its name still plays two things.
         self.riff, riff_b = riff(), riff()
+        if ch.band:
+            self.fills = self._fills()
         for _ in range(8):
             if riff_b != self.riff:
                 break
@@ -3045,20 +3062,14 @@ class Take:
                                    if not any(abs(on - at) < 1e-6 for at, _ in hits)]
                 if ch.band and bar % 2 == 1 and not thin:
                     # The riff answers its chords (2026-11-17, night: "acdc for knight rock"; the band's guitars struck the
-                    # same chords in every bar). At the end of the second bar a run down the blues scale to the root, at
-                    # the end of the fourth a walk up to the fifth: single notes, picked, where the chords would have been.
-                    span = 1.0 if beats >= 4.0 else self.group[-1]
-                    step = 0.25 if self.fam.bpm <= 150 else 0.5
-                    lick = [10, 7, 5, 3] if bar % 4 == 1 else [3, 5, 6, 7]
-                    count = int(round(span / step))
-                    lick = lick[-count:] if count < len(lick) else lick
-                    begin = beats - len(lick) * step
-                    hits = [(on, None if length is None else min(length, begin - on)) for on, length in hits if on < begin - 1e-6]
+                    # same chords in every bar): at the end of the second bar of each four, and with a turn at the end of the
+                    # fourth, the take's own fills (`fills`, OWN_LICKS), two turns taking it in turns.
+                    if OWN_LICKS:
+                        fill = self.fills[0] if bar % 4 == 1 else self.fills[1 + (bar // 4) % 2]
+                    else:
+                        fill = ("run", (10, 7, 5, 3)) if bar % 4 == 1 else ("run", (3, 5, 6, 7))
                     lick_guitar = "single guitar" if ch.band and self.heavy and bar_at < self.band_in else "rhythm guitar"
-                    for index, above in enumerate(lick):
-                        at = bar_at + begin + index * step
-                        if not self.breathing(at):
-                            self.put("rhythm", lick_guitar, at, step * 0.9, root + above, loud * (0.95 if index == 0 else 0.85))
+                    hits = self._fill(fill, hits, bar_at, root, loud, lick_guitar, half)
                 # (2026-11-17, night: the heavy band's pieces swung 8 dB from their quietest to their loudest, the orchestra's
                 # 18; distorted guitars hardly grow softer when played softly. A riff band opens on one guitar alone, and the
                 # second guitar, the chugs and the band come in together with the first theme.)
@@ -3133,8 +3144,9 @@ class Take:
                 # brings it down again; the arrival comes in on the low riff, the way a riff band climbs and lands.
                 into, run = runs[bar]
                 climbing = self.climbs(part, run, into)
-                layer(name, "riff" if rings else figure, second, raised, 1.0, key, chord, bar, bar_at, level, density, rings=rings,
-                      up=12 if climbing and figure in ("riff", "chug") and not rings else 0)
+                played = "riff" if rings else "chug" if climbing and self.rise_way == "drive" and figure == "riff" else figure
+                layer(name, played, second, raised, 1.0, key, chord, bar, bar_at, level, density, rings=rings,
+                      up=12 if climbing and self.rise_way == "climb" and figure in ("riff", "chug") and not rings else 0)
                 # (A band's riff guitars are the band's whole accompaniment; the unplugged band takes the second figure too.)
                 if not (ch.band and self.heavy) and fuller(part, bar, along):
                     # The other figure, on its own instrument (another of the palette's, where both themes have the
@@ -3297,8 +3309,10 @@ class Take:
                     # the chords step down (or where there is no room under it).
                     into, run = runs[bar]
                     climbs = self.climbs(part, run, into)
+                    # (And through the second half of a heavy band's long moment the octaves are pumped too: `digs_in`.)
+                    pumps = climbs or self.digs_in(part, bars, bar)
                     stair: list[int] = []
-                    if climbs and into == run - 1:
+                    if climbs and self.rise_way == "climb" and into == run - 1:
                         goal = key.pitch(after.root, inst.home - 5) if bar + 1 < bars else \
                             ahead[2].pitch(ahead[3][0].root, inst.home - 5) if ahead is not None else root
                         scale = sorted({key.pitch(degree, goal, chord) + octave for degree in range(7) for octave in (-12, 0, 12)})
@@ -3318,7 +3332,7 @@ class Take:
                         pitch = root
                         if stair:
                             pitch = stair[index]
-                        elif climbs and pumped is not None:
+                        elif pumps and pumped is not None:
                             pitch = pumped + (12 if index % 2 == 1 else 0)
                         elif index == count - 1 and toward != root and bar + 1 < bars:
                             # Into a new chord the last eighth is a step away from its root (2026-11-17, night: the band's bass
@@ -3372,9 +3386,100 @@ class Take:
             inst = INSTRUMENTS[sound]
             self.put("drums", sound, at, 0.5, key.pitch(chord.root, inst.home), loud)
 
+    def _fills(self) -> tuple:
+        """A band take's own fills (OWN_LICKS): what answers the riff at the end of the second bar of each four, and two turns
+        for the end of the fourth, used in turn. Drawn on a generator of its own, so the writing's other draws do not move."""
+        own = random.Random(self.fam.seed * 7919 + self.take * 104729 + 31)
+        bright = self.fam.key.mode in MAJORISH
+
+        def one(kinds: dict[str, float]) -> tuple:
+            kind = own.choices(list(kinds), weights=list(kinds.values()))[0]
+            if kind == "run":
+                return kind, own.choice(FILL_RUNS)
+            if kind == "bright":
+                return "run", own.choice(BRIGHT_RUNS)
+            if kind == "curl":
+                return kind, own.choice(CURLS)
+            if kind == "stops":
+                return kind, own.choice(DOUBLE_STOPS)
+            return kind, None
+        answer = one({"run": 0.3, "stops": 0.2, "stabs": 0.2, "ring": 0.3})
+        turns = {"run": 0.3 if bright else 0.4, "turn chord": 0.2, "stops": 0.15, "curl": 0.15, "stabs": 0.1}
+        if bright:
+            turns["bright"] = 0.1
+        first = one(turns)
+        second = one(turns)
+        for _ in range(8):
+            if second != first:
+                break
+            second = one(turns)
+        return answer, first, second
+
+    def _fill(self, fill: tuple, hits: list, bar_at: float, root: int, loud: float, guitar: str, half: float) -> list:
+        """One fill at the end of a bar of the riff (see `_fills`); returns the riff's chords that are left before it.
+
+        - a run or a curl: single notes picked to the bar line, sixteenths (eighths when it is fast);
+        - double stops, or the riff's chord, struck on the last two offbeats;
+        - the turn chord: the flat seventh's power chord on the last beat, back to the root on the next bar;
+        - ring: no fill; the last chord struck before the last beat rings to the bar line."""
+        beats = self.beats
+        kind, what = fill
+        cut = lambda begin: [(on, None if length is None else min(length, begin - on)) for on, length in hits if on < begin - 1e-6]
+
+        def play(at: float, length: float, pitches, strength: float) -> None:
+            if not self.breathing(bar_at + at):
+                for pitch in pitches:
+                    self.put("rhythm", guitar, bar_at + at, length, root + pitch, loud * strength)
+        if kind in ("run", "curl"):
+            span = 1.0 if beats >= 4.0 else self.group[-1]
+            step = 0.25 if self.fam.bpm <= 150 else 0.5
+            count = int(round(span / step))
+            notes = list(what)[-count:] if count < len(what) else list(what)
+            begin = beats - len(notes) * step
+            for index, above in enumerate(notes):
+                play(begin + index * step, step * 0.9, (above,), 0.95 if index == 0 else 0.85)
+            return cut(begin)
+        if kind in ("stops", "stabs"):
+            offs = [beats - 3 * half, beats - half]
+            shapes = what if kind == "stops" else ((0, 7, 12), (0, 7, 12))
+            for at, shape in zip(offs, shapes):
+                play(at, half * 0.75, shape, 0.9)
+            return cut(offs[0])
+        if kind == "turn chord":
+            begin = beats - min(1.0, beats / 3)
+            low = -2 if root - 2 >= INSTRUMENTS["rhythm guitar"].low else 10
+            play(begin, (beats - begin) * 0.92, (low, low + 7, low + 12), 0.95)
+            return cut(begin)
+        # ring: the chords struck before the last beat are kept, the last of them held to the bar line, the chugs after it gone
+        until = beats - 1.0
+        kept = [(on, length) for on, length in hits if on < until - 1e-6]
+        struck = [index for index, (on, length) in enumerate(kept) if length is not None]
+        if struck:
+            on, _ = kept[struck[-1]]
+            kept = kept[:struck[-1]] + [(on, beats - on)]
+        return kept
+
+    @property
+    def rise_way(self) -> str:
+        """How this take plays a long hold in a heavy band's rise (see `climbs`): it climbs (the riff an octave up the neck, the
+        bass's octaves and a run into the next chord), it drives (the muted string on every eighth under the riff, the bass's
+        octaves), or it plays on as written. Drawn on a generator of its own (2026-11-19: "hearing that same guitar riff climb in
+        too many knight songs": the climb is one way among three, not every song's)."""
+        if not hasattr(self, "_rise_way"):
+            self._rise_way = random.Random(self.fam.seed * 7919 + self.take * 104729 + 37).choice(("climb", "drive", "plain"))
+        return self._rise_way
+
+    def digs_in(self, part: str, bars: int, bar: int) -> bool:
+        """Whether a bar of a heavy band's long moment (an arrival or a summit of 24 bars or more) is in its second half, from
+        the first eight-bar line at or after its middle (see `drums` and `bass`)."""
+        if not (DIGS_IN and self.ch.band and self.heavy and part in ("arrival", "summit") and bars >= 24):
+            return False
+        return bar >= max(16, ((bars // 2 + 7) // 8) * 8)
+
     def climbs(self, part: str, run: int, into: int) -> bool:
         """Whether a bar of a heavy band's rise is in the climbing half of a chord held long (see `rhythm` and `bass`)."""
-        return CLIMBS and self.ch.band and self.heavy and part in ("build", "climb") and run >= LONG_HOLD and into >= run // 2
+        return CLIMBS and self.ch.band and self.heavy and part in ("build", "climb") and run >= LONG_HOLD and into >= run // 2 \
+            and self.rise_way != "plain"
 
     def cymbal(self, layers: list, bar: int, moment: bool = False) -> list:
         """A band's drummer keeps time on the hat for sixteen bars of a theme and on the ride for the next sixteen, the
@@ -3397,8 +3502,8 @@ class Take:
             if any(layer[0] in ("tom", "tom low") for layer in layers):
                 return list(layers) + [("bell", "pulses", 0.4)]
             return layers
-        if any(layer[0] == "hat" for layer in layers):
-            return [("ride", layer[1], 0.9 * layer[2]) + tuple(layer[3:]) if layer[0] == "hat" else layer for layer in layers]
+        if any(layer[0] in ("hat", "hat open") for layer in layers):
+            return [("ride", layer[1], 0.9 * layer[2]) + tuple(layer[3:]) if layer[0] in ("hat", "hat open") else layer for layer in layers]
         if any(layer[0] in ("tom", "tom low") for layer in layers) and not any(layer[0] in ("hat open", "ride") for layer in layers):
             return list(layers) + [("ride", "halves", 0.35)]
         return layers
@@ -3449,7 +3554,15 @@ class Take:
                         # played: "not enough instruments in each track").
                         lay([each for each in main["moment"] if each[0] in SMALL and each not in main["theme"]], bar, bar_at, level, 0.55, chord, key)
                 elif part == "second":
-                    lay(self.cymbal(second, bar), bar, bar_at, level, 1.0 if other is not main else 0.85, chord, key)
+                    keeping = second
+                    if OPENS_OUT and ch.band and self.heavy:
+                        # The band opens out for its other tune (2026-11-19, the boredom meter: a heavy band's drums one colour
+                        # 34 to 68 bars across both its themes, King's Oath's and Banner Oath's; the turn from the hat to the
+                        # ride sits too far under the kick and the snare to be heard): as the guitars ring, the drummer keeps
+                        # time on the open hat, and goes over to the ride for the theme's second sixteen bars.
+                        keeping = [("hat open", layer[1], 0.9 * layer[2]) + tuple(layer[3:]) if layer[0] == "hat" else layer
+                                   for layer in second]
+                    lay(self.cymbal(keeping, bar), bar, bar_at, level, 1.0 if other is not main else 0.85, chord, key)
                     if bar >= self.fam.period and not (ch.band and self.heavy):
                         lay([each for each in other["moment"] if each[0] in SMALL and each not in second], bar, bar_at, level, 0.55, chord, key)
                 if part in ("first", "second"):
@@ -3485,8 +3598,14 @@ class Take:
                             self.strike(roll, bar_at + index * step, (0.2 + 0.7 * done) * (0.6 + 0.4 * ch.weight), chord, key)
                 elif part in ("arrival", "summit"):
                     big = part == "summit"
+                    groove = self.cymbal(main["moment"], bar, moment=True)
+                    if self.digs_in(part, bars, bar):
+                        # A heavy band's long moment digs in at its half (2026-11-19, the meter: the bass and the drums of a
+                        # 32-bar arrival or summit one colour all through): the crash every other bar, over the ride's bell.
+                        groove = [layer[:3] + (max(layer[3] // 2, 1),) + tuple(layer[4:]) if layer[0] == "crash" and len(layer) > 3
+                                  else layer for layer in groove]
                     if not (ch.band and self.heavy and bar == 0):          # a band's moment begins with a stop: the hit alone
-                        lay(self.cymbal(main["moment"], bar, moment=True), bar, bar_at, level, 1.0 if big else 0.85, chord, key)
+                        lay(groove, bar, bar_at, level, 1.0 if big else 0.85, chord, key)
                     if bar == 0 and main["hit"]:
                         self.strike(main["hit"], bar_at, (0.6 + 0.35 * ch.weight) * (1.0 if big else 0.85), chord, key)
                         if self.heavy:

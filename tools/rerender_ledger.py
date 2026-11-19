@@ -210,6 +210,15 @@ CHANGES = [
            "the bass pumping octaves, and its last bar runs by step into the next chord (17 bars of one note and one riff "
            "in the fights' builds)",
            lambda p: p.style == "knight" and p.character.band and p.character.weight >= 0.8 and long_rise(p)),
+    Change("a heavy band's second theme opens out, its long moments dig in", datetime.datetime(2026, 11, 19, 8, 50), "",
+           "the open hat under the second theme, then the ride; from bar 16 of a 24-bar-or-longer arrival or summit the crash "
+           "every other bar and the bass's octaves (the drums one colour 34 to 68 bars across both themes)",
+           lambda p: p.style == "knight" and p.character.band and p.character.weight >= 0.8),
+    Change("a band's licks of its own; the long build one way of three", datetime.datetime(2026, 11, 19, 9, 30), "",
+           "each take answers its riff with its own fills (runs, the curl, double stops, offbeat stabs, the turn chord, a "
+           "ringing chord) in place of the one walk up to the fifth every band song played 32 times; a long build climbs, "
+           "drives or plays on",
+           lambda p: p.style == "knight" and p.character.band and any(figure in ("riff", "chug") for figure in p.character.figures)),
 ]
 
 

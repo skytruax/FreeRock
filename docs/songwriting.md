@@ -839,12 +839,28 @@ so does `riff` where the music is fullest.
 
 ### 4.3 Licks
 
-*The riff answers its chords.* Where the riff is not thin, every second bar ends (its last beat, or
-in compound time its last group) with single picked notes on the rhythm guitars where the chords
-would have been: the second bar of four with a run down the blues scale to the root (10, 7, 5, 3
-semitones above it), the fourth with a walk up to the fifth (3, 5, 6, 7). Sixteenths up to 150 BPM,
-eighths above. Every note of the lead guitar is moved onto the key's minor pentatonic
-(`orchestra.BLUES`, `orchestra.blues`), *as the riff bands of the late seventies did*.
+*The riff answers its chords, with fills of the take's own* (`orchestra.OWN_LICKS`, `Take._fills`,
+`Take._fill`). Where the riff is not thin, the second bar of each four ends with the take's answer and
+the fourth with a turn; a take has two turns and uses them in turn, so the same fill comes every eight
+bars, not every four. They are drawn once for the take, on a generator of their own, from what the
+lessons on Malcolm's and Angus's playing teach (Premier Guitar, MusicRadar, Guitar World, 2026-11-19):
+
+| Fill | What is played | As the answer | As a turn |
+|---|---|---|---|
+| a run | single picked notes to the bar line, sixteenths (eighths over 150 BPM), from `FILL_RUNS`: the minor pentatonic with the blues note, mostly falling into the chord | 0.3 | 0.4 (0.3 in a major key) |
+| a bright run | the same from `BRIGHT_RUNS`, the major pentatonic, only in a major, mixolydian or lydian key (Angus mixes the two) | | 0.1 |
+| the curl | the minor third hammered to the major, then the root or the fifth (`CURLS`) | | 0.15 |
+| double stops | two notes at once on the last two offbeats (`DOUBLE_STOPS`: fifth and octave, third and fifth, fourth and sixth) | 0.2 | 0.15 |
+| stabs | the riff's chord struck on the last two offbeats | 0.2 | 0.1 |
+| the turn chord | the flat seventh's power chord on the last beat, back to the root on the bar | | 0.2 |
+| ring | no fill: the last chord struck before the last beat rings to the bar line ("let a held chord ring") | 0.3 | |
+
+*Until 19 November every band song answered its riff with the same two runs, a walk up to the fifth
+(3, 5, 6, 7 semitones over the root) at the end of every fourth bar and a run down the blues scale
+(10, 7, 5, 3) at every second, about 32 times a song: "hearing that same guitar riff climb in too
+many knight songs", "cant you study acdc and do different licks".* The old walk-up is in no list.
+Every note of the lead guitar is moved onto the key's minor pentatonic (`orchestra.BLUES`,
+`orchestra.blues`), *as the riff bands of the late seventies did*.
 
 ### 4.4 The lone opening guitar
 
@@ -925,17 +941,30 @@ before the bar line it reaches and taken up again on it. A bagpipe's bag holds i
   rise (`orchestra.RING_SECOND`). The boredom meter had found a heavy band's rhythm guitar one colour
   through both themes, 42 to 64 bars: a riff and then a strum or a chug are different notes on one
   distorted sound, and the ear hears the sound.
-- *A heavy band's long rise climbs* (`orchestra.CLIMBS`, `Take.climbs`). Where a rise holds one chord
+- *A heavy band's long rise climbs, drives or plays on* (`orchestra.CLIMBS`, `Take.climbs`, `Take.rise_way`):
+  each take draws one of the three ways (since 19 November, 08:20, so the climb is not every song's).
+  Where a rise holds one chord
   nine bars or more (`LONG_HOLD`; a fight's 36-bar build has two or three chords, each nine to
   eighteen bars), the second half of that chord climbs: the riff's power chords and licks go an
   octave up the neck while the muted string chugs on low, and the bass pumps its octaves (root and
-  octave in turn; the octave under where the one over is past its top). In the chord's last bar the
+  octave in turn; the octave under where the one over is past its top). A take that drives keeps the
+  riff low with the muted string on every eighth under it and the bass's octaves, and no run. In a
+  climbing take's chord's last bar the
   bass runs by step, two eighths a note, into the next bar's note: up from under it where the chords
   rise, down from over it where they step down (Warlord Fury's build goes Bb, Ab, Gb and lands on
   F), or where there is no room under it. The next chord brings the riff down again, so a long build
   climbs in terraces and the arrival lands on the low riff. *The boredom meter had found a fight's
   bass on one note and its rhythm guitar on one riff for 17 bars of a build.* The chords themselves
   are not touched: a family's takes are played channel by channel together.
+- *Under the second theme the drummer opens out too* (`orchestra.OPENS_OUT`): a heavy band keeps time on
+  the open hat for the second theme's first sixteen bars, as its guitars ring, then on the ride. *The
+  meter had heard King's Oath's and Banner Oath's drums one colour for 34 to 68 bars across both
+  themes: the turn from the hat to the ride sits too far under the kick and the snare to be heard.*
+- *A long moment digs in at its half* (`orchestra.DIGS_IN`, `Take.digs_in`): in a heavy band's arrival
+  or summit of 24 bars or more, from the first eight-bar line at or after its middle (bar 16 of 32),
+  the crash comes every other bar over the ride's bell and the bass pumps its octaves, the way a band
+  plays its chorus harder the second time round. *The meter had found the bass and the drums of a
+  32-bar arrival or summit one colour all through.*
 - *A band's riff guitars are the band's whole accompaniment*: heavy band music has no second figure;
   lighter bands do.
 - War drums play only in a band's rises (and in a fight, as it opens and in its valley).

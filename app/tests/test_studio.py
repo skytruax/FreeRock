@@ -1210,9 +1210,13 @@ def test_a_heavy_bands_long_rise_climbs():
     # (2026-11-19, the boredom meter: in a fight's 36-bar build Warlord Fury's bass played one note 17 bars and Lightning
     # Runner's rhythm guitar one riff.) Where a heavy band's rise holds a chord nine bars or more, its second half has the riff
     # an octave up over the muted string chugging low and the bass pumping its octaves, and its last bar runs by step into the
-    # next bar's note: down where the chords step down (Warlord Fury's build: Bb, Ab, Gb, then F), up where they rise.
+    # next bar's note: down where the chords step down (Warlord Fury's build: Bb, Ab, Gb, then F), up where they rise. (Since
+    # 08:20 the climb is one of three ways a take plays a long hold: `Take.rise_way`.)
+    import pytest as _pytest
     def build_of(name: str, take: int) -> tuple:
-        made = orchestra.Take(_family(name), take)
+        with _pytest.MonkeyPatch.context() as climbing:
+            climbing.setattr(orchestra.Take, "rise_way", property(lambda self: "climb"))     # the take's way drawn as a climb
+            made = orchestra.Take(_family(name), take)
         section, first, _, _ = next(span for span in made.spans if span[0].part == "build")
         def bar(index: int, voice: str, channel: str) -> list:
             at = first + index * made.beats
@@ -1240,6 +1244,78 @@ def test_a_heavy_bands_long_rise_climbs():
         section, plain = build_of("desert-warlord-2", 3)
         assert len(set(plain(6, "picked bass", "bass"))) == 1 and min(plain(6, "rhythm guitar", "rhythm")) == min(low)
     assert orchestra.held_runs(["1", "1", "4", "4", "4", "1"]) == [(0, 2), (1, 2), (0, 3), (1, 3), (2, 3), (0, 1)]
+
+
+def test_a_heavy_bands_second_theme_opens_out_and_its_long_moments_dig_in():
+    # (2026-11-19, the boredom meter on King's Oath and Banner Oath, made again with everything of the night before: the drums
+    # one colour 34 to 68 bars across both themes, the bass and the drums 32 bars of an arrival or a summit.) The second theme
+    # keeps time on the open hat as its guitars ring, then the ride; a moment of 24 bars or more digs in from its sixteenth
+    # bar: the crash every other bar over the ride's bell, and the bass pumping its octaves. A light band is left alone.
+    from freerock.studio.orchestra import KITS
+    def take_of(name: str, number: int) -> tuple:
+        made = orchestra.Take(_family(name), number)
+        names = {pitch: sound for sound, pitch in KITS[made.ch.kit].items()} if made.ch.kit in KITS else {}
+        def at(part: str, bar: int, what: str) -> list:
+            section, first, _, _ = next(span for span in made.spans if span[0].part == part)
+            start = first + bar * made.beats
+            if what == "kit":
+                return sorted({names.get(note.pitch, "") for note in made.voices["drums"]["kit"].notes
+                               if start <= note.start < start + made.beats})
+            return [note.pitch for note in made.voices["bass"]["picked bass"].notes if start <= note.start < start + made.beats]
+        return made, at
+    made, at = take_of("pastoral-banner-ride-1", 5)
+    assert "hat" in at("first", 2, "kit") and "hat open" not in at("first", 2, "kit")
+    assert "hat open" in at("second", 2, "kit") and "hat" not in at("second", 2, "kit")
+    assert "ride" in at("second", 18, "kit")
+    section = next(span[0] for span in made.spans if span[0].part == "summit")
+    assert section.bars == 32
+    crashes = [bar for bar in range(section.bars) if "crash" in at("summit", bar, "kit")]
+    assert crashes == [0, 4, 8, 12] + list(range(16, 32, 2))
+    early, late = at("summit", 4, "bass"), at("summit", 20, "bass")
+    assert len(set(early)) == 1 and late[1] == late[0] + 12
+    import pytest as _pytest
+    with _pytest.MonkeyPatch.context() as patch:
+        patch.setattr(orchestra, "OPENS_OUT", False)
+        patch.setattr(orchestra, "DIGS_IN", False)
+        _, plain = take_of("pastoral-banner-ride-1", 5)
+        assert "hat" in plain("second", 2, "kit") and "hat open" not in plain("second", 2, "kit")
+        assert len(set(plain("summit", 20, "bass"))) == 1
+    light, light_at = take_of("highland-hill-country-1", 5)
+    assert not light.heavy and not any(light.digs_in(span[0].part, span[0].bars, bar) for span in light.spans
+                                       for bar in range(span[0].bars))
+
+
+def test_a_band_take_answers_its_riff_with_fills_of_its_own():
+    # (2026-11-19: "hearing that same guitar riff climb in too many knight songs", "cant you study acdc and do different
+    # licks".) Every band song had the one walk up to the fifth (b3, 4, b5, 5) at the end of every fourth bar of its riff,
+    # about 32 times a song. Each take now draws its own answer and two turns that take turns; none plays the old walk-up;
+    # a turn chord is the flat seventh's power chord on the last beat; a take that rings holds its last chord to the bar line.
+    fams = [fam for fam, _ in build.plan() if fam.character.style == "knight" and fam.character.band][:24]
+    takes = [orchestra.Take(fam, take) for fam in fams for take in (1, 2)]
+    assert len({made.fills for made in takes}) >= 0.9 * len(takes)
+    def runs_of(made, shape):
+        found = 0
+        for name in ("rhythm guitar", "single guitar"):
+            voice = made.voices["rhythm"].get(name)
+            notes = sorted(voice.notes, key=lambda note: note.start) if voice else []
+            for a, b, c, d in zip(notes, notes[1:], notes[2:], notes[3:]):
+                if d.start - a.start <= 1.0 and (b.pitch - a.pitch, c.pitch - a.pitch, d.pitch - a.pitch) == shape:
+                    found += 1
+        return found
+    assert sum(runs_of(made, (2, 3, 4)) for made in takes) == 0
+    turning = next(made for made in takes if made.fills[1][0] == "turn chord" and made.heavy)
+    section, first, key, chords = next(span for span in turning.spans if span[0].part == "first")
+    bar = 3                                                       # the end of the fourth bar: the first turn
+    at = first + bar * turning.beats + turning.beats - 1.0
+    struck = sorted(note.pitch for note in turning.voices["rhythm"]["rhythm guitar"].notes if abs(note.start - at) < 0.05)
+    root = key.pitch(chords[bar].root, 45)
+    root += 12 if root < 40 else -12 if root > 52 else 0
+    assert struck and (struck[0] - root) % 12 == 10 and struck[1] - struck[0] == 7
+    import pytest as _pytest
+    with _pytest.MonkeyPatch.context() as patch:
+        patch.setattr(orchestra, "OWN_LICKS", False)
+        old = orchestra.Take(_family("pastoral-banner-ride-1"), 5)          # a riff band (a strumming band has no licks)
+    assert runs_of(old, (2, 3, 4)) > 10
 
 
 def test_a_bands_pedals_can_be_switched_off():

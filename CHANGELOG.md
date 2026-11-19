@@ -3,6 +3,23 @@
 Newest first. Words in quotation marks are what was said while listening or playing, as typed or
 dictated, where it drove the change.
 
+## 2026-11-19, morning: the band's own licks
+
+"hearing that same guitar riff climb in too many knight songs"; "cant you study acdc and do different
+licks".
+
+- **Every band take answers its riff with fills of its own**: until now every band song played the
+  same walk up to the fifth (b3, 4, b5, 5) at the end of every fourth bar of its riff and the same run
+  down at every second, about 32 times a song. From lessons on Malcolm's and Angus Young's playing,
+  each take now draws its answer and two turns, used in turn, from pentatonic and blues runs mostly
+  falling into the chord, bright major-pentatonic runs in the major keys, the minor third hammered to
+  the major, double stops, chords struck on the offbeats, the flat seventh's chord as a turn, or no
+  fill at all, the chord left to ring (handbook 4.3). 160 different sets across 167 band takes; the
+  old walk-up is gone. `orchestra.OWN_LICKS` brings the old ones back.
+- **The long build's climb is one way among three**: a take climbs (as written this morning), drives
+  (the muted string on every eighth under the riff, the bass's octaves) or plays on as written, drawn
+  for each take, so the climb is not in every song.
+
 ## 2026-11-19, morning: better takes while the drive is full
 
 "Since the drive is almost full focus the day on making music better with new takes and renders";
@@ -15,6 +32,12 @@ dictated, where it drove the change.
   The meter had found Warlord Fury's bass on one note and Lightning Runner's riff unchanged for 17
   bars of their builds. `orchestra.CLIMBS` switches it off. 22 of the 36 heavy band families have
   such a rise.
+- **A heavy band's second theme opens out on the drums, and its long moments dig in**: under the
+  second theme, as the guitars ring, the drummer keeps time on the open hat, then on the ride; from
+  bar 16 of an arrival or summit of 24 bars or more the crash comes every other bar over the ride's
+  bell and the bass pumps its octaves (handbook 4.9). King's Oath and Banner Oath, made again with all
+  of the night's changes, still had drums of one colour for 34 to 68 bars and a 32-bar summit's bass
+  on the same eighths. `orchestra.OPENS_OUT` and `orchestra.DIGS_IN` switch them off.
 - The days' renders make the staged songs again with what the writer and the desk know now (the
   ledger's 681 takes, Knight Rock first, then House and Warcraft); new takes wait until the 8 TB
   drive is in.
