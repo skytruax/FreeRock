@@ -223,6 +223,10 @@ CHANGES = [
            "the solo's middle: two of Angus Young's figures (the repeated note, the run down in threes, the trill, double "
            "stops) with a sung sentence between, then the run to the peak",
            lambda p: p.style == "knight" and p.character.band and tuple(getattr(p.character, "strong", ()))[:1] == ("lead guitar",)),
+    Change("a band's riff moves, its lead answers", datetime.datetime(2026, 11, 19, 12, 30), "",
+           "each band take's riff moves its own way inside the bar (I to IV, the flat seventh, a pedal, a push), the second turn "
+           "a variation of the first, the lead guitar answering every other long note with a run into its next phrase",
+           lambda p: p.style == "knight" and p.character.band),
     Change("an orchestra's long moment goes up a gear", datetime.datetime(2026, 11, 19, 12, 0), "",
            "every second eight-bar phrase of an arrival or summit of sixteen bars or more: the accompaniment an octave up, "
            "the lines over the pad to the horns, the drums busier, the cymbal twice as often (16 to 24 bars of one colour)",

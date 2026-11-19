@@ -1301,7 +1301,7 @@ def test_a_band_take_answers_its_riff_with_fills_of_its_own():
     # a turn chord is the flat seventh's power chord on the last beat; a take that rings holds its last chord to the bar line.
     fams = [fam for fam, _ in build.plan() if fam.character.style == "knight" and fam.character.band][:24]
     takes = [orchestra.Take(fam, take) for fam in fams for take in (1, 2)]
-    assert len({made.fills for made in takes}) >= 0.9 * len(takes)
+    assert len({made.fills for made in takes}) >= 0.65 * len(takes)       # (the second turn a variation of the first since 11:20)
     def runs_of(made, shape):
         found = 0
         for name in ("rhythm guitar", "single guitar"):
@@ -1357,6 +1357,39 @@ def test_an_orchestras_long_moment_goes_up_a_gear_every_second_phrase():
         assert sorted(plain("rhythm", 10, plain_figure)) == sorted(plain("rhythm", 2, plain_figure))
     band = orchestra.Take(_family("pastoral-banner-ride-1"), 5)
     assert not any(band.geared(span[0].part, span[0].bars, index) for span in band.spans for index in range(span[0].bars))
+
+
+def test_a_band_takes_riff_moves_its_own_way_and_its_lead_answers_itself():
+    # (2026-11-19: "still need more complex leads and riffs".) A band take's riff moves inside the bar, one way for the take:
+    # up to the fourth's chord over the root, down to the flat seventh's, a pedal on the low root, or a push on the last
+    # off-beat. Its second turn is a variation of its first. Its lead guitar answers every other long note with a quick run
+    # into the next. RIFF_MOVES and LEAD_ANSWERS take them away.
+    fams = [fam for fam, _ in build.plan() if fam.character.style == "knight" and fam.character.band and fam.character.weight >= 0.8
+            and "riff" in fam.character.figures]
+    takes = [orchestra.Take(fam, take) for fam in fams[:14] for take in (1, 2, 3)]
+    assert {made.riff_move for made in takes} == {"rock", "drop", "pedal", "push"}
+    assert all(made.fills[2] == orchestra.Take._varied(made.fills[1]) for made in takes)
+    def theme_bars(made):
+        section, first, key, chords = next(span for span in made.spans if span[0].part == "first")
+        for bar, chord in enumerate(chords[:4]):
+            at = first + bar * made.beats
+            root = key.pitch(chord.root, 45)
+            root += 12 if root < 40 else -12 if root > 52 else 0
+            notes = [note for note in made.voices["rhythm"]["rhythm guitar"].notes if at <= note.start < at + made.beats]
+            yield bar, root, at, notes
+    rocking = next(made for made in takes if made.riff_move == "rock")
+    assert any(any((note.pitch - root) % 12 == 5 for note in notes) for bar, root, at, notes in theme_bars(rocking) if bar % 2 == 0)
+    pushing = next(made for made in takes if made.riff_move == "push")
+    assert any(any(abs(note.start - (at + pushing.beats - 0.5)) < 0.05 for note in notes) for bar, root, at, notes in theme_bars(pushing) if bar % 2 == 0)
+    lead = rocking.voices["lead"]["lead guitar"].notes
+    import pytest as _pytest
+    with _pytest.MonkeyPatch.context() as patch:
+        patch.setattr(orchestra, "LEAD_ANSWERS", False)
+        patch.setattr(orchestra, "RIFF_MOVES", False)
+        plain = orchestra.Take(rocking.fam, rocking.take)
+    plain_lead = plain.voices["lead"]["lead guitar"].notes
+    assert len(lead) >= len(plain_lead) + 8                                  # its answers: runs of quick notes into the next
+    assert not any(any((note.pitch - root) % 12 == 5 for note in notes) for bar, root, at, notes in theme_bars(plain) if bar % 2 == 0)
 
 
 def test_a_bands_pedals_can_be_switched_off():

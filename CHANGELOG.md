@@ -3,6 +3,22 @@
 Newest first. Words in quotation marks are what was said while listening or playing, as typed or
 dictated, where it drove the change.
 
+## 2026-11-19, late morning: riffs that move, a lead that answers
+
+"still need more complex leads and riffs"; "looks like your scores went down in some places put into
+the loop ways to work on each score with each pass"; "add some of the judge stuff to the readme".
+
+- **Each band take's riff moves its own way inside the bar**: up to the fourth's chord over the root
+  (I to IV), down to the flat seventh's at the bar's end, a pedal on the low root between the chords,
+  or a push on the last off-beat (handbook 4.3).
+- **The second turn is a variation of the first**: the judges' coherence had fallen on King's Oath
+  with two unrelated turns.
+- **The lead answers itself**: every other long note of the tune, the breath before the next phrase
+  takes a quick run of the blues scale into it (handbook 4.10).
+- **Every score has its levers, and each pass works on one** (`tools/judges_report.py`): the scores
+  that fell after a change, the part of the story each falls lowest in, and the levers that answer
+  each (README, "How the songs are judged").
+
 ## 2026-11-19, morning: the boredom meter hears the cymbals
 
 - **The meter's colour has a top band of its own**: the share of each bar above 4 kHz, so a drummer's

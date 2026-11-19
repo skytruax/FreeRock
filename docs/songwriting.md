@@ -870,6 +870,16 @@ lessons on Malcolm's and Angus's playing teach (Premier Guitar, MusicRadar, Guit
 | the turn chord | the flat seventh's power chord on the last beat, back to the root on the bar | | 0.2 |
 | ring | no fill: the last chord struck before the last beat rings to the bar line ("let a held chord ring") | 0.3 | |
 
+**The riff moves, its own way** (`orchestra.RIFF_MOVES`, `Take.riff_move`, 2026-11-19: "still need more
+complex leads and riffs"). Each band take draws one way its riff moves inside the bar, for the whole
+take, so the riff is the song's own: *rock* (the chord struck in the second half of the bar is the
+fourth's, over the same root, and back: I to IV), *drop* (the last chord of the bar is the flat
+seventh's, leading back to the root), *pedal* (the low root alone, palm-muted, on every eighth between
+the chords), or *push* (a stab on the last off-beat). **The second turn is a variation of the first**
+(`Take._varied`): the same run a step of the scale away, the other curl, the double stops the other way
+round, the turn chord answered by stabs. *SongEval's coherence had fallen on King's Oath with two
+unrelated turns.*
+
 *Until 19 November every band song answered its riff with the same two runs, a walk up to the fifth
 (3, 5, 6, 7 semitones over the root) at the end of every fourth bar and a run down the blues scale
 (10, 7, 5, 3) at every second, about 32 times a song: "hearing that same guitar riff climb in too
@@ -1005,6 +1015,10 @@ Wing") and the way a singer phrases:
 - **Its first words are the tune's own opening**, on the band's stop chord; then answered and
   turned upwards; then carried higher in eighths.
 - **A held note doubled a third below** now and then, as McCready and Hendrix voice them.
+- **Outside the solo the lead answers itself** (`orchestra.LEAD_ANSWERS`, `Take.answer`, 2026-11-19):
+  where the tune holds a note two and a half beats or more and its next phrase begins within two and a
+  half beats, the breath takes a run of four quick notes of the blues scale into the next phrase's
+  first note, every other long note, so the tune still sings.
 - **It builds**: one short figure (da-da-DUM) a note higher each time, then **one quick run** (six
   notes) to just under the top.
 - **Its middle riffs, the way Angus Young plays** (`orchestra.ANGUS`, 2026-11-19: "couldnt you do more
@@ -1510,6 +1524,17 @@ targets: a change is kept for what the ear and the studies say, with the judges 
 
     "var/tools/judges/.venv/bin/python" -I tools/judges.py knight/pastoral-banner-ride-1/5 --folder <a demo's folder> --label after
     "var/tools/judges/.venv/bin/python" -I tools/judges.py --watch --since "2026-11-19 08:30"     (the loop)
+
+**Working on each score, every pass** (2026-11-19: "looks like your scores went down in some places
+put into the loop ways to work on each score with each pass"). `tools/judges_report.py` reads the
+records and says, for each style, which score and which part of the story fall lowest across its
+takes, and which scores fell after each change (a demo's before and after, by more than the judge's
+noise: TuneJury 0.05, SongEval 0.08, Audiobox 0.15). Each pass takes the first of those as its target
+and tries the lever that answers it (the table in the README, "How the songs are judged"): a
+take's riff, fills and lead for memorability and coherence; the tune and the chords for musicality;
+the stops, fills and contrast between parts for clarity; the ending and each part's energy for
+TuneJury; the desk for Audiobox. One or two takes are made with the change and judged against
+themselves before; the change is kept if its score rises and nothing else falls beyond its noise.
 
 The records go to `var/passes/judged3.jsonl`, one a take. On this laptop's processors it takes a few
 minutes a take; a GPU would take seconds (an RX 5700 XT is RDNA1, which ROCm does not support).

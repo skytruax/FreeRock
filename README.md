@@ -361,6 +361,43 @@ every section), so tracks are queued in lists and rendered in lanes: a quarter o
 by day, all of it at night, and half while the game is being played. Buckets are rebuilt only
 while the game is off.
 
+## How the songs are judged
+
+The studio cannot hear, so it measures, and since 19 November three models that listen give every
+new take a score, in every style, part by part (`tools/judges.py`; they run on this machine):
+
+| Judge | What it scores | Scale |
+|---|---|---|
+| [TuneJury](https://github.com/yonghyunk1m/TuneJury) | how much a listener would prefer it, given a brief of what it is meant to be: "instrumental 1970s hard rock, a riff band...", "orchestral fantasy adventure game soundtrack...", "progressive house..." | about -1 to +1 |
+| [SongEval](https://github.com/ASLP-lab/SongEval) | musicality, memorability, coherence, clarity of structure | 1 to 5 |
+| [Audiobox Aesthetics](https://github.com/facebookresearch/audiobox-aesthetics) | enjoyment of the content (CE) and production quality (PQ) | 1 to 10 |
+
+Each song is cut into the nine parts of its story (open, first theme, second theme, build, arrival,
+valley, climb, summit, close), twenty seconds of each is judged at one loudness, and the scores are
+kept in `var/passes/judged3.jsonl`; `var/listen/judges.html` shows them beside the music. What they
+said first (19 November): a change to the writing (new licks, a climbing build) moves them little,
+since a fill or a build is a small share of a song; they tell kinds of song apart (a boss fight
++0.55 on TuneJury's hard-rock brief, walking songs +0.23 to +0.33); and they point at the weak
+part of a song (a band's close, where the riff dies away, scored lowest).
+
+**Each score has its own levers, and every pass works on one.** The loop reads the scores after each
+night, finds the score and the part of the story that fall lowest for a style, or that fell after
+the latest change by more than the judge's noise (TuneJury 0.05, SongEval 0.08, Audiobox 0.15), and
+tries the lever that answers it on one or two takes before and after:
+
+| Score | What it hears | The levers |
+|---|---|---|
+| TuneJury | music of the kind the brief names, and a listener's pick | the style's own sound forward (a band's riff and distorted guitars, an orchestra's brass and war drums, House's kick and drops); each part's energy right for its role; an ending that lands rather than dies |
+| SongEval musicality | the tune and the harmony | the tune's shape (steps, leaps answered, phrases ending on chord tones), richer chords, the counter-melody |
+| SongEval memorability | a hook that comes back | the theme's opening at every moment, a riff of the song's own, fewer unrelated figures |
+| SongEval coherence | the parts belonging together | variations of one idea rather than many (a song's fills drawn from one figure), smooth ways from part to part |
+| SongEval clarity | a structure you can hear | stops, fills into each part, contrast between parts |
+| Audiobox CE and PQ | the sound itself | the desk: balance, tone, punch, nothing harsh or muddy |
+
+A change is kept only when the score it aims at rises and none of the others falls beyond its
+noise, and the owner's ear has the last word. None of the three was made for long instrumental game
+music, so the scores point the way rather than set the goal.
+
 ## Commands
 
 **In the game:**

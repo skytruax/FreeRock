@@ -1319,6 +1319,9 @@ BUSIER_STROKES = {"down": "groups", "groups": "pulses", "back": "pulses", "mid":
 CYMBALS = ("crash", "crash2", "ting")
 OWN_LICKS = True         # each band take answers its riff with fills of its own (Take.fills); False: the one run and walk-up of 11-17
 ANGUS = True             # the solo's middle riffs the way Angus Young plays them (guitar_solo); False: the sung solo of 11-18 alone
+RIFF_MOVES = True        # a band take's riff moves inside the bar, its own way (Take.riff_move); False: one chord struck in rhythm
+LEAD_ANSWERS = True      # a band's lead guitar answers its own long notes with a run into its next (Take.sing); False: it holds them
+PENTATONIC = (-12, -9, -7, -5, -2, 0, 3, 5, 7, 10, 12, 15, 17, 19, 22, 24)   # the minor pentatonic over the riff's root, in semitones
 # A riff band's fills (2026-11-19: "hearing that same guitar riff climb in too many knight songs", "cant you study acdc and do
 # different licks"). Every band song had answered its riff with the same two runs: the walk up to the fifth (b3, 4, b5, 5) at
 # the end of every fourth bar and the blues run down at the end of every second, about 32 times a song, in every song. From
@@ -2427,7 +2430,8 @@ class Take:
         self.gaps = [(first + section.bars * self.beats - self.breath, first + section.bars * self.beats)
                      for section, first, _, _ in self.spans if section.part in ("build", "climb")]
         self.cast()
-        for write in (self.lead, self.texture, self.rhythm, self.bass, self.drums, self.war_drums, self.marks, self.breathe, self.effects):
+        for write in (self.lead, self.answer, self.texture, self.rhythm, self.bass, self.drums, self.war_drums, self.marks, self.breathe,
+                      self.effects):
             write()
 
     def breathing(self, at: float) -> bool:
@@ -2578,6 +2582,7 @@ class Take:
             shift -= 12
         while min(pitches) + shift < inst.low:
             shift += 12
+        placed = []
         for (start, length, _, weight), pitch in zip(line.notes, pitches):
             pitch += shift
             # A line wider than the instrument: the notes it cannot reach come an octave in.
@@ -2590,7 +2595,65 @@ class Take:
             weight = weight + (1.0 - weight) * even
             if self.ch.band and name == "lead guitar" and tag != " solo":
                 pitch = blues(pitch, key.tonic)
-            self.voice(channel, name, tag).add(at + start, length * (0.96 if inst.held else 1.0), pitch, min(weight * loud, 1.0))
+            placed.append([at + start, length * (0.96 if inst.held else 1.0), pitch, min(weight * loud, 1.0)])
+        for start, length, pitch, weight in placed:
+            self.voice(channel, name, tag).add(start, length, pitch, weight)
+
+    def answer(self) -> None:
+        """A band's lead guitar answers its own long notes (LEAD_ANSWERS, `_answered`), over its whole part once it is written,
+        so that a phrase's held last note can run into the next phrase."""
+        if not (LEAD_ANSWERS and self.ch.band):
+            return
+        voice = self.voices["lead"].get("lead guitar")
+        if voice is None or not voice.notes:
+            return
+        from .score import Note
+        ordered = sorted(voice.notes, key=lambda note: (note.start, note.pitch))
+        def key_at(at: float) -> Key:
+            found = self.spans[0][2]
+            for section, first, key, _ in self.spans:
+                if first <= at + 1e-6:
+                    found = key
+            return found
+        placed = self._answered([[note.start, note.length, note.pitch, note.loud] for note in ordered], key_at, INSTRUMENTS["lead guitar"])
+        voice.notes = [Note(start, length, pitch, loud) for start, length, pitch, loud in placed]
+
+    def _answered(self, placed: list, key_at, inst) -> list:
+        """A band's lead guitar answers its own long notes (2026-11-19: "still need more complex leads and riffs"): where the
+        tune holds a note two and a half beats or more and its next phrase begins within two and a half beats of the hold's
+        end, the breath between them takes a run into the next phrase's first note, four quick notes of the blues scale
+        (the minor pentatonic) climbing or falling to it, ending as that note begins; the held note keeps a beat and a half
+        at least. Every other long note, so the tune still sings."""
+        fast = 0.25 if self.fam.bpm <= 150 else 0.5
+        count = int(round(1.0 / fast))
+        out, answered = [], 0
+        for index, (start, length, pitch, weight) in enumerate(placed):
+            following = placed[index + 1] if index + 1 < len(placed) else None
+            if following is None or length < 2.5 or following[0] - (start + length) > 2.5 or following[0] <= start:
+                out.append([start, length, pitch, weight])
+                continue
+            answered += 1
+            begin = following[0] - count * fast
+            if answered % 2 == 0 or begin < start + 1.5:
+                out.append([start, length, pitch, weight])
+                continue
+            goal = following[2]
+            scale = sorted({key_at(start).tonic + 12 * octave + step for octave in range(1, 9) for step in BLUES})
+            if goal >= pitch:
+                run = [note for note in scale if pitch < note < goal][-count:]
+                while len(run) < count:
+                    run.insert(0, max([note for note in scale if note < (run[0] if run else goal)], default=goal - 3))
+            else:
+                run = [note for note in scale if goal < note < pitch][::-1][-count:]
+                while len(run) < count:
+                    run.insert(0, min([note for note in scale if note > (run[0] if run else goal)], default=goal + 3))
+            if any(note < inst.low or note > inst.high for note in run):
+                out.append([start, length, pitch, weight])
+                continue
+            out.append([start, min(length, begin - start - 0.04), pitch, weight])
+            for each, note in enumerate(run):
+                out.append([begin + each * fast, fast * 0.92, note, min(weight * (0.82 + 0.04 * each), 1.0)])
+        return out
 
     def spots(self, where: str) -> list[tuple[float, float]]:
         """The moments in a bar a drum pattern names, each with how strongly it is struck."""
@@ -3033,6 +3096,11 @@ class Take:
         self.riff, riff_b = riff(), riff()
         if ch.band:
             self.fills = self._fills()
+            # (2026-11-19: "still need more complex leads and riffs".) How this take's riff moves inside the bar, the way a
+            # riff band's rhythm guitar does, on a generator of its own: it rocks up to the fourth's chord over the root, it
+            # drops to the flat seventh's at the bar's end, it pedals the low root between its chords, or it pushes a stab
+            # on the last off-beat. One move for the whole take, so the riff is the song's own.
+            self.riff_move = random.Random(self.fam.seed * 7919 + self.take * 104729 + 41).choice(("rock", "drop", "pedal", "push"))
         for _ in range(8):
             if riff_b != self.riff:
                 break
@@ -3148,17 +3216,47 @@ class Take:
                 # second guitar, the chugs and the band come in together with the first theme.)
                 alone = ch.band and self.heavy and bar_at < self.band_in
                 guitar = "single guitar" if alone else "rhythm guitar"
-                for on, length in sorted(hits, key=lambda hit: hit[0]):
+                move = getattr(self, "riff_move", None) if RIFF_MOVES and ch.band and not rings and not thin else None
+                chords_struck = [hit for hit in hits if hit[1] is not None]
+                if move == "push" and chords_struck and beats >= 3.0:
+                    # A stab on the last off-beat, the muted string out of its way: the riff leans into the next bar.
+                    late = beats - half
+                    if not any(abs(on - late) < 1e-6 and length is not None for on, length in hits) and late > max(on for on, _ in chords_struck):
+                        hits = [hit for hit in hits if abs(hit[0] - late) > 1e-6] + [(late, half)]
+                shaped = []
+                for on, length in hits:
+                    shape = power
+                    if length is not None and move == "rock" and len(chords_struck) >= 2 and beats - 2.0 <= on < beats - 0.5 \
+                            and (on, length) != chords_struck[0]:
+                        shape = (root + 5, root + 12, root + 17)       # the fourth's chord over the root (I to IV and back)
+                    elif length is not None and move == "drop" and on >= beats - 1.0 and (on, length) != chords_struck[0] \
+                            and root - 2 >= INSTRUMENTS["rhythm guitar"].low:
+                        shape = (root - 2, root + 5, root + 10)        # the flat seventh's chord into the next bar
+                    shaped.append((on, length, shape))
+                for on, length, shape in sorted(shaped, key=lambda hit: hit[0]):
                     if self.breathing(bar_at + on):
                         continue
                     if length is None:
                         if thin or alone:
                             continue
+                        if move == "pedal":
+                            # The low root alone, palm-muted, on every eighth between the chords: the pedal under the riff.
+                            self.put("rhythm", "muted guitar", bar_at + on, 0.22, chug, loud * (0.8 if on in starts else 0.68))
+                            continue
                         self.put("rhythm", "muted guitar", bar_at + on, 0.2, chug, loud * (0.75 if on in starts else 0.6))
                         self.put("rhythm", "muted guitar", bar_at + on, 0.2, chug + 7, loud * 0.5)
                     else:
-                        for pitch in power:
+                        for pitch in shape:
                             self.put("rhythm", guitar, bar_at + on, length * 0.92, pitch, loud * (1.0 if on in starts else 0.9))
+                if move == "pedal" and not alone and not any(length is None for _, length in hits):
+                    # Where the riff had no chugs (a thin or a light theme), the pedal fills the gaps between its chords.
+                    struck = sorted(on for on, length in hits if length is not None)
+                    for slot in range(slots):
+                        on = slot * half
+                        if any(abs(on - at) < 1e-6 for at in struck) or any(at < on < at + 0.9 * half for at in struck):
+                            continue
+                        if not self.breathing(bar_at + on):
+                            self.put("rhythm", "muted guitar", bar_at + on, 0.22, chug, loud * 0.62)
             elif figure == "pattern":
                 for slot, which in enumerate(pattern_b if second else pattern_a):
                     if which is None or (thin and slot % 2):
@@ -3483,12 +3581,30 @@ class Take:
         if bright:
             turns["bright"] = 0.1
         first = one(turns)
-        second = one(turns)
-        for _ in range(8):
-            if second != first:
-                break
-            second = one(turns)
-        return answer, first, second
+        # The second turn is a variation of the first (2026-11-19, the judges: SongEval's coherence fell 0.08 and 0.11 on both
+        # songs given their own fills, when their two turns were drawn apart): the same run a step of the scale away, the
+        # other curl, the double stops the other way round, the turn chord answered by stabs.
+        return answer, first, self._varied(first)
+
+    @staticmethod
+    def _varied(fill: tuple) -> tuple:
+        kind, what = fill
+        if kind == "run":
+            def shift(semitones: int, steps: int) -> int:
+                nearest = min(range(len(PENTATONIC)), key=lambda index: abs(PENTATONIC[index] - semitones))
+                return PENTATONIC[min(max(nearest + steps, 0), len(PENTATONIC) - 1)]
+            for steps in (-1, 1):
+                moved = tuple(shift(each, steps) for each in what)
+                if moved != what and min(moved) >= -12 and max(moved) <= 22:
+                    return ("run", moved)
+            return ("run", tuple(reversed(what)))
+        if kind == "curl":
+            return ("curl", next(each for each in CURLS if each != what))
+        if kind == "stops":
+            return ("stops", tuple(reversed(what)))
+        if kind == "turn chord":
+            return ("stabs", None)
+        return ("turn chord", None)
 
     def _fill(self, fill: tuple, hits: list, bar_at: float, root: int, loud: float, guitar: str, half: float) -> list:
         """One fill at the end of a bar of the riff (see `_fills`); returns the riff's chords that are left before it.
