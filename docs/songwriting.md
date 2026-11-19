@@ -990,6 +990,23 @@ before the bar line it reaches and taken up again on it. A bagpipe's bag holds i
   the crash comes every other bar over the ride's bell and the bass pumps its octaves, the way a band
   plays its chorus harder the second time round. *The meter had found the bass and the drums of a
   32-bar arrival or summit one colour all through.*
+- *A heavy band's close ends as a rock band ends* (`orchestra.ROCK_ENDING`, `Take.ending`, 2026-11-19):
+  through the close the riff drives on (its density 0.8, at least 0.6 of the way up), the bass in
+  eighths and the groove every bar, with a fill into the stop; then the last four bars (two in a short
+  close): the stop, one chord struck with the crash and the kick and left to ring; the chord struck
+  again and held while the drummer rolls around the toms, high to low to the snare, growing; and the
+  last chord with the crash and the kick, together, held. *The judges heard the close as the weakest
+  of the nine parts in every band song (TuneJury 0.20 against 0.67 for the second theme, Audiobox's
+  enjoyment 6.6 against 7.4): it had died away as an orchestra's does, its riff thinning to nothing.*
+  The family's form and levels are not touched (its takes play channel by channel together); the
+  tune and the pads still wind down over the band.
+- *The bass leads the band back in after the valley* (`orchestra.BASS_SOLO`, `Take.bass_break`,
+  2026-11-19: "do bass solos too"). The first four bars of a heavy band's climb (eight in a climb of
+  24 bars or more) are the bass's: its riff over each bar's root (one of `BASS_RIFFS`, drawn for the
+  take: the blues climb, up the octave and down, the shuffle, the pedal), the second time with a leap
+  to the octave, the octave pumped with passing notes in the third bar of four, and in the break's last
+  bar a run up the blues scale into the band's entry. The guitars and the lead rest (`make_room`), the
+  drummer keeps time lightly (hat, kick, backbeat) with a fill into the band.
 - *A band's riff guitars are the band's whole accompaniment*: heavy band music has no second figure;
   lighter bands do.
 - War drums play only in a band's rises (and in a fight, as it opens and in its valley).
@@ -1028,10 +1045,14 @@ Wing") and the way a singer phrases:
   down in threes* (a note and the two under it, then the same from the next note down, a bar of it,
   onto a chord tone held); *the trill* (hammered on and pulled off between a note and the one over it,
   then a fall by step); *Chuck Berry's double stops* (two notes struck together on every beat and
-  off-beat, a note higher every two, the top pair held with its third under it). An eight-bar solo
-  trades its answer for one. The call, the peak and the way home stay sung, every sentence still ends
+  off-beat, a note higher every two, the top pair held with its third under it). Since 12:10 that day
+  ("angus solo sounds pretty good iterate on those") a sixteen-bar solo's middle is three of his figures
+  in a row, then the run, out of six: those four and *the cascade* (a run down from the top in
+  triplets, a note of the chord and the two under it, then the same a note lower) and *the pedal
+  lick* (a high note of the chord picked again and again with a line falling under it, Chuck Berry's
+  and Angus's). An eight-bar solo trades its answer for one. The call, the peak and the way home stay sung, every sentence still ends
   on a held note and a breath, and the notes stay in the key's five: fast notes are now about half,
-  where the sung solo of 18 November kept them under a fifth ("it shreds" was about the pedal and the
+  where the sung solo of 18 November kept them under a fifth (two thirds since the three riffs) ("it shreds" was about the pedal and the
   chirping bends, not about speed).
 - **The peak is the highest note of the chord under it, held two bars' worth of beats, and nothing
   before it goes as high**; then down by step, and the tune's opening once more, slower, to the

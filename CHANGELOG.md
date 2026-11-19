@@ -3,6 +3,29 @@
 Newest first. Words in quotation marks are what was said while listening or playing, as typed or
 dictated, where it drove the change.
 
+## 2026-11-19, midday: the bass's break, the solo's second round
+
+"angus solo sounds pretty good iterate on those"; "do bass solos too"; "do that on more than one song".
+
+- **The bass leads the band back in after the valley**: the first four bars of a heavy band's climb
+  (eight in a long one) are the bass alone over light drums, its riff over each bar's root, an octave
+  leap, the octave pumped, and a run up into the band's entry (handbook 4.9). `orchestra.BASS_SOLO`.
+- **The solo's middle is three of Angus's figures**, from six: the repeated note, the run down in
+  threes, the trill, the double stops, and now the cascade (triplets down from the top) and the pedal
+  lick (a high note picked over a falling line).
+
+## 2026-11-19, midday: a rock band's ending
+
+- **A heavy band's close ends as a rock band ends**: the riff drives on through the close, then the
+  stop (one chord with the crash), the chord ringing while the drummer rolls around the toms, and the
+  last chord together (handbook 4.9). The first pass worked on a judge's target: the close scored
+  lowest of the nine parts in every band song. On King's Oath the close went from +0.09 to +0.45 on
+  TuneJury (the song +0.29 to +0.32), SongEval and Audiobox within their noise. `orchestra.ROCK_ENDING`
+  takes it back.
+- **The judges' next target**: with the riff moves and the answers (late morning) King's Oath fell
+  just past SongEval's noise on musicality (3.19 to 3.08), coherence (3.50 to 3.41) and clarity
+  (3.07 to 2.97): too many figures that are not one idea, the lever is variations of one.
+
 ## 2026-11-19, late morning: riffs that move, a lead that answers
 
 "still need more complex leads and riffs"; "looks like your scores went down in some places put into

@@ -1157,7 +1157,7 @@ def test_a_bands_lead_guitar_takes_a_solo_at_the_summit():
         assert sum(note.length >= 1.5 for note in solo) >= period // 4
         # (Since 2026-11-19, "couldnt you do more complex riffs in the solo part like angus": its middle riffs, fast, with the
         # sung call, peak and way home around them; still not all quick notes.)
-        assert sum(note.length < 0.4 for note in solo) <= 0.65 * len(solo), "it only shreds"
+        assert sum(note.length < 0.4 for note in solo) <= 0.75 * len(solo), "it only shreds"   # (three riffs since 12:10)
         assert any(len({note.pitch for note in solo[index:index + 6]}) <= 3 and all(note.length < 0.4 for note in solo[index:index + 6])
                    for index in range(len(solo) - 6)), "no riff in it (a repeated note, a trill, a run in threes)"
         top = max(solo, key=lambda note: (note.pitch, -note.start))
@@ -1390,6 +1390,67 @@ def test_a_band_takes_riff_moves_its_own_way_and_its_lead_answers_itself():
     plain_lead = plain.voices["lead"]["lead guitar"].notes
     assert len(lead) >= len(plain_lead) + 8                                  # its answers: runs of quick notes into the next
     assert not any(any((note.pitch - root) % 12 == 5 for note in notes) for bar, root, at, notes in theme_bars(plain) if bar % 2 == 0)
+
+
+def test_a_heavy_bands_close_ends_as_a_rock_band_ends():
+    # (2026-11-19, the judges: in every band song the close scored lowest of the nine parts, TuneJury 0.20 against 0.67 for the
+    # second theme; it died away as an orchestra's does.) Through a heavy band's close the riff drives on, the bass in eighths
+    # and the groove every bar; then the stop, one chord with the crash; the chord rings while the drummer rolls around the
+    # toms; and the last chord, with the crash, together. ROCK_ENDING takes it back to the orchestra's dying away.
+    from freerock.studio.orchestra import KITS
+    def close_of(name: str, take: int):
+        made = orchestra.Take(_family(name), take)
+        section, first, _, _ = next(span for span in made.spans if span[0].part == "close")
+        names = {pitch: sound for sound, pitch in KITS[made.ch.kit].items()}
+        def bar(index: int):
+            at = first + index * made.beats
+            riff = [note for note in made.voices["rhythm"]["rhythm guitar"].notes if at <= note.start < at + made.beats]
+            kit = [names.get(note.pitch) for note in made.voices["drums"]["kit"].notes if at <= note.start < at + made.beats]
+            bass = [note for voice in made.voices["bass"].values() if not voice.drums for note in voice.notes if at <= note.start < at + made.beats]
+            return riff, kit, bass
+        return made, section, bar
+    made, section, bar = close_of("pastoral-banner-ride-1", 5)
+    last = section.bars - 1
+    stop = section.bars - 4
+    riff, kit, bass = bar(stop - 3)
+    assert len(riff) >= 6 and "boom" in kit and "snare" in kit                     # driving, not dying away
+    riff, kit, _ = bar(stop)
+    assert {note.start for note in riff} == {riff[0].start} and "crash" in kit       # the stop: one chord, the crash
+    _, kit, _ = bar(stop + 1)
+    assert {"tom high", "tom", "tom low"} <= set(kit)                                 # around the toms
+    riff, kit, _ = bar(last)
+    assert riff and "crash" in kit and "boom" in kit                                  # the last chord, together
+    import pytest as _pytest
+    with _pytest.MonkeyPatch.context() as patch:
+        patch.setattr(orchestra, "ROCK_ENDING", False)
+        _, _, plain = close_of("pastoral-banner-ride-1", 5)
+        assert not plain(last)[0]                                                     # the riff had died away
+    light = orchestra.Take(_family("highland-hill-country-1"), 5)
+    assert not any(light.ending(span[0].part, span[0].bars, index) for span in light.spans for index in range(span[0].bars))
+
+
+def test_a_heavy_bands_bass_leads_it_back_in_after_the_valley():
+    # (2026-11-19: "do bass solos too".) The first four bars of a heavy band's climb (eight in a climb of 24 bars or more) are
+    # the bass's: its riff over the chord's root, the guitars and the lead resting, the drummer keeping time lightly; its last
+    # bar runs up into the band's entry. BASS_SOLO takes it away.
+    made = orchestra.Take(_family("pastoral-banner-ride-1"), 5)
+    section, first, _, _ = next(span for span in made.spans if span[0].part == "climb")
+    length = 8 if section.bars >= 24 else 4
+    def notes(channel, index):
+        at = first + index * made.beats
+        return [note for voice in made.voices[channel].values() if not voice.drums for note in voice.notes if at <= note.start < at + made.beats]
+    for index in range(length):
+        assert not notes("rhythm", index) and not notes("lead", index)       # the guitars and the lead rest
+        assert len(notes("bass", index)) >= 5                                 # the bass solos
+    run = sorted(note.pitch for note in notes("bass", length - 1))
+    assert run[-1] - run[0] >= 9                                              # the run up into the band
+    assert notes("rhythm", length)                                            # and the band comes back in
+    import pytest as _pytest
+    with _pytest.MonkeyPatch.context() as patch:
+        patch.setattr(orchestra, "BASS_SOLO", False)
+        plain = orchestra.Take(_family("pastoral-banner-ride-1"), 5)
+    section, first, _, _ = next(span for span in plain.spans if span[0].part == "climb")
+    assert [note for note in plain.voices["rhythm"]["rhythm guitar"].notes if first <= note.start < first + plain.beats * 4]
 
 
 def test_a_bands_pedals_can_be_switched_off():

@@ -205,29 +205,37 @@ CHANGES = [
            "the rhythm guitar strikes each chord of the second theme once and holds it, no chugs (it had one distorted colour "
            "through both themes, 42 to 64 bars)",
            lambda p: p.style == "knight" and p.character.band and not p.meta.get("light")),
-    Change("a heavy band's long rise climbs", datetime.datetime(2026, 11, 19, 7, 40), "",
+    Change("a heavy band's long rise climbs", datetime.datetime(2026, 11, 19, 7, 10), "b89cc3e",
            "where a rise holds one chord nine bars or more, its second half has the riff an octave up over the low chugs and "
            "the bass pumping octaves, and its last bar runs by step into the next chord (17 bars of one note and one riff "
            "in the fights' builds)",
            lambda p: p.style == "knight" and p.character.band and p.character.weight >= 0.8 and long_rise(p)),
-    Change("a heavy band's second theme opens out, its long moments dig in", datetime.datetime(2026, 11, 19, 8, 50), "",
+    Change("a heavy band's second theme opens out, its long moments dig in", datetime.datetime(2026, 11, 19, 8, 33), "e1033d1",
            "the open hat under the second theme, then the ride; from bar 16 of a 24-bar-or-longer arrival or summit the crash "
            "every other bar and the bass's octaves (the drums one colour 34 to 68 bars across both themes)",
            lambda p: p.style == "knight" and p.character.band and p.character.weight >= 0.8),
-    Change("a band's licks of its own; the long build one way of three", datetime.datetime(2026, 11, 19, 9, 30), "",
+    Change("a band's licks of its own; the long build one way of three", datetime.datetime(2026, 11, 19, 8, 33), "e1033d1",
            "each take answers its riff with its own fills (runs, the curl, double stops, offbeat stabs, the turn chord, a "
            "ringing chord) in place of the one walk up to the fifth every band song played 32 times; a long build climbs, "
            "drives or plays on",
            lambda p: p.style == "knight" and p.character.band and any(figure in ("riff", "chug") for figure in p.character.figures)),
-    Change("the solo riffs like Angus", datetime.datetime(2026, 11, 19, 10, 30), "",
+    Change("the solo riffs like Angus", datetime.datetime(2026, 11, 19, 9, 29), "87dcbf6",
            "the solo's middle: two of Angus Young's figures (the repeated note, the run down in threes, the trill, double "
            "stops) with a sung sentence between, then the run to the peak",
            lambda p: p.style == "knight" and p.character.band and tuple(getattr(p.character, "strong", ()))[:1] == ("lead guitar",)),
-    Change("a band's riff moves, its lead answers", datetime.datetime(2026, 11, 19, 12, 30), "",
+    Change("a band's riff moves, its lead answers", datetime.datetime(2026, 11, 19, 11, 27), "50afba7",
            "each band take's riff moves its own way inside the bar (I to IV, the flat seventh, a pedal, a push), the second turn "
            "a variation of the first, the lead guitar answering every other long note with a run into its next phrase",
            lambda p: p.style == "knight" and p.character.band),
-    Change("an orchestra's long moment goes up a gear", datetime.datetime(2026, 11, 19, 12, 0), "",
+    Change("a heavy band's close ends as a rock band ends", datetime.datetime(2026, 11, 19, 12, 50), "",
+           "the riff drives on through the close, then the stop, the chord ringing over a roll around the toms, and the last "
+           "chord together (the close had died away: the judges' weakest part in every band song)",
+           lambda p: p.style == "knight" and p.character.band and p.character.weight >= 0.8),
+    Change("the bass's break, the solo's three riffs", datetime.datetime(2026, 11, 19, 12, 50), "",
+           "the first bars of a heavy band's climb are the bass's, alone over light drums, into the band's entry; the solo's "
+           "middle three of Angus's figures from six (the cascade and the pedal lick new)",
+           lambda p: p.style == "knight" and p.character.band and p.character.weight >= 0.8),
+    Change("an orchestra's long moment goes up a gear", datetime.datetime(2026, 11, 19, 10, 43), "d6baa7f",
            "every second eight-bar phrase of an arrival or summit of sixteen bars or more: the accompaniment an octave up, "
            "the lines over the pad to the horns, the drums busier, the cymbal twice as often (16 to 24 bars of one colour)",
            lambda p: p.style == "warcraft"),

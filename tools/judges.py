@@ -157,7 +157,9 @@ def judge(bench: Bench, folder: Path, label: str = "") -> dict:
     style = folder.parent.parent.name if folder.parent.parent.name in BRIEFS else meta.get("style", "knight")
     audio, rate = mix(folder)
     sheet = folder / "sheet.json"
-    names = [part["part"] for part in json.loads(sheet.read_text(encoding="utf-8"))["form"]] if sheet.is_file() else None
+    form = json.loads(sheet.read_text(encoding="utf-8")).get("form", []) if sheet.is_file() else []
+    # (A House sheet's form does not name its parts as the orchestra's does: its story's words are numbered instead.)
+    names = [part["part"] for part in form] if form and all(isinstance(part, dict) and "part" in part for part in form) else None
     pieces = parts_of(meta, audio, rate, names)
     brief = BRIEFS.get(style, "")
     tune = {part: {"brief": bench.tune(piece, rate, brief), "plain": bench.tune(piece, rate, "")} for part, piece in pieces}
