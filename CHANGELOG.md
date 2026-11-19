@@ -3,6 +3,22 @@
 Newest first. Words in quotation marks are what was said while listening or playing, as typed or
 dictated, where it drove the change.
 
+## 2026-11-19, morning: better takes while the drive is full
+
+"Since the drive is almost full focus the day on making music better with new takes and renders";
+"Clean up any old messes".
+
+- **A heavy band's long rise climbs**: where a rise holds one chord nine bars or more, the second
+  half of it has the riff an octave up the neck over the muted string still chugging low, and the
+  bass pumping its octaves; in the chord's last bar the bass runs by step into the next one, up where
+  the chords rise and down where they step down. The arrival comes in on the low riff (handbook 4.9).
+  The meter had found Warlord Fury's bass on one note and Lightning Runner's riff unchanged for 17
+  bars of their builds. `orchestra.CLIMBS` switches it off. 22 of the 36 heavy band families have
+  such a rise.
+- The days' renders make the staged songs again with what the writer and the desk know now (the
+  ledger's 681 takes, Knight Rock first, then House and Warcraft); new takes wait until the 8 TB
+  drive is in.
+
 ## 2026-11-18, evening: guitar solos
 
 "i want fucking guitar solos in my knight rock, study eddie vedder and pearl jam"; "make me one and

@@ -1307,6 +1307,19 @@ BAND_PEDALS = True
 SOLOS = True             # a band's lead guitar takes a solo at the summit (guitar_solo); False takes it away
 RING_SECOND = True       # a heavy band's second theme rings: its rhythm guitar holds each chord (Take.rhythm); False chugs on
 SOLO_LIFT = 5.0          # dB the solo stands over the lead's usual level (Take._solo_marks)
+CLIMBS = True            # a heavy band's rise climbs where one chord is held long (Take.rhythm, Take.bass); False plays on as it was
+LONG_HOLD = 9            # bars of one chord in a rise that make it a long one
+
+
+def held_runs(symbols: list[str]) -> list[tuple[int, int]]:
+    """For each bar of a part, how far it is into the stretch of bars on one chord, and how long that stretch is."""
+    out: list[tuple[int, int]] = []
+    start = 0
+    for index in range(1, len(symbols) + 1):
+        if index == len(symbols) or symbols[index] != symbols[start]:
+            out += [(into, index - start) for into in range(index - start)]
+            start = index
+    return out
 VIBE_QUIET = 0.55        # a passage this soft or softer is the quiet one, where a clean guitar's broken chords take the vibe
 ORCHESTRA_MARKS = True
 STRUCK = ("harp", "celesta", "glockenspiel", "bells", "marimba", "music box", "dulcimer", "xylophone", "handbells", "harpsichord",
@@ -2952,9 +2965,10 @@ class Take:
         leading: dict[tuple[str, int], list[int]] = {}
 
         def layer(name: str, figure: str, second: bool, raised: int, gain: float, key: Key, chord: Chord, bar: int, bar_at: float,
-                  level: float, density: float, rings: bool = False) -> None:
+                  level: float, density: float, rings: bool = False, up: int = 0) -> None:
             """One bar of an accompaniment's figure on one instrument. `rings`: the riff's chord is struck once and held
-            through the bar, without the chugs."""
+            through the bar, without the chugs. `up`: the riff's power chords and licks so many semitones higher on the neck
+            (the muted string chugs on where it was)."""
             inst = INSTRUMENTS[name]
             notes = voiced(key, chord, leading.get((name, raised)), 3, inst.home - 4 + raised)
             leading[(name, raised)] = notes
@@ -3022,6 +3036,8 @@ class Take:
                 # where the chords are not. Root, fifth and octave: the third is left to the tune.
                 root = key.pitch(chord.root, 45)
                 root += 12 if root < 40 else -12 if root > 52 else 0
+                chug = root                                    # the muted string, where the riff was
+                root += up
                 power = (root, root + 7, root + 12)
                 hits: list[tuple[float, float | None]] = [(0.0, beats)] if rings else list(riff_b if second else self.riff)
                 if not rings and (density > 0.85 or figure == "chug"):
@@ -3054,8 +3070,8 @@ class Take:
                     if length is None:
                         if thin or alone:
                             continue
-                        self.put("rhythm", "muted guitar", bar_at + on, 0.2, root, loud * (0.75 if on in starts else 0.6))
-                        self.put("rhythm", "muted guitar", bar_at + on, 0.2, root + 7, loud * 0.5)
+                        self.put("rhythm", "muted guitar", bar_at + on, 0.2, chug, loud * (0.75 if on in starts else 0.6))
+                        self.put("rhythm", "muted guitar", bar_at + on, 0.2, chug + 7, loud * 0.5)
                     else:
                         for pitch in power:
                             self.put("rhythm", guitar, bar_at + on, length * 0.92, pitch, loud * (1.0 if on in starts else 0.9))
@@ -3076,6 +3092,7 @@ class Take:
 
         for section, first, key, chords in self.spans:
             part, bars = section.part, section.bars
+            runs = held_runs(section.chords)
             for bar, chord in enumerate(chords):
                 level, along = self.level(section, bar), bar / bars
                 second = part in ("second", "valley") or (part == "climb" and along < 0.5)
@@ -3110,7 +3127,14 @@ class Take:
                 # chords are struck once and held under the second theme's singer, the way a '70s band opens out for its
                 # other tune, and the riff comes back with the rise.
                 rings = RING_SECOND and ch.band and self.heavy and part == "second"
-                layer(name, "riff" if rings else figure, second, raised, 1.0, key, chord, bar, bar_at, level, density, rings=rings)
+                # A heavy band's long rise climbs (2026-11-19, the boredom meter: in a fight's 36-bar build the rhythm guitar
+                # played one riff 17 bars over one chord, Lightning Runner's): where a chord is held nine bars or more, its second
+                # half has the riff an octave up the neck, over the muted string still chugging low, and the next chord
+                # brings it down again; the arrival comes in on the low riff, the way a riff band climbs and lands.
+                into, run = runs[bar]
+                climbing = self.climbs(part, run, into)
+                layer(name, "riff" if rings else figure, second, raised, 1.0, key, chord, bar, bar_at, level, density, rings=rings,
+                      up=12 if climbing and figure in ("riff", "chug") and not rings else 0)
                 # (A band's riff guitars are the band's whole accompaniment; the unplugged band takes the second figure too.)
                 if not (ch.band and self.heavy) and fuller(part, bar, along):
                     # The other figure, on its own instrument (another of the palette's, where both themes have the
@@ -3201,8 +3225,10 @@ class Take:
                 if doubled and partner:
                     self.put("bass", partner, at, length, pitch + (12 if INSTRUMENTS[partner].home > inst.home else -12), loud * 0.8,
                              tag=" doubled")
-        for section, first, key, chords in self.spans:
+        for index_of, (section, first, key, chords) in enumerate(self.spans):
             part, bars = section.part, section.bars
+            runs = held_runs(section.chords)
+            ahead = self.spans[index_of + 1] if index_of + 1 < len(self.spans) else None
             # A band's bass keeps to the root, as the riff bands do; an orchestra's moves through the chords.
             line = [key.pitch(chord.root, inst.home - 5) for chord in chords] if ch.band else self.line(part, key, chords, inst.home - 5)
             for bar, chord in enumerate(chords):
@@ -3264,10 +3290,37 @@ class Take:
                     count = int(round(beats / step))
                     toward = key.pitch(after.root, inst.home - 5)
                     toward += 12 if toward < root - 6 else -12 if toward > root + 6 else 0
+                    # A heavy band's long rise climbs (2026-11-19, the boredom meter: Warlord Fury's bass played one note 17
+                    # bars through its build): through the second half of a chord held nine bars or more the bass pumps its
+                    # octaves, and in its last bar it runs by step, two eighths a note, into the next bar's note (the
+                    # arrival's, at the end of the rise): up from under it where the music goes up, down from over it where
+                    # the chords step down (or where there is no room under it).
+                    into, run = runs[bar]
+                    climbs = self.climbs(part, run, into)
+                    stair: list[int] = []
+                    if climbs and into == run - 1:
+                        goal = key.pitch(after.root, inst.home - 5) if bar + 1 < bars else \
+                            ahead[2].pitch(ahead[3][0].root, inst.home - 5) if ahead is not None else root
+                        scale = sorted({key.pitch(degree, goal, chord) + octave for degree in range(7) for octave in (-12, 0, 12)})
+                        pairs = count // 2
+                        under = [p for p in scale if p < goal][-pairs:]
+                        over = [p for p in scale if p > goal][:pairs][::-1]
+                        rising = goal >= root and under and under[0] >= inst.low
+                        falling = over and over[0] <= inst.high
+                        run_in = under if rising else over if falling else (under if under and under[0] >= inst.low else [])
+                        stair = [p for p in run_in for _ in (0, 1)]
+                        stair = [root] * (count - len(stair)) + stair if stair else []
+                    # (The octave pumped: the root and the octave over it, or where that is past the bass's top, the octave
+                    # under it and the root.)
+                    pumped = root if root + 12 <= inst.high else root - 12 if root - 12 >= inst.low else None
                     for index in range(count):
                         on = index * step
                         pitch = root
-                        if index == count - 1 and toward != root and bar + 1 < bars:
+                        if stair:
+                            pitch = stair[index]
+                        elif climbs and pumped is not None:
+                            pitch = pumped + (12 if index % 2 == 1 else 0)
+                        elif index == count - 1 and toward != root and bar + 1 < bars:
                             # Into a new chord the last eighth is a step away from its root (2026-11-17, night: the band's bass
                             # played one note 85% of the time; the riff bands' bass players lead into each change like this).
                             pitch = toward + (1 if toward < root else -1) * (1 if abs(toward - root) <= 2 else 2)
@@ -3318,6 +3371,10 @@ class Take:
         else:
             inst = INSTRUMENTS[sound]
             self.put("drums", sound, at, 0.5, key.pitch(chord.root, inst.home), loud)
+
+    def climbs(self, part: str, run: int, into: int) -> bool:
+        """Whether a bar of a heavy band's rise is in the climbing half of a chord held long (see `rhythm` and `bass`)."""
+        return CLIMBS and self.ch.band and self.heavy and part in ("build", "climb") and run >= LONG_HOLD and into >= run // 2
 
     def cymbal(self, layers: list, bar: int, moment: bool = False) -> list:
         """A band's drummer keeps time on the hat for sixteen bars of a theme and on the ride for the next sixteen, the

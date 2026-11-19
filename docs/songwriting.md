@@ -925,6 +925,17 @@ before the bar line it reaches and taken up again on it. A bagpipe's bag holds i
   rise (`orchestra.RING_SECOND`). The boredom meter had found a heavy band's rhythm guitar one colour
   through both themes, 42 to 64 bars: a riff and then a strum or a chug are different notes on one
   distorted sound, and the ear hears the sound.
+- *A heavy band's long rise climbs* (`orchestra.CLIMBS`, `Take.climbs`). Where a rise holds one chord
+  nine bars or more (`LONG_HOLD`; a fight's 36-bar build has two or three chords, each nine to
+  eighteen bars), the second half of that chord climbs: the riff's power chords and licks go an
+  octave up the neck while the muted string chugs on low, and the bass pumps its octaves (root and
+  octave in turn; the octave under where the one over is past its top). In the chord's last bar the
+  bass runs by step, two eighths a note, into the next bar's note: up from under it where the chords
+  rise, down from over it where they step down (Warlord Fury's build goes Bb, Ab, Gb and lands on
+  F), or where there is no room under it. The next chord brings the riff down again, so a long build
+  climbs in terraces and the arrival lands on the low riff. *The boredom meter had found a fight's
+  bass on one note and its rhythm guitar on one riff for 17 bars of a build.* The chords themselves
+  are not touched: a family's takes are played channel by channel together.
 - *A band's riff guitars are the band's whole accompaniment*: heavy band music has no second figure;
   lighter bands do.
 - War drums play only in a band's rises (and in a fight, as it opens and in its valley).

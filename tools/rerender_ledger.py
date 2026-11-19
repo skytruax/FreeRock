@@ -22,8 +22,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
+import functools
+
 from freerock.studio import build, house
-from freerock.studio.orchestra import DANCE_GROOVES, DELICATE
+from freerock.studio.orchestra import DANCE_GROOVES, DELICATE, LONG_HOLD, held_runs
 
 ROOT = Path(__file__).resolve().parent.parent
 PASSES = ROOT / "var" / "passes"
@@ -38,6 +40,18 @@ class Piece:
     family: str
     character: object   # an orchestra character, or a House family
     meta: dict
+
+
+@functools.lru_cache(maxsize=1)
+def _families() -> dict:
+    return {fam.name: fam for fam, _ in build.plan()}
+
+
+def long_rise(piece: Piece) -> bool:
+    """A family whose rises hold one chord LONG_HOLD bars or more (orchestra.Take.climbs)."""
+    fam = _families().get(piece.family)
+    return fam is not None and any(run >= LONG_HOLD for section in fam.sections if section.part in ("build", "climb")
+                                   for _, run in held_runs(section.chords))
 
 
 def plays(piece: Piece, instrument: str, parts: tuple[str, ...] = ("leads", "strong", "under", "pads", "plucks")) -> bool:
@@ -191,6 +205,11 @@ CHANGES = [
            "the rhythm guitar strikes each chord of the second theme once and holds it, no chugs (it had one distorted colour "
            "through both themes, 42 to 64 bars)",
            lambda p: p.style == "knight" and p.character.band and not p.meta.get("light")),
+    Change("a heavy band's long rise climbs", datetime.datetime(2026, 11, 19, 7, 40), "",
+           "where a rise holds one chord nine bars or more, its second half has the riff an octave up over the low chugs and "
+           "the bass pumping octaves, and its last bar runs by step into the next chord (17 bars of one note and one riff "
+           "in the fights' builds)",
+           lambda p: p.style == "knight" and p.character.band and p.character.weight >= 0.8 and long_rise(p)),
 ]
 
 

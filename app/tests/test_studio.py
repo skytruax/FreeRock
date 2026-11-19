@@ -1206,6 +1206,42 @@ def test_a_heavy_bands_second_theme_rings():
         [(name, note.start, note.pitch, note.length) for name, note in light_plain["second"]]
 
 
+def test_a_heavy_bands_long_rise_climbs():
+    # (2026-11-19, the boredom meter: in a fight's 36-bar build Warlord Fury's bass played one note 17 bars and Lightning
+    # Runner's rhythm guitar one riff.) Where a heavy band's rise holds a chord nine bars or more, its second half has the riff
+    # an octave up over the muted string chugging low and the bass pumping its octaves, and its last bar runs by step into the
+    # next bar's note: down where the chords step down (Warlord Fury's build: Bb, Ab, Gb, then F), up where they rise.
+    def build_of(name: str, take: int) -> tuple:
+        made = orchestra.Take(_family(name), take)
+        section, first, _, _ = next(span for span in made.spans if span[0].part == "build")
+        def bar(index: int, voice: str, channel: str) -> list:
+            at = first + index * made.beats
+            found = made.voices[channel].get(voice)
+            return [] if found is None else [note.pitch for note in found.notes if at <= note.start < at + made.beats]
+        return section, bar
+    section, bar = build_of("desert-warlord-2", 3)
+    assert section.chords[:18] == ["4"] * 9 + ["3"] * 9 and section.chords[18:] == ["2"] * 18
+    low, high = bar(2, "rhythm guitar", "rhythm"), bar(6, "rhythm guitar", "rhythm")
+    assert low and high and min(high) == min(low) + 12                  # the riff's chords an octave up the neck...
+    assert set(bar(6, "muted guitar", "rhythm")) <= set(bar(2, "muted guitar", "rhythm"))      # ...over the chug, still low
+    assert len(set(bar(2, "picked bass", "bass"))) == 1                 # the first half as it was: the root in eighths
+    pump = bar(6, "picked bass", "bass")
+    assert pump[1] == pump[0] + 12 and pump[2] == pump[0]               # the octaves pumped
+    stair, after = bar(8, "picked bass", "bass"), bar(9, "picked bass", "bass")
+    assert stair[0] > stair[2] > stair[4] > stair[6] > after[0] and stair[6] - after[0] <= 2      # runs down into Ab
+    assert min(bar(9, "rhythm guitar", "rhythm")) < min(high)           # the next chord brings the riff down again
+    section, bar = build_of("anywhere-storm-rider-1", 4)
+    assert section.chords == ["4"] * 18 + ["5+"] * 18
+    stair, after = bar(17, "picked bass", "bass"), bar(18, "picked bass", "bass")
+    assert stair[0] < stair[2] < stair[4] < stair[6] < after[0]         # climbs from under the next chord's root
+    import pytest as _pytest
+    with _pytest.MonkeyPatch.context() as patch:
+        patch.setattr(orchestra, "CLIMBS", False)
+        section, plain = build_of("desert-warlord-2", 3)
+        assert len(set(plain(6, "picked bass", "bass"))) == 1 and min(plain(6, "rhythm guitar", "rhythm")) == min(low)
+    assert orchestra.held_runs(["1", "1", "4", "4", "4", "1"]) == [(0, 2), (1, 2), (0, 3), (1, 3), (2, 3), (0, 1)]
+
+
 def test_a_bands_pedals_can_be_switched_off():
     # A new sound is heard as a demo before it is used (the plan's principles): the switch that held the pedals back until
     # the demos were heard ("k keep going", 2026-11-18) still takes every mark away.
