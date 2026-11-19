@@ -91,6 +91,8 @@ setting moves.
   - opened slowly from heel to toe across a long held note (the cry).
 - A second guitar playing the harmony stays dry: the harmony is its colour.
 - A clean guitar's ringing broken chords get a vibe in the quiet valley.
+- A heavy band's long opening (16 bars or more) opens the same way on its lone guitar: dry for the
+  first half, then the wah brought by hand from heel to toe, let go as the band comes in.
 - Where the clean guitar is the band's whole accompaniment (a light band with no rhythm guitar), it is
   dry through the first theme. The vibe comes in with the second theme and stays through the moments,
   where a light band's arpeggios want the shimmer that a heavy band's arrival, struck dry, does not.

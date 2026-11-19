@@ -3449,7 +3449,8 @@ class Take:
         - a rhythm guitar whose chords ring is coloured where a passage comes back, the first time it is heard dry:
           by a phaser that sweeps once for each chord it holds, or in some takes by a slow flanger;
         - a chord held into an arrival is flanged by hand across exactly that chord, and is dry when the arrival lands;
-        - a long rise opens on the rhythm guitar's wah, held at the heel as it begins and brought by hand to the toe;
+        - a long rise opens on the rhythm guitar's wah, held at the heel as it begins and brought by hand to the toe, and so
+          does a heavy band's long opening, on its lone guitar, across its second half;
         - the lead's busy runs at a moment go through a wah rocked at the pace of its own notes, and a long note held
           at a moment is opened slowly from heel to toe (the cry);
         - a clean guitar's broken chords that ring in the quiet go through a vibe, and where the clean guitar is the band's
@@ -3486,6 +3487,8 @@ class Take:
                     self._vibe_marks(voice, depth)
                     if not riffs:
                         self._shimmer_marks(voice, depth)
+                elif voice.instrument == "single guitar":
+                    self._opening_marks(voice, depth)
 
     def _orchestra_marks(self) -> None:
         """An orchestra's effects, where its music asks (2026-11-18: "this might apply to other genres too"): the valley
@@ -3609,6 +3612,22 @@ class Take:
         if paces:
             pace = statistics.median(paces)
             voice.set("wah beats", 0.5 if pace <= 0.3 else 1.0)       # rocked in eighths over sixteenths, else on every beat
+
+    def _opening_marks(self, voice: Voice, depth: float) -> None:
+        """A heavy band's lone opening guitar in a long opening (16 bars or more: Cobra Fever's riff went 20 bars without a
+        change, 2026-11-18): dry for the first half, then the wah held at the heel and opened by hand to the toe by its
+        last bar, slowly at first, and let go as the band comes in with the first theme, as a long rise opens."""
+        beats = self.beats
+        for section, first, _, _ in self.spans:
+            if section.story != "open" or section.bars < 16:
+                continue
+            last = first + section.bars * beats
+            if not self._notes_in(voice, first, last):
+                continue
+            begin, end = first + (section.bars // 2) * beats, last - 0.25
+            voice.mark("wah", [(begin - 0.25, 0.0), (begin + beats, 0.55 * depth), (end - 0.25, 0.55 * depth), (end, 0.0)])
+            voice.mark("wah depth", [(begin - 0.3, 0.0), (end, 0.0)])
+            voice.mark("wah position", [(begin, 0.05), (begin + 0.6 * (end - begin), 0.4), (end - 0.25, 0.95)])
 
     def _shimmer_marks(self, voice: Voice, depth: float) -> None:
         """A clean guitar that is the band's whole accompaniment (a light band's broken chords, with no rhythm guitar:

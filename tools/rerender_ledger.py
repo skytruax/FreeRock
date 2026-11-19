@@ -154,6 +154,10 @@ CHANGES = [
            "where the clean guitar is a band's whole accompaniment, the vibe from its second theme through its moments "
            "(Lantern Walk had no effect at all)",
            lambda p: p.style == "knight" and any("guitar" in getattr(p.character, part, ()) for part in ("plucks", "strong", "leads"))),
+    Change("a heavy band's long opening opens on a wah", datetime.datetime(2026, 11, 18, 19, 19), "",
+           "a heavy band's opening of 16 bars or more: its lone guitar dry for the first half, then the wah opened by hand "
+           "until the band comes in (Cobra Fever's riff had gone 20 bars without a change)",
+           lambda p: p.style == "knight" and p.character.band),
 ]
 
 

@@ -985,6 +985,22 @@ def test_a_light_bands_clean_guitar_shimmers_from_its_second_theme():
     assert all(value == 0.0 for part, value in band.items() if part not in ("valley", "open", "close"))
 
 
+def test_a_long_openings_lone_guitar_opens_on_a_wah_as_the_band_comes_in():
+    # (2026-11-18, Cobra Fever: its lone opening riff went 20 bars without a change.) Dry for the opening's first half,
+    # the wah opened by hand across the second, let go as the band comes in.
+    take = orchestra.Take(_family("desert-sand-rider-1"), 4)
+    single = next(voice for parts in take.voices.values() for voice in parts.values() if voice.instrument == "single guitar" and voice.notes)
+    wah, where = single.effects["wah"], single.effects["wah position"]
+    at = lambda points, x: float(np.interp(x, [a for a, _ in points], [v for _, v in points]))       # noqa: E731
+    section, first = next((section, first) for section, first, _, _ in take.spans if section.story == "open")
+    beats, last = take.beats, first + section.bars * take.beats
+    assert section.bars >= 16
+    assert at(wah, first + 0.25 * (last - first)) == 0.0 and at(wah, first + 0.75 * (last - first)) > 0.5
+    assert at(where, first + 0.55 * (last - first)) < at(where, last - 2 * beats)
+    assert at(wah, last + beats) == 0.0
+    assert all(value == 0.0 for _, value in single.effects["wah depth"])
+
+
 def test_a_bands_pedals_can_be_switched_off():
     # A new sound is heard as a demo before it is used (the plan's principles): the switch that held the pedals back until
     # the demos were heard ("k keep going", 2026-11-18) still takes every mark away.
