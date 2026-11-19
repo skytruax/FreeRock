@@ -28,7 +28,8 @@ show me".
   another part stand more than 3 dB over its place, so a lead loud in its rises was turned down whole
   and its drop buried (Blades III: the riff 15 dB under its rises). The lead now stands at its place at
   the drop, and only a part that would stand more than 3 dB over it is ridden down, on the lead's own
-  volume envelope (`club.ridden`).
+  volume envelope (`club.ridden`). The chords and stabs (the rhythm channel) are ridden the same way
+  (Blades III's were 5 dB louder outside its drops).
 - **House's bigger lead voice plays the drops**: a lead's main voice played the drops and the next
   in its palette the quiet places, so a take that drew the hollow square had the seven-saw super in its
   themes and the square at its drops (Hammerfall III: the lead 12 dB louder outside the drop than in

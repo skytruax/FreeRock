@@ -1072,7 +1072,7 @@ loop slot's chord, voiced from C3 to A4, brightest at the drops (0.92).
 drop, and a part of the story that would stand more than 3 dB over that is brought down to it on the
 lead's own volume envelope, as a mixer rides a fader. (Set as the other channels are, by the drop but
 never letting another part over, a lead loud in its rises was turned down whole: Blades III's riff 15
-dB under its rises.)
+dB under its rises.) The chords and stabs are ridden the same way (`club.RIDDEN`).
 
 **The bigger of a lead's two voices plays the drops** (`house.LEAD_WEIGHT`): the saws and the brass
 carry a drop; a plucked or struck voice sits between; a hollow square, a pipe or a whistle is the

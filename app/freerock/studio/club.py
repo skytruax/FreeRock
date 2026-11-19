@@ -636,6 +636,9 @@ def heard_from(sheet: Sheet) -> Heard:
     return heard
 
 
+RIDDEN = ("lead", "rhythm")      # the channels stood at their place at the drop and ridden down elsewhere (see perform)
+
+
 def ridden(audio: np.ndarray, spans: list[tuple[int, int]], ceiling: float, ease: int) -> np.ndarray | None:
     """A channel ridden down where a part of the story would stand over `ceiling` (LUFS): the gain for each sample,
     each such part brought down to it and eased from one part's gain to the next over `ease` samples at the joins; None
@@ -727,10 +730,10 @@ def perform(sheet: Sheet) -> dict:
         # ...but never so far up that another part of the story goes more than 3 dB over the channel's place (as the
         # orchestra's desk does since 2026-11-17, night: a house tune soft at its drop and full in its theme blared there).
         edges = [0] + [int(round((first + count) * house.BAR_FRAMES)) for _, first, count in sections]
-        if channel == "lead":
+        if channel in RIDDEN:
             # The hook stands at its place at the drop, and a part of the story that would stand more than 3 dB over it is
-            # ridden down to that on the lead's own volume envelope, as a mixer rides a fader (2026-11-19: Blades III's
-            # riff was 15 dB under its rises at the drops, the whole channel turned down by its rises).
+            # ridden down to that on the channel's own volume envelope, as a mixer rides a fader (2026-11-19: Blades III's
+            # riff was 15 dB under its rises at the drops, the whole channel turned down by its rises; then its chords 5).
             faders[channel] = 10.0 ** ((want[channel] - have) / 20.0)
             parts[channel] = (parts[channel] * faders[channel]).astype(np.float32)
             ride = ridden(parts[channel], list(zip(edges, edges[1:])), want[channel] + 3.0, int(house.BAR_FRAMES))
