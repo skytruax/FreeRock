@@ -194,6 +194,8 @@
       // them between visits (`memory`: load() -> {family: [seconds since 1970]}, save(that)), so that a reload does
       // not forget what was just heard (2026-11-16, played: "i feel like im hearing alot the same shit again").
       this.memory = options.memory || null;
+      // A song asked for by name, played once (see _cued): {track, at}.
+      this.cue = options.cue && options.cue.track ? { track: String(options.cue.track), at: options.cue.at } : null;
       this.begun = new Map();
       if (this.memory) {
         const offset = ctx.currentTime - Date.now() / 1000;
@@ -905,6 +907,10 @@
       options = options || {};
       const index = this._index(bucket);
       if (!index.size) return { piece: null, turns: Infinity };
+      if (this.cue && !options.peek) {
+        const cued = this._cued(index);
+        if (cued) return cued;
+      }
       const ask = options.ask === undefined ? this._ask() : options.ask;
       const now = this.ctx.currentTime;
       const after = options.after && options.after.piece ? options.after : null;
@@ -1011,6 +1017,39 @@
       if (!best.length) return null;
       const piece = best[Math.floor(this.random() * best.length) % best.length];
       return { piece, from: 0, laps: laps(piece), cast: this._cast(piece, null), entry: "start", sited: this.target.sited === true,
+               zone: typeof this.target.zone === "string" ? this.target.zone : null };
+    }
+
+    // A song asked for by name, once ("make sure it plays somehow this time as a one off", 2026-11-18: the first takes
+    // with a guitar solo). The page's address names a track and where in it to begin (`?cue=knight/<family>/<take>&at=climb`;
+    // `at` is "summit", its last moment, "climb", the piece before that, or a piece's place, the opening if none). It
+    // begins there as soon as anything begins, every channel from its own take, since a solo is one take's and not its
+    // kin's, and goes on to its end as any track does; after it the choosing is as it always is. A cue is spent on its
+    // first look, found or not: a track the bucket does not have whole is said.
+    _cued(index) {
+      const cue = this.cue;
+      this.cue = null;
+      const mine = [...index.values()].filter((piece) => piece.meta.track === cue.track);
+      const ids = new Set(mine.map((piece) => piece.id));
+      const led = new Set(mine.map((piece) => piece.meta.next).filter((id) => ids.has(id)));
+      const order = [];
+      for (let piece = mine.find((one) => !led.has(one.id)); piece && order.length < 64; piece = index.get(piece.meta.next)) {
+        order.push(piece);
+      }
+      if (!order.length) {
+        this.report("The song asked for, " + cue.track + ", is not in this bucket whole: the music is chosen as always.");
+        return null;
+      }
+      let summit = 0;
+      order.forEach((piece, place) => { if (piece.meta.story === "moment") summit = place; });
+      const asked = String(cue.at === undefined || cue.at === null ? "" : cue.at);
+      let at = 0;
+      if (asked === "summit") at = summit;
+      else if (asked === "climb") at = Math.max(summit - 1, 0);
+      else if (/^[0-9]+$/.test(asked)) at = Math.min(Number(asked), order.length - 1);
+      const piece = order[at], cast = {};
+      for (const channel of CHANNELS) if (piece.channels.has(channel)) cast[channel] = piece;
+      return { piece, from: 0, laps: 1, cast, entry: "start", sited: this.target.sited === true,
                zone: typeof this.target.zone === "string" ? this.target.zone : null };
     }
 

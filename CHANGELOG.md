@@ -14,6 +14,11 @@ show me".
   into runs and a repeated lick, peaking on a held bend and landing on the key note; bent notes, the
   blues scale, the wah rocked through the runs. Studied from Mike McCready's playing in Pearl Jam
   (handbook 4.10). Each take's solo is its own. `orchestra.SOLOS` switches it off.
+- **A song asked for by name, once** ("and then let me restart the player and make sure it plays some
+  how this time as a one off"): the player's address can name a track and where to begin
+  (`/player?cue=knight/<family>/<take>&at=climb`). When the music begins, that track plays from there
+  with every part from its own take (a solo is one take's, where the takes of a family otherwise lend
+  each other parts), and on to its end. A track the bucket lacks is said on the page.
 
 ## 2026-11-18, afternoon: the pedals on; drums, rises and basses that move
 

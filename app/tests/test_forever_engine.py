@@ -610,6 +610,19 @@ async def test_a_long_track_is_played_in_its_order_and_kin_keep_to_their_place(r
     assert long["late"] == 0
 
 
+async def test_a_song_asked_for_by_name_plays_once_from_where_it_was_asked_with_its_own_parts(results):
+    """("make sure it plays somehow this time as a one off", 2026-11-18.) The page's address names a track and where to
+    begin: the music begins there, every channel from that take though its kin could lend theirs, and goes on to its end.
+    A track the bucket does not have is said, and the music is chosen as always."""
+    cued = of(results, "pieceCued")
+    assert cued["first"] and set(cued["first"]) == {"b6"}, "the climb was not where it began: %s" % cued["first"]
+    assert cued["second"] and set(cued["second"]) == {"b7"}, "the summit did not follow from the same take: %s" % cued["second"]
+    assert cued["third"] and set(cued["third"]) == {"b8"}, cued["third"]
+    assert cued["spent"] and cued["late"] == 0
+    assert len(cued["said"]) == 1 and "nowhere" in cued["said"][0]
+    assert cued["missingFirst"] and cued["missingSpent"]
+
+
 async def test_one_track_is_crossfaded_into_the_next_under_its_last_bar(results):
     hand = of(results, "pieceHandover")
     assert len(hand["order"]) >= 2 and hand["order"][0] != hand["order"][1]

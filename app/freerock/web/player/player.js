@@ -73,12 +73,19 @@
     },
   };
 
+  // A song asked for in the page's address, played once when the music begins: ?cue=<style>/<family>/<take>[&at=climb]
+  // (forever.js, _cued).
+  function cueAsked() {
+    const asked = new URLSearchParams(window.location.search);
+    return asked.get("cue") ? { track: asked.get("cue"), at: asked.get("at") } : null;
+  }
+
   // The server sends the bucket the style plays from, and the five decks play from it.
   async function useBucket(message) {
     const bucket = message.bucket;
     if (!ctx) ctx = new AudioContext({ sampleRate: bucket.rate, latencyHint: "interactive" });
     if (!engine) {
-      engine = new FreeRockForever(ctx, phraseLoader, { report: problem, memory: heard });
+      engine = new FreeRockForever(ctx, phraseLoader, { report: problem, memory: heard, cue: cueAsked() });
       engine.setVolume(volume());
       if (target) await engine.setTarget(target);
     }

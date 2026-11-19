@@ -101,7 +101,8 @@ async function render(seconds, options) {
   const bucket = options.bucket || makeBucket("home", BAR, 3);
   const ctx = new OfflineAudioContext(2, seconds * RATE, RATE);
   const engine = new FreeRockForever(ctx, makeLoader(options.kind || "tones", options.fetched),
-                                     { limiter: options.limiter === true, random: options.random || seeded(7) });
+                                     { limiter: options.limiter === true, random: options.random || seeded(7), cue: options.cue,
+                                       report: options.report });
   await engine.setTarget(options.target || mix(1));
   await engine.setBucket(bucket);
   await engine.start();
@@ -958,6 +959,36 @@ const longTrack = async (placed) => {
 };
 tests.pieceLong = () => longTrack(false);
 tests.pieceLongPlaced = () => longTrack(true);
+
+// A song asked for by name, once: it begins where it is asked to (here its climb, the piece before its last moment),
+// every channel from its own take though another take of it lends parts, goes on to its end, and the cue is spent.
+// One the bucket does not have is said, and the music chosen as always.
+tests.pieceCued = async () => {
+  const words = ["open", "theme", "theme", "rise", "moment", "theme", "rise", "moment", "close"];
+  const pieces = [];
+  for (const take of ["a", "b"]) {
+    words.forEach((story, index) => pieces.push({ id: take + index, story, track: take, family: "cued", place: index,
+                                                  then: index < words.length - 1 ? take + (index + 1) : "" }));
+  }
+  const length = 4 * BAR / RATE;
+  const slotsOf = (run) => {
+    const slots = new Map();
+    for (const entry of run.engine.log) {
+      const slot = Math.round((entry.at - ORIGIN) / length);
+      if (!slots.has(slot)) slots.set(slot, []);
+      slots.get(slot).push(pieceOf(entry));
+    }
+    return slots;
+  };
+  const run = await render(3 * length + 4, { bucket: makePieces("cued", pieces), tickEvery: 2.0, random: seeded(3),
+                                              cue: { track: "b", at: "climb" } });
+  const slots = slotsOf(run);
+  const said = [];
+  const missing = await render(length + 2, { bucket: makePieces("uncued", pieces), tickEvery: 2.0, random: seeded(3),
+                                              cue: { track: "nowhere", at: "summit" }, report: (text) => said.push(text) });
+  return { first: slots.get(0) || [], second: slots.get(1) || [], third: slots.get(2) || [], spent: run.engine.cue === null,
+           late: run.engine.late, said, missingFirst: slotsOf(missing).get(0) || [], missingSpent: missing.engine.cue === null };
+};
 
 // A track goes on through a calm moment (the game says "ember" after a fight), even though the
 // bucket has a piece written for calm moments; and the calm after a fight is no place, so a track

@@ -159,6 +159,12 @@ From then on, `http://<music machine>:8765/FreeRock.cmd` downloads a launcher th
 one click: it opens the player in its own window, with sound allowed to start by itself, and
 starts the sensor.
 
+To hear one song for certain, name it in the player's address:
+`http://<music machine>:8765/player?cue=knight/pastoral-free-company-1/5&at=climb`. When the music
+begins, that track plays from there (`at` is `climb`, `summit`, a piece's place, or left out for
+its opening), every part from that take, and on to its end; then the player chooses as it always
+does. It works once for each time the page is opened.
+
 ## How it works
 
 <p align="center">
