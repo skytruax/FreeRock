@@ -158,6 +158,10 @@ CHANGES = [
            "a heavy band's opening of 16 bars or more: its lone guitar dry for the first half, then the wah opened by hand "
            "until the band comes in (Cobra Fever's riff had gone 20 bars without a change)",
            lambda p: p.style == "knight" and p.character.band),
+    Change("a wind player breathes", datetime.datetime(2026, 11, 18, 20, 41), "",
+           "a harmonica, the English horn's drone or an accordion holds a note no longer than a breath (5, 6 and 9 seconds), "
+           "played as breaths of whole bars (Moonshine Blues' harmonica had held one chord a minute)",
+           lambda p: p.style != "house" and any(plays(p, name) for name in ("harmonica", "accordion", "pipe drone"))),
 ]
 
 

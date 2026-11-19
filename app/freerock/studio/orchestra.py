@@ -1295,6 +1295,10 @@ VALLEY_PAD = 0.55      # how far the pad's swell goes under in the valley, where
 # King's Oath's valley drone stood 12.7 dB over the clean guitar's tune at pianissimo as at piano). In the valley the drone goes to
 # the other pad, an organ's or the strings', which go down 20 dB there as written.
 REEDS = ("pipe drone", "bagpipe", "accordion", "harmonica")
+# How long a player of each holds one note before a breath (an accordion's bellows turning), in seconds: a held note
+# longer is played as breaths of whole bars (`Take.breathe`). A bagpipe's bag holds its drone on; the organ, the strings
+# and the choir's voices take turns, and are not here.
+BREATH = {"harmonica": 5.0, "pipe drone": 6.0, "accordion": 9.0}
 DELICATE = ("sparkle", "tick", "rain", "drip", "bog", "brushes", "none")      # grooves too fine for war drums under them
 LONG = 480.0                   # seconds: about how long a track is
 # A band's guitars' effect marks (Take.effects) and an orchestra's (Take._orchestra_marks): new sounds, heard as demos
@@ -2124,7 +2128,7 @@ class Take:
         self.gaps = [(first + section.bars * self.beats - self.breath, first + section.bars * self.beats)
                      for section, first, _, _ in self.spans if section.part in ("build", "climb")]
         self.cast()
-        for write in (self.lead, self.texture, self.rhythm, self.bass, self.drums, self.war_drums, self.marks, self.effects):
+        for write in (self.lead, self.texture, self.rhythm, self.bass, self.drums, self.war_drums, self.marks, self.breathe, self.effects):
             write()
 
     def breathing(self, at: float) -> bool:
@@ -3441,6 +3445,33 @@ class Take:
         self.colours()
 
     # --- effect marks --------------------------------------------------------------------------
+    def breathe(self) -> None:
+        """A wind player breathes (2026-11-18, Moonshine Blues: its harmonica held one chord a minute, notes 16 and 24
+        bars long, as an organ would, and the boredom meter heard its opening unchanged 25 bars). A note held longer than
+        a breath (BREATH) is played as breaths of whole bars, each let go half a beat before the next bar line it reaches
+        and taken up again on it; an accordion's bellows turn the same way, less often."""
+        bar_s = self.beats * 60.0 / self.fam.bpm
+        for parts in self.voices.values():
+            for voice in parts.values():
+                breath = BREATH.get(voice.instrument)
+                if not breath or voice.drums or not voice.notes:
+                    continue
+                span = max(1, int(breath / bar_s)) * self.beats
+                out: list[Note] = []
+                for note in voice.notes:
+                    end = note.start + note.length
+                    if note.length <= span + 0.01:
+                        out.append(note)
+                        continue
+                    at = note.start
+                    while end - at > 0.01:
+                        upto = min((math.floor(at / span + 1e-6) + 1) * span, end)
+                        last = end - upto <= 0.01
+                        length = upto - at if last else max(upto - at - 0.5, 0.5)
+                        out.append(Note(at, length, note.pitch, note.loud))
+                        at = upto
+                voice.notes = sorted(out, key=lambda note: (note.start, note.pitch))
+
     def effects(self) -> None:
         """Effect marks where the music asks for them, on the part that plays it (2026-11-18: "guitars should have
         effects in the 70s bro", "the music itself should denote the effects it shouldnt be standard"). A band's

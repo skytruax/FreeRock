@@ -1055,6 +1055,26 @@ def test_a_long_opening_played_by_the_whole_band_opens_on_the_rhythm_guitars_wah
     assert at(lone.voices["rhythm"]["rhythm guitar"].effects.get("wah", []), first + 0.75 * (last - first)) == 0.0
 
 
+def test_a_wind_player_breathes():
+    # (2026-11-18, Moonshine Blues: its harmonica held one chord a minute, notes 16 and 24 bars long, as an organ would.)
+    # A held note longer than a breath is played as breaths of whole bars, each let go half a beat before the bar line
+    # and taken up again on it; a bagpipe's bag holds its drone on.
+    take = orchestra.Take(_family("marsh-bayou-boogie-1"), 4)
+    bar_s = take.beats * 60.0 / take.fam.bpm
+    harmonicas = [voice for parts in take.voices.values() for voice in parts.values() if voice.instrument == "harmonica" and voice.notes]
+    assert harmonicas
+    for voice in harmonicas:
+        assert max(note.length for note in voice.notes) * bar_s / take.beats <= orchestra.BREATH["harmonica"] + 0.01
+    texture = take.voices["texture"]["harmonica"]
+    pitches = {}
+    for note in texture.notes:
+        pitches.setdefault(note.pitch, []).append(note)
+    breaths = [b.start - (a.start + a.length) for notes in pitches.values() for a, b in zip(notes, notes[1:])
+               if abs(b.start - (a.start + a.length)) < 1.0]
+    assert sum(1 for gap in breaths if abs(gap - 0.5) < 0.01) >= 10    # the breaths: half a beat, before a bar line
+    assert "bagpipe" not in orchestra.BREATH
+
+
 def test_a_bands_pedals_can_be_switched_off():
     # A new sound is heard as a demo before it is used (the plan's principles): the switch that held the pedals back until
     # the demos were heard ("k keep going", 2026-11-18) still takes every mark away.

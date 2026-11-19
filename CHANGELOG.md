@@ -31,6 +31,9 @@ dictated, where it drove the change.
 - **A storm's rain falls under the full band**: hard in the opening, the rises and the close, softer
   in the themes and drops. Over a bright pad it had covered the music (Thunderhead I's texture centred
   at 4.8 kHz; now 1.8, the liked 0.4).
+- **A wind player breathes**: a harmonica, the English horn's drone or an accordion no longer holds a
+  chord for a whole section as an organ would (Moonshine Blues: a minute on one breath). A long note is
+  played as breaths of whole bars, with half a beat to breathe before each bar line.
 - **A long opening opens on a wah**: the guitar that carries its riff (a heavy band's lone guitar, or
   the rhythm guitar where the band opens together) is dry for the first half, then the wah opens by hand
   until the band comes in (Cobra Fever's riff had gone 20 bars without a change, Hammer Thunder's 16).

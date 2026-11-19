@@ -204,10 +204,11 @@ setting moves.
 - **The boredom meter over the whole Knight Rock library** (206 takes, 2026-11-18): 16 bars or more
   without a change in the rhythm guitar of 22 takes, 15 of them in a rise; in the drums of 8, 6 in a
   moment; in the texture of 7; in the bass of 5. The rises and moments are what the opened wah and
-  the drummer's ride and bell were written for. The flat textures (21 to 40 bars of a tavern's, an open
-  road's or a bayou band's accordion and organ) are all in takes older than the sheets: the same
-  families' new takes hold nothing longer than 2 bars, so new takes replace them, and the player plays
-  the unheard first. Results in `var/passes/boredom-knight.json`.
+  the drummer's ride and bell were written for. The flat textures were 21 to 40 bars of a tavern's,
+  an open road's or a bayou band's accordion and harmonica. The open road's and the tavern's new
+  takes change every couple of bars. But the bayou band's new take still held its harmonica on one
+  chord for a minute (Moonshine Blues: notes 16 and 24 bars long, as an organ would), so a wind
+  player now breathes (4.8). Results in `var/passes/boredom-knight.json`.
 
 The nightly loop works on sheets and writes every lesson here: what was tried, what it was for, how
 it measured, what Sky's ear said, and what did not work ("the recursive loop should also update the
@@ -902,6 +903,12 @@ cymbal keeping time, the ride joins softly for those sixteen bars and leaves aga
 tambourine and side stick, and a theme the drums sit out, stay as they are. At a heavy band's moment
 the drummer rides it out the same way: the open hat or the ride goes over to the ride's bell for the
 second sixteen bars, or the bell joins a groove of the toms. A light band's moment is left alone.
+
+**A wind player breathes** (`Take.breathe`, 2026-11-18). A harmonica, the English horn's drone or an
+accordion holding a pad would hold a chord as long as an organ does, a whole section, which no player
+can. A note held longer than a breath (`BREATH`: a harmonica about 5 seconds, the English horn about
+6, an accordion's bellows about 9) is played as breaths of whole bars. Each is let go half a beat
+before the bar line it reaches and taken up again on it. A bagpipe's bag holds its drone on.
 
 ### 4.9 The rest of the band's story
 
