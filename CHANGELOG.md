@@ -3,6 +3,22 @@
 Newest first. Words in quotation marks are what was said while listening or playing, as typed or
 dictated, where it drove the change.
 
+## 2026-11-19, afternoon: the band's tune on top; the guitar comps under the solo; House's theme sings
+
+- **A band's tune stands 2 dB over its rhythm guitars wherever it sings** (handbook 4.1, `build.TUNE_LIFT`):
+  measured across all 144 Knight takes it sat level with them in the first theme (median −0.4 dB), the lead's
+  place being set where the twin guitars play the theme together at the summit. Each part of the story but the
+  open and the solo is lifted until the tune stands over, at most 5 dB; King's Oath: 2.3 dB in the first
+  theme, 3.8 at the arrival, 5 in the valley. The judges, against the same take without it: SongEval up a
+  little on all four (coherence +0.07), the rest even.
+- **Under a solo the rhythm guitar comps** (handbook 4.10, `orchestra.SOLO_COMP`): the chord on the bar's
+  first beat, the muted string after it, no fills; on Tiger Stomp 87 chord notes under the solo where the
+  riff and its fills had 189. The meter had the guitar one colour 34 to 50 bars from the summit on in three
+  of the day's four new heavy takes.
+- **House's theme sings from its fifth bar** (handbook 5.4, `house.THEME_SINGS`): the tune's opening phrases
+  every four bars, softly, where the theme had been groove alone for its first half (18 bars of 32 with the
+  tune, from 12).
+
 ## 2026-11-19, afternoon: House's riffs are cells
 
 "your house suck", "remember to study house on the loop with the same scrutiny".

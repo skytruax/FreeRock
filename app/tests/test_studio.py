@@ -967,6 +967,33 @@ def test_a_solo_is_brought_up_over_the_rhythm_guitars_where_it_plays():
     assert build.solo_lift({"lead": tone(880.0, -40.0), "rhythm": tone(220.0, -10.0)}, span, rate // 2)[0] == build.SOLO_MOST
 
 
+def test_a_bands_tune_is_brought_up_over_the_rhythm_guitars_where_it_sings():
+    # (2026-11-19: across 144 Knight takes the tune sat level with the rhythm guitars in the first theme, median -0.4 dB.)
+    # In each part where the tune sings the lead is brought up until it stands TUNE_OVER dB over them, at most TUNE_MOST,
+    # eased from part to part; a part where it stands over them already, or where the lead hardly plays, is left alone.
+    from freerock import analysis
+    from freerock.studio import build
+    rate = build.RATE
+    t = np.arange(rate * 12) / rate
+    def tone(hz, db, quiet=None):
+        out = (np.sin(2 * np.pi * hz * t) * 10 ** (db / 20)).astype(np.float32)
+        if quiet:
+            out[quiet[0]:quiet[1]] *= 10 ** (-60 / 20)
+        return out[:, None].repeat(2, axis=1)
+    spans = [(0, 4 * rate), (4 * rate, 8 * rate), (8 * rate, 12 * rate)]
+    parts = {"lead": tone(880.0, -23.0, quiet=spans[2]), "rhythm": tone(220.0, -20.0)}
+    parts["lead"][spans[1][0]:spans[1][1]] *= 10 ** (6 / 20)                     # the second part: 3 dB over the guitars already
+    lifts, curve = build.tune_lift(parts, spans, rate // 4)
+    assert curve is not None and lifts[1] == 0.0 and lifts[2] == 0.0
+    under = analysis.loudness_lufs(parts["rhythm"][:spans[0][1]], rate) - analysis.loudness_lufs(parts["lead"][:spans[0][1]], rate)
+    assert under > 0 and abs(lifts[0] - min(under + build.TUNE_OVER, build.TUNE_MOST)) < 0.05      # (by loudness, as heard)
+    lifted = parts["lead"] * curve[:, None]
+    over = analysis.loudness_lufs(lifted[rate:3 * rate], rate) - analysis.loudness_lufs(parts["rhythm"][rate:3 * rate], rate)
+    assert abs(over - build.TUNE_OVER) < 0.4
+    assert 1.0 < curve[spans[0][1] - rate // 8] and curve[spans[0][1] + rate // 2] == 1.0          # eased out
+    assert build.tune_lift({"lead": tone(880.0, -12.0), "rhythm": tone(220.0, -20.0)}, spans, rate // 4)[1] is None
+
+
 def test_a_part_can_stand_louder_than_its_instrument(monkeypatch):
     # (2026-11-18: the sung solo, played at the lead's own level, was 2 dB under the rhythm guitars.) A part's "gain db"
     # turns every track that plays it up by that much; a part without it is as its instrument stands.
@@ -1513,6 +1540,32 @@ def test_a_band_leads_answers_sing_the_first_themes_opening():
                 index += 1
         assert runs >= 2, "%s/%d: no answers" % (name, take)
         assert sung >= 0.8 * runs, "%s/%d: %d of its %d answers sing the theme's opening" % (name, take, sung, runs)
+
+
+def test_under_a_solo_the_rhythm_guitar_comps():
+    # (2026-11-19, the boredom meter: the rhythm guitar one colour 34 to 50 bars from the summit through the close in three of
+    # four new heavy takes, its riff and fills played on under the solo.) Where a solo plays, the rhythm guitar strikes its
+    # chord on the bar's first beat (and the take's push, if its riff pushes) with the muted string chugging between, and no
+    # fills; outside the solo the riff is as it was. SOLO_COMP takes it back.
+    import pytest as _pytest
+    from collections import Counter
+    fam = _family("jungle-jungle-stomp-2")
+    def under_the_solo(comp: bool):
+        with _pytest.MonkeyPatch.context() as patch:
+            patch.setattr(orchestra, "SOLO_COMP", comp)
+            made = orchestra.Take(fam, 4)
+        solo = [note for name, voice in made.voices["lead"].items() if name.endswith(" solo") for note in voice.notes]
+        a, b = min(note.start for note in solo), max(note.start + note.length for note in solo)
+        inside = [note for note in made.voices["rhythm"]["rhythm guitar"].notes if a <= note.start < b - made.beats]
+        before = [(note.start, note.pitch) for note in made.voices["rhythm"]["rhythm guitar"].notes if note.start < a - made.beats]
+        return made, inside, before
+    made, comped, before_on = under_the_solo(True)
+    _, riffed, before_off = under_the_solo(False)
+    places = Counter(round(note.start % made.beats, 2) for note in comped)
+    allowed = {0.0, round(made.beats - 0.5, 2)}                       # the first beat, and the push's last off-beat
+    assert comped and set(places) <= allowed, places
+    assert len(comped) < 0.6 * len(riffed)
+    assert before_on == before_off                                    # the riff before the solo as it was
 
 
 def test_a_heavy_bands_close_ends_as_a_rock_band_ends():

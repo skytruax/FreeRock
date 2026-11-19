@@ -352,6 +352,12 @@ def write(fam: Family, take: int) -> Sheet:
 
 SOLO_OVER = 1.5          # dB a guitar solo stands over the rhythm guitars where it plays, measured (`solo_lift`)
 SOLO_MOST = 8.0          # ...and the most it is brought up
+# (2026-11-19: across 144 Knight takes a band's tune sat level with its rhythm guitars in the first theme, median -0.4 dB:
+# the lead's place is set at the summit, where the twin guitars play the theme together, and one guitar or a fiddle singing
+# it alone in a theme was left there. The tune is the band's singer.)
+TUNE_LIFT = True         # a band's tune stands TUNE_OVER dB over its rhythm guitars wherever it sings (`tune_lift`)
+TUNE_OVER = 2.0
+TUNE_MOST = 5.0
 
 
 def solo_lift(parts: dict[str, np.ndarray], span: tuple[int, int], ramp: int) -> tuple[float, np.ndarray | None]:
@@ -377,6 +383,33 @@ def solo_lift(parts: dict[str, np.ndarray], span: tuple[int, int], ramp: int) ->
     down = min(last + ramp, len(curve))
     curve[last:down] = np.linspace(gain, 1.0, down - last, dtype=np.float32)
     return round(float(lift), 2), curve
+
+
+def tune_lift(parts: dict[str, np.ndarray], spans: list[tuple[int, int]], ramp: int) -> tuple[list[float], np.ndarray | None]:
+    """How far the lead channel is brought up in each part of a band's story where its tune sings (TUNE_LIFT), so that it
+    stands TUNE_OVER dB over the rhythm guitars there, and at most TUNE_MOST; nothing where it stands over them already, or
+    where the lead or the guitars play little. The gain for each sample, eased from part to part over `ramp` samples."""
+    if "lead" not in parts or "rhythm" not in parts:
+        return [], None
+    frames = len(parts["lead"])
+    db = np.zeros(frames, dtype=np.float32)
+    lifts = []
+    for first, last in spans:
+        lead = analysis.loudness_lufs(parts["lead"][first:last], RATE)
+        band = analysis.loudness_lufs(parts["rhythm"][first:last], RATE)
+        lift = 0.0
+        if lead > -50.0 and band > -50.0:
+            lift = max(min(band + TUNE_OVER - lead, TUNE_MOST), 0.0)
+        db[first:last] = lift
+        lifts.append(round(float(lift), 2))
+    if max(lifts, default=0.0) <= 0.1:
+        return lifts, None
+    edges = sorted({edge for span in spans for edge in span})
+    for edge in edges:
+        low, high = max(edge - ramp, 0), min(edge + ramp, frames)
+        if high - low > 1:
+            db[low:high] = np.linspace(db[low], db[high - 1], high - low, dtype=np.float32)
+    return lifts, (10.0 ** (db / 20.0)).astype(np.float32)
 
 
 def perform(sheet: Sheet) -> dict:
@@ -490,11 +523,30 @@ def perform(sheet: Sheet) -> dict:
     # A guitar solo stands over the band, measured where it plays (`solo_lift`): its own move on the lead's stem.
     alone: dict[str, list[tuple[float, float]]] = {}
     solo_db = 0.0
+    lead_curve = None
     if solo_span:
         solo_db, lift_curve = solo_lift(parts, solo_span, int(beat_frames))
         if lift_curve is not None:
             parts["lead"] = parts["lead"] * lift_curve[:, None]
-            alone["lead"] = desk.ride_points(lift_curve)
+            lead_curve = lift_curve
+    tune_dbs: list[float] = []
+    if about["band"] and TUNE_LIFT and "lead" in parts:
+        # A band's tune stands over its rhythm guitars wherever it sings: every part of the story but the open, where the
+        # riff is alone, and the solo, which is lifted by its own measure.
+        sung = []
+        for section, first, last in zip(sheet.form, edges, edges[1:]):
+            if section.get("story") == "open":
+                continue
+            if solo_span and first < solo_span[1] and last > solo_span[0]:
+                first = max(first, solo_span[1])
+            if last - first > int(2 * RATE):
+                sung.append((first, last))
+        tune_dbs, tune_curve = tune_lift(parts, sung, int(60.0 / bpm * RATE))
+        if tune_curve is not None:
+            parts["lead"] = parts["lead"] * tune_curve[:, None]
+            lead_curve = tune_curve if lead_curve is None else lead_curve * tune_curve
+    if lead_curve is not None:
+        alone["lead"] = desk.ride_points(lead_curve)
     # The story keeps its shape but not its extremes: music behind a game cannot drop to a
     # whisper. Every part of the story is brought some of the way up to the loudest, the whole
     # band together, easing from one level to the next over three seconds at each join.
@@ -547,6 +599,8 @@ def perform(sheet: Sheet) -> dict:
     }
     if solo_db:
         meta["measured"]["solo lift"] = solo_db            # dB the lead was brought up where its solo plays
+    if any(tune_dbs):
+        meta["measured"]["tune lift"] = tune_dbs           # dB the lead was brought up in each part where its tune sings
     folder = folder_at(sheet.style, sheet.family, take)
     write_track(folder, meta, parts)
     sheet.save(folder / "sheet.json")

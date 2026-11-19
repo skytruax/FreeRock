@@ -243,6 +243,19 @@ CHANGES = [
            "the lead's answers are the first theme's opening played quick; the riff's move waits where it would rub against "
            "the lead; the band kits' top 3.5 dB up from 5 kHz",
            lambda p: p.style == "knight" and p.character.band),
+    Change("a band's tune stands over its guitars; its guitar comps under the solo", datetime.datetime(2026, 11, 19, 16, 28), "",
+           "wherever the tune sings the lead is brought up until it stands 2 dB over the rhythm guitars, at most 5 (it had sat "
+           "level with them in the first theme, median -0.4 dB over 144 takes); under a solo the rhythm guitar strikes the chord "
+           "on the bar's first beat with the muted string after it, no fills",
+           lambda p: p.style == "knight" and p.character.band),
+    Change("House's theme sings from its fifth bar", datetime.datetime(2026, 11, 19, 16, 28), "",
+           "the tune's opening phrases every four bars from the theme's fifth bar, softly (eight bars of tune in thirty-two had "
+           "left the theme a groove waiting for one)",
+           lambda p: p.style == "house"),
+    Change("House's riffs are cells", datetime.datetime(2026, 11, 19, 15, 17), "c22c66e",
+           "a riff is a cell of three or four notes of the chord in an order of its own, the same shape on each chord (half of "
+           "every riff's notes had been the note before: F F F F A A A A A)",
+           lambda p: p.style == "house"),
     Change("an orchestra's long moment goes up a gear", datetime.datetime(2026, 11, 19, 10, 43), "d6baa7f",
            "every second eight-bar phrase of an arrival or summit of sixteen bars or more: the accompaniment an octave up, "
            "the lines over the pad to the horns, the drums busier, the cymbal twice as often (16 to 24 bars of one colour)",

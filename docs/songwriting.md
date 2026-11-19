@@ -844,6 +844,15 @@ Hall sends are small: rhythm guitars −19 dB, muted −22, lead −11, bass −
 (`sounds.MUSE_SENDS`). Channel places at the summit (`build.BAND`): lead −17, rhythm −18.5, drums
 −17.5, bass −19.5, texture −24 LUFS; lighter pieces (`BAND_LIGHT`) drums −18.5, bass −19.5, rhythm −18.5.
 
+**The tune stands over the guitars wherever it sings** (`build.TUNE_LIFT`, `build.tune_lift`, 2026-11-19). The
+lead's place is set at the summit, where the twin guitars play the theme together; one guitar or a fiddle singing it
+alone in a theme was left there, and across all 144 Knight takes the tune sat level with the rhythm guitars in the
+first theme (median −0.4 dB, half of them under). In every part of the story but the open (the riff alone) and the
+solo (lifted by its own measure), the lead is brought up until it stands `TUNE_OVER` (2 dB) over the rhythm
+guitars, at most `TUNE_MOST` (5 dB), eased over a beat from part to part, on the lead's stem and its envelope in the
+mix; each take keeps what it was given (`measured`, "tune lift"). King's Oath: 2.3 dB in the first theme, 3.8 at the
+arrival, 5 in the valley. *The tune is the band's singer.*
+
 ### 4.2 Riffs
 
 A riff is power chords with room between them (`Take.rhythm`, figures `riff` and `chug`). `riff()`
@@ -1105,6 +1114,11 @@ Wing") and the way a singer phrases:
   own volume envelope in the mix: a light band's theme after the solo has a fiddle and the twin
   guitars on it, and the channel set by that had left Barnyard Jamboree's solo under the guitars.
   `tools/lift_solos.py` does the same to a staged take without making it again.
+- **Under it the rhythm guitar comps** (`orchestra.SOLO_COMP`, 2026-11-19, 16:15): the chord struck on the
+  bar's first beat and left to ring half the bar, the muted string chugging the eighths after it, no fills
+  (they would talk over the solo), a little softer; the take's push stays. The riff comes back with the theme
+  after the solo. *The boredom meter had the rhythm guitar one colour 34 to 50 bars from the summit through the
+  close in three of the day's four new heavy takes: the riff played on under the solo as everywhere else.*
 - **Never the same twice**: each take draws its own solo from the family's seed and the take: its
   figures, its form and each figure's way (above).
 - `orchestra.SOLOS = False` takes it away and gives the summit back to the twins.
@@ -1206,7 +1220,7 @@ house hook does. The cell's first note is leaned on.
 | Section | The tune |
 |---|---|
 | open | the idea's last notes, far off, in the soft voice |
-| theme | the hook every four bars from halfway, in the soft voice (a fight's in the main one) |
+| theme | the tune's opening phrases every four bars from the fifth, softly (`house.THEME_SINGS`, 2026-11-19: eight bars of tune in thirty-two had left the theme a groove waiting for one; not a fight's or a calm piece's), then the hook every four bars from halfway, in the soft voice (a fight's in the main one from the first bar) |
 | rise | the whole tune, soft then main, growing; its last bar left empty before the drop |
 | moment | the whole tune in the main voice at full brightness; every second time a line an octave or a third above (not in calm music) |
 | close | the idea every four bars, fading |

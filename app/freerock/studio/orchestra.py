@@ -1311,6 +1311,9 @@ MOST_SOLOS = True        # whoever leads the band's summit takes the solo, and a
                          # lead guitar alone, where the theme comes round twice
 ORIGINAL_SOLOS = True    # each solo draws its own form, its own way through each figure and from ten figures; False: those of 12:05
 SOLO_FLANGER = True      # a flanger sweeps slowly under the solo, a little (Take._solo_marks); False: the echo alone
+# (2026-11-19, 16:15, the boredom meter on the day's new heavy takes: the rhythm guitar one colour 34 to 50 bars from the
+# summit through the close in three of four, the riff played on under the solo as everywhere else.)
+SOLO_COMP = True         # under a solo the rhythm guitar comps: the chord on the bar's first beat, muted eighths after, no fills
 # Who may take a band's solo, and whether they can sound two notes at once (double stops, octaves, a held note doubled):
 SOLOISTS = {"lead guitar": True, "fiddle": True, "mandolin": True, "harmonica": True, "whistle": False}
 # The figures a solo's middle is made of, three drawn for each solo: Angus Young's and Chuck Berry's (the repeated note, the
@@ -3393,7 +3396,7 @@ class Take:
         leading: dict[tuple[str, int], list[int]] = {}
 
         def layer(name: str, figure: str, second: bool, raised: int, gain: float, key: Key, chord: Chord, bar: int, bar_at: float,
-                  level: float, density: float, rings: bool = False, up: int = 0, ending: bool = False) -> None:
+                  level: float, density: float, rings: bool = False, up: int = 0, ending: bool = False, comp: bool = False) -> None:
             """One bar of an accompaniment's figure on one instrument. `rings`: the riff's chord is struck once and held
             through the bar, without the chugs. `up`: the riff's power chords and licks so many semitones higher on the neck
             (the muted string chugs on where it was)."""
@@ -3468,10 +3471,14 @@ class Take:
                 root += up
                 power = (root, root + 7, root + 12)
                 hits: list[tuple[float, float | None]] = [(0.0, beats)] if rings else list(riff_b if second else self.riff)
-                if not rings and (density > 0.85 or figure == "chug"):
+                if comp:
+                    # Under a solo the rhythm guitar comps (SOLO_COMP): the chord struck on the bar's first beat and left to
+                    # ring half the bar, the muted string chugging the eighths after it, no fills: the solo has the room.
+                    hits = [(0.0, beats / 2)] + [(index * half, None) for index in range(slots) if index * half >= beats / 2 - 1e-6]
+                elif not rings and (density > 0.85 or figure == "chug"):
                     hits = hits + [(on, None) for on in [index * half for index in range(slots)]
                                    if not any(abs(on - at) < 1e-6 for at, _ in hits)]
-                if ch.band and bar % 2 == 1 and not thin and not ending:
+                if ch.band and bar % 2 == 1 and not thin and not ending and not comp:
                     # The riff answers its chords (2026-11-17, night: "acdc for knight rock"; the band's guitars struck the
                     # same chords in every bar): at the end of the second bar of each four, and with a turn at the end of the
                     # fourth, the take's own fills (`fills`, OWN_LICKS), two turns taking it in turns.
@@ -3544,6 +3551,9 @@ class Take:
             return part in ("arrival", "summit") or (part in ("first", "second") and bar >= self.fam.period) \
                 or (part in ("build", "climb") and along >= 0.5)
 
+        soloed = [note for name, voice in self.voices["lead"].items() if name.endswith(" solo") for note in voice.notes]
+        solo_from = min((note.start for note in soloed), default=None)
+        solo_to = max((note.start + note.length for note in soloed), default=None)
         for section, first, key, chords in self.spans:
             part, bars = section.part, section.bars
             runs = held_runs(section.chords)
@@ -3597,9 +3607,11 @@ class Take:
                 into, run = runs[bar]
                 climbing = self.climbs(part, run, into)
                 played = "riff" if rings else "chug" if climbing and self.rise_way == "drive" and figure == "riff" else figure
-                layer(name, played, second, raised, 1.0, key, chord, bar, bar_at, level, density, rings=rings,
+                comping = SOLO_COMP and ch.band and solo_from is not None and played in ("riff", "chug") and not rings \
+                    and solo_from - 1e-6 <= bar_at < solo_to - beats / 2
+                layer(name, played, second, raised, 0.85 if comping else 1.0, key, chord, bar, bar_at, level, density, rings=rings,
                       up=12 if climbing and self.rise_way == "climb" and figure in ("riff", "chug") and not rings else 0,
-                      ending=end in ("stop", "ring", "last"))
+                      ending=end in ("stop", "ring", "last"), comp=comping)
                 # (A band's riff guitars are the band's whole accompaniment; the unplugged band takes the second figure too.)
                 if not (ch.band and self.heavy) and fuller(part, bar, along):
                     # The other figure, on its own instrument (another of the palette's, where both themes have the

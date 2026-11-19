@@ -578,6 +578,24 @@ def test_a_riff_is_a_cell_of_the_chords_notes_said_again_with_a_shape_of_its_own
     assert any(a == b for a, b in zip(pitches, pitches[1:]))                    # the riff of 11-17, its notes coming again
 
 
+def test_a_themes_first_half_sings_softly(monkeypatch):
+    # (2026-11-19, the same study: a theme had its hook only from halfway, eight bars of tune in thirty-two.) The first half
+    # of a walking piece's theme has the tune's opening phrases too, every four bars from the fifth, in the soft voice; a
+    # fight's and a calm piece's themes are as they were.
+    from freerock.studio import club
+    def sung_bars(name, sings):
+        monkeypatch.setattr(house, "THEME_SINGS", sings)
+        sheet = club.write(name, 1)
+        theme = next(part for part in sheet.form if part["story"] == "theme")
+        lo, half = theme["first"] * 4.0, (theme["first"] + theme["bars"] // 2) * 4.0
+        return {int((note.start - lo) // 4) for part in sheet.parts["lead"].values() for note in part.notes if lo <= note.start < half - 4}
+    walking = next(fam for fam in house.PLAN if not fam.hard and fam.role not in house.CALM_ROLES)
+    assert not sung_bars(walking.name, False)
+    assert len(sung_bars(walking.name, True)) >= 4
+    calm = next(fam for fam in house.PLAN if fam.role in house.CALM_ROLES)
+    assert sung_bars(calm.name, True) == sung_bars(calm.name, False)
+
+
 def test_a_riff_spells_its_chords_in_short_notes_and_its_echo_is_thrown_at_each_phrases_end():
     # (2026-11-18: "the lead is still lame": a house lead is a riff, cells of three sixteenths, every note on the chord.)
     from freerock.studio import club

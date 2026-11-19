@@ -510,6 +510,11 @@ HOOKS = (
 # F F F F A A A A A (The Forge at Rest I), G G G D D D D (Canopy I); SongEval heard memorability 2.4 to 2.8 against Knight
 # Rock's 2.9 to 3.0. False: the riff of 11-17.
 RIFF_CELLS = True
+# (The same study: a theme, the part heard most while walking about, had its hook only from halfway, two bars in every
+# four: eight bars of tune in thirty-two, the rest groove alone.) The first half of a theme sings too, softly: the tune's
+# first eight bars a phrase at a time, every four bars from the fifth (Take.lead). Not a fight's (its hook is there from
+# the first bar) nor a calm piece's. False: the hook from halfway, as on 11-18.
+THEME_SINGS = True
 RIFFS = (
     ((0, 2), (3, 2), (6, 2), (9, 2), (12, 2), (14, 2), (16, 2), (19, 2), (22, 2), (25, 2), (28, 4)),
     ((0, 1), (3, 1), (6, 1), (8, 1), (11, 1), (14, 1), (16, 1), (19, 1), (22, 1), (24, 1), (27, 1), (30, 2)),
@@ -1267,6 +1272,11 @@ class Take:
             elif story == "theme":
                 # The hook, stated and left; then answered.
                 half = count // 2 if not fam.hard else 0
+                if THEME_SINGS and not fam.hard and fam.role not in CALM_ROLES:
+                    # The first half sings too, softly under the groove: the tune's opening phrases in their order, one
+                    # every four bars from the fifth, so that the theme is a tune and not a groove waiting for one.
+                    for index, inside in enumerate(range(4, half - 1, 4)):
+                        say(cut(tune.notes, 32 * (index % 4), 32 * (index % 4) + 32), first + inside, soft, 0.34, 0.5)
                 for index, inside in enumerate(range(half, count - 1, 4)):
                     say(cut(tune.notes, 32 * (index % 2), 32 * (index % 2) + 32) if index < 2 else cut(tune.notes, 96, 128),
                         first + inside, soft if not fam.hard else main, 0.42, 0.6)
