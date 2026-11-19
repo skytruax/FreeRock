@@ -1311,6 +1311,12 @@ CLIMBS = True            # a heavy band's rise climbs where one chord is held lo
 LONG_HOLD = 9            # bars of one chord in a rise that make it a long one
 OPENS_OUT = True         # a heavy band's drummer opens the hat for the second theme, as its guitars ring (Take.drums)
 DIGS_IN = True           # a heavy band's long moment digs in at its half: the bass's octaves, the crash every other bar
+GEARS = True             # an orchestra's long moment goes up a gear every second phrase (Take.geared); False plays it one way
+GEAR_BARS = 8            # the phrase a long moment changes on
+# A drum pattern one step busier, for a long moment's geared phrases.
+BUSIER_STROKES = {"down": "groups", "groups": "pulses", "back": "pulses", "mid": "groups", "offs": "ands", "pulses": "halves",
+                  "last": "back", "three": "pulses"}
+CYMBALS = ("crash", "crash2", "ting")
 OWN_LICKS = True         # each band take answers its riff with fills of its own (Take.fills); False: the one run and walk-up of 11-17
 ANGUS = True             # the solo's middle riffs the way Angus Young plays them (guitar_solo); False: the sung solo of 11-18 alone
 # A riff band's fills (2026-11-19: "hearing that same guitar riff climb in too many knight songs", "cant you study acdc and do
@@ -2984,6 +2990,9 @@ class Take:
                 above = (("oboe", ""), ("flute", "")) if busy else (("violins", " seconds"), ("violins", ""))
                 for bar, chord in enumerate(chords):
                     at = first + bar * beats
+                    # (Not raised in a long moment's geared phrase, `geared`: an octave up or a fifth, the lines over the pad
+                    # put 8 to 13 dB on the texture's top from 5 to 10 kHz in those bars, Withered Circle's, and the texture
+                    # 7 dB over the liked stems at 7 kHz across the whole take: too bright for the room.)
                     for (player, tag), pitch in zip(above, voiced(key, chord, None, 2, centre + 14)):
                         self.put("texture", player, at, beats, pitch, self.hard(0.8 if part == "summit" else 0.65), tag=tag)
                     if part == "summit" and "choir" in ch.pads + ch.strong:
@@ -3186,6 +3195,8 @@ class Take:
                 # Where the second theme has the same figure on the same instrument as the first,
                 # it is at least played a fourth higher.
                 raised = 5 if second and (self.pluck_b, self.figure_b) == (self.pluck, self.figure) else 0
+                if self.geared(part, bars, bar):
+                    raised += 12                               # a long moment's geared phrase: the figure an octave up (`geared`)
                 bar_at = first + bar * beats
                 if ch.band and self.heavy and part in ("arrival", "summit") and bar == 0:
                     # The band's arrival: one chord struck together on the downbeat and left to ring through the bar,
@@ -3538,6 +3549,12 @@ class Take:
             return False
         return bar >= max(16, ((bars // 2 + 7) // 8) * 8)
 
+    def geared(self, part: str, bars: int, bar: int) -> bool:
+        """Whether a bar of an orchestra's arrival or summit is in one of its geared phrases: where the moment is two phrases
+        long or more, every second phrase of it (see `rhythm` and `drums`)."""
+        return GEARS and not self.ch.band and part in ("arrival", "summit") and bars >= 2 * GEAR_BARS \
+            and (bar // GEAR_BARS) % 2 == 1
+
     def climbs(self, part: str, run: int, into: int) -> bool:
         """Whether a bar of a heavy band's rise is in the climbing half of a chord held long (see `rhythm` and `bass`)."""
         return CLIMBS and self.ch.band and self.heavy and part in ("build", "climb") and run >= LONG_HOLD and into >= run // 2 \
@@ -3666,6 +3683,13 @@ class Take:
                         # 32-bar arrival or summit one colour all through): the crash every other bar, over the ride's bell.
                         groove = [layer[:3] + (max(layer[3] // 2, 1),) + tuple(layer[4:]) if layer[0] == "crash" and len(layer) > 3
                                   else layer for layer in groove]
+                    if self.geared(part, bars, bar):
+                        # An orchestra's long moment goes up a gear every second phrase (2026-11-19, the boredom meter: the
+                        # drums of Warcraft's summits one colour 19 to 23 bars, Withered Circle's, Quiet Nave's, Spirit
+                        # Bells'): each drum one step busier and the cymbal twice as often, then back for the next phrase.
+                        groove = [(sound, where if sound in CYMBALS else BUSIER_STROKES.get(where, where), loud,
+                                   *([max(rest[0] // 2, 1)] if rest and sound in CYMBALS else rest))
+                                  for sound, where, loud, *rest in groove]
                     if not (ch.band and self.heavy and bar == 0):          # a band's moment begins with a stop: the hit alone
                         lay(groove, bar, bar_at, level, 1.0 if big else 0.85, chord, key)
                     if bar == 0 and main["hit"]:

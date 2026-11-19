@@ -636,6 +636,20 @@ something*.
 half a bar) the tune rests and the accompaniment stops striking, so the arrival's downbeat lands.
 The big drums' ostinati are in 3.7.
 
+**A long moment goes up a gear every second phrase** (`orchestra.GEARS`, `Take.geared`, 2026-11-19).
+In an arrival or a summit of sixteen bars or more, every second eight-bar phrase has the
+accompaniment's figure an octave up and the drums a step busier (`BUSIER_STROKES`: a stroke on the bar goes to the strong
+beats, the strong beats to every beat, every beat to the eighths) with the cymbal twice as often;
+the next phrase comes back down. *The boredom meter had heard Warcraft's summits keep one colour for
+16 to 24 bars in the drums, the accompaniment and the texture (Withered Circle, Elder Boughs, Quiet
+Nave, Twilight Song): an orchestra's climax that plays its eight bars the same way three times.* The
+two lines over the pad were raised as well, first an octave, then a fifth: either way they put 8 to 13
+dB on the texture's top between 5 and 10 kHz in those bars (Withered Circle), the texture 7 dB over
+the liked stems at 7 kHz across the whole take, so they stay where they are; the texture's own way to
+move through a long moment is still to be found. Measured on its demos, the accompaniment's octave
+moved toward the liked stems and the drums stayed within 0.2 dB; the meter's runs in the summits went
+from 16-24 bars to 9-12. A band's moments go their own way (4.9).
+
 ### 3.5 Pads with moving inner voices
 
 `Take.texture` lays a chord in every bar for two to four players, centred between MIDI 53 (open)

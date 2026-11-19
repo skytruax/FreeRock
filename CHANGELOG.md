@@ -3,6 +3,14 @@
 Newest first. Words in quotation marks are what was said while listening or playing, as typed or
 dictated, where it drove the change.
 
+## 2026-11-19, morning: Warcraft's long moments go up a gear
+
+- **An orchestra's arrival or summit of sixteen bars or more goes up a gear every second phrase**: the
+  accompaniment an octave up, the drums a step busier and the cymbal twice
+  as often, then back for the next phrase (handbook 3.4). The meter had heard Warcraft's summits keep
+  one colour for 16 to 24 bars in the drums, the accompaniment and the texture. `orchestra.GEARS`
+  switches it off.
+
 ## 2026-11-19, morning: the solo riffs like Angus
 
 "couldnt you do more complex riffs in the solo part like angus".

@@ -1327,6 +1327,36 @@ def test_a_band_take_answers_its_riff_with_fills_of_its_own():
     assert runs_of(old, (2, 3, 4)) > 10
 
 
+def test_an_orchestras_long_moment_goes_up_a_gear_every_second_phrase():
+    # (2026-11-19, the boredom meter on Warcraft's third takes: the summits' drums one colour 19 to 23 bars, the rhythm and the
+    # texture 16 to 24, Withered Circle's, Elder Boughs', Quiet Nave's, Twilight Song's.) In an orchestra's arrival or summit of
+    # sixteen bars or more, every second eight-bar phrase: the accompaniment's figure an octave up and the drums busier; then
+    # back (the lines over the pad raised too were 8 to 13 dB too bright at the top). A band is left alone, and GEARS takes it away.
+    def summit(name: str, take: int) -> tuple:
+        made = orchestra.Take(_family(name), take)
+        section, first, _, _ = next(span for span in made.spans if span[0].part == "summit")
+        def bar(channel: str, index: int, keep=lambda name: True) -> list:
+            at = first + index * made.beats
+            return [note.pitch for name, voice in made.voices[channel].items() if keep(name) for note in voice.notes
+                    if at <= note.start < at + made.beats]
+        return made, section, bar
+    made, section, bar = summit("mystic-shadow-glade-1", 3)
+    assert section.bars == 24 and not made.ch.band
+    plain_figure = lambda name: "stabs" not in name
+    assert min(bar("rhythm", 10, plain_figure)) > min(bar("rhythm", 2, plain_figure))         # the second phrase up
+    assert sorted(bar("rhythm", 18, plain_figure)) == sorted(bar("rhythm", 2, plain_figure))  # and the third back
+    over = lambda name: name in ("violins", "violins seconds", "flute", "oboe")
+    assert bar("texture", 10, over) and sorted(bar("texture", 10, over)) == sorted(bar("texture", 2, over))   # the lines over the pad stay
+    assert len(bar("drums", 10)) > len(bar("drums", 2))
+    import pytest as _pytest
+    with _pytest.MonkeyPatch.context() as patch:
+        patch.setattr(orchestra, "GEARS", False)
+        _, _, plain = summit("mystic-shadow-glade-1", 3)
+        assert sorted(plain("rhythm", 10, plain_figure)) == sorted(plain("rhythm", 2, plain_figure))
+    band = orchestra.Take(_family("pastoral-banner-ride-1"), 5)
+    assert not any(band.geared(span[0].part, span[0].bars, index) for span in band.spans for index in range(span[0].bars))
+
+
 def test_a_bands_pedals_can_be_switched_off():
     # A new sound is heard as a demo before it is used (the plan's principles): the switch that held the pedals back until
     # the demos were heard ("k keep going", 2026-11-18) still takes every mark away.
