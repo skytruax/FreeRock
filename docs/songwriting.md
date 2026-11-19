@@ -1192,6 +1192,17 @@ eight bars say it again with turns and the climb a third higher. Strong and long
 chord, the rest move by step, a leap turns back. It is centred on G4: *a house hook sits in the warm
 middle, not over the band*. Nothing goes above A6.
 
+**A riff is a cell** (`house.RIFF_CELLS`, `Tune._riff_cell`, 2026-11-19, 14:15: "your house suck", "study house on
+the loop with the same scrutiny"). Two takes in three have a riff for a hook. It had followed the same slow curve
+with a note coming again for nothing, and settled on the chord's third and fifth: F F F F A A A A A (The Forge at
+Rest I), G G G D D D D (Canopy I); in the staged takes half the riff's notes were the note before, on three or four
+pitches, and SongEval heard House's memorability at 2.4 to 2.8 against Knight Rock's 2.9 to 3.0. Now a riff is a cell
+of three or four notes of the chord in an order drawn for the tune (no note twice running, three of them at least,
+within about an octave): F5 F4 D4, an octave down and a step (The Forge); G5 B4 G5 D4, a pedal over two that move
+(Canopy); D4 A4 C5, up through a minor seventh. It is said over the riff's rhythm again and again, and over each chord
+the same cell is on that chord's own notes, so the hook keeps its shape as the chords change, the way an arpeggiated
+house hook does. The cell's first note is leaned on.
+
 | Section | The tune |
 |---|---|
 | open | the idea's last notes, far off, in the soft voice |

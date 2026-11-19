@@ -3,6 +3,22 @@
 Newest first. Words in quotation marks are what was said while listening or playing, as typed or
 dictated, where it drove the change.
 
+## 2026-11-19, afternoon: House's riffs are cells
+
+"your house suck", "remember to study house on the loop with the same scrutiny".
+
+- **A House riff is a cell** of three or four notes of the chord in an order drawn for the tune (no
+  note twice running, three at least, within about an octave), said over the riff's rhythm again and
+  again, the same shape on each chord's own notes (handbook 5.4, `house.RIFF_CELLS`). Studied bar by
+  bar, House's grooves were sound (the bass off the beat, the clap on two and four, the kick's pump)
+  but half of every riff's notes were the note before, on three or four pitches: F F F F A A A A A.
+  Now F5 F4 D4 (The Forge at Rest I), a high G over B and D (Canopy I). The judges heard the two demos
+  as before (SongEval within its noise on both): House's lead plays its hook only every four bars from
+  halfway through a theme, which they hear most of. The next House levers are being tried: the
+  tempo (every House song is 110 BPM) and how much of a theme the hook sings.
+- Every House take is studied as the band's are: its hook counted (notes, pitches, the note before),
+  the judges, the meter.
+
 ## 2026-11-19, afternoon: solos in most songs, each its own and moving; each writer its own draws
 
 "most songs should have solos", "and they should be original each time", "i think you need the solos to

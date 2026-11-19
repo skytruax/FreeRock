@@ -504,6 +504,12 @@ HOOKS = (
 # Riffs: cells of three sixteenths over the four beats, resolved by two eighths at the end of the phrase, every note on
 # the chord (2026-11-18: "the lead is still lame"; the house study: deadmau5's hooks, "Strobe", "Phantoms Can't Hang",
 # cells of three sixteenths over 4/4; the singing hooks above have long notes, a melody, where a house lead is a riff).
+# (2026-11-19, 14:15: "your house suck", "study house on the loop with the same scrutiny".) A riff is a cell of three or
+# four notes of the chord in an order drawn for the tune, said over the riff's rhythm again and again (Tune._riff_cell):
+# the riffs had followed a slow curve with a note coming again for nothing, and settled on the chord's third and fifth,
+# F F F F A A A A A (The Forge at Rest I), G G G D D D D (Canopy I); SongEval heard memorability 2.4 to 2.8 against Knight
+# Rock's 2.9 to 3.0. False: the riff of 11-17.
+RIFF_CELLS = True
 RIFFS = (
     ((0, 2), (3, 2), (6, 2), (9, 2), (12, 2), (14, 2), (16, 2), (19, 2), (22, 2), (25, 2), (28, 4)),
     ((0, 1), (3, 1), (6, 1), (8, 1), (11, 1), (14, 1), (16, 1), (19, 1), (22, 1), (24, 1), (27, 1), (30, 2)),
@@ -630,7 +636,7 @@ class Tune:
         hook = rng.choice(RIFFS if riff else HOOKS)
         other = rng.choice(FLOWS + LONGS)
         shape = rng.choice(("arch", "rising", "valley", "wave", "arch"))
-        a = self._write(hook, 0, shape, 0, riff=riff)
+        a = self._riff_cell(hook, 0) if riff and RIFF_CELLS else self._write(hook, 0, shape, 0, riff=riff)
         a2 = self._answer(a, 2)
         b = self._write(other, 4, rng.choice(("arch", "rising")), 2 + rng.randrange(2))
         a3 = self._close(self._answer(a, 6), 6)
@@ -683,6 +689,29 @@ class Tune:
             else:
                 out.append(Tone(at, length, best, 0.82 if strong else 0.64))
             before = best
+        return out
+
+    def _riff_cell(self, rhythm: tuple[tuple[int, int], ...], bar: int) -> list[Tone]:
+        """A house riff (RIFF_CELLS): a cell of three or four notes of the chord, counted up from the chord's note nearest a
+        little under the middle of the tune, in an order drawn for this tune (no note twice running, three of them at least,
+        reaching a third of the chord or more above its lowest), said over the riff's rhythm again and again: up and back,
+        a leap to the octave and down, a pedal against two that move, within about an octave. Over each chord the same cell on that chord's own
+        notes, so the hook keeps its shape as the chords change. The cell's first note is the one leaned on."""
+        rng = self.rng
+        size = rng.choice((3, 4, 4))
+        for _ in range(200):
+            cell = [rng.randrange(4) for _ in range(size)]          # (within about an octave: five had leapt a tenth)
+            if len(set(cell)) >= 3 and max(cell) - min(cell) >= 2 and all(a != b for a, b in zip(cell, cell[1:])) \
+                    and cell[0] != cell[-1]:
+                break
+        out = []
+        for index, (at, length) in enumerate(rhythm):
+            chord = self._chord(bar, at)
+            tones = [degree for degree in range(self.low - 3, self.high + 4) if self.changes.within(chord, degree)]
+            base = min(range(len(tones)), key=lambda each: (abs(tones[each] - (self.centre - 2)), tones[each]))
+            base = max(min(base, len(tones) - 1 - max(cell)), 0)       # the whole cell fits: no two of its notes made one
+            degree = tones[min(base + cell[index % size], len(tones) - 1)]
+            out.append(Tone(at, length, degree, 0.85 if index % size == 0 else 0.68))
         return out
 
     def _answer(self, notes: list[Tone], bar: int, lift: int | None = None) -> list[Tone]:

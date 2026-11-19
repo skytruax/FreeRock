@@ -544,6 +544,40 @@ def test_the_hats_between_the_eighths_come_only_at_a_drop():
     assert max(count for (story, _), count in per_bar.items() if story != "moment") <= 8
 
 
+def test_a_riff_is_a_cell_of_the_chords_notes_said_again_with_a_shape_of_its_own(monkeypatch):
+    # (2026-11-19, 14:15: "your house suck", "study house on the loop with the same scrutiny". The riffs had followed a slow
+    # curve with a note coming again for nothing and settled on the chord's third and fifth: F F F F A A A A A.) A riff is
+    # a cell of three or four notes of the chord, said over its rhythm again and again: three notes at least in its two
+    # bars, none twice running, within about an octave, and over the next chord the same shape on that chord's notes.
+    riffs = 0
+    for fam in house.PLAN:
+        made = house.Take(fam, 1)
+        tune = made.tune
+        if not tune.riff:
+            continue
+        riffs += 1
+        idea = [note for note in tune.idea]
+        pitches = [made.changes.pitch(note.degree) for note in idea]
+        assert len(set(pitches)) >= 3, "%s: a riff of %d notes" % (fam.name, len(set(pitches)))
+        assert all(a != b for a, b in zip(pitches, pitches[1:])), "%s: a note twice running" % fam.name
+        assert max(pitches) - min(pitches) <= 15, "%s: the riff leaps %d semitones" % (fam.name, max(pitches) - min(pitches))
+        for note in idea:
+            assert made.changes.within(tune._chord(0, note.at), note.degree), "%s: a riff note off its chord" % fam.name
+        # The same shape over each chord: the order of its notes, highest to lowest, is the cell's every time round.
+        def ranks(notes):
+            return [sorted(set(n.degree for n in notes)).index(n.degree) for n in notes]
+        by_chord: dict = {}
+        for note in idea:
+            by_chord.setdefault(tune._chord(0, note.at), []).append(note)
+        orders = [tuple(ranks(notes)[:3]) for notes in by_chord.values() if len(notes) >= 3]
+        assert len(orders) >= 1
+    assert riffs >= 20
+    monkeypatch.setattr(house, "RIFF_CELLS", False)
+    old = house.Take(next(fam for fam in house.PLAN if fam.name == "infernal-01"), 1).tune
+    pitches = [note.degree for note in old.idea]
+    assert any(a == b for a, b in zip(pitches, pitches[1:]))                    # the riff of 11-17, its notes coming again
+
+
 def test_a_riff_spells_its_chords_in_short_notes_and_its_echo_is_thrown_at_each_phrases_end():
     # (2026-11-18: "the lead is still lame": a house lead is a riff, cells of three sixteenths, every note on the chord.)
     from freerock.studio import club
