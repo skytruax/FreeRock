@@ -992,6 +992,18 @@ Wing") and the way a singer phrases:
 - **A held note doubled a third below** now and then, as McCready and Hendrix voice them.
 - **It builds**: one short figure (da-da-DUM) a note higher each time, then **one quick run** (six
   notes) to just under the top.
+- **Its middle riffs, the way Angus Young plays** (`orchestra.ANGUS`, 2026-11-19: "couldnt you do more
+  complex riffs in the solo part like angus"). In a sixteen-bar solo two of his figures are drawn for
+  each solo, with a sung sentence between them, before the quick run: *the repeated note* (a high
+  note of the chord picked against the note under it, fast, held, then again a note higher); *the run
+  down in threes* (a note and the two under it, then the same from the next note down, a bar of it,
+  onto a chord tone held); *the trill* (hammered on and pulled off between a note and the one over it,
+  then a fall by step); *Chuck Berry's double stops* (two notes struck together on every beat and
+  off-beat, a note higher every two, the top pair held with its third under it). An eight-bar solo
+  trades its answer for one. The call, the peak and the way home stay sung, every sentence still ends
+  on a held note and a breath, and the notes stay in the key's five: fast notes are now about half,
+  where the sung solo of 18 November kept them under a fifth ("it shreds" was about the pedal and the
+  chirping bends, not about speed).
 - **The peak is the highest note of the chord under it, held two bars' worth of beats, and nothing
   before it goes as high**; then down by step, and the tune's opening once more, slower, to the
   key note held.

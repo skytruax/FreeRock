@@ -219,6 +219,10 @@ CHANGES = [
            "ringing chord) in place of the one walk up to the fifth every band song played 32 times; a long build climbs, "
            "drives or plays on",
            lambda p: p.style == "knight" and p.character.band and any(figure in ("riff", "chug") for figure in p.character.figures)),
+    Change("the solo riffs like Angus", datetime.datetime(2026, 11, 19, 10, 30), "",
+           "the solo's middle: two of Angus Young's figures (the repeated note, the run down in threes, the trill, double "
+           "stops) with a sung sentence between, then the run to the peak",
+           lambda p: p.style == "knight" and p.character.band and tuple(getattr(p.character, "strong", ()))[:1] == ("lead guitar",)),
 ]
 
 

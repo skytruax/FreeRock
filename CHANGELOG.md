@@ -3,6 +3,16 @@
 Newest first. Words in quotation marks are what was said while listening or playing, as typed or
 dictated, where it drove the change.
 
+## 2026-11-19, morning: the solo riffs like Angus
+
+"couldnt you do more complex riffs in the solo part like angus".
+
+- **The solo's middle riffs**: two of Angus Young's figures drawn for each solo (the repeated note
+  picked against the one under it, the run down in threes, the hammer-on trill, Chuck Berry's double
+  stops), a sung sentence between them, then the quick run to the peak. The call, the peak and the
+  way home stay sung, with a breath after every sentence (handbook 4.10). `orchestra.ANGUS` takes it
+  back to the sung solo alone.
+
 ## 2026-11-19, morning: three judges in the loop
 
 "find out if there are packages python or otherwise that are somehow subjective about music sounding

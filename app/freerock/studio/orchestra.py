@@ -1312,6 +1312,7 @@ LONG_HOLD = 9            # bars of one chord in a rise that make it a long one
 OPENS_OUT = True         # a heavy band's drummer opens the hat for the second theme, as its guitars ring (Take.drums)
 DIGS_IN = True           # a heavy band's long moment digs in at its half: the bass's octaves, the crash every other bar
 OWN_LICKS = True         # each band take answers its riff with fills of its own (Take.fills); False: the one run and walk-up of 11-17
+ANGUS = True             # the solo's middle riffs the way Angus Young plays them (guitar_solo); False: the sung solo of 11-18 alone
 # A riff band's fills (2026-11-19: "hearing that same guitar riff climb in too many knight songs", "cant you study acdc and do
 # different licks"). Every band song had answered its riff with the same two runs: the walk up to the fifth (b3, 4, b5, 5) at
 # the end of every fourth bar and the blues run down at the end of every second, about 32 times a song, in every song. From
@@ -2210,6 +2211,22 @@ def guitar_solo(rng: random.Random, tune: Line, bars: int, beats: float, pulse: 
     while len(middle) < phrases - 4:
         middle.insert(2, "carry")
     kinds = (["call", "answer"] + middle[:max(phrases - 4, 0)] + ["peak", "home"]) if phrases >= 4 else ["call", "home"]
+    if ANGUS and phrases >= 4:
+        # (2026-11-19: "couldnt you do more complex riffs in the solo part like angus".) The middle of the solo riffs: two of
+        # Angus Young's figures, drawn for this solo (the repeated note, the run down in threes, the trill, Chuck Berry's
+        # double stops), a sung sentence between them, and the quick run up to the peak; the call, the peak and the way
+        # home are still sung. A short solo trades its answer for one riff.
+        riffs = ["repeat", "sequence", "trill", "stops"]
+        rng.shuffle(riffs)
+        if phrases >= 8:
+            middle = [riffs[0], rng.choice(["carry", "double", "build"]), riffs[1], "run"]
+            while len(middle) < phrases - 4:
+                middle.insert(2, riffs[2 + len(middle) % 2])
+            kinds = ["call", "answer"] + middle[:phrases - 4] + ["peak", "home"]
+        elif phrases >= 6:
+            kinds = ["call", "answer", riffs[0]] + ["carry"] * (phrases - 6) + ["run", "peak", "home"]
+        else:
+            kinds = ["call", riffs[0], "peak", "home"]
     # The top of the solo: an octave and a note over where it began, as high as the guitar should go.
     top = up(base, 6)
     while top > high:
@@ -2267,6 +2284,51 @@ def guitar_solo(rng: random.Random, tune: Line, bars: int, beats: float, pulse: 
                         notes[place] = down(ceiling)          # turned back at the ceiling, not struck again
                 for (on, length), step in zip(figure, notes):
                     out.append((bar_at + on, length * 0.94, keep(step), min(weight + (0.06 if on == 0 else 0.0), 1.0)))
+        elif kind == "repeat":
+            # Angus's repeated note: a high note of the chord picked against the note under it, fast, then held; the second
+            # bar a note higher, half as long, and a note of the chord held into the breath.
+            high_note = tone(down(ceiling), at, ceiling)
+            count = max(int(round((beats - 1.0) / fast)), 2)
+            rhythm = [(each * fast, fast) for each in range(count)] + [(count * fast, beats - count * fast)]
+            steps = [high_note if each % 2 == 0 else down(high_note) for each in range(count)] + [high_note]
+            upper = min(tone(up(high_note), second, ceiling), ceiling)
+            again = max(int(round(beats / 2 / fast)), 2)
+            rhythm += [(beats + each * fast, fast) for each in range(again)] + [(beats + again * fast, 1.0)]
+            steps += [upper if each % 2 == 0 else down(upper) for each in range(again)] + [tone(upper, second + again * fast, ceiling)]
+            put(at, rhythm, steps, weight)
+        elif kind == "sequence":
+            # A run down the five in threes (a note and the two under it, then the same from the note under it), fast for a
+            # bar, onto a note of the chord held through the second.
+            head = tone(down(ceiling), at, ceiling)
+            count = max(int(round(beats / fast)), 3)
+            steps = []
+            while len(steps) < count:
+                steps += [head, down(head), down(head, 2)]
+                head = down(head)
+            steps = steps[:count]
+            rhythm = [(each * fast, fast) for each in range(count)] + [(beats, beats)]
+            steps.append(tone(down(steps[-1]), second, ceiling))
+            put(at, rhythm, steps, weight)
+        elif kind == "trill":
+            # A trill, hammered on and pulled off between a note of the chord and the note over it for a bar, then a fall by
+            # step onto the chord.
+            note = tone(down(ceiling, 2), at, ceiling)
+            count = max(int(round(beats / fast)), 2)
+            rhythm = [(each * fast, fast) for each in range(count)] + [(beats, 0.5), (beats + 0.5, 0.5), (beats + 1.0, 1.0)]
+            steps = [note if each % 2 == 0 else min(up(note), ceiling) for each in range(count)]
+            steps += [down(note), down(note, 2), tone(down(note, 3), second + 1.0, ceiling)]
+            put(at, rhythm, steps, weight)
+        elif kind == "stops":
+            # Double stops, as Chuck Berry played them and Angus plays them: two notes struck together on each beat and
+            # off-beat, a note higher every two, then the top pair held with its third under it.
+            under = tone(down(ceiling, 4), at, ceiling)
+            hits = max(int(round(beats / 0.5)), 2)
+            for each in range(hits):
+                note = min(up(under, each // 2), ceiling)
+                for pair, step in enumerate((note, down(note))):
+                    if not (at + each * 0.5 < at_peak and step > ceiling):
+                        out.append((at + each * 0.5, 0.42, keep(step), min(weight + (0.06 if each % 2 == 0 else 0.0), 1.0) * (1.0 if pair == 0 else 0.85)))
+            put(at, [(beats, beats)], [tone(min(up(under, hits // 2), ceiling), second, ceiling)], weight, double=True)
         elif kind == "run":
             # The one quick run, up to a note under the top, held; then down by step onto the chord.
             peak = ceiling

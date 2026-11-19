@@ -1155,7 +1155,11 @@ def test_a_bands_lead_guitar_takes_a_solo_at_the_summit():
             reached = max(reached, note.start + note.length)
         assert breaths >= period // 2 - 2, "sentences without a breath between them: %d" % breaths
         assert sum(note.length >= 1.5 for note in solo) >= period // 4
-        assert sum(note.length < 0.4 for note in solo) <= 0.2 * len(solo), "it shreds"
+        # (Since 2026-11-19, "couldnt you do more complex riffs in the solo part like angus": its middle riffs, fast, with the
+        # sung call, peak and way home around them; still not all quick notes.)
+        assert sum(note.length < 0.4 for note in solo) <= 0.65 * len(solo), "it only shreds"
+        assert any(len({note.pitch for note in solo[index:index + 6]}) <= 3 and all(note.length < 0.4 for note in solo[index:index + 6])
+                   for index in range(len(solo) - 6)), "no riff in it (a repeated note, a trill, a run in threes)"
         top = max(solo, key=lambda note: (note.pitch, -note.start))
         assert top.start >= first + 0.5 * period * beats and top.length >= 2.0
         assert (solo[-1].pitch - key.tonic) % 12 == 0 and solo[-1].length >= 1.5
@@ -1166,6 +1170,11 @@ def test_a_bands_lead_guitar_takes_a_solo_at_the_summit():
         assert not [note for note in twin.notes if first <= note.start < first + period * beats]      # no twin under the solo...
         assert [note for note in twin.notes if note.start >= first + period * beats]                   # ...and the twins after it
     import pytest as _pytest
+    with _pytest.MonkeyPatch.context() as patch:
+        patch.setattr(orchestra, "ANGUS", False)
+        sung = orchestra.Take(_family("anywhere-banner-war-2"), 1)
+    sung_solo = sung.voices["lead"]["lead guitar solo"].notes
+    assert sum(note.length < 0.4 for note in sung_solo) <= 0.2 * len(sung_solo)      # the sung solo of 11-18, as it was
     with _pytest.MonkeyPatch.context() as patch:
         patch.setattr(orchestra, "SOLOS", False)
         plain = orchestra.Take(_family("anywhere-banner-war-2"), 1)
