@@ -1330,8 +1330,8 @@ def test_a_band_take_answers_its_riff_with_fills_of_its_own():
 def test_an_orchestras_long_moment_goes_up_a_gear_every_second_phrase():
     # (2026-11-19, the boredom meter on Warcraft's third takes: the summits' drums one colour 19 to 23 bars, the rhythm and the
     # texture 16 to 24, Withered Circle's, Elder Boughs', Quiet Nave's, Twilight Song's.) In an orchestra's arrival or summit of
-    # sixteen bars or more, every second eight-bar phrase: the accompaniment's figure an octave up and the drums busier; then
-    # back (the lines over the pad raised too were 8 to 13 dB too bright at the top). A band is left alone, and GEARS takes it away.
+    # sixteen bars or more, every second eight-bar phrase: the accompaniment's figure an octave up, the drums busier, and the
+    # lines over the pad given to the horns an octave lower; then back (the lines raised were 8 to 13 dB too bright at the top). A band is left alone, and GEARS takes it away.
     def summit(name: str, take: int) -> tuple:
         made = orchestra.Take(_family(name), take)
         section, first, _, _ = next(span for span in made.spans if span[0].part == "summit")
@@ -1346,7 +1346,9 @@ def test_an_orchestras_long_moment_goes_up_a_gear_every_second_phrase():
     assert min(bar("rhythm", 10, plain_figure)) > min(bar("rhythm", 2, plain_figure))         # the second phrase up
     assert sorted(bar("rhythm", 18, plain_figure)) == sorted(bar("rhythm", 2, plain_figure))  # and the third back
     over = lambda name: name in ("violins", "violins seconds", "flute", "oboe")
-    assert bar("texture", 10, over) and sorted(bar("texture", 10, over)) == sorted(bar("texture", 2, over))   # the lines over the pad stay
+    horns = lambda name: name.startswith("horns")
+    assert bar("texture", 2, over) and not bar("texture", 10, over)                  # the second time round the horns...
+    assert bar("texture", 10, horns) and max(bar("texture", 10, horns)) < min(bar("texture", 2, over))   # ...take them, lower
     assert len(bar("drums", 10)) > len(bar("drums", 2))
     import pytest as _pytest
     with _pytest.MonkeyPatch.context() as patch:

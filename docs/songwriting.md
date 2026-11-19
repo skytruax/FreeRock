@@ -638,17 +638,18 @@ The big drums' ostinati are in 3.7.
 
 **A long moment goes up a gear every second phrase** (`orchestra.GEARS`, `Take.geared`, 2026-11-19).
 In an arrival or a summit of sixteen bars or more, every second eight-bar phrase has the
-accompaniment's figure an octave up and the drums a step busier (`BUSIER_STROKES`: a stroke on the bar goes to the strong
+accompaniment's figure an octave up, the two lines over the pad given to the horns an octave lower (a
+warm call the second time round), and the drums a step busier (`BUSIER_STROKES`: a stroke on the bar goes to the strong
 beats, the strong beats to every beat, every beat to the eighths) with the cymbal twice as often;
 the next phrase comes back down. *The boredom meter had heard Warcraft's summits keep one colour for
 16 to 24 bars in the drums, the accompaniment and the texture (Withered Circle, Elder Boughs, Quiet
 Nave, Twilight Song): an orchestra's climax that plays its eight bars the same way three times.* The
 two lines over the pad were raised as well, first an octave, then a fifth: either way they put 8 to 13
 dB on the texture's top between 5 and 10 kHz in those bars (Withered Circle), the texture 7 dB over
-the liked stems at 7 kHz across the whole take, so they stay where they are; the texture's own way to
-move through a long moment is still to be found. Measured on its demos, the accompaniment's octave
-moved toward the liked stems and the drums stayed within 0.2 dB; the meter's runs in the summits went
-from 16-24 bars to 9-12. A band's moments go their own way (4.9).
+the liked stems at 7 kHz across the whole take; the horns, an octave under, brought the texture
+toward the liked stems instead (226 Hz from -3.2 to -0.2 dB) with its top within 0.5 dB. Measured on
+the demos, the accompaniment's octave moved toward the liked stems and the drums stayed within 0.2 dB;
+the meter's runs in Withered Circle's summit went from 20-23 bars to 7-15 in every channel. A band's moments go their own way (4.9).
 
 ### 3.5 Pads with moving inner voices
 
@@ -1469,7 +1470,11 @@ instrument alone, as the bare recording, as it was and as it is now, with the ea
 ### 7.7 The boredom meter and the judge
 
 `tools/boredom.py` gives each channel of a take a fingerprint for every bar: its shape across the
-octaves, its loudness and the figure its top strikes in sixteen steps. It reports the longest
+octaves, its loudness and the figure its top strikes in sixteen steps. Its colour (a cepstrum of the
+bar) has a top band of its own since 2026-11-19: the share of the bar above 4 kHz, which moving by
+more than 3 dB ends a run; a drummer's turn from the hat to the ride under a kick on every beat had
+hardly moved the cepstrum (House's Moonwell I: 44 bars of one colour before, 16 after). A heavy
+band's cymbal turns still move its top under 3 dB: they are too quiet in the mix to tell apart. It reports the longest
 stretch that does not move, and flags 16 bars or more. Read a flag against the sheet: a close that
 peels its groove away a quiet layer at a time reads as unchanged, and a part can change its notes
 and still sound the same (0.4).

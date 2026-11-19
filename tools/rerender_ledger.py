@@ -225,7 +225,7 @@ CHANGES = [
            lambda p: p.style == "knight" and p.character.band and tuple(getattr(p.character, "strong", ()))[:1] == ("lead guitar",)),
     Change("an orchestra's long moment goes up a gear", datetime.datetime(2026, 11, 19, 12, 0), "",
            "every second eight-bar phrase of an arrival or summit of sixteen bars or more: the accompaniment an octave up, "
-           "the drums busier, the cymbal twice as often (16 to 24 bars of one colour)",
+           "the lines over the pad to the horns, the drums busier, the cymbal twice as often (16 to 24 bars of one colour)",
            lambda p: p.style == "warcraft"),
 ]
 

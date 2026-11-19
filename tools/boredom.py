@@ -83,7 +83,11 @@ def timbres(audio: np.ndarray, rate: int, bar_frames: float, bars: int) -> list[
             continue
         spectrum = sum(np.abs(np.fft.rfft(piece[start:start + size] * window)) ** 2 for start in range(0, len(piece) - size, size // 2))
         cepstrum = basis @ (10 * np.log10(bank @ spectrum + 1e-20))
-        out.append((cepstrum[1:13] / 32.0, loud))
+        # The top's share of the bar, in dB (2026-11-19: the drummer's turn from the hat to the ride or the open hat, under a
+        # kick on every beat, hardly moves the cepstrum, which follows the whole spectrum's tilt; King's Oath's and House's
+        # drums read one colour 30 to 68 bars across turns the ear hears).
+        top = 10 * np.log10(float(spectrum[freqs >= 4000.0].sum()) / (float(spectrum.sum()) + 1e-20) + 1e-20)
+        out.append((cepstrum[1:13] / 32.0, loud, None, top))
     return out
 
 
@@ -107,10 +111,11 @@ def stretches(prints: list[tuple[np.ndarray, float] | None], still: float) -> li
         moved = float(np.sqrt(np.mean((here[0] - shape) ** 2)))
         most = float(np.max(np.abs(here[0] - shape)[sounding])) if sounding.any() else 0.0
         figure = 0.0
-        if len(here) > 2 and len(prints[start]) > 2:
+        if len(here) > 2 and len(prints[start]) > 2 and here[2] is not None and prints[start][2] is not None:
             a, b = here[2], prints[start][2]
             figure = 1.0 - float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b) + 1e-20))
-        if moved > still or most > 2.0 * still or abs(here[1] - loud) > still or figure > 0.1:
+        top = abs(here[3] - prints[start][3]) if len(here) > 3 and len(prints[start]) > 3 else 0.0
+        if moved > still or most > 2.0 * still or abs(here[1] - loud) > still or figure > 0.1 or top > 2.0 * still:
             found.append((start, bar - start))
             start = bar
     return found

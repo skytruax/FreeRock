@@ -2990,10 +2990,12 @@ class Take:
                 above = (("oboe", ""), ("flute", "")) if busy else (("violins", " seconds"), ("violins", ""))
                 for bar, chord in enumerate(chords):
                     at = first + bar * beats
-                    # (Not raised in a long moment's geared phrase, `geared`: an octave up or a fifth, the lines over the pad
-                    # put 8 to 13 dB on the texture's top from 5 to 10 kHz in those bars, Withered Circle's, and the texture
-                    # 7 dB over the liked stems at 7 kHz across the whole take: too bright for the room.)
-                    for (player, tag), pitch in zip(above, voiced(key, chord, None, 2, centre + 14)):
+                    # In a long moment's geared phrase (`geared`) the horns take the two lines, an octave lower: a warm call
+                    # the second time round, a colour of its own. (Raised instead, an octave or a fifth, the violins put 8 to
+                    # 13 dB on the texture's top from 5 to 10 kHz in those bars, Withered Circle's: too bright for the room.)
+                    horns = GEARS and self.geared(part, bars, bar)
+                    players = (("horns", ""), ("horns", " seconds")) if horns else above
+                    for (player, tag), pitch in zip(players, voiced(key, chord, None, 2, centre + (2 if horns else 14))):
                         self.put("texture", player, at, beats, pitch, self.hard(0.8 if part == "summit" else 0.65), tag=tag)
                     if part == "summit" and "choir" in ch.pads + ch.strong:
                         for pitch in voiced(key, chord, None, 3, 62):
