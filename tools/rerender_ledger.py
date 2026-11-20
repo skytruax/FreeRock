@@ -25,7 +25,7 @@ from typing import Callable
 import functools
 
 from freerock.studio import build, house
-from freerock.studio.orchestra import DANCE_GROOVES, DELICATE, INSTRUMENTS, LONG_HOLD, held_runs
+from freerock.studio.orchestra import DANCE_GROOVES, DELICATE, FIGHTS, INSTRUMENTS, LONG_HOLD, held_runs
 
 ROOT = Path(__file__).resolve().parent.parent
 PASSES = ROOT / "var" / "passes"
@@ -262,6 +262,11 @@ CHANGES = [
            "a groove that keeps time on the ride turns to the closed hat for its second sixteen bars of a theme (it had had "
            "nowhere to turn)",
            lambda p: p.style == "knight" and p.character.band),
+    Change("a band's valley keeps time, its arrival goes up a gear, a fiddle's solo sings lower", datetime.datetime(2026, 11, 19, 21, 45),
+           "", "a walking band's valley keeps time softly on the hat, the bass drum and the side stick (the drummer had stopped); "
+           "every second phrase of a light band's arrival of sixteen bars or more an octave up the neck (it had played the same "
+           "notes all through); a fiddle's solo keeps below E6 and a mandolin's below D6 (a fiddle's had reached C7)",
+           lambda p: p.style == "knight" and p.character.band and p.character.role not in FIGHTS),
     Change("an organ's or a harp's bass on its pedals", datetime.datetime(2026, 11, 19, 21, 15), "",
            "no bass line is centred above A2: an organ plays its bass on the pedals and a harp on its low strings (they had "
            "played it where they sit as a pad and a pluck, the cathedral's organ around A3, the moonwell's harp around E4)",

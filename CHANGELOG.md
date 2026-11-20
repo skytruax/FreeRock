@@ -3,6 +3,27 @@
 Newest first. Words in quotation marks are what was said while listening or playing, as typed or
 dictated, where it drove the change.
 
+## 2026-11-19, night: a band's valley keeps time; a light band goes up a gear; a fiddle's solo sings lower
+
+- **A walking band's valley keeps time** (handbook 4.5, `orchestra.VALLEY_KEEPS_TIME`): the closed hat on the beat
+  and the bass drum on the bar under the single player, and from the valley's second half the side stick on the
+  backbeat. The drummer had stopped for the whole valley, and the judges scored Knight's valleys lowest of all its
+  parts (TuneJury 0.36 with no brief, Audiobox's enjoyment 6.34). On the two takes heard before and after, the
+  valley with no brief went +0.08 to +1.05 (Sea Raiders V) and +0.40 to +0.87 (Lazy River Swing V), with the brief
+  +0.28 to +0.59 and +0.26 to +0.39, its enjoyment up 0.35 and 0.09: the best-liked part of Sea Raiders where it
+  had been among the weakest.
+- **A light band's long arrival goes up a gear** (handbook 4.9, `orchestra.LIGHT_GEARS`, `Take.band_geared`): every
+  second eight-bar phrase of an arrival of sixteen bars or more, the riff up the neck an octave and the other figure
+  with it. Sea Raiders V's rhythm had played the same notes in every eight bars of its 40-bar arrival, Anchor Dog V's
+  and Lazy River Swing V's the same; the meter no longer finds the arrival one colour. The judges: the arrival level
+  or a little up.
+- **A fiddle's or a mandolin's solo sings below its top** (handbook 4.10, `orchestra.SOLO_TOP`): a solo climbs an
+  octave and a note over where the tune begins, and a fiddle's tune begins high; Lazy River Swing V's fiddle solo
+  sat F5 to C7, now F4 to C6 (E6 the fiddle's top, D6 the mandolin's). Its summit: TuneJury +0.40 to +0.46 with the
+  brief, +0.71 to +0.86 without.
+- The whole takes: TuneJury with no brief +0.20 (Sea Raiders V) and +0.11 (Lazy River Swing V), SongEval and
+  Audiobox level. Every walking band take is made again for it (the ledger).
+
 ## 2026-11-19, night: an organ's bass on its pedals; House's rise heard with a pulse
 
 - **No bass line is centred above A2** (handbook 3.6, `orchestra.BASS_TOP`): a bass line was centred on its
