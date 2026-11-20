@@ -1768,3 +1768,20 @@ def test_a_fiddle_or_a_mandolin_solo_sings_below_its_top():
                         found += 1
                         assert max(note.pitch for note in voice.notes) <= orchestra.SOLO_TOP[player], (name, seed, number, player)
     assert found
+
+
+def test_a_riff_that_is_the_second_figure_goes_up_the_neck_too():
+    # (2026-11-19, the study: Kinsman's Ballad VI's rhythm guitar, its riff the arrival's second figure, played 53 in every
+    # phrase of its geared arrival: a riff goes up the neck only by `up`, and the second figure's raise did not reach it.)
+    take = orchestra.Take(orchestra.family(character_called("hill country"), 8, "f", "F"), 1)
+    assert (take.figure, take.figure_b) == ("strum", "riff") and take.ch.band and not take.heavy
+    first, last = spans_of(take)["arrival"]
+    beats = take.fam.beats
+    assert (last - first) / beats >= 16
+
+    def middle(phrase: int) -> int:
+        a = first + phrase * orchestra.GEAR_BARS * beats
+        pitches = sorted(note.pitch for note in take.voices["rhythm"]["rhythm guitar"].notes
+                         if a - 1e-6 <= note.start < a + orchestra.GEAR_BARS * beats - 1e-6)
+        return pitches[len(pitches) // 2]
+    assert middle(1) - middle(0) >= 9

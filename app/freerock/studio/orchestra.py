@@ -3654,7 +3654,10 @@ class Take:
                     if with_name != name or with_figure != figure:
                         apart = abs(INSTRUMENTS[with_name].home - INSTRUMENTS[name].home)
                         up = 12 if (with_name == name or apart < 7 or geared_band) else 0
-                        layer(with_name, with_figure, not second, up, 0.72, key, chord, bar, bar_at, level, max(density, 0.5))
+                        # (A riff keeps its own register and goes up the neck only by `up`: in a geared phrase a riff that
+                        # is the second figure goes up too, 2026-11-19, Kinsman's Ballad VI's rhythm guitar 53 all through.)
+                        layer(with_name, with_figure, not second, up, 0.72, key, chord, bar, bar_at, level, max(density, 0.5),
+                              up=12 if geared_band and with_figure in ("riff", "chug") else 0)
                 if part in ("arrival", "summit") and self.heavy and not ch.band:
                     # The brass marks the chord: on the bar at the first arrival, on every strong beat
                     # at the summit. A line each for the trombones, the horns and the trumpets;

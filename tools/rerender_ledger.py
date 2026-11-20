@@ -262,6 +262,10 @@ CHANGES = [
            "a groove that keeps time on the ride turns to the closed hat for its second sixteen bars of a theme (it had had "
            "nowhere to turn)",
            lambda p: p.style == "knight" and p.character.band),
+    Change("a light band's second-figure riff goes up the neck too", datetime.datetime(2026, 11, 19, 22, 52), "",
+           "in a light band's geared phrase a riff that is the arrival's second figure goes up the neck with the rest (it had "
+           "stayed put: a riff moves only by its own up)",
+           lambda p: p.style == "knight" and p.character.band and p.character.role not in FIGHTS and p.character.weight < 0.8),
     Change("a band's valley keeps time, its arrival goes up a gear, a fiddle's solo sings lower", datetime.datetime(2026, 11, 19, 21, 45),
            "", "a walking band's valley keeps time softly on the hat, the bass drum and the side stick (the drummer had stopped); "
            "every second phrase of a light band's arrival of sixteen bars or more an octave up the neck (it had played the same "

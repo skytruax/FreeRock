@@ -23,6 +23,9 @@ dictated, where it drove the change.
   brief, +0.71 to +0.86 without.
 - The whole takes: TuneJury with no brief +0.20 (Sea Raiders V) and +0.11 (Lazy River Swing V), SongEval and
   Audiobox level. Every walking band take is made again for it (the ledger).
+- **The gear reaches a riff that is the second figure** (22:50): a riff goes up the neck only by its `up`, and the
+  second figure's raise had come as the plain raise a riff ignores, so where the riff was the arrival's second
+  figure it stayed put (Kinsman's Ballad VI's rhythm guitar 53 in every phrase). Now it climbs with the rest.
 
 ## 2026-11-19, night: an organ's bass on its pedals; House's rise heard with a pulse
 
