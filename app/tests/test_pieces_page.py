@@ -57,7 +57,7 @@ async def test_the_page_plays_a_piece_a_boss_cuts_in_and_the_piece_is_picked_up_
                                  if s.get("forever") and (s.get("piece") or {}).get("id") == piece_id and s.get("playing")), None)
 
         status = await until(in_piece(walk), "the page to start the piece")
-        assert status["bucket"] == "knight/duskwood" and status["context"] == "running" and status["pieces"] == 2
+        assert status["bucket"] == "knight/all" and status["context"] == "running" and status["pieces"] == 2
         assert status["piece"]["title"] == "Duskwood 1: Verse" and status["piece"]["of"] == pytest.approx(80.0)
         assert set(status["playing"]) >= {"rhythm", "drums"}, "the band plays though only the tune and the drums are asked for"
         assert not [note for note in conductor.notes if "problem" in note], conductor.notes

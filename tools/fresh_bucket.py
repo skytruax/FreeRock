@@ -2,7 +2,7 @@
 
     cd app && uv run --no-sync python ../tools/fresh_bucket.py warcraft          (the server must be stopped)
     cd app && uv run --no-sync python ../tools/fresh_bucket.py knight --keep-style
-    cd app && uv run --no-sync python ../tools/fresh_bucket.py house --zone "Elwynn Forest"   (a style with no bucket yet)
+    cd app && uv run --no-sync python ../tools/fresh_bucket.py house --zone "Elwynn Forest"   (a style with no bucket yet: begun at that zone's tempo and key)
 
 When the way the studio's tracks are played changes for the better, the bucket should hold
 only the new ones: this takes every written piece whose source begins with "<style>/" out of
@@ -29,7 +29,8 @@ def main(argv: list[str]) -> int:
     argv = [each for each in argv if each != "--keep-style"]
     zone = None
     if "--zone" in argv:
-        # A style with no bucket yet (the drive was cleared, 2026-11-16, night) begins one, named for this zone.
+        # A style with no bucket yet (the drive was cleared, 2026-11-16, night) begins one at this zone's tempo and
+        # key. It is named "all" all the same (forever.ALL): the song goes wherever the player goes.
         at = argv.index("--zone")
         zone = argv[at + 1]
         argv = argv[:at] + argv[at + 2:]

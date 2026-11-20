@@ -30,13 +30,13 @@ def server_is_up(port: int, host: str = "127.0.0.1") -> bool:
 
 
 def home_bucket(var_dir: Path, style: str, zone: str | None = None) -> forever.Bucket:
-    """The one bucket a style plays from: the one it has, or a new one begun in `zone` if it has
-    none yet."""
+    """The one bucket a style plays from: the one it has, or a new one (named "all", at the tempo
+    and key of `zone`) if it has none yet."""
     if style not in composer.GENRES:
         raise ValueError("%r is not a style; the styles are %s" % (style, ", ".join(composer.GENRES)))
     bucket = forever.Buckets(Path(var_dir) / "buckets").home(style, zone)
     if bucket is None:
-        raise ValueError("The %s style has no bucket yet. Say where to begin one: --zone \"Duskwood\""
+        raise ValueError("The %s style has no bucket yet. Say which place's tempo and key to begin one at: --zone \"Duskwood\""
                          % composer.GENRES[style]["label"])
     return bucket
 

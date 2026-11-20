@@ -212,7 +212,8 @@ class Clip:
 
 class Bucket:
     """One style's music on disk: its written pieces, each kept as the stretches of its parts.
-    It is named for the place it was begun in."""
+    A style's bucket is named ALL, since its song goes wherever the player goes. One begun before
+    2026-11-20 was named for the zone it was begun in, and is played just the same."""
 
     def __init__(self, root: Path, zone: str, genre: str, bpm: int, tonic: str, book: PlayBook | None = None):
         self.root, self.zone, self.genre, self.bpm, self.tonic = Path(root), zone, genre, bpm, tonic
@@ -516,8 +517,11 @@ class Bucket:
                 "piece": clip.piece, "order": clip.order, "post": clip.post, "plays": clip.plays}
 
 
+ALL = "all"   # a style's bucket: one song for the whole world, so named for no zone ("fix it", 2026-11-20)
+
+
 class Buckets:
-    """Every bucket, by place and style."""
+    """Every bucket, by style."""
 
     def __init__(self, root: Path):
         self.root = Path(root)
@@ -527,10 +531,11 @@ class Buckets:
         self._home: dict[str, Bucket] = {}       # the one bucket each style plays from
 
     def get(self, place_name: str | None, genre: str) -> Bucket:
-        profile = composer.for_genre(atlas.profile_for(place_name), genre)
-        key = "%s/%s" % (genre, profile.key)
+        """The style's bucket, named ALL: begun at the tempo and key of `place_name` if it has none yet."""
+        key = "%s/%s" % (genre, ALL)
         if key not in self._have:
-            self._have[key] = Bucket(self.root, profile.key, genre, profile.bpm, profile.tonic, book=self.book)
+            profile = composer.for_genre(atlas.profile_for(place_name), genre)
+            self._have[key] = Bucket(self.root, ALL, genre, profile.bpm, profile.tonic, book=self.book)
             self._have[key].sync_book()
         return self._have[key]
 
@@ -538,8 +543,9 @@ class Buckets:
         """The bucket a style's song is played from, wherever the player goes.
 
         A style has one bucket: the song does not start again at a zone's border. It is the
-        bucket on disk with the most in play for that style, or a new one for `place_name` if the
-        style has none yet; None if it has none and the place is not known yet."""
+        bucket on disk with the most in play for that style, or a new one (named ALL, at the tempo
+        and key of `place_name`) if the style has none yet; None if it has none and the place is
+        not known yet."""
         if genre in self._home:
             return self._home[genre]
         best = None
@@ -566,5 +572,5 @@ class Buckets:
         return self._have[key]
 
 
-__all__ = ["Bucket", "Buckets", "Clip", "measure", "mix", "form", "cycle_bars", "CHANNELS", "TIERS", "STORY",
+__all__ = ["ALL", "Bucket", "Buckets", "Clip", "measure", "mix", "form", "cycle_bars", "CHANNELS", "TIERS", "STORY",
            "PIECE_LEVEL"]

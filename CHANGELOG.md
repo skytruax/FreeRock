@@ -3,6 +3,18 @@
 Newest first. Words in quotation marks are what was said while listening or playing, as typed or
 dictated, where it drove the change.
 
+## 2026-11-20, morning: a style's bucket is named for no place
+
+- **A style's bucket is `all`** (`forever.ALL`; "why are all the buckets in elywn-forest folders" ... "fix it"). A
+  style has had one bucket since the song stopped starting again at a zone's border, but it kept the name of the
+  zone it was begun in, so Knight's, House's and Warcraft's were all `elwynn-forest`, which said nothing true about
+  them. A style's first bucket is now named `all`, still begun at the tempo and key of the place the player is in
+  (`--zone` says which place for `fresh_bucket.py` and `freerock pieces`). Knight's and House's folders on the
+  drive were renamed this morning with the server stopped, their `bucket.json` set to match; Warcraft's is renamed
+  tonight before its build (its morning build was stopped at 10:26 so that the game could be played, and its
+  bucket went back as it was). The play history keys by style and track, so nothing played was lost; a bucket on a
+  drive from before is played just the same.
+
 ## 2026-11-20, night: a solo peaks where it can; the meter hears the cymbals; a hang between two checkouts mended
 
 - **A solo's peak is the chord's note nearest its top** (handbook 4.10, `orchestra.SOLO_PEAK_NEAR_TOP`): the peak, a

@@ -174,7 +174,7 @@ async def test_the_music_status_tells_of_the_pieces_and_the_one_playing(tmp_path
         assert any("1 written pieces in its bucket" in note for note in conductor.notes)
         # The audio of a part is there to be fetched whole: its stretch and what the music went on to.
         part = next(clip for clip in described["clips"] if clip.get("piece") == piece and clip["order"] == 0)
-        response = await client.get("/phrase/knight/duskwood/" + part["id"])
+        response = await client.get("/phrase/knight/all/" + part["id"])
         assert response.status == 200 and len(await response.read()) == (part["frames"] + part["post"]) * 4
         said = {"id": piece, "title": "The Long Dark", "story": "theme", "track": "", "role": "wander", "at": 3.0, "of": 12.0}
         await socket.send_str(json.dumps({"type": "status", "forever": True, "started": True, "context": "running",

@@ -89,9 +89,9 @@ def test_staged_tracks_are_put_in_the_styles_bucket_once(var, capsys):
     assert cli.main(["pieces", "add", "warcraft", "--zone", "Duskwood"]) == 0
     out = capsys.readouterr().out
     assert "added     haunted-01/1" in out and "added     haunted-01/2" in out
-    assert "2 staged tracks for Warcraft: 2 put in warcraft/duskwood now, 0 were there already." in out
+    assert "2 staged tracks for Warcraft: 2 put in warcraft/all now, 0 were there already." in out
     assert "4 written pieces in 2 tracks" in out and "haunted 4" in out and "1 families" in out
-    bucket = forever.Bucket(var / "buckets", "duskwood", "warcraft", 80, "D minor")
+    bucket = forever.Bucket(var / "buckets", "all", "warcraft", 80, "D minor")
     first = [piece for piece in bucket.pieces.values() if piece["track"] == "warcraft/haunted-01/1"]
     opening, moment = sorted(first, key=lambda piece: piece["story"] != "open")
     assert (opening["story"], moment["story"], moment["floor"], opening["floor"]) == ("open", "moment", {"drums": 0.7}, {})
@@ -106,8 +106,8 @@ def test_staged_tracks_are_put_in_the_styles_bucket_once(var, capsys):
     assert (lead.frames, lead.post) == (2 * 2 * RATE, int(forever.POST_S * RATE)), "six seconds of the seven that follow"
     # A second time, nothing is added.
     assert cli.main(["pieces", "add", "warcraft"]) == 0
-    assert "0 put in warcraft/duskwood now, 2 were there already" in capsys.readouterr().out
-    assert len(forever.Bucket(var / "buckets", "duskwood", "warcraft", 80, "D minor").pieces) == 4
+    assert "0 put in warcraft/all now, 2 were there already" in capsys.readouterr().out
+    assert len(forever.Bucket(var / "buckets", "all", "warcraft", 80, "D minor").pieces) == 4
     # The list says the same, and taking a take out leaves the other.
     assert cli.main(["pieces", "list", "warcraft"]) == 0
     assert "4 written pieces in 2 tracks" in capsys.readouterr().out
@@ -124,7 +124,7 @@ def test_a_staged_track_that_is_not_fit_is_named_and_the_rest_go_in(var, capsys)
     assert cli.main(["pieces", "add", "warcraft", "--zone", "Duskwood"]) == 1
     said = capsys.readouterr()
     assert "NOT PUT IN haunted-01/1" in said.err and "44100" in said.err
-    assert "1 put in warcraft/duskwood now" in said.out and "1 could not be put in" in said.out
+    assert "1 put in warcraft/all now" in said.out and "1 could not be put in" in said.out
 
 
 def test_nothing_is_written_while_the_server_runs_and_a_style_needs_a_bucket(var, monkeypatch, capsys):

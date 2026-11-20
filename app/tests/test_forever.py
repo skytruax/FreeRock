@@ -145,27 +145,33 @@ def test_a_bucket_written_in_the_days_of_loose_phrases_is_read_without_them(tmp_
 def test_a_style_has_one_bucket_wherever_the_player_goes(tmp_path):
     buckets = forever.Buckets(tmp_path / "buckets")
     assert buckets.home("knight", None) is None, "no bucket yet and no place to begin one in"
-    # It is begun where the player first is, at that place's tempo and key.
+    # It is begun where the player first is, at that place's tempo and key, and named for no place
+    # ("why are all the buckets in elywn-forest folders" ... "fix it", 2026-11-20).
     home = buckets.home("knight", "Duskwood")
-    assert (home.key, home.bpm, home.tonic) == ("knight/duskwood", 80, "D minor")
+    assert (home.key, home.bpm, home.tonic) == ("knight/all", 80, "D minor")
     assert buckets.home("knight", "Westfall") is home and buckets.home("knight", None) is home
-    assert buckets.home("house", "Westfall").key == "house/westfall"
-    # Of the buckets a style already has on disk, the one with the most to play is its bucket.
-    stock(buckets.get("Elwynn Forest", "warcraft"), channels=("drums", "bass"))
-    stock(buckets.get("Duskwood", "warcraft"))
+    assert buckets.home("house", "Westfall").key == "house/all"
+    # Of the buckets a style already has on disk (some begun before then, named for zones), the one
+    # with the most to play is its bucket.
+    stock(forever.Bucket(tmp_path / "buckets", "elwynn-forest", "warcraft", 120, "G major"), channels=("drums", "bass"))
+    stock(forever.Bucket(tmp_path / "buckets", "duskwood", "warcraft", 80, "D minor"))
     later = forever.Buckets(tmp_path / "buckets")
     assert later.home("warcraft", "Westfall").key == "warcraft/duskwood"
 
 
-def test_buckets_are_kept_by_place_and_style(tmp_path):
+def test_buckets_are_kept_by_style(tmp_path):
     buckets = forever.Buckets(tmp_path / "buckets")
     knight = buckets.get("Duskwood", "knight")
     house = buckets.get("Duskwood", "house")
-    assert knight is buckets.get("Duskwood", "knight")
-    assert (knight.key, knight.bpm, knight.tonic) == ("knight/duskwood", 80, "D minor")
-    assert (house.key, house.bpm, house.tonic) == ("house/duskwood", 110, "D major")
+    assert knight is buckets.get("Duskwood", "knight") is buckets.get("Westfall", "knight")
+    assert (knight.key, knight.bpm, knight.tonic) == ("knight/all", 80, "D minor")
+    assert (house.key, house.bpm, house.tonic) == ("house/all", 110, "D major")
+    assert knight.folder == tmp_path / "buckets" / "knight" / forever.ALL
     stock(knight, channels=("texture",))
-    assert forever.Buckets(tmp_path / "buckets").by_key("knight/duskwood").clips[0].channel == "texture"
+    again = forever.Buckets(tmp_path / "buckets")
+    assert again.by_key("knight/all").clips[0].channel == "texture"
+    # Kept at the tempo and key it was begun at, wherever it is asked for from next.
+    assert (again.get("Westfall", "knight").bpm, again.get("Westfall", "knight").tonic) == (80, "D minor")
     with pytest.raises(KeyError):
         forever.Buckets(tmp_path / "buckets").by_key("knight/nowhere")
 

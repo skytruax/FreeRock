@@ -61,7 +61,7 @@ async def test_the_page_plays_the_forever_song_from_a_bucket(tmp_path):
             return next((s for s in conductor.statuses.values() if s.get("forever") and s.get("playing")), None)
 
         status = await until(playing, "the page to start the forever song")
-        assert status["bucket"] == "knight/duskwood" and status["context"] == "running" and status["started"]
+        assert status["bucket"] == "knight/all" and status["context"] == "running" and status["started"]
         assert {"texture", "lead"} <= set(status["playing"])
         assert not [note for note in conductor.notes if "problem" in note], conductor.notes
 

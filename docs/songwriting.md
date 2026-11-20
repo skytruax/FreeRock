@@ -1783,7 +1783,8 @@ anything answers on port 8765. A bucket is rebuilt only with the game off, and n
 1. Check the game is off: `curl -s http://127.0.0.1:8765/api/snapshot`; `seconds_since_read` under
    120 means it is being played.
 2. Keep the bucket as it is: `cp -al var/buckets/<style>/<bucket> var/rejected/bucket-<style>-<date>`
-   (hard links: instant, no room taken). A style has one bucket, named after the zone it was begun in.
+   (hard links: instant, no room taken). A style has one bucket, `all`: its song goes wherever the player
+   goes. (Until 2026-11-20 a bucket was named after the zone it was begun in, which said nothing true about it.)
 3. Stop the server by the PID that listens on the port: `ss -ltnpH "sport = :8765"`, then `kill
    <pid>`; wait until `kill -0 <pid>` fails, and `kill -9` after 3 s. Never `pkill -f`: the pattern
    matches the shell that types it.
