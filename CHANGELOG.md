@@ -8,8 +8,9 @@ dictated, where it drove the change.
 - **House's rise keeps the kick until its build** (handbook 2.3 and 5.5, `house.RISE_KICK`): the four on the floor stays
   through a rise and goes for its last eight bars, the roll and the sweep alone into the drop. The rises had been House's
   lowest part (TuneJury -0.25 with no brief over sixteen takes). On Harbour Lights II both rises rose, TuneJury with the
-  House brief 0.23 to 0.50 and 0.22 to 0.50, with none 0.05 to 0.67 and 0.06 to 0.58, enjoyment level. A calm rise (an
-  inn, a camp, a night) has no kick, as before.
+  House brief 0.23 to 0.50 and 0.22 to 0.50, with none 0.05 to 0.67 and 0.06 to 0.58, enjoyment level; on The Long Watch
+  II, judged after the merge, further: 0.33 to 0.97 and 0.30 to 0.77, with none -0.33 to 0.91 and -0.25 to 0.75,
+  enjoyment level. A calm rise (an inn, a camp, a night) has no kick, as before.
 - **A calm rise has no closed hat** (`house.RISE_CLOSED_HAT` now for the walking, the towns, the storms and the fights):
   House's calm takes made again this afternoon with it had their rises up to their moments (Embers under Stars I level,
   Cool of the Evening II a dB over, flagged by its render), so an inn's rise is the tune over a shaker stirring again.

@@ -1334,7 +1334,8 @@ its build-up and takes it away only for the last bars before the drop. A rise no
 (`house.RISE_KICK`, 2026-11-20), everything but the drums ducking under it as in a groove, and the build goes
 without it, so the drop's kick lands after its absence. On Harbour Lights II both rises rose, TuneJury with the
 House brief 0.23 to 0.50 and 0.22 to 0.50, with none 0.05 to 0.67 and 0.06 to 0.58, Audiobox's enjoyment level
-(7.28 to 7.31, 7.35 to 7.38). A calm rise keeps neither the kick nor, now, the closed hat: House's calm takes
+(7.28 to 7.31, 7.35 to 7.38); on The Long Watch II further, 0.33 to 0.97 and 0.30 to 0.77 with the brief, -0.33 to
+0.91 and -0.25 to 0.75 with none, enjoyment level (7.29 to 7.33, 7.28 to 7.25). A calm rise keeps neither the kick nor, now, the closed hat: House's calm takes
 made again with the hat had their rises up to their moments (Embers under Stars I level with it, Cool of the
 Evening II a dB over it, the render's own check), so an inn's rise is the tune over a shaker stirring, as it was.
 
