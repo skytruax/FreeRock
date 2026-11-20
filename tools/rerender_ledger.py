@@ -262,6 +262,10 @@ CHANGES = [
            "a groove that keeps time on the ride turns to the closed hat for its second sixteen bars of a theme (it had had "
            "nowhere to turn)",
            lambda p: p.style == "knight" and p.character.band),
+    Change("a solo that riffs more like Angus", datetime.datetime(2026, 11, 20, 0, 14), "",
+           "the solo's figures only Angus's own, four of its eight sentences riffing, each lick played again a note higher "
+           "before it lands (it had riffed two or three sentences, a bar each)",
+           lambda p: p.style == "knight" and p.character.band),
     Change("a light band's second-figure riff goes up the neck too", datetime.datetime(2026, 11, 19, 22, 52), "",
            "in a light band's geared phrase a riff that is the arrival's second figure goes up the neck with the rest (it had "
            "stayed put: a riff moves only by its own up)",

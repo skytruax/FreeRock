@@ -1349,6 +1349,13 @@ BUSIER_STROKES = {"down": "groups", "groups": "pulses", "back": "pulses", "mid":
 CYMBALS = ("crash", "crash2", "ting")
 OWN_LICKS = True         # each band take answers its riff with fills of its own (Take.fills); False: the one run and walk-up of 11-17
 ANGUS = True             # the solo's middle riffs the way Angus Young plays them (guitar_solo); False: the sung solo of 11-18 alone
+# (2026-11-19, 23:00: "gimme a better angus", "lets go".) The solo riffs more and longer, as Angus does: its figures only his
+# own (the repeated note, the trill, the pedal lick, the cascade, the run in threes, Chuck Berry's double stops; no octaves,
+# echo, stutter or slide), four of a sixteen-bar solo's eight sentences, and each riff carried through its second bar a note
+# higher, the lick and the lick again before it lands, where it had played one bar and held the second. The tune's call,
+# the run, the peak and the way home are still sung. False: the solos of 14:03.
+ANGUS_MORE = True
+ANGUS_FIGURES = ("repeat", "trill", "pedal", "cascade", "sequence", "stops")
 RIFF_MOVES = True        # a band take's riff moves inside the bar, its own way (Take.riff_move); False: one chord struck in rhythm
 LEAD_ANSWERS = True      # a band's lead guitar answers its own long notes with a run into its next (Take.sing); False: it holds them
 # (2026-11-19, 13:20, the judges on King's Oath: neither the riff's moves nor the lead's answers had taken SongEval down,
@@ -2279,22 +2286,32 @@ def guitar_solo(rng: random.Random, tune: Line, bars: int, beats: float, pulse: 
         # or up it; the trill a step wide or a third; the pedal over its line or under it; the cascade falling or climbing;
         # the double stops climbing or falling; the repeated note against the note under it or over it; the echo a step
         # lower each beat or two; the push 3+3+2 or 3+2+3; and the call's own rhythm.
-        riffs = [kind for kind in SOLO_FIGURES if two or kind not in ("stops", "octaves")]
-        rng.shuffle(riffs)
-        if not any(kind in RIFFY for kind in riffs[:3]):
-            found = next(index for index, kind in enumerate(riffs) if kind in RIFFY)
-            riffs[2], riffs[found] = riffs[found], riffs[2]
-        form = rng.choice(("sung", "riff first", "answered", "climbing"))
+        if ANGUS_MORE:
+            riffs = [kind for kind in ANGUS_FIGURES if two or kind != "stops"]
+            rng.shuffle(riffs)
+            form = rng.choice(("riff first", "answered"))
+        else:
+            riffs = [kind for kind in SOLO_FIGURES if two or kind not in ("stops", "octaves")]
+            rng.shuffle(riffs)
+            if not any(kind in RIFFY for kind in riffs[:3]):
+                found = next(index for index, kind in enumerate(riffs) if kind in RIFFY)
+                riffs[2], riffs[found] = riffs[found], riffs[2]
+            form = rng.choice(("sung", "riff first", "answered", "climbing"))
         ways = {"repeat": rng.choice(("under", "over")), "sequence": rng.choice(("down 3", "down 4", "up 3", "up 4")),
                 "trill": rng.choice((1, 2)), "cascade": rng.choice(("down", "up")), "pedal": rng.choice(("top", "bottom")),
                 "stops": rng.choice(("up", "down")), "echo": rng.choice((1, 2)), "stutter": rng.choice(((3, 3, 2), (3, 2, 3))),
                 "call": rng.randrange(3)}
         if phrases >= 8:
-            middle = {"sung": ["call", "answer", riffs[0], riffs[1], riffs[2], "run"],
-                      "riff first": [riffs[0], "call", riffs[1], "answer", riffs[2], "run"],
-                      "answered": ["call", riffs[0], "answer", riffs[1], riffs[2], "run"],
-                      "climbing": ["call", riffs[0], "carry", riffs[1], riffs[2], "run"]}[form]
-            extra = 3
+            if ANGUS_MORE:
+                # Four of his riffs among the eight sentences, the call before them or between the first two.
+                middle = {"riff first": [riffs[0], "call", riffs[1], riffs[2], riffs[3], "run"],
+                          "answered": ["call", riffs[0], riffs[1], riffs[2], riffs[3], "run"]}[form]
+            else:
+                middle = {"sung": ["call", "answer", riffs[0], riffs[1], riffs[2], "run"],
+                          "riff first": [riffs[0], "call", riffs[1], "answer", riffs[2], "run"],
+                          "answered": ["call", riffs[0], "answer", riffs[1], riffs[2], "run"],
+                          "climbing": ["call", riffs[0], "carry", riffs[1], riffs[2], "run"]}[form]
+            extra = 4 if ANGUS_MORE else 3
             while len(middle) < phrases - 2:
                 middle.insert(len(middle) - 1, riffs[extra % len(riffs)])        # a longer solo draws more of them
                 extra += 1
@@ -2339,6 +2356,7 @@ def guitar_solo(rng: random.Random, tune: Line, bars: int, beats: float, pulse: 
         along = index / max(len(kinds) - 1, 1)
         weight = 0.72 + 0.26 * along
         second = at + beats                                  # the second bar's downbeat
+        begun = len(out)                                     # where this sentence's notes begin (ANGUS_MORE, below)
         if kind == "call":
             # The tune's own opening, sung, from the band's stop chord on: its last note held over the chord. (Each solo its
             # own rhythm for it: as the tune has it, from a pickup, or pushed.)
@@ -2553,6 +2571,27 @@ def guitar_solo(rng: random.Random, tune: Line, bars: int, beats: float, pulse: 
             home = keep(0) if abs(keep(0) - steps[-1]) <= abs(keep(7) - steps[-1]) else keep(7)
             steps.append(home)
             put(at, rhythm, steps, 0.85)
+        if ANGUS_MORE and kind in ANGUS_FIGURES:
+            # The lick again, a note higher (ANGUS_MORE): the riff's first bar laid over the first half of its second a note
+            # up, no higher than the ceiling before the peak, landing on a note of the chord held a beat, and a breath of a
+            # beat before the next sentence (a sentence breathes, as the sung solo of 11-18 does).
+            lick = [note for note in out[begun:] if note[0] < second - 1e-6]
+            if lick:
+                del out[begun:]
+                out.extend(lick)
+                land = at + span - min(2.0, beats / 2)
+                last = None
+                for start_at, length, step, loud in lick:
+                    on = start_at + beats
+                    if on >= land - 1e-6:
+                        continue
+                    moved = up(step)
+                    if on < at_peak - 1e-6 and moved > ceiling:
+                        moved = ceiling
+                    out.append((on, min(length, land - on), keep(moved), loud))
+                    last = moved
+                if last is not None:
+                    out.append((land, min(2.0, beats / 2) * 0.5, keep(tone(last, land, ceiling)), min(weight + 0.06, 1.0)))
     out.sort()
     return Line(out)
 

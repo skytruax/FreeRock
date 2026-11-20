@@ -3,6 +3,14 @@
 Newest first. Words in quotation marks are what was said while listening or playing, as typed or
 dictated, where it drove the change.
 
+## 2026-11-19, late: a solo that riffs more like Angus
+
+- **The solo riffs more, and longer, the way Angus plays** (handbook 4.10, `orchestra.ANGUS_MORE`): "gimme a better
+  angus", "lets go". Its figures only his own (no octaves, echo, stutter or slide), four of a sixteen-bar solo's
+  eight sentences riffing where two or three had, and each lick played again a note higher before it lands and
+  breathes. Lightning Runner's solo went from 71 notes and 5 hammered trills to 116 and 24. The judges' window on
+  the summit falls after the solo; on the whole take TuneJury without the brief +0.11, the rest level.
+
 ## 2026-11-19, night: a band's valley keeps time; a light band goes up a gear; a fiddle's solo sings lower
 
 - **A walking band's valley keeps time** (handbook 4.5, `orchestra.VALLEY_KEEPS_TIME`): the closed hat on the beat

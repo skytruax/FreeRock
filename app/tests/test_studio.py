@@ -1284,7 +1284,11 @@ def test_most_band_songs_have_a_solo_each_its_own_and_moving():
     assert len({(item["kinds"], item["ways"]) for item in seen}) == len(seen), "two solos the same"
     assert len({item["kinds"] for item in seen}) >= 0.6 * len(seen), "the same form and figures again and again"
     figures = Counter(kind for item in seen for kind in item["kinds"] if kind in orchestra.SOLO_FIGURES)
-    assert len(figures) >= 8, "few of the ten figures heard: %s" % dict(figures)
+    if orchestra.ANGUS_MORE:
+        # (2026-11-19, 23:00, "gimme a better angus": the solos draw his six figures only, every one of them heard.)
+        assert set(figures) == set(orchestra.ANGUS_FIGURES), "his figures heard: %s" % dict(figures)
+    else:
+        assert len(figures) >= 8, "few of the ten figures heard: %s" % dict(figures)
     if whistled is None:
         fam = next(fam for fam in fams if tuple(fam.character.strong)[:1] == ("whistle",))
         made = next(made for made in (orchestra.Take(fam, number) for number in range(1, 7)) if "whistle solo" in made.voices["lead"])

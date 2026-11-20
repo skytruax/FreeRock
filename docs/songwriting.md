@@ -1144,6 +1144,12 @@ Wing") and the way a singer phrases:
   close in three of the day's four new heavy takes: the riff played on under the solo as everywhere else.*
 - **Never the same twice**: each take draws its own solo from the family's seed and the take: its
   figures, its form and each figure's way (above).
+- **More Angus** (`orchestra.ANGUS_MORE`, 2026-11-19, 23:00: "gimme a better angus", "lets go"): the solo's figures
+  are only his own (the repeated note, the trill, the pedal lick, the cascade, the run in threes, Chuck Berry's double
+  stops; `ANGUS_FIGURES`), four of a sixteen-bar solo's eight sentences riff, and each riff is played again a note higher
+  through the first half of its second bar, landing on a note of the chord held a beat with a beat's breath after it.
+  The tune's call, the run, the peak and the way home are still sung. Lightning Runner's solo: 71 notes and 5 trills
+  before, 116 and 24 after, 12 double stops where it had none.
 - **A fiddle's or a mandolin's solo sings below its top** (`orchestra.SOLO_TOP`, 2026-11-19): a solo
   climbs an octave and a note over where the tune begins, and a fiddle's tune begins high; its reach had
   been the instrument's whole written range, and Lazy River Swing V's fiddle solo sat F5 to C7. Now the
