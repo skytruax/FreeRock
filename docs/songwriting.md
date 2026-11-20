@@ -378,7 +378,7 @@ last drop twice as long, close. Tracks run 124 to 192 bars at 110 BPM, 271 to 41
 |---|---|
 | open | Pads and a filtered chord figure, no kick. In two takes of three a shaker or other small percussion creeps in over the second half. The end of the tune's idea, far off. |
 | theme | The groove: kick, backbeat, hats, percussion, bass, the chord figure. The hook in its second half. |
-| rise | The groove drops out (a fight keeps its kick for the first half). The tune whole, soft then full; a roll and a riser. |
+| rise | The groove drops out (a fight keeps its kick for the first half). The tune whole, soft then full; a roll and a riser. (A pulse through it, `house.RISE_PULSE`, was tried and left off: 5.5.) |
 | moment | The drop: everything, the tune at its brightest; every second time round a line above it. |
 | theme (breakdown) | No kick, no groove, the bass one long note to a bar. Fights do not break down. |
 | close | The band leaves; the kick goes four bars before the end. |
@@ -700,6 +700,13 @@ through the second half of each rise and at the moments of music that is not hea
 doubles the line an octave away at 0.8 (`PARTNERS`). At heavy moments bowed celli and basses play
 the root an octave apart, with the contrabassoon in grim music and, at the summit, the tuba and
 trombones where the palette has them.
+
+The line keeps within nine semitones under and eight over its centre: its instrument's home less 5,
+but never above A2 (`orchestra.BASS_TOP`, `bass_centre`). An organ that plays the bass plays it on
+the pedals, a harp on its low strings. (2026-11-19: Stained Glass Choir's organ, centred where it sits
+as a pad, played its bass from A2 to F#4 around A3; the desk raised it 8.9 dB to its place, a tenor's
+line 7 dB over the liked stems in the mids and 16 at the top, with nothing under it. The moonwell and
+the elven hymn had the harp's the same way, around B3.)
 
 ### 3.7 Percussion phrasing and fills
 
@@ -1255,6 +1262,18 @@ The waves and the breakdown are in 2.3. The air (`Take.airs`):
 | weather (`atmos`: wind, sea, rain, fire, drips, crickets) | the opening, the close and long rises; all the way in a storm |
 
 In the calm roles the risers, thud and falling sweep are at 0.4: *an inn does not have a drop*.
+
+**The rise, as the judges hear it** (2026-11-19). In all thirteen House takes judged the rises scored
+TuneJury 0.22 on the House brief and −0.30 on none, against 1.1 to 1.3 for the grooves either side: twelve
+bars of the tune over nothing, then a four-bar roll under an eight-bar sweep. A pulse was tried
+(`house.RISE_PULSE`): the hats going on through the rise with the first percussion figure until the build,
+and the roll, the bass's eighths and the late chords coming in with the sweep (`RISE_LONG_BUILD`,
+`Take.build_bars`). Heard on The Long Watch II and Harbour Lights II, eight rises: the House brief edged up
+in every one (+0.04 to +0.09) and SongEval rose on one take (musicality 2.64 to 2.88, all four scores up
+0.15 to 0.24), but Audiobox's enjoyment fell in all eight (−0.28 on average) and the score with no brief
+fell on one take (−0.23 to −0.39) and rose on the other (−0.16 to +0.10). With the four-bar build of before
+it was worse, so the hats were what the judges liked less, the open hats and the ride of The Long Watch the
+most. It is left off; the next to try is a quieter pulse, the closed hat alone.
 
 ### 5.6 Palettes and the calm roles
 

@@ -781,3 +781,41 @@ def test_a_theme_after_a_drop_does_not_play_the_drops_groove():
         return {(name, round((at / house.BAR) % 1.0, 3)) for name, _, at, _, _ in heard.hits if a * house.BAR <= at < b * house.BAR
                 and name not in ("kick", "kick2", "punch", "crash")}
     assert struck(drop_first + drop_count - 4, drop_first + drop_count) != struck(first, first + 4)
+
+
+def test_a_rise_keeps_its_hats_going_and_builds_with_the_sweep(monkeypatch):
+    # (2026-11-19, the judges: House's rises scored TuneJury 0.22 on the House brief and -0.30 on none, against 1.1 to 1.3 for
+    # the grooves either side, in all thirteen takes: twelve bars of the tune over nothing, then a four-bar roll under an
+    # eight-bar sweep.) Through a rise the hats go on in every bar, and the first percussion figure until the build; the kick
+    # stays out (a fight's plays the first half); the roll begins as the build does, with the sweep: eight bars before the
+    # drop of a sixteen-bar rise, four of a shorter one. (Left off since the judges heard it: RISE_PULSE. Its way is kept, and
+    # held here, for the quieter pulse to come.)
+    from freerock.studio import club
+    monkeypatch.setattr(house, "RISE_PULSE", True)
+    monkeypatch.setattr(house, "RISE_LONG_BUILD", True)
+    for name in ("coast-03", "battle-01"):
+        take = house.Take(house.family(name), 1)
+        heard = club.listen(take)
+        roll = take.pick("roll", ("snare", "clap", "crack"))
+        perc = {sound for _, sound, _ in house.PERCUSSION[take.pick("perc", take.palette["perc"])]}
+
+        def struck(sounds: tuple[str, ...] | set[str], a: int, b: int) -> list[float]:
+            return [at for sound, _, at, _, _ in heard.hits if sound in sounds and a * house.BAR - 0.05 <= at < b * house.BAR - 0.05]
+        rises = [(first, count) for story, first, count in take.sections if story == "rise"]
+        assert rises
+        for first, count in rises:
+            build = take.build_bars(count)
+            assert build == (8 if count >= 16 else 4)
+            end = (first + count) * house.BAR
+            sweeps = [air for air in take.airs() if air.kind == "sweep" and air.rising and abs(air.at + air.seconds - end) < 0.01]
+            assert sweeps and abs(sweeps[0].seconds - build * house.BAR) < 0.01
+            for bar in range(first, first + count):
+                assert struck(("hat", "open"), bar, bar + 1), (name, bar)
+            assert struck(perc, first, first + count - build) and not struck(perc, first + count - build, first + count)
+            kicks = struck(("kick", "kick2", "punch"), first, first + count)
+            if take.family.hard:
+                assert kicks and max(kicks) < (first + count // 2) * house.BAR
+            else:
+                assert not kicks
+            rolled = struck((roll,), first, first + count)
+            assert rolled and (first + count - build) * house.BAR - 0.05 <= min(rolled) < (first + count - build + 1) * house.BAR

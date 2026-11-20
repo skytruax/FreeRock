@@ -3,12 +3,28 @@
 Newest first. Words in quotation marks are what was said while listening or playing, as typed or
 dictated, where it drove the change.
 
+## 2026-11-19, night: an organ's bass on its pedals; House's rise heard with a pulse
+
+- **No bass line is centred above A2** (handbook 3.6, `orchestra.BASS_TOP`): a bass line was centred on its
+  instrument's home less 5, and an organ's home is middle C and a harp's E4, where they play as a pad and a
+  pluck. Stained Glass Choir's organ played its bass A2 to F#4 around A3, and the desk raised it 8.9 dB to its
+  place (7 dB over the liked stems in the mids, 16 at the top); Starlit Glade's harp sat around E4. Now an
+  organ plays its bass on the pedals and a harp on its low strings (the cathedral's organ around D3). The
+  judges, the same take before and after: TuneJury up with the brief and without (+0.11, +0.12) and in nearly
+  every part (the valley with no brief −0.47 to −0.06), Audiobox a little up, SongEval a little down (coherence
+  −0.16) on the one pair. The cathedral's, the moonwell's and the elven hymn's odd takes are made again for it.
+- **House's rise was heard with a pulse and left as it was** (handbook 5.5, `house.RISE_PULSE`, off): the hats
+  going on through the rise, the build eight bars with the sweep. On two takes the House brief edged up in all
+  eight rises and SongEval rose on one, but Audiobox's enjoyment fell in all eight (−0.28 on average); a quieter
+  pulse, the closed hat alone, is the next to try.
+
 ## 2026-11-19, evening: the drummer's ride turns to the hat
 
 - **A band's groove that keeps time on the ride turns to the closed hat** for its second sixteen bars of a
   theme (handbook 4.8, `orchestra.TURNS_TO_HAT`): it had had no turn at all. (In the fights the meter still
   hears the drums one colour 40 bars: their grooves turn from the hat to the ride, which the meter cannot
-  tell apart under the guitars; the ear can.)
+  tell apart; the ear can. Measured on the drum stem alone, Fury Cry IV's open hat, ride and closed hat sit
+  within 1 dB of each other in its top, which is all the meter's colour hears: they differ in how they ring.)
 - The first Knight takes on 066bbfc: the tune 2.0 dB over the rhythm guitar in the first theme (Blood
   Machine, Lance Cry), the solo needing no lift over the comping guitar. House's second take, the first with
   its theme singing: SongEval memorability 3.00, Knight's own level.

@@ -2556,6 +2556,20 @@ SMALL = ("tamb", "shake", "jingle", "ting", "tick", "high", "clack", "conga", "c
 # Who doubles the bass line an octave away, by who has it: the neighbour in the orchestra, played the same way.
 PARTNERS = {"basses": "celli", "basses slow": "celli slow", "basses pizz": "celli pizz", "celli": "basses", "celli slow": "basses slow",
             "celli pizz": "basses pizz", "acoustic bass": "celli pizz", "fretless": "celli pizz", "tuba": "basses", "bassoon": "basses pizz"}
+# (2026-11-19, the study: Stained Glass Choir's organ played its bass line from A2 to F#4, median A3, a tenor's line, and the
+# desk raised it 8.9 dB to its place: 7 dB over the liked stems in the mids and 16 at the top, with nothing under it. A bass
+# line is centred on its instrument's home less 5, and the organ's home is middle C and the harp's E4, where they play as a
+# pad and a pluck.) No bass line is centred above A2: an organ plays its bass on the pedals, a harp on its low strings.
+# None: the instrument's home less 5, as before.
+BASS_TOP: int | None = 45
+
+
+def bass_centre(inst: Instrument) -> int:
+    """Where a bass line is centred: its instrument's home less 5, never above BASS_TOP."""
+    home = inst.home - 5
+    return home if BASS_TOP is None else min(home, BASS_TOP)
+
+
 # How the bass plays the second time round a theme, by how it played the first.
 BUSIER = {"long": "two", "two": "walk", "walk": "two"}
 # Who doubles a tune an octave above it rather than where the tune is: high woodwinds and bells.
@@ -3689,6 +3703,7 @@ class Take:
         ch, beats, pulse, starts = self.ch, self.beats, self.pulse, self.starts
         name = ch.basses[self.take % len(ch.basses)]
         inst = INSTRUMENTS[name]
+        centre = bass_centre(inst)
         one, two = self.bass_way, self.bass_way_b
         drive = "eight" if ch.band and self.heavy else "pulse"
         # (2026-11-16, played: "not enough instruments in each track".) Where the music grows, the bass line is
@@ -3708,16 +3723,16 @@ class Take:
             runs = held_runs(section.chords)
             ahead = self.spans[index_of + 1] if index_of + 1 < len(self.spans) else None
             # A band's bass keeps to the root, as the riff bands do; an orchestra's moves through the chords.
-            line = [key.pitch(chord.root, inst.home - 5) for chord in chords] if ch.band else self.line(part, key, chords, inst.home - 5)
+            line = [key.pitch(chord.root, centre) for chord in chords] if ch.band else self.line(part, key, chords, centre)
             for bar, chord in enumerate(chords):
                 level, bar_at, along = self.level(section, bar), first + bar * beats, bar / bars
                 doubled = (part in ("first", "second") and bar >= self.fam.period) or (part in ("build", "climb") and along >= 0.5) \
                     or (part in ("arrival", "summit") and not self.heavy)
-                root = key.pitch(chord.root, inst.home - 5)
+                root = key.pitch(chord.root, centre)
                 here = line[bar]
                 loud = self.hard(level, 0.9)
                 after = chords[bar + 1] if bar + 1 < bars else chord
-                there = line[bar + 1] if bar + 1 < bars else key.pitch(after.root, inst.home - 5)
+                there = line[bar + 1] if bar + 1 < bars else key.pitch(after.root, centre)
                 if ch.band and self.heavy and part in ("arrival", "summit") and bar == 0:
                     low(bar_at, beats * 0.95, root, loud)                 # the stop: one note with the chord, left to ring
                     continue
@@ -3726,7 +3741,7 @@ class Take:
                         # The key note, held; but in a long opening it goes with the chord where the harmony leaves home and
                         # comes back with it (2026-11-18, the boredom meter: Gull's Edge's basses held one note 27 bars of
                         # a 28-bar opening, under its flat-seventh chords as well).
-                        held = key.pitch(0, inst.home - 5)
+                        held = key.pitch(0, centre)
                         if bars >= 16 and chord.root % 7 != 0:
                             held = root
                         self.put("bass", name, bar_at, beats, held, loud * 0.8)
@@ -3775,7 +3790,7 @@ class Take:
                 elif way == "eight":
                     step = 0.5
                     count = int(round(beats / step))
-                    toward = key.pitch(after.root, inst.home - 5)
+                    toward = key.pitch(after.root, centre)
                     toward += 12 if toward < root - 6 else -12 if toward > root + 6 else 0
                     # A heavy band's long rise climbs (2026-11-19, the boredom meter: Warlord Fury's bass played one note 17
                     # bars through its build): through the second half of a chord held nine bars or more the bass pumps its
@@ -3788,8 +3803,8 @@ class Take:
                     pumps = climbs or self.digs_in(part, bars, bar)
                     stair: list[int] = []
                     if climbs and self.rise_way == "climb" and into == run - 1:
-                        goal = key.pitch(after.root, inst.home - 5) if bar + 1 < bars else \
-                            ahead[2].pitch(ahead[3][0].root, inst.home - 5) if ahead is not None else root
+                        goal = key.pitch(after.root, centre) if bar + 1 < bars else \
+                            ahead[2].pitch(ahead[3][0].root, centre) if ahead is not None else root
                         scale = sorted({key.pitch(degree, goal, chord) + octave for degree in range(7) for octave in (-12, 0, 12)})
                         pairs = count // 2
                         under = [p for p in scale if p < goal][-pairs:]

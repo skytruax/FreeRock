@@ -1695,3 +1695,18 @@ def test_a_surge_patch_is_tuned_up_in_its_own_state():
     assert len(plain) == len(tuned) and b'<a_pitch type="2" value="0.220000" />' in tuned and b'value="0.220000"' not in plain
     with pytest.raises(ValueError):
         desk.surge(patch + "@-5")                      # only up, where the bytes stay as many
+
+
+def test_an_organ_or_a_harp_plays_its_bass_low():
+    # (2026-11-19, the study: Stained Glass Choir's organ played its bass line from A2 to F#4, median A3, centred where the organ
+    # sits as a pad; the desk raised it 8.9 dB with nothing under it.) Whatever plays the bass, its line is centred no higher
+    # than A2; a bass already lower is left where it was.
+    assert orchestra.BASS_TOP == 45
+    for name, bass in (("cathedral", "organ"), ("moonwell", "harp")):
+        character = character_called(name)
+        fam = orchestra.family(character, 7, "f", "F")
+        take = next(orchestra.Take(fam, number) for number in (1, 2, 3) if character.basses[number % len(character.basses)] == bass)
+        pitches = sorted(note.pitch for note in take.voices["bass"][bass].notes)
+        assert pitches and pitches[len(pitches) // 2] <= 50 and pitches[0] >= orchestra.INSTRUMENTS[bass].low, (name, pitches[:3], pitches[-3:])
+    slow = orchestra.INSTRUMENTS["basses slow"]
+    assert orchestra.bass_centre(slow) == slow.home - 5

@@ -25,7 +25,7 @@ from typing import Callable
 import functools
 
 from freerock.studio import build, house
-from freerock.studio.orchestra import DANCE_GROOVES, DELICATE, LONG_HOLD, held_runs
+from freerock.studio.orchestra import DANCE_GROOVES, DELICATE, INSTRUMENTS, LONG_HOLD, held_runs
 
 ROOT = Path(__file__).resolve().parent.parent
 PASSES = ROOT / "var" / "passes"
@@ -56,6 +56,16 @@ def long_rise(piece: Piece) -> bool:
 
 def plays(piece: Piece, instrument: str, parts: tuple[str, ...] = ("leads", "strong", "under", "pads", "plucks")) -> bool:
     return any(instrument in getattr(piece.character, part, ()) for part in parts)
+
+
+def high_bass(piece: Piece) -> bool:
+    """A take whose bass line was centred above A2 before orchestra.BASS_TOP: its instrument's home less 5 over 45 (the
+    organ's and the harp's, 2026-11-19)."""
+    basses = getattr(piece.character, "basses", ())
+    if piece.style == "house" or not basses:
+        return False
+    name = basses[int(piece.key.rsplit("/", 1)[1]) % len(basses)]
+    return INSTRUMENTS[name].home - 5 > 45
 
 
 def lively_walk(piece: Piece, busy_from: float = 0.45) -> bool:
@@ -252,6 +262,10 @@ CHANGES = [
            "a groove that keeps time on the ride turns to the closed hat for its second sixteen bars of a theme (it had had "
            "nowhere to turn)",
            lambda p: p.style == "knight" and p.character.band),
+    Change("an organ's or a harp's bass on its pedals", datetime.datetime(2026, 11, 19, 21, 15), "",
+           "no bass line is centred above A2: an organ plays its bass on the pedals and a harp on its low strings (they had "
+           "played it where they sit as a pad and a pluck, the cathedral's organ around A3, the moonwell's harp around E4)",
+           high_bass),
     Change("House's theme sings from its fifth bar", datetime.datetime(2026, 11, 19, 16, 28), "",
            "the tune's opening phrases every four bars from the theme's fifth bar, softly (eight bars of tune in thirty-two had "
            "left the theme a groove waiting for one)",

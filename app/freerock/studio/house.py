@@ -117,6 +117,19 @@ ARCS = {
     "battle": {"open": (0.8, 0.88), "theme": (0.86, 0.9), "rise": (0.6, 1.0), "moment": (1.0, 1.0), "close": (0.9, 0.7)},
 }
 BREAKDOWN = (0.3, 0.5)          # the breakdown's energy, from its first bar to its last (see Take.breakdown)
+# (2026-11-19, the judges: House's rises scored TuneJury 0.22 on the House brief and -0.30 on none, against 1.1 to 1.3 for
+# the grooves either side of them, in all thirteen takes judged. A rise was twelve bars of the tune alone over nothing, the
+# pulse gone, and a roll in its last four, under a sweep eight bars long.) A rise keeps the groove's top: the hats go on,
+# from a little under the theme and growing with it, and the first percussion figure until the build, while the kick (a
+# fight's after the rise's first half), the backbeat and the bass are out; and it builds over its last eight bars (four of
+# a short one), the roll, the bass's eighths and the late chords together with the sweep.
+# Left off (2026-11-19, 20:55, the judges on two takes, eight rises): the House brief edged up in every rise (+0.04 to +0.09)
+# and SongEval rose on one take (musicality 2.64 to 2.88), but Audiobox's enjoyment fell in all eight (-0.28 on average) and the
+# score with no brief went down on one take and up on the other; with the four-bar build of before instead of eight it was
+# worse, so the hats were what the judges liked less. The open hats and the ride of The Long Watch II fell the furthest: a
+# quieter pulse (the closed hat alone) is the next to try.
+RISE_PULSE = False
+RISE_LONG_BUILD = True     # the build eight bars with the sweep; False: four, the sweep eight as before (Take.build_bars)
 # The calm moments: an inn, the night, a camp. They have no drop to speak of, no roll into one and no line doubled over the
 # tune, and they play under the usual level.
 CALM_ROLES = ("ember", "night", "camp")
@@ -912,6 +925,14 @@ class Take:
         """Whether a section is the breakdown (see `__init__`)."""
         return story == "theme" and first == self.breakdown
 
+    @staticmethod
+    def build_bars(count: int) -> int:
+        """How many of a rise's last bars build to the drop (the roll, the bass's eighths, the late chords): as many as the
+        sweep has (RISE_PULSE), where they were half as many."""
+        if RISE_PULSE and RISE_LONG_BUILD:
+            return 8 if count >= 16 else 4
+        return 4 if count >= 16 else 2
+
     def kick_plays(self, story: str, bar: int, count: int, first: int = -1) -> bool:
         """Whether the kick is in at a bar of a section (beginning at bar `first`). The same for every take of a family."""
         if not self.kick or self.broken(story, first):
@@ -969,7 +990,7 @@ class Take:
 
         drops = 0                                     # drops already heard: a theme after one starts on the other figure
         for story, first, count in self.sections:
-            build = 4 if count >= 16 else 2
+            build = self.build_bars(count)
             # (2026-11-19, the boredom meter: Ambush III's drums were the same 32 bars from its first drop through the theme
             # after it, each section counting its sixteen bars from its own start: a theme after a drop now begins where the
             # drop's figure turns, so the change lands at the drop's end.)
@@ -1034,6 +1055,18 @@ class Take:
                                 hit(wet, sound, bar, step, 0.5, pan)
                         else:
                             hit(wet, "open", bar, 14, 0.4, -0.12)
+                elif story == "rise" and RISE_PULSE:
+                    # The groove's top goes on through a rise (RISE_PULSE): the family's hats (sixteenths thinned to
+                    # eighths, as everywhere but a drop) growing with the rise, and the first percussion figure until the
+                    # build. Both hold their breath with the roll.
+                    breath = pause and last
+                    for sound, steps in HATS[hat_figure].items():
+                        for step, loud in steps:
+                            if (hat_figure == "sixteenths" and sound == "hat" and step % 2) or (breath and step >= 12):
+                                continue
+                            hit(wet, sound, bar, step, 0.27 * loud * (0.3 + 0.7 * energy), 0.18 if sound == "hat" else -0.12)
+                    if inside < count - build:
+                        figure(first_perc, bar, 0.34 * (0.6 + 0.4 * energy), -0.35)
                 elif story == "open" and sneak and inside >= count // 2:
                     # Before the groove: a shaker or the hats, far off, coming closer.
                     near = (inside - count // 2) / max(count - count // 2, 1)
@@ -1096,7 +1129,7 @@ class Take:
         early = self.pick("bass-open", (False, True, False))
         builds = self.pick("bass-build", (True, False, True))
         for story, first, count in self.sections:
-            build = 4 if count >= 16 else 2
+            build = self.build_bars(count)
             for inside in range(count):
                 bar, energy = first + inside, self.energy(story, inside / count, first)
                 chord, after = self.changes.chord(inside), self.changes.chord(inside + 1)
@@ -1142,7 +1175,7 @@ class Take:
         voiced: list[int] | None = None
         spread = self.palette["voicing"]
         for story, first, count in self.sections:
-            build = 4 if count >= 16 else 2
+            build = self.build_bars(count)
             for inside in range(count):
                 bar, energy = first + inside, self.energy(story, inside / count, first)
                 chord = self.changes.chord(inside)
