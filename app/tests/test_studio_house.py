@@ -783,6 +783,47 @@ def test_a_theme_after_a_drop_does_not_play_the_drops_groove():
     assert struck(drop_first + drop_count - 4, drop_first + drop_count) != struck(first, first + 4)
 
 
+def test_a_rise_keeps_the_kick_on_the_floor_until_its_build(monkeypatch):
+    # (2026-11-20, the judges: House's rises still the lowest of its parts, TuneJury -0.25 with no brief over sixteen takes,
+    # its themes 0.76 and its drops 1.13: a rise had no kick from its first bar.) A rise keeps the kick in every bar until its
+    # build, a fight's as well, and the build into the drop goes without it; a calm rise has none, as before.
+    from freerock.studio import club
+    assert house.RISE_KICK
+    seen = set()
+    for name in ("coast-03", "battle-01", "night-03"):
+        take = house.Take(house.family(name), 1)
+        heard = club.listen(take)
+
+        def kicks(a: int, b: int) -> list[float]:
+            return [at for sound, _, at, _, _ in heard.hits
+                    if sound in ("kick", "kick2", "punch") and a * house.BAR - 0.05 <= at < b * house.BAR - 0.05]
+        for story, first, count in take.sections:
+            if story != "rise":
+                continue
+            build = take.build_bars(count)
+            if take.family.role in house.CALM_ROLES:
+                assert not kicks(first, first + count), name
+                seen.add("calm")
+                continue
+            assert take.kick, name
+            for bar in range(first, first + count - build):
+                assert len(kicks(bar, bar + 1)) == len(take.kick), (name, bar)
+            assert not kicks(first + count - build, first + count), name
+            seen.add("hard" if take.family.hard else "groove")
+    assert seen == {"calm", "hard", "groove"}, seen
+    # (And no closed hat ticks through a calm rise before its build: its rise stays under its moment.)
+    take = house.Take(house.family("night-03"), 1)
+    heard = club.listen(take)
+    for story, first, count in take.sections:
+        if story == "rise":
+            ticks = [at for sound, _, at, _, _ in heard.hits
+                     if sound == "hat" and first * house.BAR - 0.05 <= at < (first + count - take.build_bars(count)) * house.BAR - 0.05]
+            assert not ticks, (first, ticks[:4])
+    monkeypatch.setattr(house, "RISE_KICK", False)
+    take = house.Take(house.family("coast-03"), 1)
+    assert not any(take.kick_plays("rise", bar, count) for story, _, count in take.sections if story == "rise" for bar in range(count))
+
+
 def test_a_rise_can_keep_the_closed_hat_alone(monkeypatch):
     # (2026-11-20: the quieter pulse to try after the judges heard RISE_PULSE: its open hats and ride fell the furthest.) With
     # RISE_CLOSED_HAT, through a rise the closed hat alone plays the eighths, softer than it plays a theme, in every bar; no
@@ -816,6 +857,7 @@ def test_a_rise_keeps_its_hats_going_and_builds_with_the_sweep(monkeypatch):
     from freerock.studio import club
     monkeypatch.setattr(house, "RISE_PULSE", True)
     monkeypatch.setattr(house, "RISE_LONG_BUILD", True)
+    monkeypatch.setattr(house, "RISE_KICK", False)
     for name in ("coast-03", "battle-01"):
         take = house.Take(house.family(name), 1)
         heard = club.listen(take)

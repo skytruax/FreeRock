@@ -299,6 +299,14 @@ CHANGES = [
            "a groove that keeps time on the ride turns to the closed hat for its second sixteen bars of a theme (it had had "
            "nowhere to turn)",
            lambda p: p.style == "knight" and p.character.band),
+    Change("House's rise keeps the kick until its build", datetime.datetime(2026, 11, 20, 15, 55), "",
+           "a rise keeps the four on the floor until its last eight bars, the build going without it (the rises had no kick "
+           "from their first bar; Harbour Lights II's rises 0.23 to 0.50 on TuneJury's House brief)",
+           lambda p: p.style == "house" and p.character.role not in ("ember", "night", "camp")),
+    Change("a calm House rise has no closed hat", datetime.datetime(2026, 11, 20, 15, 55), "",
+           "an inn's, a camp's or a night's rise is the tune over a shaker stirring again (with the closed hat its rise came up "
+           "to its moment)",
+           lambda p: p.style == "house" and p.character.role in ("ember", "night", "camp")),
     Change("House's rise keeps the closed hat ticking", datetime.datetime(2026, 11, 20, 7, 30), "",
            "through a rise the closed hat alone plays the eighths, soft and growing, with the eight-bar build into the drop "
            "(the rise had been the tune over nothing, the pulse gone)",

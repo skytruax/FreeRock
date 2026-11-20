@@ -378,7 +378,7 @@ last drop twice as long, close. Tracks run 124 to 192 bars at 110 BPM, 271 to 41
 |---|---|
 | open | Pads and a filtered chord figure, no kick. In two takes of three a shaker or other small percussion creeps in over the second half. The end of the tune's idea, far off. |
 | theme | The groove: kick, backbeat, hats, percussion, bass, the chord figure. The hook in its second half. |
-| rise | The groove drops out (a fight keeps its kick for the first half), all but the closed hat ticking the eighths, soft and growing (`house.RISE_CLOSED_HAT`). The tune whole, soft then full; a roll and a riser over the last eight bars. (The full hats and percussion, `house.RISE_PULSE`, were tried and left off: 5.5.) |
+| rise | The groove drops out but for the kick, which stays on the floor until the build's last eight bars (`house.RISE_KICK`), and the closed hat ticking the eighths, soft and growing (`house.RISE_CLOSED_HAT`). The tune whole, soft then full; a roll and a riser over the last eight bars, the kick gone for them. A calm rise (an inn, a camp, a night) has neither: the tune over a shaker stirring. (The full hats and percussion, `house.RISE_PULSE`, were tried and left off: 5.5.) |
 | moment | The drop: everything, the tune at its brightest; every second time round a line above it. |
 | theme (breakdown) | No kick, no groove, the bass one long note to a bar. Fights do not break down. |
 | close | The band leaves; the kick goes four bars before the end. |
@@ -1327,6 +1327,16 @@ most. It is left off. The quieter pulse, the closed hat alone on the eighths wit
 eight-bar build (`house.RISE_CLOSED_HAT`, 2026-11-20), the judges liked: the House brief up in all four
 rises of The Long Watch II and Harbour Lights II (+0.07 to +0.17), the score with none up on Harbour Lights
 and level on The Long Watch, Audiobox's enjoyment within its noise. It is in.
+
+The rises were still House's lowest part (TuneJury -0.25 with no brief over sixteen takes, its themes 0.76 and
+its drops 1.13): a rise had no kick from its first bar, where a house record keeps the four on the floor through
+its build-up and takes it away only for the last bars before the drop. A rise now keeps the kick until its build
+(`house.RISE_KICK`, 2026-11-20), everything but the drums ducking under it as in a groove, and the build goes
+without it, so the drop's kick lands after its absence. On Harbour Lights II both rises rose, TuneJury with the
+House brief 0.23 to 0.50 and 0.22 to 0.50, with none 0.05 to 0.67 and 0.06 to 0.58, Audiobox's enjoyment level
+(7.28 to 7.31, 7.35 to 7.38). A calm rise keeps neither the kick nor, now, the closed hat: House's calm takes
+made again with the hat had their rises up to their moments (Embers under Stars I level with it, Cool of the
+Evening II a dB over it, the render's own check), so an inn's rise is the tune over a shaker stirring, as it was.
 
 ### 5.6 Palettes and the calm roles
 

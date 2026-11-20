@@ -135,6 +135,13 @@ RISE_PULSE = False
 # enjoyment within its noise (-0.07 to -0.14, where the full hats had cost 0.28): in.
 RISE_CLOSED_HAT = True
 RISE_LONG_BUILD = True     # the build eight bars with the sweep; False: four, the sweep eight as before (Take.build_bars)
+# (2026-11-20, the judges: House's rises still the lowest of its parts, TuneJury -0.25 with no brief on average over sixteen
+# takes, where its themes have 0.76 and its drops 1.13. A rise had no kick from its first bar: the four on the floor that
+# says house was gone for twelve to sixteen bars, where a house record keeps it through the build-up and takes it away only
+# for the last bars before the drop.) A rise keeps the kick until its build (`build_bars`), everything but the drums ducking
+# under it as in a groove; the build into the drop goes without it, the roll and the sweep alone, so that the drop's kick
+# lands after its absence. A calm rise (an inn, the night, a camp) is left as it was, without one.
+RISE_KICK = True
 # The calm moments: an inn, the night, a camp. They have no drop to speak of, no roll into one and no line doubled over the
 # tune, and they play under the usual level.
 CALM_ROLES = ("ember", "night", "camp")
@@ -943,9 +950,11 @@ class Take:
         if not self.kick or self.broken(story, first):
             return False
         if self.family.hard:
-            return story != "rise" or bar < count // 2
+            return story != "rise" or bar < (count - self.build_bars(count) if RISE_KICK else count // 2)
         if story in ("theme", "moment"):
             return True
+        if RISE_KICK and story == "rise" and self.family.role not in CALM_ROLES:
+            return bar < count - self.build_bars(count)
         return story == "close" and bar < max(count - 4, count // 2)
 
     def kicks(self) -> list[float]:
@@ -1072,9 +1081,12 @@ class Take:
                             hit(wet, sound, bar, step, 0.27 * loud * (0.3 + 0.7 * energy), 0.18 if sound == "hat" else -0.12)
                     if inside < count - build:
                         figure(first_perc, bar, 0.34 * (0.6 + 0.4 * energy), -0.35)
-                elif story == "rise" and RISE_CLOSED_HAT:
+                elif story == "rise" and RISE_CLOSED_HAT and fam.role not in CALM_ROLES:
                     # The quieter pulse (RISE_CLOSED_HAT): the closed hat alone on the eighths, the off-beat a little over
-                    # the beat, soft at first and growing with the rise; it holds its breath with the roll.
+                    # the beat, soft at first and growing with the rise; it holds its breath with the roll. Not in a calm
+                    # rise (2026-11-20, House's calm takes made again with it: an inn's or a camp's rise came up to its
+                    # moment, Embers under Stars I level with it, Cool of the Evening II over it: the render's own check):
+                    # an inn's rise stays the tune over a shaker stirring, as it was.
                     for step in range(0, 16, 2):
                         if pause and last and step >= 12:
                             continue

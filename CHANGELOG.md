@@ -3,6 +3,19 @@
 Newest first. Words in quotation marks are what was said while listening or playing, as typed or
 dictated, where it drove the change.
 
+## 2026-11-20, afternoon: House's build-up keeps the kick; a calm rise stays calm
+
+- **House's rise keeps the kick until its build** (handbook 2.3 and 5.5, `house.RISE_KICK`): the four on the floor stays
+  through a rise and goes for its last eight bars, the roll and the sweep alone into the drop. The rises had been House's
+  lowest part (TuneJury -0.25 with no brief over sixteen takes). On Harbour Lights II both rises rose, TuneJury with the
+  House brief 0.23 to 0.50 and 0.22 to 0.50, with none 0.05 to 0.67 and 0.06 to 0.58, enjoyment level. A calm rise (an
+  inn, a camp, a night) has no kick, as before.
+- **A calm rise has no closed hat** (`house.RISE_CLOSED_HAT` now for the walking, the towns, the storms and the fights):
+  House's calm takes made again this afternoon with it had their rises up to their moments (Embers under Stars I level,
+  Cool of the Evening II a dB over, flagged by its render), so an inn's rise is the tune over a shaker stirring again.
+- Knight's player was loaded with the 172 takes made since its last build (148 made again, 24 new), only those taken
+  out and put in (`var/passes/knight_load.py`, an hour where a whole build is two); every take is at its newest.
+
 ## 2026-11-20, morning: a style's bucket is named for no place
 
 - **A style's bucket is `all`** (`forever.ALL`; "why are all the buckets in elywn-forest folders" ... "fix it"). A
