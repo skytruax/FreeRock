@@ -129,6 +129,9 @@ BREAKDOWN = (0.3, 0.5)          # the breakdown's energy, from its first bar to 
 # worse, so the hats were what the judges liked less. The open hats and the ride of The Long Watch II fell the furthest: a
 # quieter pulse (the closed hat alone) is the next to try.
 RISE_PULSE = False
+# The quieter pulse to try (2026-11-20): the closed hat alone on the eighths, soft and growing with the rise, no percussion,
+# with the eight-bar build. Off until the judges have heard it.
+RISE_CLOSED_HAT = False
 RISE_LONG_BUILD = True     # the build eight bars with the sweep; False: four, the sweep eight as before (Take.build_bars)
 # The calm moments: an inn, the night, a camp. They have no drop to speak of, no roll into one and no line doubled over the
 # tune, and they play under the usual level.
@@ -929,7 +932,7 @@ class Take:
     def build_bars(count: int) -> int:
         """How many of a rise's last bars build to the drop (the roll, the bass's eighths, the late chords): as many as the
         sweep has (RISE_PULSE), where they were half as many."""
-        if RISE_PULSE and RISE_LONG_BUILD:
+        if (RISE_PULSE or RISE_CLOSED_HAT) and RISE_LONG_BUILD:
             return 8 if count >= 16 else 4
         return 4 if count >= 16 else 2
 
@@ -1067,6 +1070,13 @@ class Take:
                             hit(wet, sound, bar, step, 0.27 * loud * (0.3 + 0.7 * energy), 0.18 if sound == "hat" else -0.12)
                     if inside < count - build:
                         figure(first_perc, bar, 0.34 * (0.6 + 0.4 * energy), -0.35)
+                elif story == "rise" and RISE_CLOSED_HAT:
+                    # The quieter pulse (RISE_CLOSED_HAT): the closed hat alone on the eighths, the off-beat a little over
+                    # the beat, soft at first and growing with the rise; it holds its breath with the roll.
+                    for step in range(0, 16, 2):
+                        if pause and last and step >= 12:
+                            continue
+                        hit(wet, "hat", bar, step, 0.2 * (0.25 + 0.75 * energy) * (1.0 if step % 4 == 2 else 0.7), 0.18)
                 elif story == "open" and sneak and inside >= count // 2:
                     # Before the groove: a shaker or the hats, far off, coming closer.
                     near = (inside - count // 2) / max(count - count // 2, 1)

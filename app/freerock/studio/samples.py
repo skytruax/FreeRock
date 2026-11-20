@@ -24,7 +24,10 @@ from pathlib import Path
 import numpy as np
 import soundfile
 
-SAMPLES = Path(__file__).resolve().parents[3] / "var" / "samples"
+# (The var folder resolved first: a second checkout's var is a link to the first's, and every instrument's sfz file names this
+# folder; written from two checkouts under two names, each rewrote the other's, and a sampler whose file changes while it
+# renders stops dead (sfz.write). 2026-11-20, 01:04: a demo's REAPER hung on Fair Wind Shanty so.)
+SAMPLES = (Path(__file__).resolve().parents[3] / "var").resolve() / "samples"
 NAMES = {"C": 0, "D": 2, "E": 4, "F": 5, "G": 7, "A": 9, "B": 11}
 _NOTE = re.compile(r"(?<![A-Za-z])([A-G])([#b]?)(-?\d)(?![0-9A-Za-z])")
 _LAYER = re.compile(r"(?<![A-Za-z0-9])vl?(\d+)(?![0-9A-Za-z])", re.IGNORECASE)

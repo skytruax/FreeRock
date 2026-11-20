@@ -3,6 +3,30 @@
 Newest first. Words in quotation marks are what was said while listening or playing, as typed or
 dictated, where it drove the change.
 
+## 2026-11-20, night: a solo peaks where it can; the meter hears the cymbals; a hang between two checkouts mended
+
+- **A solo's peak is the chord's note nearest its top** (handbook 4.10, `orchestra.SOLO_PEAK_NEAR_TOP`): the peak, a
+  note of the chord under it, had been looked for only in the octave under the solo's top. Over Sand Fever's flat-two
+  chord the one note of the five there was six steps down, so the peak was C5 and the whole solo, kept under it, sat G3
+  to C5, a rhythm guitar's register; now D4 to C6. 32 of 165 band solos peaked lower than they could (17 heavy, 15
+  light), and the ledger makes just those takes due. The judges' window on the summit falls after the solo, so this one
+  is for the ear: Sand Fever I's solo before and after is on the listening page.
+- **The boredom meter hears the kit's cymbals** (handbook 7.7, `tools/boredom.py`): the air in the top (its share
+  above 16 kHz) moving by more than 6 dB ends a run. The closed hat, the open hat and the ride sit within 1 dB in the
+  top's share but 13 to 15 dB apart in its air. Cobra Fever III's drums read one colour 47 bars across their turn to the
+  ride before, 22 after; pads, basses and House's synths read as they did.
+- **Every checkout names the recordings' folder alike** (`samples.SAMPLES`, the var folder resolved). A second
+  checkout's var is a link to the first's; written from both under two names, the instruments' sfz files rewrote each
+  other, and a sampler whose file changes while it renders stops dead. A demo's REAPER hung so on Fair Wind Shanty at
+  01:04, its stems at 0 bytes until its own timeout stopped it 100 minutes later. Main's files are as they were, byte
+  for byte.
+- Tried tonight and left off, each kept behind its switch with the judges' numbers (handbook 3.2 and 4.9; the pairs
+  are on the listening page): Warcraft's open walking the first theme's changes (`OPEN_WALKS`: on five takes a little up
+  on the Warcraft brief, a little down with none, enjoyment level on average, Crooked Round's -0.97); a light band's
+  summit coming back harder after its solo (`LIGHT_SUMMIT_TURNS`: Anchor Dog V level, Lazy River Sway I down, still
+  down with its octave bass kept); a geared bar's shape an octave up (`GEARED_SHAPE`, not yet heard on its own); House's
+  rise with the closed hat alone (`house.RISE_CLOSED_HAT`, the judges to come).
+
 ## 2026-11-19, late: a solo that riffs more like Angus
 
 - **The solo riffs more, and longer, the way Angus plays** (handbook 4.10, `orchestra.ANGUS_MORE`): "gimme a better

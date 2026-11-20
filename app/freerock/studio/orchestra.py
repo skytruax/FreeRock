@@ -1288,6 +1288,14 @@ PARTS = ("open", "first", "second", "build", "arrival", "valley", "climb", "summ
 WORD = {"open": "open", "first": "theme", "second": "theme", "build": "rise", "arrival": "moment", "valley": "theme",
         "climb": "rise", "summit": "moment", "close": "close"}
 THEMATIC = ("first", "second", "arrival", "valley", "summit")      # the parts in which a theme is sung whole
+# The styles whose open walks the first theme's changes, slowly, from a bar or two on its key chord to the chord before home;
+# the others hold the key chord and stir every fourth bar of the second half (2026-11-20, the judges: Warcraft's opens the
+# weakest of its nine parts on TuneJury and on enjoyment, -38 to -40 dB, its pads "one colour" 16 to 18 bars on the meter).
+# Tried on five Warcraft takes and left off (2026-11-20, the judges, the open before and after, TuneJury with the brief / with
+# none / Audiobox's enjoyment): Heather Fling +0.21 / -0.02 / +0.14, Old Corpse Road +0.06 / +0.22 / +0.93, Fair Wind Shanty
+# +0.11 / -0.26 / +0.01, Crooked Round -0.08 / -0.13 / -0.97 (its 32 bars eight a chord, i VII VI V); on average a little up on
+# the brief, a little down with none, enjoyment level. The meter heard the pads move. Kept for the ear to decide.
+OPEN_WALKS: tuple[str, ...] = ()
 FIGHTS = ("battle", "boss", "storm", "battleground")
 DANCE_GROOVES = ("jig", "reel", "waltz", "courtly")      # the grooves of dances: no war drums under them
 VALLEY_PAD = 0.55      # how far the pad's swell goes under in the valley, where the tune is a single soft player
@@ -1339,6 +1347,19 @@ GEAR_BARS = 8            # the phrase a long moment changes on
 # eight bars of its 40-bar arrival, the meter's colour unchanged all 40: a heavy band digs in at its half and an orchestra goes
 # up a gear, a light band had nothing.)
 LIGHT_GEARS = True       # a light band's long arrival goes up a gear every second phrase: its rhythm an octave up (Take.band_geared)
+# (2026-11-20, the study: Anchor Dog V's mandolin, rhythm guitar, muted guitar, kit and bass the same 32 bars through its
+# summit's fiddle solo and the twin theme after it; Lazy River Sway I's drums one colour 27 bars of its summit.)
+# Tried and left off (2026-11-20, the judges, the summit before and after): Anchor Dog V level (TuneJury -0.06 with the brief,
+# +0.06 with none, enjoyment +0.06); Lazy River Sway I down (-0.16, -0.46), and with its octave bass kept (LAST_CHORUS no longer
+# making a light band's octaves a walk) still down (-0.11, -0.31): its banjo an octave up or the ride is the rest. The meter heard
+# the turn (Anchor Dog V's rhythm one colour 38 bars before, 22 after). The light band's summit is still owed its turn.
+LIGHT_SUMMIT_TURNS = False  # after a light band's solo its summit comes back harder: the rhythm up a gear, the ride, the bass moving more
+# (2026-11-20, the study: Lazy River Sway I's banjo, geared after its solo, back at its own register within twelve bars, and
+# from a chord spread over 21 semitones: a geared voicing was led apart from the bars before it, about a centre an octave up,
+# and each voice moves to the nearest note of the next chord anywhere within 14 semitones of it, so it walked back down.)
+# (Off until it is heard on its own, before and after: every demo of 20 November had it in both halves, and Lazy River Sway's
+# banjo strumming at the top of its neck, as this makes it in a geared phrase, may be part of what the judges liked less.)
+GEARED_SHAPE = False     # a geared bar plays the bar's own chord shape an octave up; False leads the raised voicing on its own
 # (2026-11-19, the judges: Knight's valleys scored TuneJury 0.36 with no brief, against 0.9 for its first theme and arrival,
 # and Audiobox's enjoyment its lowest there, 6.34: a walking band's drummer stopped for the whole valley, under a single
 # player, a pad and held roots.)
@@ -1356,6 +1377,11 @@ ANGUS = True             # the solo's middle riffs the way Angus Young plays the
 # the run, the peak and the way home are still sung. False: the solos of 14:03.
 ANGUS_MORE = True
 ANGUS_FIGURES = ("repeat", "trill", "pedal", "cascade", "sequence", "stops")
+# (2026-11-20, the study: Sand Fever I's solo sat G3 to C5, its peak C5 where it could have been C6. The peak is a note of the
+# chord under it, and it was looked for only in the octave under the solo's top: over Sand Fever's flat-two chord the one note
+# of the five in that octave was six steps under the top, and everything before the peak is kept under it. 32 of 165 band
+# solos peaked lower than they could.)
+SOLO_PEAK_NEAR_TOP = True  # the peak is the chord's note nearest the top, up to two steps over it where the guitar reaches
 RIFF_MOVES = True        # a band take's riff moves inside the bar, its own way (Take.riff_move); False: one chord struck in rhythm
 LEAD_ANSWERS = True      # a band's lead guitar answers its own long notes with a run into its next (Take.sing); False: it holds them
 # (2026-11-19, 13:20, the judges on King's Oath: neither the riff's moves nor the lead's answers had taken SongEval down,
@@ -1592,10 +1618,19 @@ def family(character: Character, seed: int, name: str, title: str) -> Family:
     colour = COLOUR[mode]
     swing = colour if colour != away else "1"
     opening = ["1"] * lengths["open"]
-    if lengths["open"] >= 4:
-        opening[lengths["open"] // 2] = colour
-    for bar in range(lengths["open"] // 2 + 4, lengths["open"] - 1, 4):
-        opening[bar] = colour                          # a long opening stirs every fourth bar of its second half
+    if character.style in OPEN_WALKS and lengths["open"] >= 8:
+        # The open walks the first theme's changes, slowed to fill it (each bar of the theme one bar of the open, two,
+        # three or four, as the open is eight bars long or sixteen, twenty-four or thirty-two), after the key chord for
+        # whatever bars are over; it sets out from the key chord whatever the theme's first, and ends on the chord before
+        # home, so the first theme comes in at home.
+        hold = min(lengths["open"] // 8, 4)
+        walk = [chord for chord in ["1"] + eight[1:7] for _ in range(hold)] + [away] * hold
+        opening = ["1"] * (lengths["open"] - len(walk)) + walk
+    else:
+        if lengths["open"] >= 4:
+            opening[lengths["open"] // 2] = colour
+        for bar in range(lengths["open"] // 2 + 4, lengths["open"] - 1, 4):
+            opening[bar] = colour                      # a long opening stirs every fourth bar of its second half
     turn = 1 if bar_s >= 2.4 else 2 if bar_s >= 1.3 else 4
     closing = [colour if (index // turn) % 2 == 0 else "1" for index in range(lengths["close"])]
     for bar in range(max(lengths["close"] - max(turn, 2), 0), lengths["close"]):
@@ -2350,6 +2385,9 @@ def guitar_solo(rng: random.Random, tune: Line, bars: int, beats: float, pulse: 
     at_peak = kinds.index("peak") * span if "peak" in kinds else 0.0
     held_there = {each % 7 for each in chord_at(at_peak).steps}
     peak_note = max((each for each in range(top - 6, top + 1) if each % 7 in held_there and each % 7 in five), default=top)
+    if SOLO_PEAK_NEAR_TOP:
+        near = [each for each in range(top - 6, min(top + 2, high) + 1) if each % 7 in held_there and each % 7 in five]
+        peak_note = min(near, key=lambda each: (abs(each - top), -each)) if near else top
     ceiling = down(peak_note)
     for index, kind in enumerate(kinds):
         at = index * span
@@ -2624,6 +2662,10 @@ def bass_centre(inst: Instrument) -> int:
 
 # How the bass plays the second time round a theme, by how it played the first.
 BUSIER = {"long": "two", "two": "walk", "walk": "two"}
+# A light band's bass after its solo, in the last chorus: one step more drive (Take.after_solo); the octaves stay, the most a
+# light band's bass drives (2026-11-20, the judges: Lazy River Sway I's shuffle, its octave bass made a walk for the last
+# chorus, fell 0.46 on TuneJury with no brief there, where Anchor Dog V's walk made octaves held level).
+LAST_CHORUS = {"long": "two", "two": "walk", "walk": "oct"}
 # Who doubles a tune an octave above it rather than where the tune is: high woodwinds and bells.
 HIGH = ("flute", "piccolo", "whistle", "recorder", "ocarina", "pan flute", "glock", "celesta", "xylophone")
 # The orchestra's own low drums: what the war drums stand in for while they play.
@@ -2664,6 +2706,7 @@ class Take:
         self.heavy = self.ch.weight >= 0.8
         self.fight = self.ch.role in FIGHTS
         self.soloed = False             # whether the lead guitar takes a solo at the summit (see lead)
+        self.solo_bars = 0              # how many of the summit's first bars the solo takes
         # The breath before an arrival: for the last beat or two of each rise the tune rests and
         # the accompaniment stops striking, so that the downbeat lands the harder. It is the
         # last beat, or where that would be over too soon to hear, the last two (in six-eight
@@ -3258,6 +3301,7 @@ class Take:
                                                     two=SOLOISTS.get(strong[0], True)),
                              bar, loud, tag=" solo")
                         self.soloed = True
+                        self.solo_bars = bar + length
                         continue
                     sing(strong[0], use, bar, loud)
                     if len(strong) > 1:
@@ -3469,8 +3513,15 @@ class Take:
             through the bar, without the chugs. `up`: the riff's power chords and licks so many semitones higher on the neck
             (the muted string chugs on where it was)."""
             inst = INSTRUMENTS[name]
-            notes = voiced(key, chord, leading.get((name, raised)), 3, inst.home - 4 + raised)
-            leading[(name, raised)] = notes
+            if GEARED_SHAPE and raised >= 12:
+                # A geared bar is the chord shape the bar would have had, an octave up the neck (`geared`, `band_geared`): led
+                # from the last bar that was not geared, which it leaves where it was; a note past the instrument's top stays.
+                base = raised % 12
+                notes = voiced(key, chord, leading.get((name, base)), 3, inst.home - 4 + base)
+                notes = sorted(pitch + raised - base if pitch + raised - base <= inst.high else pitch for pitch in notes)
+            else:
+                notes = voiced(key, chord, leading.get((name, raised)), 3, inst.home - 4 + raised)
+                leading[(name, raised)] = notes
             ladder = notes + [notes[0] + 12]
             loud = self.hard(level, 0.8) * gain
             thin = density < 0.45
@@ -3801,8 +3852,8 @@ class Take:
                         # comes back with it (2026-11-18, the boredom meter: Gull's Edge's basses held one note 27 bars of
                         # a 28-bar opening, under its flat-seventh chords as well).
                         held = key.pitch(0, centre)
-                        if bars >= 16 and chord.root % 7 != 0:
-                            held = root
+                        if (bars >= 16 or ch.style in OPEN_WALKS) and chord.root % 7 != 0:
+                            held = root                    # (and in an open that walks the first theme's changes: OPEN_WALKS)
                         self.put("bass", name, bar_at, beats, held, loud * 0.8)
                     continue
                 # One way of playing for the first theme and what is made of it, another for the
@@ -3811,6 +3862,8 @@ class Take:
                 fight_valley = "long" if ch.band and along < 0.5 else two          # a band's fight: held roots under its breakdown
                 way = {"first": one, "second": two, "build": one, "arrival": one, "valley": fight_valley if self.fight else "long",
                        "climb": two if along < 0.5 else drive, "summit": one, "close": "long"}[part]
+                if self.after_solo(part, bar):
+                    way = LAST_CHORUS.get(way, way)          # a light band's last chorus: its bass moves more (LIGHT_SUMMIT_TURNS)
                 if self.bass_break(part, bars, bar):
                     self._bass_solo_bar(key, chord, chords, bar, bars, bar_at, root, inst, low, level)
                     continue
@@ -4100,8 +4153,15 @@ class Take:
         """Whether a bar of a heavy band's long moment (an arrival or a summit of 24 bars or more) is in its second half, from
         the first eight-bar line at or after its middle (see `drums` and `bass`)."""
         if not (DIGS_IN and self.ch.band and self.heavy and part in ("arrival", "summit") and bars >= 24):
-            return False
+            return self.after_solo(part, bar)
         return bar >= max(16, ((bars // 2 + 7) // 8) * 8)
+
+    def after_solo(self, part: str, bar: int) -> bool:
+        """Whether a bar of a light band's summit comes after its solo, where the band comes back in harder, as it plays its
+        last chorus (LIGHT_SUMMIT_TURNS): the rhythm up a gear (`band_geared`), the drummer over to the ride with the crash
+        twice as often and the bass pumping its octaves (`digs_in`)."""
+        return LIGHT_SUMMIT_TURNS and self.ch.band and not self.heavy and not self.fight and part == "summit" \
+            and self.soloed and bar >= self.solo_bars
 
     def geared(self, part: str, bars: int, bar: int) -> bool:
         """Whether a bar of an orchestra's arrival or summit is in one of its geared phrases: where the moment is two phrases
@@ -4114,7 +4174,7 @@ class Take:
         phrase, the rhythm's figure an octave up, as a guitarist goes up the neck the second time round (LIGHT_GEARS). The
         summit is the solo's and its comp's; a heavy band digs in instead (`digs_in`); a fight keeps its own."""
         return LIGHT_GEARS and self.ch.band and not self.heavy and not self.fight and part == "arrival" \
-            and bars >= 2 * GEAR_BARS and (bar // GEAR_BARS) % 2 == 1
+            and bars >= 2 * GEAR_BARS and (bar // GEAR_BARS) % 2 == 1 or self.after_solo(part, bar)
 
     def climbs(self, part: str, run: int, into: int) -> bool:
         """Whether a bar of a heavy band's rise is in the climbing half of a chord held long (see `rhythm` and `bass`)."""
@@ -4251,6 +4311,11 @@ class Take:
                 elif part in ("arrival", "summit"):
                     big = part == "summit"
                     groove = self.cymbal(main["moment"], bar, moment=True)
+                    if self.after_solo(part, bar):
+                        # After a light band's solo the drummer goes over to the ride for the last chorus (2026-11-20, the
+                        # study: Lazy River Sway I's drums one colour 27 bars of its summit, on the hats all through).
+                        groove = [("ride", layer[1], 0.9 * layer[2]) + tuple(layer[3:]) if layer[0] in ("hat", "hat open") else layer
+                                  for layer in groove]
                     if self.digs_in(part, bars, bar):
                         # A heavy band's long moment digs in at its half (2026-11-19, the meter: the bass and the drums of a
                         # 32-bar arrival or summit one colour all through): the crash every other bar, over the ride's bell.

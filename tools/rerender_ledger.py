@@ -68,6 +68,43 @@ def high_bass(piece: Piece) -> bool:
     return INSTRUMENTS[name].home - 5 > 45
 
 
+def peak_moved(piece: Piece) -> bool:
+    """A band take whose solo peaks elsewhere since orchestra.SOLO_PEAK_NEAR_TOP: the take is written, and its solo's peak
+    under the old rule (the chord's highest note of the five in the octave under the top) set against the new (2026-11-20,
+    Sand Fever I's solo G3 to C5)."""
+    if piece.style != "knight" or not getattr(piece.character, "band", False):
+        return False
+    fam = _families().get(piece.family)
+    if fam is None:
+        return False
+    from freerock.studio import orchestra
+    real, moved = orchestra.guitar_solo, []
+
+    def traced(*args, **kwargs):
+        def tracer(frame, event, arg):
+            if frame.f_code is real.__code__:
+                if event == "return":
+                    loc = frame.f_locals
+                    five, top, held = loc["five"], loc["top"], {each % 7 for each in loc["chord_at"](loc["at_peak"]).steps}
+                    old = max((each for each in range(top - 6, top + 1) if each % 7 in held and each % 7 in five), default=top)
+                    moved.append(old != loc["peak_note"])
+                return tracer
+            return None
+        before = sys.gettrace()
+        sys.settrace(tracer)
+        try:
+            return real(*args, **kwargs)
+        finally:
+            sys.settrace(before)
+
+    orchestra.guitar_solo = traced
+    try:
+        orchestra.Take(fam, int(piece.key.rsplit("/", 1)[1]))
+    finally:
+        orchestra.guitar_solo = real
+    return any(moved)
+
+
 def lively_walk(piece: Piece, busy_from: float = 0.45) -> bool:
     """Walking music that has soft war drums (orchestra.Take: `lively`), by the rule of its day: busy from 0.45 until
     2026-11-18, from 0.35 since."""
@@ -262,6 +299,11 @@ CHANGES = [
            "a groove that keeps time on the ride turns to the closed hat for its second sixteen bars of a theme (it had had "
            "nowhere to turn)",
            lambda p: p.style == "knight" and p.character.band),
+    Change("a solo's peak is the chord's note nearest its top", datetime.datetime(2026, 11, 20, 6, 20), "",
+           "the solo's peak is the chord's note nearest the solo's top, up to two steps over it (it had been looked for only in "
+           "the octave under the top: six steps down over a flat-two chord, and the whole solo kept under it, Sand Fever I's "
+           "G3 to C5)",
+           peak_moved),
     Change("a solo that riffs more like Angus", datetime.datetime(2026, 11, 20, 0, 14), "",
            "the solo's figures only Angus's own, four of its eight sentences riffing, each lick played again a note higher "
            "before it lands (it had riffed two or three sentences, a bar each)",

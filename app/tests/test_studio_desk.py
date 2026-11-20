@@ -85,6 +85,14 @@ def section(tmp_path, monkeypatch) -> Patch:
     return Patch(name="section", zones=zones, attack=70.0, release=330.0)
 
 
+def test_every_checkout_names_the_recordings_folder_alike():
+    # (2026-11-20, 01:04: a demo's REAPER hung on Fair Wind Shanty.) An instrument's sfz file names the recordings' folder; a
+    # second checkout's var is a link to the first's, and written from each under its own name the files rewrote each other,
+    # and a sampler whose file changes while it renders stops dead. The folder is named with the var folder resolved.
+    assert samples.SAMPLES == samples.SAMPLES.parent.resolve() / "samples"
+    assert "default_path=%s/" % samples.SAMPLES in sfz._head()
+
+
 def test_a_section_fades_between_its_soft_and_hard_recordings_on_the_controller(section):
     text = sfz.held(section, players=1, blend=True)
     regions = [row for row in text.split("\n") if row.startswith("<region>")]

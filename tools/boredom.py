@@ -87,7 +87,12 @@ def timbres(audio: np.ndarray, rate: int, bar_frames: float, bars: int) -> list[
         # kick on every beat, hardly moves the cepstrum, which follows the whole spectrum's tilt; King's Oath's and House's
         # drums read one colour 30 to 68 bars across turns the ear hears).
         top = 10 * np.log10(float(spectrum[freqs >= 4000.0].sum()) / (float(spectrum.sum()) + 1e-20) + 1e-20)
-        out.append((cepstrum[1:13] / 32.0, loud, None, top))
+        # ...and the air in that top: its share over 16 kHz, in dB (2026-11-20: the kit's closed hat, its open hat and its
+        # ride sit within 1 dB in the top's share, but a closed hat's top keeps a fifth to a hundredth of itself over 16 kHz,
+        # an open hat's a thousandth, a ride's a three-thousandth: Downpour Run's turn from the hat to the ride is 13 to 15 dB
+        # here, one cymbal's bars within 2 to 6 dB of each other).
+        air = 10 * np.log10(float(spectrum[freqs >= 16000.0].sum()) / (float(spectrum[freqs >= 4000.0].sum()) + 1e-20) + 1e-20)
+        out.append((cepstrum[1:13] / 32.0, loud, None, top, air))
     return out
 
 
@@ -115,7 +120,9 @@ def stretches(prints: list[tuple[np.ndarray, float] | None], still: float) -> li
             a, b = here[2], prints[start][2]
             figure = 1.0 - float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b) + 1e-20))
         top = abs(here[3] - prints[start][3]) if len(here) > 3 and len(prints[start]) > 3 else 0.0
-        if moved > still or most > 2.0 * still or abs(here[1] - loud) > still or figure > 0.1 or top > 2.0 * still:
+        air = abs(here[4] - prints[start][4]) if len(here) > 4 and len(prints[start]) > 4 else 0.0
+        if moved > still or most > 2.0 * still or abs(here[1] - loud) > still or figure > 0.1 or top > 2.0 * still \
+                or air > 4.0 * still:
             found.append((start, bar - start))
             start = bar
     return found

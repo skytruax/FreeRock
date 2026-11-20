@@ -586,6 +586,15 @@ The changes (`orchestra.family`):
   before home, held.
 - **Opening and close** sit on the key chord and stir to the colour chord (`COLOUR`): major and
   dorian 4, lydian and both phrygians 2, mixolydian 7, minor 6.
+- **Tried and left off: Warcraft's opening walking** (`OPEN_WALKS`, 2026-11-20). After a bar or two of
+  the key chord where bars are over, it went through the first theme's changes slowed to fill it (each
+  bar of the theme one, two, three or four bars), from the key chord to the chord before home; Crooked
+  Round's 32 bars fell i, VII, VI, V eight bars each, Deep Hall Hearth's 16 went i, III, VII, IV. *The
+  judges had the open the weakest of Warcraft's nine parts (TuneJury 0.43 against 0.70, enjoyment 6.31
+  against 7.29), the meter its pads one colour 16 to 18 bars.* Heard before and after on five takes, the
+  open went a little up on the Warcraft brief, a little down with none, its enjoyment level on average:
+  Old Corpse Road up on all three (+0.93 enjoyment), Crooked Round down on all three (-0.97). The meter
+  heard the pads move. It is kept for the ear to decide (the listening page has the pairs).
 - **The lift**: with chance `Character.lift`, the climb, summit and close are 2 or 3 semitones up.
 
 Chord figures follow `theory.Key.chord`: `1` to `7`, `+` or `-` to raise or lower the third, `7`
@@ -694,7 +703,8 @@ leap, or a third aside for a step.
 | eight | eighths on the root that lead into changes (4.7) |
 
 The first theme, build, arrival and summit take one way, the second theme and the first half of the
-climb another, the valley (outside fights) and the close `long`, the open the key note held. The
+climb another, the valley (outside fights) and the close `long`, the open the key note held (the chord's root
+under a walking open, where `OPEN_WALKS` has it walk). The
 second time round a theme the way gets busier (`BUSIER`). From each theme's second statement,
 through the second half of each rise and at the moments of music that is not heavy, the neighbour
 doubles the line an octave away at 0.8 (`PARTNERS`). At heavy moments bowed celli and basses play
@@ -1023,8 +1033,18 @@ before the bar line it reaches and taken up again on it. A bagpipe's bag holds i
   neck an octave, the muted string chugging where it was, and the other figure (a mandolin, a banjo) an
   octave up, as a band plays a chorus higher the second time round. *Sea Raiders V's mandolin, rhythm
   guitar and muted guitar played the same 160, 78 and 32 notes in every eight bars of its 40-bar
-  arrival, the meter's colour unchanged all 40.* The summit is the solo's; a light band's summit after
-  its solo is owed a turn of its own (Anchor Dog V's rhythm the same 32 bars through and after it).
+  arrival, the meter's colour unchanged all 40.* A geared phrase is voiced on its own, led from the last
+  geared bar, and over a long stretch it walks back down toward the ungeared voicing, each voice going to the
+  nearest note of the next chord anywhere within 14 semitones (Lazy River Sway I's banjo, from a chord spread over
+  21 semitones). `orchestra.GEARED_SHAPE` (2026-11-20, off) makes a geared bar the shape the bar would have had, an
+  octave up the neck; it waits to be heard on its own, before and after.
+- *Tried and left off: a light band's summit coming back harder after its solo* (`orchestra.LIGHT_SUMMIT_TURNS`,
+  `Take.after_solo`, 2026-11-20). From the solo's last bar the rhythm went up a gear, the drummer from the hats to the
+  ride, and the bass one step more drive (`LAST_CHORUS`). *Anchor Dog V's mandolin, rhythm guitar, muted guitar, kit
+  and bass had played the same 32 bars through its summit's fiddle solo and the twin theme after it.* The meter heard
+  the turn (38 bars of one colour, 22 after), but the judges did not like it on the banjo band: Anchor Dog V's summit
+  level, Lazy River Sway I's down (TuneJury -0.16 with the brief, -0.46 with none), and with its octave bass kept as
+  octaves still down (-0.11, -0.31). The light band's summit after its solo is still owed a turn of its own.
 - *A heavy band's close ends as a rock band ends* (`orchestra.ROCK_ENDING`, `Take.ending`, 2026-11-19):
   through the close the riff drives on (its density 0.8, at least 0.6 of the way up), the bass in
   eighths and the groove every bar, with a fill into the stop; then the last four bars (two in a short
@@ -1124,7 +1144,11 @@ Wing") and the way a singer phrases:
   major pentatonic in a major key or mixolydian (sweet), the minor in a minor key or dorian (blue).
   It is not moved onto the blues scale as the lead's other lines are.
 - **It sits high on the neck**: the octave is chosen so that the peak comes nearest the top of the
-  guitar's reach.
+  guitar's reach, and the peak is the chord's note nearest that top, up to two steps over it where the
+  guitar reaches (`orchestra.SOLO_PEAK_NEAR_TOP`, 2026-11-20). *It had been looked for only in the octave
+  under the top: over Sand Fever's flat-two chord the one note of the five there was six steps down, so
+  the peak was C5 and the whole solo sat G3 to C5 under it, a rhythm guitar's register. Now D4 to C6. 32
+  of 165 band solos had peaked lower than they could.*
 - **No pedal rocked on it.** It is a voice of its own (`lead guitar solo`, `fiddle solo`...) with a tape
   echo a dotted eighth behind it, so the held notes sing on into the room, and a flanger sweeping in
   time under it, a little, since 13:15; the summit has no wah on the lead at all.
@@ -1616,7 +1640,12 @@ more than 3 dB ends a run; a drummer's turn from the hat to the ride under a kic
 hardly moved the cepstrum (House's Moonwell I: 44 bars of one colour before, 16 after). A heavy
 band's cymbal turns still moved its top under 3 dB, too quiet in the mix to tell apart; since 19 November, 13:10,
 the band kits' top is opened 3.5 dB from 5 kHz (`sounds.chain`; the study had the drums 3.7 dB under the liked
-stems there). It reports the longest
+stems there). Since 20 November the top has its air too: the share of the top above 16 kHz, which moving by more than
+6 dB ends a run. The kit's closed hat, its open hat and its ride sit within 1 dB in the top's share, but a closed hat keeps
+a fifth to a hundredth of its top over 16 kHz, an open hat about a thousandth and a ride a three-thousandth: Downpour Run's
+turn from the hat to the ride is 13 to 15 dB there, one cymbal's bars within 2 to 6 dB of each other. Cobra Fever III's drums
+read one colour 47 bars across their turn from the open hat to the ride before, 22 after; pads, basses and House's
+synths read as they did. It reports the longest
 stretch that does not move, and flags 16 bars or more. Read a flag against the sheet: a close that
 peels its groove away a quiet layer at a time reads as unchanged, and a part can change its notes
 and still sound the same (0.4).

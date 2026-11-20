@@ -951,6 +951,34 @@ def test_a_long_openings_bass_goes_with_its_chords():
     assert home and all((pitch - key.tonic) % 12 == 0 for pitch in home)
 
 
+def test_a_warcraft_open_walks_its_first_themes_changes(monkeypatch):
+    # (2026-11-20, the judges: Warcraft's open the weakest of its nine parts on TuneJury, 0.43 against 0.70, and on enjoyment;
+    # the meter: its pads one colour 16 to 18 bars, the key chord under all but a bar or two.) The open walks the first
+    # theme's changes slowed to fill it, from the key chord to the chord before home; a band's open is as it was. (Left off
+    # since the judges heard it on five takes: OPEN_WALKS. Its way is kept, and held here.)
+    from freerock.studio import build
+    monkeypatch.setattr(orchestra, "OPEN_WALKS", ("warcraft",))
+    walked = kept = 0
+    for fam, _ in build.plan():
+        opening, first = fam.sections[0], fam.sections[1]
+        assert opening.part == "open" and first.part == "first"
+        away = orchestra.HOME[fam.key.mode][0]
+        if fam.character.style in orchestra.OPEN_WALKS and opening.bars >= 8:
+            hold = min(opening.bars // 8, 4)
+            walk = opening.chords[len(opening.chords) - 8 * hold:]
+            assert set(opening.chords[:len(opening.chords) - 8 * hold]) <= {"1"} and walk[0] == "1"
+            assert walk[::hold][1:7] == first.chords[1:7], fam.name
+            assert all(walk[index:index + hold] == [walk[index]] * hold for index in range(0, len(walk), hold))
+            assert walk[-hold:] == [away] * hold and opening.chords[-1] != first.chords[0]
+            walked += 1
+        elif fam.character.style == "knight" and opening.bars >= 8:
+            colour = orchestra.COLOUR[fam.key.mode]
+            assert opening.chords.count("1") >= opening.bars - 1 - (opening.bars // 2 - 1) // 4
+            assert opening.chords[opening.bars // 2] == colour
+            kept += 1
+    assert walked >= 100 and kept >= 50, (walked, kept)
+
+
 def test_a_solo_is_brought_up_over_the_rhythm_guitars_where_it_plays():
     # (2026-11-19: Barnyard Jamboree's solo came out 3.4 dB under the rhythm guitars.) The lead is brought up where the
     # solo plays until it stands SOLO_OVER dB over them, eased in and out, and no further than SOLO_MOST; a solo already
@@ -1755,6 +1783,60 @@ def test_a_light_bands_long_arrival_goes_up_a_gear():
                          if a - 1e-6 <= note.start < a + orchestra.GEAR_BARS * beats - 1e-6)
         return pitches[len(pitches) // 2]
     assert middle(1) - middle(0) >= 9 and middle(1) - middle(2) >= 9
+
+
+def test_a_light_bands_summit_comes_back_harder_after_its_solo(monkeypatch):
+    # (2026-11-20, the study: Anchor Dog V's mandolin, rhythm guitar, muted guitar, kit and bass the same 32 bars through its
+    # summit's fiddle solo and the twin theme after it.) After a light band's solo, for its last chorus: the rhythm's figure an
+    # octave up, the drummer from the hats over to the ride, and the bass one step more (LAST_CHORUS). (Left off since the
+    # judges heard it, with GEARED_SHAPE: LIGHT_SUMMIT_TURNS. Their ways are kept, and held here.)
+    monkeypatch.setattr(orchestra, "LIGHT_SUMMIT_TURNS", True)
+    monkeypatch.setattr(orchestra, "GEARED_SHAPE", True)
+    seen = 0
+    for name, number in (("coast-sea-dog-2", 5), ("desert-oasis-shuffle-2", 1)):
+        take = orchestra.Take(_family(name), number)
+        assert take.ch.band and not take.heavy and not take.fight and take.soloed
+        first, last = spans_of(take)["summit"]
+        beats = take.fam.beats
+        cut = first + take.solo_bars * beats
+        assert first < cut < last - 4 * beats
+
+        def kit(a: float, b: float) -> set[int]:
+            return {note.pitch for voice in take.voices["drums"].values() for note in voice.notes if a - 1e-6 <= note.start < b - 1e-6}
+
+        def middle(a: float, b: float) -> int:
+            pitches = sorted(note.pitch for voice_name, voice in take.voices["rhythm"].items() if "muted" not in voice_name
+                             for note in voice.notes if a - 1e-6 <= note.start < b - 1e-6)
+            return pitches[len(pitches) // 2]
+
+        def figure(a: float) -> tuple:
+            return tuple(sorted((round(note.start - a, 2), note.pitch) for voice in take.voices["bass"].values() for note in voice.notes
+                                if a - 1e-6 <= note.start < a + beats - 1e-6))
+
+        before, after = kit(cut - 4 * beats, cut), kit(cut + beats, cut + 5 * beats)
+        assert before & {42, 46} and not before & {51} and after & {51} and not after & {42, 46}, (name, before, after)
+        # (Up the neck all the way to the summit's end: GEARED_SHAPE, each geared bar the shape it would have had an octave up,
+        # a player at its top staying where it was: Lazy River Sway's steel guitar.)
+        assert middle(cut, cut + 8 * beats) - middle(cut - 8 * beats, cut) >= 6, name
+        assert middle(last - 8 * beats, last) - middle(cut - 8 * beats, cut) >= 6, name
+        if take.bass_way != "oct":
+            assert figure(cut) != figure(cut - beats) and len(figure(cut)) != len(figure(cut - beats)), name
+        else:
+            assert figure(cut) == figure(cut - beats) or len(figure(cut)) == len(figure(cut - beats)), name    # the octaves stay
+        seen += 1
+    assert seen == 2
+
+
+def test_a_solos_peak_is_the_chords_note_nearest_its_top():
+    # (2026-11-20, the study: Sand Fever I's solo sat G3 to C5. Its peak, over the flat-two chord, had been looked for only in
+    # the octave under the solo's top, where the one note of the chord among the five was six steps down, and everything
+    # before the peak is kept under it.) The peak is the chord's note nearest the top, up to two steps over it.
+    assert orchestra.SOLO_PEAK_NEAR_TOP
+    import statistics
+    take = orchestra.Take(_family("desert-sand-rider-2"), 1)
+    pitches = [note.pitch for note in take.voices["lead"]["lead guitar solo"].notes]
+    assert max(pitches) == 84 and statistics.median(pitches) >= 70, (min(pitches), max(pitches), statistics.median(pitches))
+    assert max(pitches) <= orchestra.INSTRUMENTS["lead guitar"].high
 
 
 def test_a_fiddle_or_a_mandolin_solo_sings_below_its_top():

@@ -783,6 +783,29 @@ def test_a_theme_after_a_drop_does_not_play_the_drops_groove():
     assert struck(drop_first + drop_count - 4, drop_first + drop_count) != struck(first, first + 4)
 
 
+def test_a_rise_can_keep_the_closed_hat_alone(monkeypatch):
+    # (2026-11-20: the quieter pulse to try after the judges heard RISE_PULSE: its open hats and ride fell the furthest.) With
+    # RISE_CLOSED_HAT, through a rise the closed hat alone plays the eighths, softer than it plays a theme, in every bar; no
+    # open hat, ride or percussion; the build is eight bars of a sixteen-bar rise.
+    from freerock.studio import club
+    monkeypatch.setattr(house, "RISE_PULSE", False)
+    monkeypatch.setattr(house, "RISE_CLOSED_HAT", True)
+    monkeypatch.setattr(house, "RISE_LONG_BUILD", True)
+    take = house.Take(house.family("coast-03"), 1)
+    heard = club.listen(take)
+    perc = {sound for _, sound, _ in house.PERCUSSION[take.pick("perc", take.palette["perc"])]} - {"hat"}
+
+    def struck(sounds, a: int, b: int) -> list[tuple[float, float]]:
+        return [(at, loud) for sound, _, at, loud, _ in heard.hits if sound in sounds and a * house.BAR - 0.05 <= at < b * house.BAR - 0.05]
+    rises = [(first, count) for story, first, count in take.sections if story == "rise"]
+    assert rises
+    for first, count in rises:
+        assert take.build_bars(count) == (8 if count >= 16 else 4)
+        for bar in range(first, first + count - 1):
+            assert len(struck(("hat",), bar, bar + 1)) >= 6, bar
+        assert not struck(("open", "ride"), first, first + count) and not struck(perc, first, first + count)
+
+
 def test_a_rise_keeps_its_hats_going_and_builds_with_the_sweep(monkeypatch):
     # (2026-11-19, the judges: House's rises scored TuneJury 0.22 on the House brief and -0.30 on none, against 1.1 to 1.3 for
     # the grooves either side, in all thirteen takes: twelve bars of the tune over nothing, then a four-bar roll under an
