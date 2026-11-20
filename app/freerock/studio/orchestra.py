@@ -1317,6 +1317,11 @@ SOLO_COMP = True         # under a solo the rhythm guitar comps: the chord on th
 TURNS_TO_HAT = True      # a band's groove on the ride turns to the hat for its second sixteen bars (Take.cymbal); False: it stays
 # Who may take a band's solo, and whether they can sound two notes at once (double stops, octaves, a held note doubled):
 SOLOISTS = {"lead guitar": True, "fiddle": True, "mandolin": True, "harmonica": True, "whistle": False}
+# (2026-11-19, the study: Lazy River Swing V's fiddle solo sat F5 to C7, Sea Raiders V's C5 to Bb6: a solo climbs an octave and a
+# note over where the tune begins, and a fiddle's tune begins high; its reach was the fiddle's whole written range.) The highest
+# note a solo sings on, where the written range runs far above it: a fiddle's E6, a mandolin's D6. The lead guitar's D6 and the
+# harmonica's C6 are their written tops already. Empty: the written range, as before.
+SOLO_TOP = {"fiddle": 88, "mandolin": 86}
 # The figures a solo's middle is made of, three drawn for each solo: Angus Young's and Chuck Berry's (the repeated note, the
 # run in threes or fours, the trill, the double stops, the cascade, the pedal lick), the octaves Wes Montgomery and Hendrix
 # play a tune in, a figure echoed a step lower each beat, one note picked in threes against the beat, and notes slid into.
@@ -1330,6 +1335,14 @@ OPENS_OUT = True         # a heavy band's drummer opens the hat for the second t
 DIGS_IN = True           # a heavy band's long moment digs in at its half: the bass's octaves, the crash every other bar
 GEARS = True             # an orchestra's long moment goes up a gear every second phrase (Take.geared); False plays it one way
 GEAR_BARS = 8            # the phrase a long moment changes on
+# (2026-11-19, the study: Sea Raiders V's mandolin, rhythm guitar and muted guitar played the same 160, 78 and 32 notes in every
+# eight bars of its 40-bar arrival, the meter's colour unchanged all 40: a heavy band digs in at its half and an orchestra goes
+# up a gear, a light band had nothing.)
+LIGHT_GEARS = True       # a light band's long arrival goes up a gear every second phrase: its rhythm an octave up (Take.band_geared)
+# (2026-11-19, the judges: Knight's valleys scored TuneJury 0.36 with no brief, against 0.9 for its first theme and arrival,
+# and Audiobox's enjoyment its lowest there, 6.34: a walking band's drummer stopped for the whole valley, under a single
+# player, a pad and held roots.)
+VALLEY_KEEPS_TIME = True  # a band's walking valley keeps time softly: the hat on the beat, the bass drum on the bar, the side stick
 # A drum pattern one step busier, for a long moment's geared phrases.
 BUSIER_STROKES = {"down": "groups", "groups": "pulses", "back": "pulses", "mid": "groups", "offs": "ands", "pulses": "halves",
                   "last": "back", "three": "pulses"}
@@ -3198,7 +3211,8 @@ class Take:
                         # colour (an echo, no pedal) and keeps the five notes of the key it is written in.
                         own = random.Random(fam.seed * 31 + self.take * 7 + 5)          # its own draws: the take's are as they were
                         player = INSTRUMENTS[strong[0]]
-                        reach = [step for step in range(-14, 22) if player.low + 2 <= key.pitch(step, player.home) <= player.high]
+                        solo_top = min(player.high, SOLO_TOP.get(strong[0], player.high))     # where a solo sings (SOLO_TOP)
+                        reach = [step for step in range(-14, 22) if player.low + 2 <= key.pitch(step, player.home) <= solo_top]
                         length = period * solo_turns
                         mine = [chords[min(bar + each, len(chords) - 1)] for each in range(length)]
                         sing(strong[0], guitar_solo(own, tune, length, beats, self.pulse, fam.bpm, mine, key.mode, min(reach), max(reach),
@@ -3599,7 +3613,7 @@ class Take:
                 # Where the second theme has the same figure on the same instrument as the first,
                 # it is at least played a fourth higher.
                 raised = 5 if second and (self.pluck_b, self.figure_b) == (self.pluck, self.figure) else 0
-                if self.geared(part, bars, bar):
+                if self.geared(part, bars, bar) or self.band_geared(part, bars, bar):
                     raised += 12                               # a long moment's geared phrase: the figure an octave up (`geared`)
                 bar_at = first + bar * beats
                 if ch.band and self.heavy and part in ("arrival", "summit") and bar == 0:
@@ -3621,11 +3635,14 @@ class Take:
                 # brings it down again; the arrival comes in on the low riff, the way a riff band climbs and lands.
                 into, run = runs[bar]
                 climbing = self.climbs(part, run, into)
+                # (A light band's geared phrase takes its riff up the neck the same way, the muted string chugging where it was:
+                # a riff's register is its own, so the raise above does not reach it. `band_geared`.)
+                geared_band = self.band_geared(part, bars, bar)
                 played = "riff" if rings else "chug" if climbing and self.rise_way == "drive" and figure == "riff" else figure
                 comping = SOLO_COMP and ch.band and solo_from is not None and played in ("riff", "chug") and not rings \
                     and solo_from - 1e-6 <= bar_at < solo_to - beats / 2
                 layer(name, played, second, raised, 0.85 if comping else 1.0, key, chord, bar, bar_at, level, density, rings=rings,
-                      up=12 if climbing and self.rise_way == "climb" and figure in ("riff", "chug") and not rings else 0,
+                      up=12 if ((climbing and self.rise_way == "climb") or geared_band) and figure in ("riff", "chug") and not rings else 0,
                       ending=end in ("stop", "ring", "last"), comp=comping)
                 # (A band's riff guitars are the band's whole accompaniment; the unplugged band takes the second figure too.)
                 if not (ch.band and self.heavy) and fuller(part, bar, along):
@@ -3636,7 +3653,7 @@ class Take:
                         with_name = ch.plucks[(self.take + 2) % len(ch.plucks)]
                     if with_name != name or with_figure != figure:
                         apart = abs(INSTRUMENTS[with_name].home - INSTRUMENTS[name].home)
-                        up = 12 if (with_name == name or apart < 7) else 0
+                        up = 12 if (with_name == name or apart < 7 or geared_band) else 0
                         layer(with_name, with_figure, not second, up, 0.72, key, chord, bar, bar_at, level, max(density, 0.5))
                 if part in ("arrival", "summit") and self.heavy and not ch.band:
                     # The brass marks the chord: on the bar at the first arrival, on every strong beat
@@ -4050,6 +4067,13 @@ class Take:
         return GEARS and not self.ch.band and part in ("arrival", "summit") and bars >= 2 * GEAR_BARS \
             and (bar // GEAR_BARS) % 2 == 1
 
+    def band_geared(self, part: str, bars: int, bar: int) -> bool:
+        """Whether a bar of a light band's arrival of two phrases or more is in one of its geared phrases: every second
+        phrase, the rhythm's figure an octave up, as a guitarist goes up the neck the second time round (LIGHT_GEARS). The
+        summit is the solo's and its comp's; a heavy band digs in instead (`digs_in`); a fight keeps its own."""
+        return LIGHT_GEARS and self.ch.band and not self.heavy and not self.fight and part == "arrival" \
+            and bars >= 2 * GEAR_BARS and (bar // GEAR_BARS) % 2 == 1
+
     def climbs(self, part: str, run: int, into: int) -> bool:
         """Whether a bar of a heavy band's rise is in the climbing half of a chord held long (see `rhythm` and `bass`)."""
         return CLIMBS and self.ch.band and self.heavy and part in ("build", "climb") and run >= LONG_HOLD and into >= run // 2 \
@@ -4222,6 +4246,14 @@ class Take:
                         if bar == bars - 1 and main["roll"]:
                             for index in range(4):
                                 self.strike(main["roll"], bar_at + beats - (4 - index) * 0.25, 0.4 + 0.12 * index, chord, key)
+                    elif ch.band and VALLEY_KEEPS_TIME:
+                        # A band's walking valley keeps time softly (VALLEY_KEEPS_TIME): the closed hat on the beat and the
+                        # bass drum on the bar under the single player, and from the valley's second half the side stick on
+                        # the backbeat, the band gathering itself before the climb.
+                        keeping = [("hat", "pulses", 0.4), ("boom", "down", 0.5)]
+                        if along >= 0.5:
+                            keeping.append(("clack", "back", 0.45))
+                        lay(keeping, bar, bar_at, level, 0.6, chord, key)
                 else:
                     end = self.ending(part, bars, bar)
                     if end == "drive":

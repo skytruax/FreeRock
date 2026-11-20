@@ -925,6 +925,13 @@ it stands in for the distorted lead only (`Take.lead`). The riff guitars rest th
 piece's valley. With the lone opening, this took the heavy pieces *from 8 dB between their quietest
 and loudest parts to 17 to 20*.
 
+Under a walking band's valley the drummer keeps time softly (`orchestra.VALLEY_KEEPS_TIME`,
+2026-11-19): the closed hat on the beat and the bass drum on the bar, and from the valley's second half
+the side stick on the backbeat, the band gathering itself before the climb. *The judges scored Knight's
+valleys TuneJury 0.36 with no brief, against 0.9 for its first theme and arrival, and Audiobox's
+enjoyment lowest there (6.34): the drummer had stopped for the whole valley, under one player, a pad
+and held roots.*
+
 ### 4.6 The fight valley breakdown
 
 A band's fight valley is short, and *its fight pieces went only 4 to 5 dB between their quietest
@@ -1011,6 +1018,13 @@ before the bar line it reaches and taken up again on it. A bagpipe's bag holds i
   the crash comes every other bar over the ride's bell and the bass pumps its octaves, the way a band
   plays its chorus harder the second time round. *The meter had found the bass and the drums of a
   32-bar arrival or summit one colour all through.*
+- *A light band's long arrival goes up a gear* (`orchestra.LIGHT_GEARS`, `Take.band_geared`,
+  2026-11-19): every second eight-bar phrase of an arrival of sixteen bars or more the riff goes up the
+  neck an octave, the muted string chugging where it was, and the other figure (a mandolin, a banjo) an
+  octave up, as a band plays a chorus higher the second time round. *Sea Raiders V's mandolin, rhythm
+  guitar and muted guitar played the same 160, 78 and 32 notes in every eight bars of its 40-bar
+  arrival, the meter's colour unchanged all 40.* The summit is the solo's; a light band's summit after
+  its solo is owed a turn of its own (Anchor Dog V's rhythm the same 32 bars through and after it).
 - *A heavy band's close ends as a rock band ends* (`orchestra.ROCK_ENDING`, `Take.ending`, 2026-11-19):
   through the close the riff drives on (its density 0.8, at least 0.6 of the way up), the bass in
   eighths and the groove every bar, with a fill into the stop; then the last four bars (two in a short
@@ -1130,6 +1144,12 @@ Wing") and the way a singer phrases:
   close in three of the day's four new heavy takes: the riff played on under the solo as everywhere else.*
 - **Never the same twice**: each take draws its own solo from the family's seed and the take: its
   figures, its form and each figure's way (above).
+- **A fiddle's or a mandolin's solo sings below its top** (`orchestra.SOLO_TOP`, 2026-11-19): a solo
+  climbs an octave and a note over where the tune begins, and a fiddle's tune begins high; its reach had
+  been the instrument's whole written range, and Lazy River Swing V's fiddle solo sat F5 to C7. Now the
+  highest note is E6 on a fiddle and D6 on a mandolin (across nine oasis shuffle and sea dog takes the
+  fiddles' peaks went from G6-B6 to G5-E6); the lead guitar's D6 and the harmonica's C6 are their
+  written tops already.
 - `orchestra.SOLOS = False` takes it away and gives the summit back to the twins.
 
 ---

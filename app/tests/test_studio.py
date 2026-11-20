@@ -363,9 +363,15 @@ def test_the_big_drums_are_where_they_should_be_and_nowhere_else():
             assert all(0 <= note.start < take.total for note in notes), "%s: %s" % (character.name, name)
             assert take.voices["drums"][name].instrument == name and not take.voices["drums"][name].drums
         assert len(have.get("gong", [])) <= 2
-        # The valley has no drums at all, but in a fight.
+        # The valley has no drums at all, but in a fight; a band's walking valley keeps time softly on its kit alone, the hat,
+        # the bass drum and the side stick (VALLEY_KEEPS_TIME, 2026-11-19).
         if not fight:
-            assert not played(take, "drums", "valley"), "%s has drums in its valley" % character.name
+            valley = played(take, "drums", "valley")
+            if character.band and orchestra.VALLEY_KEEPS_TIME:
+                assert valley and {name for name, _ in valley} == {"kit"} and {note.pitch for _, note in valley} <= {36, 37, 42}, \
+                    "%s keeps time in its valley with %s" % (character.name, sorted({(name, note.pitch) for name, note in valley}))
+            else:
+                assert not valley, "%s has drums in its valley" % character.name
 
 
 def test_a_fight_has_war_drums_all_the_way_and_heavy_walking_music_from_each_rise_to_its_moment():
@@ -1710,3 +1716,55 @@ def test_an_organ_or_a_harp_plays_its_bass_low():
         assert pitches and pitches[len(pitches) // 2] <= 50 and pitches[0] >= orchestra.INSTRUMENTS[bass].low, (name, pitches[:3], pitches[-3:])
     slow = orchestra.INSTRUMENTS["basses slow"]
     assert orchestra.bass_centre(slow) == slow.home - 5
+
+
+def test_a_bands_walking_valley_keeps_time_softly():
+    # (2026-11-19, the judges: Knight's valleys scored TuneJury 0.36 with no brief against 0.9 for its first theme and arrival,
+    # and Audiobox's enjoyment its lowest there: the drummer had stopped for the whole valley.) The hat on every beat and the
+    # bass drum on every bar, softly; the side stick on the backbeat only in the valley's second half.
+    assert orchestra.VALLEY_KEEPS_TIME
+    take = orchestra.Take(orchestra.family(character_called("sea dog"), 7, "f", "F"), 1)
+    assert take.ch.band and not take.fight
+    first, last = spans_of(take)["valley"]
+    beats = take.fam.beats
+    bars = int(round((last - first) / beats))
+    kit = [note for voice in take.voices["drums"].values() for note in voice.notes if first - 1e-6 <= note.start < last - 1e-6]
+    hats, booms, sticks = ([note for note in kit if note.pitch == pitch] for pitch in (42, 36, 37))
+    assert len(booms) >= bars - 1 and len(hats) >= 2 * bars
+    assert sticks and min(note.start for note in sticks) >= first + (bars // 2) * beats - 1e-6
+    assert max(note.loud for note in kit) < 0.45
+
+
+def test_a_light_bands_long_arrival_goes_up_a_gear():
+    # (2026-11-19, the study: Sea Raiders V's mandolin, rhythm guitar and muted guitar played the same notes in every eight bars
+    # of its 40-bar arrival.) Every second eight-bar phrase of a light band's arrival the rhythm's figure is an octave up.
+    assert orchestra.LIGHT_GEARS
+    take = orchestra.Take(orchestra.family(character_called("sea dog"), 7, "f", "F"), 1)
+    assert take.ch.band and not take.heavy and not take.fight
+    first, last = spans_of(take)["arrival"]
+    beats = take.fam.beats
+    assert (last - first) / beats >= 24
+
+    def middle(phrase: int) -> int:
+        a = first + phrase * orchestra.GEAR_BARS * beats
+        pitches = sorted(note.pitch for name, voice in take.voices["rhythm"].items() if "bell" not in name for note in voice.notes
+                         if a - 1e-6 <= note.start < a + orchestra.GEAR_BARS * beats - 1e-6)
+        return pitches[len(pitches) // 2]
+    assert middle(1) - middle(0) >= 9 and middle(1) - middle(2) >= 9
+
+
+def test_a_fiddle_or_a_mandolin_solo_sings_below_its_top():
+    # (2026-11-19, the study: Lazy River Swing V's fiddle solo sat F5 to C7, the fiddle's whole written range above its tune.) A
+    # solo keeps to SOLO_TOP where its instrument has one: a fiddle's E6, a mandolin's D6.
+    found = 0
+    for name in ("oasis shuffle", "sea dog"):
+        character = character_called(name)
+        for seed in range(3):
+            for number in (1, 2, 3):
+                take = orchestra.Take(orchestra.family(character, 80 + seed, "f", "F"), number)
+                for voice_name, voice in take.voices["lead"].items():
+                    player = voice_name[:-len(" solo")] if voice_name.endswith(" solo") else None
+                    if player in orchestra.SOLO_TOP and voice.notes:
+                        found += 1
+                        assert max(note.pitch for note in voice.notes) <= orchestra.SOLO_TOP[player], (name, seed, number, player)
+    assert found
