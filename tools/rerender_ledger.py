@@ -299,6 +299,10 @@ CHANGES = [
            "a groove that keeps time on the ride turns to the closed hat for its second sixteen bars of a theme (it had had "
            "nowhere to turn)",
            lambda p: p.style == "knight" and p.character.band),
+    Change("House's rise keeps the closed hat ticking", datetime.datetime(2026, 11, 20, 7, 30), "",
+           "through a rise the closed hat alone plays the eighths, soft and growing, with the eight-bar build into the drop "
+           "(the rise had been the tune over nothing, the pulse gone)",
+           lambda p: p.style == "house"),
     Change("a solo's peak is the chord's note nearest its top", datetime.datetime(2026, 11, 20, 6, 20), "",
            "the solo's peak is the chord's note nearest the solo's top, up to two steps over it (it had been looked for only in "
            "the octave under the top: six steps down over a flat-two chord, and the whole solo kept under it, Sand Fever I's "

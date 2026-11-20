@@ -129,9 +129,11 @@ BREAKDOWN = (0.3, 0.5)          # the breakdown's energy, from its first bar to 
 # worse, so the hats were what the judges liked less. The open hats and the ride of The Long Watch II fell the furthest: a
 # quieter pulse (the closed hat alone) is the next to try.
 RISE_PULSE = False
-# The quieter pulse to try (2026-11-20): the closed hat alone on the eighths, soft and growing with the rise, no percussion,
-# with the eight-bar build. Off until the judges have heard it.
-RISE_CLOSED_HAT = False
+# The quieter pulse (2026-11-20): the closed hat alone on the eighths, soft and growing with the rise, no percussion, with the
+# eight-bar build. The judges, before and after on The Long Watch II and Harbour Lights II, four rises: the House brief up in
+# all four (+0.07 to +0.17), the score with none up on Harbour Lights (+0.14, +0.23) and level on The Long Watch, Audiobox's
+# enjoyment within its noise (-0.07 to -0.14, where the full hats had cost 0.28): in.
+RISE_CLOSED_HAT = True
 RISE_LONG_BUILD = True     # the build eight bars with the sweep; False: four, the sweep eight as before (Take.build_bars)
 # The calm moments: an inn, the night, a camp. They have no drop to speak of, no roll into one and no line doubled over the
 # tune, and they play under the usual level.

@@ -378,7 +378,7 @@ last drop twice as long, close. Tracks run 124 to 192 bars at 110 BPM, 271 to 41
 |---|---|
 | open | Pads and a filtered chord figure, no kick. In two takes of three a shaker or other small percussion creeps in over the second half. The end of the tune's idea, far off. |
 | theme | The groove: kick, backbeat, hats, percussion, bass, the chord figure. The hook in its second half. |
-| rise | The groove drops out (a fight keeps its kick for the first half). The tune whole, soft then full; a roll and a riser. (A pulse through it, `house.RISE_PULSE`, was tried and left off: 5.5.) |
+| rise | The groove drops out (a fight keeps its kick for the first half), all but the closed hat ticking the eighths, soft and growing (`house.RISE_CLOSED_HAT`). The tune whole, soft then full; a roll and a riser over the last eight bars. (The full hats and percussion, `house.RISE_PULSE`, were tried and left off: 5.5.) |
 | moment | The drop: everything, the tune at its brightest; every second time round a line above it. |
 | theme (breakdown) | No kick, no groove, the bass one long note to a bar. Fights do not break down. |
 | close | The band leaves; the kick goes four bars before the end. |
@@ -1323,7 +1323,10 @@ in every one (+0.04 to +0.09) and SongEval rose on one take (musicality 2.64 to 
 0.15 to 0.24), but Audiobox's enjoyment fell in all eight (−0.28 on average) and the score with no brief
 fell on one take (−0.23 to −0.39) and rose on the other (−0.16 to +0.10). With the four-bar build of before
 it was worse, so the hats were what the judges liked less, the open hats and the ride of The Long Watch the
-most. It is left off; the next to try is a quieter pulse, the closed hat alone.
+most. It is left off. The quieter pulse, the closed hat alone on the eighths with no percussion and the
+eight-bar build (`house.RISE_CLOSED_HAT`, 2026-11-20), the judges liked: the House brief up in all four
+rises of The Long Watch II and Harbour Lights II (+0.07 to +0.17), the score with none up on Harbour Lights
+and level on The Long Watch, Audiobox's enjoyment within its noise. It is in.
 
 ### 5.6 Palettes and the calm roles
 

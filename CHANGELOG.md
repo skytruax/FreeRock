@@ -24,8 +24,12 @@ dictated, where it drove the change.
   are on the listening page): Warcraft's open walking the first theme's changes (`OPEN_WALKS`: on five takes a little up
   on the Warcraft brief, a little down with none, enjoyment level on average, Crooked Round's -0.97); a light band's
   summit coming back harder after its solo (`LIGHT_SUMMIT_TURNS`: Anchor Dog V level, Lazy River Sway I down, still
-  down with its octave bass kept); a geared bar's shape an octave up (`GEARED_SHAPE`, not yet heard on its own); House's
-  rise with the closed hat alone (`house.RISE_CLOSED_HAT`, the judges to come).
+  down with its octave bass kept); a geared bar's shape an octave up (`GEARED_SHAPE`, not yet heard on its own).
+- **House's rise keeps the closed hat ticking** (handbook 2.3 and 5.5, `house.RISE_CLOSED_HAT`, 07:30): through a rise
+  the closed hat alone plays the eighths, soft and growing, over the tune whole, with the eight-bar build into the drop.
+  The judges on The Long Watch II and Harbour Lights II: the House brief up in all four rises (+0.07 to +0.17), the score
+  with none up on Harbour Lights (+0.14, +0.23) and level on The Long Watch, enjoyment within its noise, where the full
+  hats tried the night before had cost 0.28. Every House take is made again for it (the ledger).
 
 ## 2026-11-19, late: a solo that riffs more like Angus
 
