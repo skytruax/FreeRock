@@ -105,6 +105,53 @@ def peak_moved(piece: Piece) -> bool:
     return any(moved)
 
 
+def bass_moved(piece: Piece) -> bool:
+    """An orchestra or band take whose bass plays some part's key note in another octave since orchestra.BASS_FOLLOWS_KEY:
+    each part's key note the one nearest the part before's, in the instrument's range, where it had been the one nearest the
+    bass's centre (2026-11-20: a key lifted for the summit took the bass down about a seventh; in Eb its key note alone was
+    lifted over its own line)."""
+    if piece.style == "house":
+        return False
+    fam = _families().get(piece.family)
+    basses = getattr(piece.character, "basses", ())
+    if fam is None or not basses:
+        return False
+    from freerock.studio import orchestra
+    inst = INSTRUMENTS[basses[int(piece.key.rsplit("/", 1)[1]) % len(basses)]]
+    centre = orchestra.bass_centre(inst)
+    spans = [(section, 0.0, fam.key.lifted(fam.lift) if section.lifted else fam.key, []) for section in fam.sections]
+    follows = orchestra.bass_tonics(spans, inst, centre)
+    return any(tonic != key.home(centre) for tonic, (_, _, key, _) in zip(follows, spans))
+
+
+def calm_build(piece: Piece) -> bool:
+    """A calm House take (an inn, a camp, a night) whose bass builds into its moment (house.Take.bass: two takes in three),
+    softer since house.CALM_BUILD_SOFT."""
+    if piece.style != "house" or piece.character.role not in house.CALM_ROLES:
+        return False
+    return bool(house.Take(piece.character, int(piece.key.rsplit("/", 1)[1])).pick("bass-build", (True, False, True)))
+
+
+def played_organ(piece: Piece) -> bool:
+    """A House take whose sheet plays an organ (its bass, its chords or its pad): House has none since 2026-11-20, 21:46 ("No
+    organs in the house music")."""
+    if piece.style != "house":
+        return False
+    sheet = STUDIO / "house" / piece.key / "sheet.json"
+    if not sheet.is_file():
+        return False
+    parts = json.loads(sheet.read_text(encoding="utf-8")).get("parts", {})
+    return any("organ" in instrument for instruments in parts.values() for instrument in instruments)
+
+
+def has_valley(piece: Piece) -> bool:
+    """A band's take whose story has a valley: its pad there goes under pianissimo since orchestra.VALLEY_SOFT (2026-11-21; an
+    orchestra's valley keeps its pad)."""
+    fam = _families().get(piece.family)
+    return (piece.style in ("knight", "warcraft") and fam is not None and getattr(piece.character, "band", False)
+            and any(section.part == "valley" for section in fam.sections))
+
+
 def lively_walk(piece: Piece, busy_from: float = 0.45) -> bool:
     """Walking music that has soft war drums (orchestra.Take: `lively`), by the rule of its day: busy from 0.45 until
     2026-11-18, from 0.35 since."""
@@ -125,6 +172,41 @@ class Change:
 
 
 CHANGES = [
+    Change("a band's valley's pad under pianissimo", datetime.datetime(2026, 11, 21, 2, 25), "",
+           "in a band's valley a pad's swell goes to 0.35 of the part's level where it went to 0.55, so MuseScore plays it ppp, and its "
+           "held notes are struck softer (a pad written pp stood 3 to 13 dB over a valley's single soft tune: Midnight Mass II, "
+           "Thunder Lizard Stomp II, Throne Parade IV)",
+           has_valley),
+    Change("House plays no organ", datetime.datetime(2026, 11, 21, 2, 25), "",
+           "House has no organ, as its bass, its chords or its pad (\"No organs in the house music\", 2026-11-20, 21:46): the "
+           "palettes' organs became a square or FM bass, a piano, an electric piano, a stab, a pluck or a harp, strings or a "
+           "warm, hollow or glass pad, in the organ's place among their choices",
+           played_organ),
+    Change("a House theme's percussion turns after its hats", datetime.datetime(2026, 11, 21, 2, 25), "",
+           "in a theme the percussion turns eight bars after the hats, so the drums change every eight bars (a theme's drums had "
+           "been the same sixteen bars from each turn: The Deep Road III, Drowned Halls III)",
+           lambda p: p.style == "house" and p.character.role not in house.CALM_ROLES),
+    Change("a long House drop opens up at its second block", datetime.datetime(2026, 11, 21, 2, 25), "",
+           "a drop of thirty-two bars or more opens up at its second block: a ride on the beat from its seventeenth bar where the "
+           "palette has none (Mill Stream II's last drop the same 39 bars from its first, The Old Swamp III's 23)",
+           lambda p: p.style == "house" and p.character.role not in house.CALM_ROLES),
+    Change("a House fight's drums grow", datetime.datetime(2026, 11, 21, 2, 25), "",
+           "a fight's open is the kick, the backbeat and its roll; the hats come in with the theme, the first percussion at its "
+           "ninth bar, the second taking over at its twenty-fifth (a fight's drums had been the same 16 to 20 bars from its "
+           "first bar: Ambush III, Stand Fast I)",
+           lambda p: p.style == "house" and p.character.hard),
+    Change("a long House drop drops out for a bar", datetime.datetime(2026, 11, 21, 2, 25), "",
+           "the bar before the last eight of a drop of thirty-two bars or more drops out (the kick, the bass, the chords, the tune "
+           "and the percussion; the clap and the hats go on, a snare pickup under a bar of rising air) and everything lands "
+           "again on a crash and the drop's thud (a long drop's last sixteen bars had been one groove: Mirage I, Hollow Road "
+           "III, River Drums III, The Old Swamp III)",
+           lambda p: p.style == "house" and p.character.role not in house.CALM_ROLES),
+    Change("the bass follows the key", datetime.datetime(2026, 11, 21, 2, 25), "",
+           "each part's key note for the bass is the one nearest the part before's, in the instrument's range, so a key lifted "
+           "for the summit lifts the bass with it (it went down about a seventh in 18 of Knight's 71 lifted parts, Frost "
+           "Hammer's climb C#2 to E1), and a key note under the bass's lowest string is played an octave up with its whole line "
+           "(Blood Machine I's Eb: its key note over its own line, the bII a major seventh under it)",
+           bass_moved),
     Change("light levels and soft war drums", datetime.datetime(2026, 11, 17, 20, 40), "2ce1bdd",
            "light pieces' drums and bass nearer in all three desks; lively lighter walking music gets soft war drums",
            lambda p: bool(p.meta.get("light")) or lively_walk(p)),
@@ -299,11 +381,11 @@ CHANGES = [
            "a groove that keeps time on the ride turns to the closed hat for its second sixteen bars of a theme (it had had "
            "nowhere to turn)",
            lambda p: p.style == "knight" and p.character.band),
-    Change("House's rise keeps the kick until its build", datetime.datetime(2026, 11, 20, 15, 55), "",
+    Change("House's rise keeps the kick until its build", datetime.datetime(2026, 11, 20, 15, 54), "92e48b3",
            "a rise keeps the four on the floor until its last eight bars, the build going without it (the rises had no kick "
            "from their first bar; Harbour Lights II's rises 0.23 to 0.50 on TuneJury's House brief)",
            lambda p: p.style == "house" and p.character.role not in ("ember", "night", "camp")),
-    Change("a calm House rise has no closed hat", datetime.datetime(2026, 11, 20, 15, 55), "",
+    Change("a calm House rise has no closed hat", datetime.datetime(2026, 11, 20, 15, 54), "92e48b3",
            "an inn's, a camp's or a night's rise is the tune over a shaker stirring again (with the closed hat its rise came up "
            "to its moment)",
            lambda p: p.style == "house" and p.character.role in ("ember", "night", "camp")),

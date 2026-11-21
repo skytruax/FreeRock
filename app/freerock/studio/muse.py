@@ -49,7 +49,10 @@ ALTERS = (0, 1, 0, -1, 0, 0, 1, 0, -1, 0, -1, 0)
 # Note values in divisions, longest first, with the name MusicXML has for each and whether it is dotted.
 VALUES = ((32, "whole", False), (24, "half", True), (16, "half", False), (12, "quarter", True), (8, "quarter", False), (6, "eighth", True),
           (4, "eighth", False), (3, "16th", True), (2, "16th", False), (1, "32nd", False))
-MARKS = ((0.30, "pp"), (0.42, "p"), (0.54, "mp"), (0.66, "mf"), (0.80, "f"), (9.0, "ff"))
+MARKS_PP = ((0.30, "pp"), (0.42, "p"), (0.54, "mp"), (0.66, "mf"), (0.80, "f"), (9.0, "ff"))
+# (2026-11-20: a valley's held pad, written pp at the floor of those marks, stood over a soft plucked tune; Muse Sounds play
+# ppp. orchestra.VALLEY_SOFT writes a valley's pad that soft.) The softest strength is ppp.
+MARKS = ((0.15, "ppp"),) + MARKS_PP
 
 # Written instrument -> the parts that play it: (MuseScore's name for the part, the lowest and highest note it takes,
 # how it is played: "" as written, "trem" with tremolo strokes, "pizz" plucked). An instrument that is a whole

@@ -1299,6 +1299,16 @@ OPEN_WALKS: tuple[str, ...] = ()
 FIGHTS = ("battle", "boss", "storm", "battleground")
 DANCE_GROOVES = ("jig", "reel", "waltz", "courtly")      # the grooves of dances: no war drums under them
 VALLEY_PAD = 0.55      # how far the pad's swell goes under in the valley, where the tune is a single soft player
+# (2026-11-20, the study: Midnight Mass II's valley at -29, its church organ 13 dB over the guitar's soft tune; Thunder Lizard
+# Stomp II's rock organ 3 to 10 dB over, Throne Parade IV's organ and choir 5 to 9. A held pad written pp, the floor of the
+# marks, still stood over a single plucked tune, and a pad's notes at 0.6 put the church organ on its loud stops, which split
+# at 0.62.) In a band's valley a pad's swell goes further under (VALLEY_PAD_SOFT), so that MuseScore plays it ppp (muse.MARKS),
+# and its notes are struck softer, the organ on its soft stops. The judges: the three Knight takes' valleys up on TuneJury and on
+# Audiobox's enjoyment (Midnight Mass II's 0.27 to 1.01, enjoyment 7.08 to 7.54; Throne Parade IV's 0.33 to 0.48, 6.88 to 7.32;
+# Thunder Lizard Stomp II's level); Warcraft's Bone Rite I's TuneJury up there (0.19 to 0.54) but its enjoyment down a whole
+# point (5.58 to 4.57): an orchestra's valley, whose tune is a single soft player too, keeps its pad as it was.
+VALLEY_SOFT = True
+VALLEY_PAD_SOFT = 0.35
 # The reeds: held alone under a soft tune they whine, and MuseScore's english horn hardly follows its dynamics there (2026-11-18:
 # King's Oath's valley drone stood 12.7 dB over the clean guitar's tune at pianissimo as at piano). In the valley the drone goes to
 # the other pad, an organ's or the strings', which go down 20 dB there as written.
@@ -2654,6 +2664,32 @@ PARTNERS = {"basses": "celli", "basses slow": "celli slow", "basses pizz": "cell
 BASS_TOP: int | None = 45
 
 
+# (2026-11-20, the study: Blood Machine I's bass, in Eb phrygian, played its key note on Eb2 and every other root under it,
+# the bII on the low E, E1, a major seventh down where the phrygian half step should be: the key note nearest the bass's
+# centre, Eb1, is under the bass's lowest string, and it alone was lifted. And in 18 of Knight's 71 parts that go up a key,
+# most of them the climb to the summit, the bass went down about a seventh, its key note again the one nearest the centre:
+# Frost Hammer's climb, C# phrygian to E, C#2 to E1.)
+BASS_FOLLOWS_KEY = True  # each part's key note for the bass is the one nearest the part before's, in the instrument's range
+
+
+def bass_tonics(spans: list, inst: "Instrument", centre: int) -> list[int]:
+    """The bass's key note in each part of a take's story (`Take.spans`): the first nearest the bass's centre, each other the
+    one nearest the part before's, so that a key a step up is a step up; moved by octaves into the instrument's range,
+    with room for the scale over it (BASS_FOLLOWS_KEY). Off, each is the key note nearest the centre, as it was."""
+    out: list[int] = []
+    for _, _, key, _ in spans:
+        if not BASS_FOLLOWS_KEY:
+            out.append(key.home(centre))
+            continue
+        tonic = key.home(centre if not out else out[-1])
+        while tonic < inst.low:
+            tonic += 12
+        while tonic + 11 > inst.high and tonic - 12 >= inst.low:
+            tonic -= 12
+        out.append(tonic)
+    return out
+
+
 def bass_centre(inst: Instrument) -> int:
     """Where a bass line is centred: its instrument's home less 5, never above BASS_TOP."""
     home = inst.home - 5
@@ -3380,7 +3416,9 @@ class Take:
                 # valley's pianissimo, so a band's drone stood 9 to 11 dB over everything else there, a bagpipe and an
                 # organ held all but alone: "sometimes when one synth stays in when youre sitting its whiny and annoying
                 # mix better", 2026-11-17, played.)
-                under = VALLEY_PAD if part == "valley" else 1.0
+                soft = VALLEY_SOFT and part == "valley" and self.ch.band        # (a band's valley: VALLEY_SOFT)
+                under = (VALLEY_PAD_SOFT if soft else VALLEY_PAD) if part == "valley" else 1.0
+                held_hard = 0.4 if soft else 0.55                               # (struck softer in a band's valley)
                 for swell in swells:
                     swell.swells.append((at, (0.3 + 0.62 * level) * under))
                     swell.swells.append((at + beats * 0.5, (0.3 + 0.62 * min(level + 0.05, 1.0)) * under))
@@ -3407,7 +3445,7 @@ class Take:
                     if others:
                         since, was = held[player]
                         moved = min(others, key=lambda p: abs(p - was))
-                        self.put("texture", who[player][0], since, at + hold_over - since, was, self.hard(0.55, 1.0), tag=who[player][1], tied=True)
+                        self.put("texture", who[player][0], since, at + hold_over - since, was, self.hard(held_hard, 1.0), tag=who[player][1], tied=True)
                         held[player] = (at + hold_over, moved)
                         notes = notes[:player] + [moved] + notes[player + 1:]
                         before = notes
@@ -3427,11 +3465,11 @@ class Take:
                                 ends = at - fill
                                 self.put("texture", who[player][0], ends, fill, passing[len(passing) // 2], self.hard(0.5, 1.0),
                                          tag=who[player][1], tied=True)
-                        self.put("texture", who[player][0], since, ends - since, was, self.hard(0.55, 1.0), tag=who[player][1], tied=True)
+                        self.put("texture", who[player][0], since, ends - since, was, self.hard(held_hard, 1.0), tag=who[player][1], tied=True)
                     held[player] = (begins, pitch)
             end = first + bars * beats
             for player, (since, was) in held.items():
-                self.put("texture", who[player][0], since, end - since, was, self.hard(0.55, 1.0), tag=who[player][1], tied=True)
+                self.put("texture", who[player][0], since, end - since, was, self.hard(held_hard, 1.0), tag=who[player][1], tied=True)
             for swell in swells:
                 swell.swells.append((end - 0.01, 0.3 + 0.62 * section.level[1]))
             if part in ("arrival", "summit") and self.heavy and not ch.band:
@@ -3833,10 +3871,15 @@ class Take:
                 if doubled and partner:
                     self.put("bass", partner, at, length, pitch + (12 if INSTRUMENTS[partner].home > inst.home else -12), loud * 0.8,
                              tag=" doubled")
+        tonics, middle = bass_tonics(self.spans, inst, centre), centre
         for index_of, (section, first, key, chords) in enumerate(self.spans):
             part, bars = section.part, section.bars
             runs = held_runs(section.chords)
             ahead = self.spans[index_of + 1] if index_of + 1 < len(self.spans) else None
+            # Each part's line centred an octave over where its key note would have put it, or under, as `bass_tonics` moved
+            # that key note: whole octaves, so the line keeps its shape around it (most parts are not moved at all).
+            centre = middle + tonics[index_of] - key.home(middle)
+            ahead_centre = middle + tonics[index_of + 1] - ahead[2].home(middle) if ahead is not None else centre
             # A band's bass keeps to the root, as the riff bands do; an orchestra's moves through the chords.
             line = [key.pitch(chord.root, centre) for chord in chords] if ch.band else self.line(part, key, chords, centre)
             for bar, chord in enumerate(chords):
@@ -3921,7 +3964,7 @@ class Take:
                     stair: list[int] = []
                     if climbs and self.rise_way == "climb" and into == run - 1:
                         goal = key.pitch(after.root, centre) if bar + 1 < bars else \
-                            ahead[2].pitch(ahead[3][0].root, centre) if ahead is not None else root
+                            ahead[2].pitch(ahead[3][0].root, ahead_centre) if ahead is not None else root
                         scale = sorted({key.pitch(degree, goal, chord) + octave for degree in range(7) for octave in (-12, 0, 12)})
                         pairs = count // 2
                         under = [p for p in scale if p < goal][-pairs:]

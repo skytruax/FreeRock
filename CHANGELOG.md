@@ -3,6 +3,42 @@
 Newest first. Words in quotation marks are what was said while listening or playing, as typed or
 dictated, where it drove the change.
 
+## 2026-11-20, night: no organs in House; House's drums grow; the bass goes up with the key; a valley's pad under pianissimo
+
+- **A long House drop drops out for a bar before its last eight** (handbook 5.5, `house.DROP_OUT`): the clap and the
+  hats carry it with a snare pickup under a bar of rising air, and everything lands on a full crash and the drop's
+  thud. The judges up on both songs: The Old Swamp III's last bars TuneJury 0.80 to 0.93 (0.94 to 1.10 with no brief),
+  enjoyment 6.84 to 7.11; Mirage I's 0.56 to 0.65.
+- **A House fight's drums grow** (handbook 5.2, `house.FIGHT_DRUMS_GROW`): its open is the kick, the backbeat and its
+  roll; the hats come in with the theme, the percussion at its ninth bar. Ambush III's open TuneJury 0.98 to 1.31 (0.94
+  to 1.43 with no brief), enjoyment 6.89 to 7.36.
+- **A House theme's percussion turns eight bars after its hats** (handbook 5.2, `house.THEME_STAGGERS`): the drums
+  change every eight bars. The Deep Road III's theme TuneJury 0.69 to 0.78, enjoyment 6.96 to 7.17.
+- **A long House drop opens up at its second block** (handbook 5.5, `house.LONG_DROP_GROWS`): a ride on the beat from
+  its seventeenth bar where the palette has none. Mill Stream II's last drop, the same 39 bars to the meter, is broken
+  by it; the judges level to a shade up (TuneJury 0.64 to 0.71, enjoyment 7.20 to 7.24).
+- Tried and left off: a calm House piece's bass building at half the level (`house.CALM_BUILD_SOFT`): the render's
+  check passed but the judges heard less lift (TuneJury 0.93 to 0.79).
+- **A band's valley's pad goes under pianissimo** (handbook 4.5, `orchestra.VALLEY_SOFT`, `muse.MARKS` from ppp): its
+  swell goes to 0.35 of the part's level where it went to 0.55, so MuseScore plays it ppp, and its held notes are struck
+  softer, the church organ on its soft stops. A pad written pp still stood 3 to 13 dB over a valley's single soft tune.
+  The judges heard the Knight valleys go up: Midnight Mass II's TuneJury 0.27 to 1.01 with the brief and -0.61 to 1.71
+  with none, enjoyment 7.08 to 7.54; Throne Parade IV's 0.33 to 0.48, enjoyment 6.88 to 7.32; Thunder Lizard Stomp II's
+  level. Warcraft's Bone Rite I rose on TuneJury but fell a whole point on enjoyment there, so an orchestra's valley keeps
+  its pad as it was.
+- **House has no organ** (handbook 5.6; "No organs in the house music", while playing House): not as its bass, its
+  chords or its pad. Each palette's organ became a sound of its own world in the same place among its choices, so only
+  the 39 takes of 163 that had drawn one change: a square or FM bass; a piano, an electric piano, a stab, a pluck or a
+  harp for the chords; strings, a warm, hollow or glass pad. The 39 were taken out of the player at once
+  (`var/passes/house-drop.sh`, the server down seven seconds) and are made again without.
+- **The bass follows the key** (handbook 3.6, `orchestra.BASS_FOLLOWS_KEY`, `bass_tonics`): each part's key note for
+  the bass is the one nearest the part before's, in the instrument's range, and the part's line is centred on it. A key
+  lifted for the summit had taken the bass down about a seventh in 18 of Knight's 71 lifted parts (Frost Hammer's climb
+  C#2 to E1), and in Eb the key note alone was lifted over its own line (Blood Machine I's bII a major seventh under its
+  key note). The judges hear Glacier Hammer III's climb and summit level (TuneJury 0.468 to 0.480 with the brief, 0.563
+  to 0.587 with none; enjoyment 7.00 to 6.98). 78 staged takes change (45 Knight, 33 Warcraft): the 16 Knight and 30
+  Warcraft takes waiting in the lanes were held for it, and the re-render ledger keeps the rest.
+
 ## 2026-11-20, evening: a groove of the toms fills on the snare
 
 - **A drummer fills with what is not keeping time** (handbook 4.8, `orchestra.TOM_FILLS_ON_SNARE`, `Take.fill_of`): on a

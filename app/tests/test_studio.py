@@ -1724,6 +1724,31 @@ def test_a_valleys_drone_is_held_low_and_not_by_a_reed():
     assert orchestra.INSTRUMENTS["pipe drone"].low == 52             # where the english horn really goes down to
 
 
+def test_a_valleys_pad_is_held_under_pianissimo(monkeypatch):
+    # (2026-11-20, the study: Midnight Mass II's valley at -29, its church organ 13 dB over the guitar's soft tune; Thunder Lizard
+    # Stomp II's rock organ and Throne Parade IV's organ and choir 3 to 10 dB over theirs.) In a band's valley a pad's swell goes to
+    # VALLEY_PAD_SOFT of the part's level where it went to VALLEY_PAD, under MuseScore's pianissimo (its marks begin at ppp), and
+    # its held notes are struck softer, the church organ on its soft stops. The judges: Midnight Mass II's valley 0.27 to 1.01
+    # on TuneJury with the Knight brief and -0.61 to 1.71 with none, Throne Parade IV's 0.33 to 0.48, enjoyment up in both.
+    from freerock.studio import muse
+    assert orchestra.VALLEY_SOFT and muse.MARKS[0] == (0.15, "ppp") and muse.MARKS[1:] == muse.MARKS_PP
+
+    def valley_pad(take):
+        a, b = spans_of(take)["valley"]
+        swells = [value for voice in take.voices["texture"].values() for at, value in voice.swells if a + 0.5 <= at < b - 0.5]
+        held = [note.loud for voice in take.voices["texture"].values() for note in voice.notes if a <= note.start < b and note.length >= 4.0]
+        return swells, held
+    swells, held = valley_pad(orchestra.Take(_family("haunted-black-chapel-1"), 2))
+    orchestral = valley_pad(orchestra.Take(_family("infernal-dark-ritual-2"), 1))
+    monkeypatch.setattr(orchestra, "VALLEY_SOFT", False)
+    swells_before, held_before = valley_pad(orchestra.Take(_family("haunted-black-chapel-1"), 2))
+    assert swells and swells_before and max(swells) <= max(swells_before) * orchestra.VALLEY_PAD_SOFT / orchestra.VALLEY_PAD + 1e-6
+    assert held and held_before and max(held) < max(held_before)
+    # (An orchestra's valley keeps its pad as it was: Bone Rite I's enjoyment fell a whole point there with it.)
+    assert not _family("infernal-dark-ritual-2").character.band
+    assert valley_pad(orchestra.Take(_family("infernal-dark-ritual-2"), 1)) == orchestral
+
+
 def test_a_surge_patch_is_tuned_up_in_its_own_state():
     # (2026-11-18: Argitoth's Trance Lead 1, chosen as House's drop lead, played 22 cents flat as it comes.)
     import base64
@@ -1868,6 +1893,37 @@ def test_a_groove_of_the_toms_fills_on_the_snare(monkeypatch):
     monkeypatch.setattr(orchestra, "TOM_FILLS_ON_SNARE", False)
     before = last_beats(orchestra.Take(_family("anywhere-downpour-run-2"), 2))
     assert all(each.count(kit["snare"]) <= 1 and each.count(kit["tom low"]) >= 4 for each in before), before
+
+
+def test_the_bass_follows_the_key_up_and_keeps_its_key_note_in_its_range(monkeypatch):
+    # (2026-11-20, the study: Blood Machine I's bass in Eb phrygian played its key note on Eb2 and the bII on E1, a major seventh
+    # down where the phrygian half step should be, its key note nearest the bass's centre being under the bass's low E; and
+    # in 18 of Knight's 71 parts that go up a key the bass went down about a seventh, Frost Hammer's climb C#2 to E1.) Each
+    # part's key note for the bass is the one nearest the part before's, in the instrument's range.
+    import statistics
+    assert orchestra.BASS_FOLLOWS_KEY
+
+    def middles(take):
+        bass = next(voice for name, voice in take.voices["bass"].items() if "sub" not in name)
+        return {section.part: statistics.median(note.pitch for note in bass.notes
+                                                if first - 1e-6 <= note.start < first + section.bars * take.beats - 1e-6)
+                for section, first, _, _ in take.spans if section.part != "valley"}
+
+    hammer = orchestra.Take(_family("frozen-frost-hammer-1"), 3)
+    keys = {section.part: key.tonic for section, _, key, _ in hammer.spans}
+    assert (keys["arrival"] - keys["climb"]) % 12 == 9, keys        # C# to E: up a minor third
+    after = middles(hammer)
+    assert after["climb"] > after["arrival"] - 5 and after["summit"] > after["arrival"] - 5, after
+    machine = orchestra.Take(_family("haunted-war-machine-1"), 1)
+    bass = next(voice for name, voice in machine.voices["bass"].items() if "sub" not in name)
+    first, last = spans_of(machine)["first"]
+    lowest = min(note.pitch for note in bass.notes if first <= note.start < last)
+    tonic = min(note.pitch for note in bass.notes if first <= note.start < last and note.pitch % 12 == 3)
+    assert lowest >= tonic - 5, (lowest, tonic)     # the bVI under the key note at the most, not the whole line
+    assert all(orchestra.INSTRUMENTS["picked bass"].low <= note.pitch <= orchestra.INSTRUMENTS["picked bass"].high for note in bass.notes)
+    monkeypatch.setattr(orchestra, "BASS_FOLLOWS_KEY", False)
+    before = middles(orchestra.Take(_family("frozen-frost-hammer-1"), 3))
+    assert before["climb"] < before["arrival"] - 6, before
 
 
 def test_a_fiddle_or_a_mandolin_solo_sings_below_its_top():

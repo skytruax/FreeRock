@@ -718,6 +718,18 @@ as a pad, played its bass from A2 to F#4 around A3; the desk raised it 8.9 dB to
 line 7 dB over the liked stems in the mids and 16 at the top, with nothing under it. The moonwell and
 the elven hymn had the harp's the same way, around B3.)
 
+*The bass follows the key* (`orchestra.BASS_FOLLOWS_KEY`, `bass_tonics`, 2026-11-20). Each part's key
+note for the bass is the one nearest the part before's, moved by octaves into the instrument's range
+with room for the scale over it, and the part's line is centred on it: a key lifted for the summit
+lifts the bass with it. The key note had been the one nearest the line's centre in every part, so in
+18 of Knight's 71 parts that go up a key the bass went *down* about a seventh (Frost Hammer's climb,
+C# phrygian to E, from C#2 to E1), and in Eb, whose key note nearest the centre is under a bass's
+low E, the key note alone was lifted an octave: Blood Machine I played its key note on Eb2 and its
+bII on E1, a major seventh under it, where the phrygian half step should be. The judges heard
+Glacier Hammer III's climb and summit level (TuneJury 0.468 to 0.480 with the Knight brief, 0.563
+to 0.587 with none, enjoyment 7.00 to 6.98): a register is not a thing they hear, and a bass that
+goes up with its band is.
+
 ### 3.7 Percussion phrasing and fills
 
 A groove (`GROOVES`) has layers for the theme and for the moment, a roll and a hit; a layer is a
@@ -941,6 +953,18 @@ the side stick on the backbeat, the band gathering itself before the climb. *The
 valleys TuneJury 0.36 with no brief, against 0.9 for its first theme and arrival, and Audiobox's
 enjoyment lowest there (6.34): the drummer had stopped for the whole valley, under one player, a pad
 and held roots.*
+
+*A band's valley's pad goes under pianissimo* (`orchestra.VALLEY_SOFT`, 2026-11-20): its swell goes to
+`VALLEY_PAD_SOFT` (0.35) of the part's level where it went to 0.55, so that MuseScore marks it ppp (the
+softest of `muse.MARKS` now), and its held notes are struck at 0.48 where they were 0.60, the church
+organ on its soft stops (its two recordings split at 0.62). A held pad written pp still stood over a
+single soft tune: Midnight Mass II's church organ 13 dB over its guitar, Thunder Lizard Stomp II's rock
+organ and Throne Parade IV's organ and choir 3 to 10 dB over theirs. *The judges heard the valleys go
+up: Midnight Mass II's TuneJury 0.27 to 1.01 with the Knight brief and -0.61 to 1.71 with none,
+enjoyment 7.08 to 7.54; Throne Parade IV's 0.33 to 0.48, enjoyment 6.88 to 7.32; Thunder Lizard Stomp
+II's level; Warcraft's Bone Rite I's TuneJury rose there too (0.19 to 0.54) but its enjoyment fell a
+whole point (5.58 to 4.57), so an orchestra's valley, its tune a single soft player over its pad, keeps
+the pad as it was: this is the band's.*
 
 ### 4.6 The fight valley breakdown
 
@@ -1231,6 +1255,20 @@ the 60 families are light: *the house is meant to be mostly light* (the test).
 - **The close lets the band go one at a time, the hats first**: at its first bar they thin to two
   strokes and an open hat, the clap leaves halfway, the kick two bars from the end. (The drop's groove
   had run on into the close for 20 bars: Mirage I and III.)
+- **A theme's percussion turns eight bars after its hats** (`house.THEME_STAGGERS`, 2026-11-20): the
+  hats at a theme's seventeenth bar, the other figure at its twenty-fifth, so the drums change every
+  eight bars (*a theme's drums had been the same sixteen bars from each turn, the hats and the
+  percussion turning on one bar: The Deep Road III, Drowned Halls III, Thunderhead II*). Not in a calm
+  piece. *The judges on The Deep Road III's theme: TuneJury 0.69 to 0.78, enjoyment 6.96 to 7.17,
+  SongEval a shade down, within its noise.* (Owed: every such turn is in the top, a high percussion
+  for another under the same kick and backbeat, and Thunderhead III's theme read the same 44 bars to
+  the meter through three of them: a change in the mids every sixteen bars is still to write.)
+- **A fight's drums grow** (`house.FIGHT_DRUMS_GROW`, 2026-11-20): its open is the kick, the backbeat
+  and its roll, with no hats and no percussion; the hats come in with the theme, the first figure at
+  its ninth bar (*a fight's open had played the theme's whole groove, the clap and the percussion in
+  from the first bar: Ambush III's drums the same 20 bars from it, Capture the Flag III's 20*). *The
+  judges liked the bare open better: Ambush III's open TuneJury 0.98 to 1.31, 0.94 to 1.43 with no
+  brief, enjoyment 6.89 to 7.36; its theme 0.66 to 0.73.*
 
 At the desk (`club.lines`) the kick is struck dry and everything else into a small room, whose
 equaliser lifts the clap's, the snare's and the hats' presence at 2 kHz (*4 to 10 dB short from 900
@@ -1346,6 +1384,31 @@ House brief 0.23 to 0.50 and 0.22 to 0.50, with none 0.05 to 0.67 and 0.06 to 0.
 0.91 and -0.25 to 0.75 with none, enjoyment level (7.29 to 7.33, 7.28 to 7.25). A calm rise keeps neither the kick nor, now, the closed hat: House's calm takes
 made again with the hat had their rises up to their moments (Embers under Stars I level with it, Cool of the
 Evening II a dB over it, the render's own check), so an inn's rise is the tune over a shaker stirring, as it was.
+Its bass building at half the level (`house.CALM_BUILD_SOFT`, 2026-11-20: Cool of the Evening II's rise still over
+its moment without the hat, its bass -15.3 dB there against -20.3 at the moment) passed the render's check but the
+judges heard less lift (TuneJury 0.93 to 0.79, 1.20 to 0.89 with no brief): it is left off; that bass was an organ,
+which House no longer has.
+
+*A long drop drops out for a bar before its last eight* (`house.DROP_OUT`, 2026-11-20): in a drop of thirty-two
+bars or more the kick, the bass, the chords, the tune and the percussion stop for a bar; the clap and the hats go
+on with a snare pickup under a bar of rising air, and everything lands again on a full crash and the drop's thud,
+the pads swelling in the gap with no kick to duck under. A long drop's last sixteen bars had been one groove to
+the meter (Mirage I, Hollow Road III, River Drums III, The Old Swamp III), and its third block louder
+(`house.DROP_PEAK`, left off) moved its drums 0.3 dB. *The judges up on both songs heard: The Old Swamp III's last
+sixteen bars TuneJury 0.80 to 0.93, 0.94 to 1.10 with no brief, enjoyment 6.84 to 7.11; Mirage I's 0.56 to 0.65,
+musicality and memorability up; the meter's run at Mirage I's drop end gone.* Not in a calm piece, which has no drop.
+
+*A long drop opens up at its second block* (`house.LONG_DROP_GROWS`, 2026-11-21): in a drop of thirty-two bars or
+more a ride comes in on the beat at the seventeenth bar, a wash over the top you can hear, as a long house drop
+brings in a layer after its first sixteen bars; not where the palette's percussion is a ride already, nor in a calm
+piece. The drop-out breaks a long drop's end only: Mill Stream II's last drop read the same 39 bars from its first
+to the meter, The Old Swamp III's 23, the turn of the hats and the figures at its second block under the kick and
+the clap. (Its percussion turning eight bars after its hats, as a theme's does, was written and taken back before
+it was heard: in a drop it would have moved the figures' one audible turn later.) *The meter: Mill Stream II's 39
+bars broken by the ride. The judges on its bars 8 to 24: TuneJury 0.64 to 0.71 with the House brief, 0.69 to 0.66
+with none, enjoyment 7.20 to 7.24, SongEval up a shade on every axis.* Still owed: every one of these changes is in
+the top, and a drop's colour stays one to the meter (a change in the mids every sixteen bars, after Thunderhead
+III's finding).
 
 ### 5.6 Palettes and the calm roles
 
@@ -1355,19 +1418,25 @@ each kind of place, and ember, night, depths, storm and battle.
 
 | Palette | Bass | Chords | Lead | Pad | Weather |
 |---|---|---|---|---|---|
-| pastoral | pluck, organ, sub, FM | string, keys, pluck, harp, piano | whistle, keys, string, flute | warm, strings, organ, glass | none |
-| highland | sub, square, pluck | harp, pluck, organ, string | pipe, whistle, flute, hollow | warm, hollow, strings, organ | wind |
-| haunted-light | sub, FM, organ | bell, keys, marimba, glass | glass, whistle, keys, bell | glass, organ, warm, hollow | wind |
+| pastoral | pluck, square, sub, FM | string, keys, pluck, harp, piano | whistle, keys, string, flute | warm, strings, hollow, glass | none |
+| highland | sub, square, pluck | harp, pluck, piano, string | pipe, whistle, flute, hollow | warm, hollow, strings, glass | wind |
+| haunted-light | sub, FM, square | bell, keys, marimba, glass | glass, whistle, keys, bell | glass, strings, warm, hollow | wind |
 | desert | pluck, FM, square | oud, string, marimba, pluck | oud, flute, hollow, pipe | warm, hollow, glass | wind |
-| jungle | pluck, organ, FM | marimba, pluck, string, organ | flute, marimba, whistle, pluck | warm, glass, strings | none |
+| jungle | pluck, square, FM | marimba, pluck, string, piano | flute, marimba, whistle, pluck | warm, glass, strings | none |
 | infernal-light | saw, square, pluck | brass, stab, piano, pluck | saw, brass, hollow, super | super, hollow, strings | fire |
-| regal | saw, organ, pluck | brass, piano, stab, organ | super, brass, saw, keys | strings, super, warm | none |
-| mystic | sub, FM, organ | harp, glass, bell, keys | glass, whistle, harp, bell | glass, strings, warm, organ | sea |
+| regal | saw, FM, pluck | brass, piano, stab, harp | super, brass, saw, keys | strings, super, warm | none |
+| mystic | sub, FM, pluck | harp, glass, bell, keys | glass, whistle, harp, bell | glass, strings, warm, hollow | sea |
 | the dark ones | mostly reese and saw | stab, pluck, brass and the kind's own | saw, hollow, super and the kind's own | hollow, super | as their kind |
-| ember | sub, organ, FM | keys, string, harp, glass | whistle, keys, glass, flute | warm, organ, glass | fire |
+| ember | sub, square, FM | keys, string, harp, glass | whistle, keys, glass, flute | warm, strings, glass | fire |
 | night | sub, FM, pluck | bell, glass, keys, harp | glass, flute, whistle, keys | glass, warm, hollow | crickets |
-| depths | sub, reese, FM | stab, organ, bell, glass | hollow, glass, bell, saw | hollow, organ, glass | drips |
+| depths | sub, reese, FM | stab, pluck, bell, glass | hollow, glass, bell, saw | hollow, warm, glass | drips |
 | storm, battle | reese, saw, square or pluck | stab, pluck, brass | saw, hollow, super | super, hollow, strings | rain in a storm |
+
+*House has no organ* (2026-11-20, playing House: "No organs in the house music"): not as its bass, its
+chords or its pad. Each palette's organ became a sound of its own world in the same place among its
+choices, so that only the takes that had drawn it changed (39 of 163): a square or FM bass; a piano,
+an electric piano, a stab, a pluck or a harp for the chords; strings, a warm, hollow or glass pad. The
+desk's organ patches are left to the other styles.
 
 **The calm roles** (`house.CALM_ROLES`: ember, night, camp) *have no drop to speak of, no roll into
 one and no line doubled over the tune, and they play under the usual level*. Ember and camp take the

@@ -48,9 +48,9 @@ BEAT = house.BEAT
 # desk knows (sounds.SOUNDS for the synths, muse.PARTS for the real ones).
 PLAYED = {
     ("bass", "sub"): "house sub", ("bass", "pluck"): "house bass pluck", ("bass", "saw"): "house bass saw", ("bass", "square"): "house bass square",
-    ("bass", "fm"): "house bass fm", ("bass", "reese"): "house bass wide", ("bass", "organ"): "house bass organ",
+    ("bass", "fm"): "house bass fm", ("bass", "reese"): "house bass wide",
     ("bass", "harsh"): "house bass wide", ("bass", "harsh saw"): "house bass saw",      # the twin that comes in late in a drop
-    ("keys", "piano"): "house piano", ("keys", "keys"): "electric piano", ("keys", "organ"): "house organ", ("keys", "stab"): "house stab",
+    ("keys", "piano"): "house piano", ("keys", "keys"): "electric piano", ("keys", "stab"): "house stab",
     ("keys", "pluck"): "house pluck", ("keys", "bell"): "house bell", ("keys", "glass"): "house glass", ("keys", "harp"): "harp",
     ("keys", "marimba"): "marimba", ("keys", "oud"): "guitar", ("keys", "string"): "guitar", ("keys", "brass"): "brass",
     # (The tunes the pan flute, the flute and the marimba sang were heard as cheesy, 2026-11-17: synths sing them now.)
@@ -59,7 +59,7 @@ PLAYED = {
     ("lead", "keys"): "wurly", ("lead", "pluck"): "house pluck", ("lead", "marimba"): "house pluck", ("lead", "harp"): "harp", ("lead", "oud"): "guitar",
     ("lead", "string"): "harp", ("lead", "brass"): "trumpet",
     ("pad", "warm"): "house pad warm", ("pad", "strings"): "strings slow", ("pad", "super"): "house pad super", ("pad", "glass"): "house pad glass",
-    ("pad", "hollow"): "house pad hollow", ("pad", "organ"): "house pad organ",
+    ("pad", "hollow"): "house pad hollow",
 }
 RESONANCE = {"rhythm": 0.35, "texture": 0.15, "lead": 0.1, "bass": 0.0}       # how far each channel's low-pass sings as it moves
 
@@ -766,8 +766,8 @@ def perform(sheet: Sheet) -> dict:
     for bus, _ in folders:
         (work / (bus.name + ".wav")).unlink()
     meta = dict(about["meta"])
-    meta["credit"] = ("Written by FreeRock's studio (studio.house); played in REAPER by the Surge XT synth (with Argitoth's Trance Lead 1 "
-                      "and the LinnStrument set's Drawbar Organ 1, patches that ship with it), MuseScore Studio's Muse Sounds (Muse Group) "
+    meta["credit"] = ("Written by FreeRock's studio (studio.house); played in REAPER by the Surge XT synth (with Argitoth's Trance Lead 1, "
+                      "a patch that ships with it), MuseScore Studio's Muse Sounds (Muse Group) "
                       "and MckAudio's TR-8 drum-machine recordings (CC0), put together by studio.club.")
     found = house.measure(meta, parts)
     folder = stage_root(VAR, "house") / name / str(take)

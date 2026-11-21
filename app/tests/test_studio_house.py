@@ -68,10 +68,25 @@ def test_every_bass_sound_is_in_tune(name):
         assert abs(_cents(out[RATE // 2:RATE * 3], pitch)) <= (14.0 if name == "reese" else 2.0)
 
 
+def test_house_plays_no_organ():
+    # (2026-11-20, 21:46, playing House: "No organs in the house music".) No table of House's sounds has an organ, no palette
+    # draws one, and the desk plays every sound a palette draws on an instrument of its own that is no organ.
+    from freerock.studio import club
+    tables = {"bass": house.BASS, "keys": house.KEYS, "lead": house.LEADS, "pad": house.PADS}
+    for table in tables.values():
+        assert not [name for name in table if "organ" in name]
+    for name, palette in house.PALETTES.items():
+        for field, table in tables.items():
+            for sound in palette[field]:
+                assert sound in table and "organ" not in sound, (name, field, sound)
+                assert "organ" not in club.PLAYED[(field, sound)].lower(), (name, field, sound, club.PLAYED[(field, sound)])
+    assert not [instrument for instrument in club.PLAYED.values() if "organ" in instrument.lower()]
+
+
 def test_the_chorus_and_the_echo_never_make_a_number_that_is_not_one():
     # Hours of silence after a note used to be enough: one sample in millions came out as infinity.
     out = np.zeros((6_152_727, 2), dtype=np.float32)
-    synth.play(out, house.PADS["organ"], 0.0, 4.5, 60, 0.2)
+    synth.play(out, house.PADS["warm"], 0.0, 4.5, 60, 0.2)
     assert np.isfinite(synth.chorus(out, mix=0.4)).all()
     assert np.isfinite(synth.echo(out, 0.1, 0.15)).all()
 
@@ -822,6 +837,173 @@ def test_a_rise_keeps_the_kick_on_the_floor_until_its_build(monkeypatch):
     monkeypatch.setattr(house, "RISE_KICK", False)
     take = house.Take(house.family("coast-03"), 1)
     assert not any(take.kick_plays("rise", bar, count) for story, _, count in take.sections if story == "rise" for bar in range(count))
+
+
+def test_a_long_drop_drops_out_for_a_bar_and_slams_back_in(monkeypatch):
+    # (2026-11-20, the boredom meter: a long drop's last sixteen bars one groove in four takes, Mirage I, Hollow Road III, River
+    # Drums III and The Old Swamp III; DROP_PEAK's louder third block moved the drums' stem 0.3 dB.) The bar before the last
+    # eight of a drop of thirty-two bars or more: no kick, no bass, no chord and no note of the tune begun, no percussion; the
+    # clap and the hats go on and the snare picks up into the slam, under a bar of rising air; the next bar has them back,
+    # on a full crash and the drop's thud. Not in a first drop of sixteen or twenty-four bars, nor in a calm piece.
+    from freerock.studio import club
+    assert house.DROP_OUT
+    take = house.Take(house.family("coast-03"), 1)
+    heard = club.listen(take)
+    drops = [(first, count) for story, first, count in take.sections if story == "moment"]
+    assert drops[0][1] < 32 <= drops[-1][1]
+    first, count = drops[-1]
+    gap = first + count - 9
+
+    def struck(sounds, a: int, b: int) -> list[tuple[str, float, float]]:
+        return [(sound, at, loud) for sound, _, at, loud, _ in heard.hits if sound in sounds and a * house.BAR - 0.02 <= at < b * house.BAR - 0.02]
+
+    def begun(channel: str, a: int, b: int) -> list[float]:
+        return [note[0] for (each, _, _), notes in heard.notes.items() if each == channel for note in notes
+                if a * house.BAR - 0.02 <= note[0] < b * house.BAR - 0.02]
+    kicks = ("kick", "kick2", "punch")
+    assert take.kick and not struck(kicks, gap, gap + 1)
+    assert len(struck(kicks, gap - 1, gap)) == len(take.kick) and len(struck(kicks, gap + 1, gap + 2)) == len(take.kick)
+    for channel in ("bass", "rhythm", "lead"):
+        assert not begun(channel, gap, gap + 1), channel
+        assert begun(channel, gap - 8, gap), channel
+    assert begun("bass", gap + 1, gap + 2) and begun("rhythm", gap + 1, gap + 2) and begun("lead", gap + 1, gap + 9)
+    assert struck(("hat", "open"), gap, gap + 1)
+    assert len([hit for hit in struck(("snare",), gap, gap + 1) if (hit[1] / house.BAR) % 1.0 >= 0.74]) >= 4
+    kinds = take.palette["perc"]
+    figures = {sound for name in kinds for _, sound, _ in house.PERCUSSION[name]} - {"hat", "open", "clap", "snare"}
+    assert not struck(figures, gap, gap + 1)
+    assert [hit for hit in struck(("crash",), gap + 1, gap + 2) if hit[2] >= 0.42]
+    rising = [air for air in take.airs() if air.kind == "sweep" and air.rising and abs(air.at - gap * house.BAR) < 0.01]
+    assert rising and abs(rising[0].seconds - house.BAR) < 0.01
+    assert [air for air in take.airs() if air.kind == "thud" and abs(air.at - (gap + 1) * house.BAR) < 0.01]
+    # The first drop goes on with its kick in every bar; a calm piece's drops have no drop-out.
+    first0, count0 = drops[0]
+    assert all(take.kick_plays("moment", bar, count0, first0) for bar in range(count0))
+    calm = house.Take(house.family("night-03"), 1)
+    assert not any(calm.dropped_out(story, bar, count) for story, _, count in calm.sections for bar in range(count))
+    monkeypatch.setattr(house, "DROP_OUT", False)
+    assert all(take.kick_plays("moment", bar, count, first) for bar in range(count))
+
+
+def test_a_fights_drums_grow_from_its_open_through_its_theme(monkeypatch):
+    # (2026-11-20, the boredom meter on House's fights made again: Ambush III's drums the same 20 bars from its first bar, the
+    # open playing the theme's whole groove and the clap and percussion in from the first bar.) A fight's open is the kick, the
+    # backbeat and its roll, with no hats and no percussion; the hats come in with the theme, the first percussion figure at
+    # the theme's ninth bar (and, as in every theme, THEME_STAGGERS, the second taking over at its twenty-fifth). Walking
+    # music's drums are as they were.
+    from freerock.studio import club
+    assert house.FIGHT_DRUMS_GROW
+    hats = ("hat", "open")                       # (the ride is a percussion figure: house.PERCUSSION)
+    others = {"hat", "open", "clap", "snare", "snare2", "crash"}
+
+    def heard_of(name: str, take_number: int):
+        take = house.Take(house.family(name), take_number)
+        heard = club.listen(take)
+        kinds = take.palette["perc"]
+        first_kind = take.pick("perc", kinds)
+        figures = ({sound for _, sound, _ in house.PERCUSSION[first_kind]} - others,
+                   {sound for _, sound, _ in house.PERCUSSION[kinds[(kinds.index(first_kind) + 1) % len(kinds)]]} - others)
+        fills = {take.sections[1][1] + bar for bar in range(7, take.sections[1][2], 8)}       # the theme's fills, every eighth bar
+
+        def struck(sounds, a: int, b: int) -> list[float]:
+            return [at for sound, _, at, _, _ in heard.hits if sound in sounds and a * house.BAR - 0.02 <= at < b * house.BAR - 0.02
+                    and int((at + 0.02) // house.BAR) not in fills]
+        return take, figures, struck
+    take, (one, two), struck = heard_of("battle-03", 3)
+    (story, first, count), (theme, begins, _) = take.sections[0], take.sections[1]
+    assert story == "open" and theme == "theme" and take.family.hard and one and two - one, (one, two)
+    assert struck(("kick", "kick2", "punch"), first, first + count)
+    assert not struck(hats, first, first + count) and not struck(one | two, first, first + count)
+    assert struck(hats, begins, begins + 1)
+    assert not struck(one | two, begins, begins + 8) and struck(one, begins + 8, begins + 16)
+    assert struck(one, begins + 16, begins + 24) and not struck(two - one, begins + 16, begins + 24)
+    assert struck(two - one, begins + 24, begins + 32) and not struck(one - two, begins + 24, begins + 32)
+    walking, (w_one, w_two), walking_struck = heard_of("coast-03", 1)
+    before = sorted(walking_struck(hats + tuple(w_one | w_two), 0, walking.bars))
+    monkeypatch.setattr(house, "FIGHT_DRUMS_GROW", False)
+    take, (one, two), struck = heard_of("battle-03", 3)
+    assert struck(hats, first, first + count) and struck(one, begins, begins + 8)
+    walking, (w_one, w_two), walking_struck = heard_of("coast-03", 1)
+    assert sorted(walking_struck(hats + tuple(w_one | w_two), 0, walking.bars)) == before
+
+
+def test_a_themes_percussion_turns_eight_bars_after_its_hats(monkeypatch):
+    # (2026-11-20, the boredom meter: a theme's drums the same sixteen bars from where its hats turned, The Deep Road III and
+    # Drowned Halls III as in the fights.) In a theme the hats turn at the seventeenth bar and the other percussion figure takes
+    # over at the twenty-fifth (THEME_STAGGERS); off, both turn at the seventeenth. Not in a calm piece.
+    from freerock.studio import club
+    assert house.THEME_STAGGERS
+    others = {"hat", "open", "clap", "snare", "snare2", "crash", "tom_high", "tom_mid", "tom_low"}
+
+    def figures_of(name: str, take_number: int):
+        take = house.Take(house.family(name), take_number)
+        heard = club.listen(take)
+        kinds = take.palette["perc"]
+        one = {sound for _, sound, _ in house.PERCUSSION[take.pick("perc", kinds)]} - others
+        two = {sound for _, sound, _ in house.PERCUSSION[kinds[(kinds.index(take.pick("perc", kinds)) + 1) % len(kinds)]]} - others
+        first, count = next((first, count) for story, first, count in take.sections if story == "theme")
+
+        def struck(sounds, a: int, b: int) -> bool:
+            return any(sound in sounds and (first + a) * house.BAR - 0.02 <= at < (first + b) * house.BAR - 0.02
+                       for sound, _, at, _, _ in heard.hits)
+        return take, one, two - one, count, struck
+    take, one, two, count, struck = figures_of("depths-03", 3)
+    assert not take.family.hard and take.family.role not in house.CALM_ROLES and one and two and count >= 32, (one, two, count)
+    assert struck(one, 16, 24) and not struck(two, 16, 24) and struck(two, 24, 32)
+    monkeypatch.setattr(house, "THEME_STAGGERS", False)
+    take, one, two, count, struck = figures_of("depths-03", 3)
+    assert struck(two, 16, 24) and not struck(one - two, 16, 24)
+
+
+def test_a_long_drop_opens_up_at_its_second_block(monkeypatch):
+    # (2026-11-20, the boredom meter: Mill Stream II's last drop the same 39 bars from its first, The Old Swamp III's 23, the
+    # turn of the hats and the figures at its second block not heard.) A drop of thirty-two bars or more has a ride on the beat
+    # in every bar from its seventeenth but the drop-out's, none before; a first drop of sixteen or twenty-four bars has none
+    # (LONG_DROP_GROWS). No ride where the palette's percussion is a ride already, nor in a calm piece.
+    from freerock.studio import club
+    assert house.LONG_DROP_GROWS
+    take = house.Take(house.family("pastoral-03"), 2)
+    assert "ride" not in take.palette["perc"] and take.family.role not in house.CALM_ROLES
+
+    def rides_of():
+        heard = club.listen(take)
+        return lambda a, b: [at for sound, _, at, _, _ in heard.hits if sound == "ride" and a * house.BAR - 0.02 <= at < b * house.BAR - 0.02]
+    rides = rides_of()
+    drops = [(first, count) for story, first, count in take.sections if story == "moment"]
+    first, count = drops[-1]
+    assert count >= 32 and not rides(first, first + 16)
+    for bar in range(first + 16, first + count):
+        assert len(rides(bar, bar + 1)) == (0 if take.dropped_out("moment", bar - first, count) else 4), bar
+    assert drops[0][1] < 32 and not rides(drops[0][0], drops[0][0] + drops[0][1])
+    calm = house.Take(house.family("night-03"), 1)
+    assert not [at for sound, _, at, _, _ in club.listen(calm).hits if sound == "ride"] or "ride" in calm.palette["perc"]
+    monkeypatch.setattr(house, "LONG_DROP_GROWS", False)
+    rides = rides_of()
+    assert not rides(0, take.bars)
+
+
+def test_a_calm_rise_builds_its_bass_softly(monkeypatch):
+    # (2026-11-20, the render's own check: Cool of the Evening II's rise louder than its moment, its bass -15.3 dB through the
+    # rise against -20.3 at the moment, the build's eighths four bars of eight with no kick to duck under.) A calm piece's bass
+    # builds into its moment at half the level (CALM_BUILD_SOFT); walking music's as loud as before.
+    from freerock.studio import club
+    monkeypatch.setattr(house, "CALM_BUILD_SOFT", True)        # (left off since the judges heard it: its way is kept, and held here)
+
+    def build_levels(name: str, take_number: int) -> list[float]:
+        take = house.Take(house.family(name), take_number)
+        heard = club.listen(take)
+        out = []
+        for story, first, count in take.sections:
+            if story == "rise":
+                a, b = (first + count - take.build_bars(count)) * house.BAR - 0.02, (first + count) * house.BAR - 0.02
+                out += [note[3] for (each, _, _), notes in heard.notes.items() if each == "bass" for note in notes if a <= note[0] < b]
+        return out
+    calm, walking = build_levels("ember-03", 2), build_levels("coast-03", 1)
+    assert calm and walking
+    monkeypatch.setattr(house, "CALM_BUILD_SOFT", False)
+    calm_before, walking_before = build_levels("ember-03", 2), build_levels("coast-03", 1)
+    assert len(calm) == len(calm_before) and all(abs(now - 0.5 * then) < 1e-6 for now, then in zip(calm, calm_before))
+    assert walking == walking_before
 
 
 def test_a_rise_can_keep_the_closed_hat_alone(monkeypatch):

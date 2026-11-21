@@ -142,6 +142,39 @@ RISE_LONG_BUILD = True     # the build eight bars with the sweep; False: four, t
 # under it as in a groove; the build into the drop goes without it, the roll and the sweep alone, so that the drop's kick
 # lands after its absence. A calm rise (an inn, the night, a camp) is left as it was, without one.
 RISE_KICK = True
+# (2026-11-20, the render's own check: Cool of the Evening II's rise louder than its moment again with no closed hat in it: its
+# bass -15.3 dB through the rise against -20.3 at its moment, the build's eighths on one note four bars of an eight-bar rise
+# since the build grew with the sweep, with no kick to duck under.) A calm piece has no drop to roll into, and no roll of the
+# chords into it: the bass's eighths into its moment are half as loud, so that its rise stays under its moment.
+# Left off (2026-11-21, 00:13, the judges on Cool of the Evening II's rise and the moment's first bars, before and after): the
+# render's own check passed, but TuneJury fell 0.933 to 0.788 with the House brief and 1.202 to 0.885 with none, enjoyment
+# level: a rise with less lift. Its bass was an organ, which House no longer has; its takes made again without it will say
+# whether a calm rise still comes over its moment.
+CALM_BUILD_SOFT = False
+# (2026-11-20, the boredom meter: a long drop's last sixteen bars one groove, Mirage I, Hollow Road III, River Drums III and
+# The Old Swamp III; the drop's third block's percussion and crashes, tried louder (DROP_PEAK), moved its stem 0.3 dB: under
+# the kick, the clap and the hats they are not heard.) A drop of thirty-two bars or more drops out for the bar before its last
+# eight: the kick, the bass, the chords, the tune and the percussion stop, the clap and the hats go on with a snare's pickup
+# under a one-bar sweep, and everything slams back in on a crash and the drop's thud. Not in a calm piece, which has no drop.
+DROP_OUT = True
+# (2026-11-20, the boredom meter on House's fights made again: Ambush III's drums the same 20 bars from its first bar, Charge
+# III's 15 and Blades I's 16 of the first theme. A fight's open plays its theme's whole groove, and its clap and percussion
+# are in from the first bar, where walking music's come in a few bars into the theme: nothing in the drums changes until the
+# hats turn sixteen bars in.) A fight's drums grow: its open is the kick, the clap and its roll; the hats come in with the
+# theme, and the first percussion figure at its ninth bar.
+FIGHT_DRUMS_GROW = True
+# (2026-11-20, the boredom meter: a theme's drums the same sixteen bars from where its hats turned, in walking music as in the
+# fights: The Deep Road III, Drowned Halls III, Stand Fast I, By the Fire II. The hats and the percussion turned on the same
+# bar, every sixteen.) In a theme the percussion turns eight bars after the hats: the hats at the seventeenth bar, the other
+# figure at the twenty-fifth, and so on, so that something in the drums changes every eight bars. Not in a calm piece.
+THEME_STAGGERS = True
+# (2026-11-20, the boredom meter: Mill Stream II's last drop the same 39 bars from its first, The Old Swamp III's 23; DROP_OUT
+# breaks a long drop's end only (Mirage I's 20 bars there gone with it, the judges up on both), and the turn of the hats and
+# the percussion figures at the drop's second block sits too far under the kick, the clap and the hats to be heard, DROP_PEAK
+# showed.) A drop of thirty-two bars or more opens up at its second block: a ride comes in on the beat, a wash over the top
+# that is heard, as a long house drop brings in a layer after its first sixteen bars (not where the palette's percussion is a
+# ride already). Not in a calm piece.
+LONG_DROP_GROWS = True
 # The calm moments: an inn, the night, a camp. They have no drop to speak of, no roll into one and no line doubled over the
 # tune, and they play under the usual level.
 CALM_ROLES = ("ember", "night", "camp")
@@ -165,8 +198,6 @@ BASS = {
                     decay=0.2, sustain=0.8, release=0.05, follow=0.3),
     "fm": Keys(ratio=1.0, index=2.4, index_decay=0.12, index_sustain=0.35, attack=0.003, decay=0.4, sustain=0.5,
                release=0.06, detune=0.0, width=0.0),
-    "organ": Keys(ratio=2.0, index=0.0, index_sustain=0.0, second=0.6, third=0.25, attack=0.004, decay=0.25, sustain=0.6,
-                  release=0.05, detune=0.0, width=0.0),
 }
 KEYS = {
     "pluck": Patch(wave=SAW, voices=3, detune=14, spread=0.6, b_level=0.25, b_ratio=2.0, cutoff=420, env=4.2,
@@ -177,8 +208,6 @@ KEYS = {
                  detune=3.0, width=0.5),
     "piano": Keys(ratio=2.0, index=1.8, index_decay=0.18, index_sustain=0.1, decay=0.9, sustain=0.0, release=0.2,
                   second=0.15, detune=4.0, width=0.6),
-    "organ": Keys(ratio=1.0, index=0.0, index_sustain=0.0, second=0.7, third=0.4, attack=0.005, decay=0.3, sustain=0.75,
-                  release=0.08, detune=3.0, width=0.4),
     "marimba": Keys(ratio=4.0, index=1.6, index_decay=0.04, index_sustain=0.0, decay=0.35, sustain=0.0, release=0.2,
                     detune=2.0, width=0.4),
     # (A bell whose overtones are whole multiples of the note: a real bell's are not, and four of
@@ -225,8 +254,6 @@ PADS = {
                      cutoff=3200, highpass=220),
     "glass": Keys(ratio=2.0, index=0.9, index_decay=2.0, index_sustain=0.4, attack=0.6, decay=3.0, sustain=0.6,
                   release=0.7, detune=7.0, width=0.9),
-    "organ": Keys(ratio=1.0, index=0.0, index_sustain=0.0, second=0.5, third=0.3, attack=0.3, decay=1.0, sustain=0.8,
-                  release=0.4, detune=5.0, width=0.8),
     "hollow": Patch(wave=SQUARE, voices=4, detune=14, spread=0.9, attack=0.8, decay=1.5, sustain=0.8, release=0.6,
                     cutoff=1400, highpass=150),
 }
@@ -252,10 +279,14 @@ def trim(sound: Any, pitch: int) -> float:
 # What each kind of place and moment sounds like: for each channel the sounds and the ways of
 # playing a take may draw on (the three takes of a family take different ones), the percussion
 # beside the kit, and the weather in the gaps.
+# (2026-11-20, 21:46, playing House: "No organs in the house music".) House has no organ: not as its bass, its chords or its
+# pad. Each palette's organ became a sound of its own world in the same place among its choices, so that only the takes that
+# had drawn the organ changed: a square or FM bass, a piano, an electric piano, a stab, a pluck or a harp for the chords, and
+# strings, a warm, hollow or glass pad.
 PALETTES: dict[str, dict[str, Any]] = {
-    "pastoral": dict(bass=("pluck", "organ", "sub", "fm"), bass_style=("offbeat", "tresillo", "offbeat_oct", "synco"),
+    "pastoral": dict(bass=("pluck", "square", "sub", "fm"), bass_style=("offbeat", "tresillo", "offbeat_oct", "synco"),
                      keys=("string", "keys", "pluck", "harp", "piano"), keys_style=("strum", "stabs", "arp", "broken"),
-                     lead=("whistle", "keys", "string", "flute"), pad=("warm", "strings", "organ", "glass"),
+                     lead=("whistle", "keys", "string", "flute"), pad=("warm", "strings", "hollow", "glass"),
                      perc=("tambourine", "maracas", "clap2", "snap"), hats=("eighths", "off", "shuffle", "sixteenths"),
                      atmos="", voicing="close"),
     "pastoral-deep": dict(bass=("saw", "pluck", "reese", "square"), bass_style=("rolling", "offbeat", "synco"),
@@ -263,20 +294,20 @@ PALETTES: dict[str, dict[str, Any]] = {
                           lead=("saw", "flute", "pluck", "hollow"), pad=("super", "warm", "strings", "hollow"),
                           perc=("maracas", "tambourine", "rim"), hats=("sixteenths", "off", "eighths"), atmos="", voicing="close"),
     "highland": dict(bass=("sub", "square", "pluck"), bass_style=("offbeat", "long", "tresillo"),
-                     keys=("harp", "pluck", "organ", "string"), keys_style=("arp", "broken", "pumpchords", "strum"),
-                     lead=("pipe", "whistle", "flute", "hollow"), pad=("warm", "hollow", "strings", "organ"),
+                     keys=("harp", "pluck", "piano", "string"), keys_style=("arp", "broken", "pumpchords", "strum"),
+                     lead=("pipe", "whistle", "flute", "hollow"), pad=("warm", "hollow", "strings", "glass"),
                      perc=("rim", "tambourine", "tom", "snap"), hats=("eighths", "shuffle", "off"), atmos="wind", voicing="open"),
     "highland-deep": dict(bass=("reese", "saw", "sub"), bass_style=("driving", "rolling", "long"),
                           keys=("brass", "pluck", "harp", "stab"), keys_style=("stabs", "arp", "pumpchords"),
                           lead=("pipe", "saw", "hollow", "super"), pad=("hollow", "super", "warm"),
                           perc=("tom", "rim", "maracas"), hats=("sixteenths", "eighths", "sparse"), atmos="wind", voicing="open"),
-    "haunted-light": dict(bass=("sub", "fm", "organ"), bass_style=("long", "offbeat", "dub"),
+    "haunted-light": dict(bass=("sub", "fm", "square"), bass_style=("long", "offbeat", "dub"),
                           keys=("bell", "keys", "marimba", "glass"), keys_style=("arp", "broken", "stabs"),
-                          lead=("glass", "whistle", "keys", "bell"), pad=("glass", "organ", "warm", "hollow"),
+                          lead=("glass", "whistle", "keys", "bell"), pad=("glass", "strings", "warm", "hollow"),
                           perc=("rim", "chime", "snap"), hats=("sparse", "eighths", "off"), atmos="wind", voicing="close"),
     "haunted-dark": dict(bass=("reese", "sub", "saw"), bass_style=("dub", "long", "rolling"),
-                         keys=("bell", "organ", "pluck", "glass"), keys_style=("stabs", "arp", "pumpchords"),
-                         lead=("hollow", "bell", "saw", "glass"), pad=("organ", "hollow", "glass"),
+                         keys=("bell", "stab", "pluck", "glass"), keys_style=("stabs", "arp", "pumpchords"),
+                         lead=("hollow", "bell", "saw", "glass"), pad=("strings", "hollow", "glass"),
                          perc=("rim", "chime", "clave"), hats=("sparse", "sixteenths", "off"), atmos="wind", voicing="close"),
     "desert": dict(bass=("pluck", "fm", "square"), bass_style=("tresillo", "synco", "offbeat"),
                    keys=("oud", "string", "marimba", "pluck"), keys_style=("strum", "arp", "broken"),
@@ -286,12 +317,12 @@ PALETTES: dict[str, dict[str, Any]] = {
                         keys=("oud", "pluck", "brass", "marimba"), keys_style=("arp", "strum", "stabs"),
                         lead=("hollow", "oud", "saw", "flute"), pad=("hollow", "warm", "super"),
                         perc=("bongo", "timbale", "clave"), hats=("sixteenths", "shuffle", "eighths"), atmos="wind", voicing="open"),
-    "jungle": dict(bass=("pluck", "organ", "fm"), bass_style=("rolling", "tresillo", "synco"),
-                   keys=("marimba", "pluck", "string", "organ"), keys_style=("arp", "broken", "stabs"),
+    "jungle": dict(bass=("pluck", "square", "fm"), bass_style=("rolling", "tresillo", "synco"),
+                   keys=("marimba", "pluck", "string", "piano"), keys_style=("arp", "broken", "stabs"),
                    lead=("flute", "marimba", "whistle", "pluck"), pad=("warm", "glass", "strings"),
                    perc=("conga", "agogo", "cabasa", "bongo"), hats=("shuffle", "sixteenths", "eighths"), atmos="", voicing="close"),
     "jungle-dark": dict(bass=("reese", "saw", "pluck"), bass_style=("rolling", "synco", "dub"),
-                        keys=("marimba", "pluck", "organ", "stab"), keys_style=("arp", "stabs", "broken"),
+                        keys=("marimba", "pluck", "keys", "stab"), keys_style=("arp", "stabs", "broken"),
                         lead=("flute", "hollow", "pluck", "saw"), pad=("hollow", "warm", "glass"),
                         perc=("conga", "quijada", "bongo", "clave"), hats=("sixteenths", "shuffle", "sparse"), atmos="", voicing="close"),
     "infernal-light": dict(bass=("saw", "square", "pluck"), bass_style=("driving", "offbeat", "rolling"),
@@ -300,35 +331,35 @@ PALETTES: dict[str, dict[str, Any]] = {
                            perc=("cowbell", "clave", "tom"), hats=("sixteenths", "off", "eighths"), atmos="fire", voicing="close"),
     "infernal-dark": dict(bass=("reese", "saw", "square"), bass_style=("driving", "rolling", "synco"),
                           keys=("stab", "brass", "pluck", "piano"), keys_style=("stabs", "arp", "pumpchords"),
-                          lead=("saw", "hollow", "super", "brass"), pad=("hollow", "super", "organ"),
+                          lead=("saw", "hollow", "super", "brass"), pad=("hollow", "super", "strings"),
                           perc=("cowbell", "tom", "clave"), hats=("sixteenths", "eighths", "off"), atmos="fire", voicing="close"),
-    "regal": dict(bass=("saw", "organ", "pluck"), bass_style=("offbeat_oct", "offbeat", "driving"),
-                  keys=("brass", "piano", "stab", "organ"), keys_style=("stabs", "pumpchords", "broken"),
+    "regal": dict(bass=("saw", "fm", "pluck"), bass_style=("offbeat_oct", "offbeat", "driving"),
+                  keys=("brass", "piano", "stab", "harp"), keys_style=("stabs", "pumpchords", "broken"),
                   lead=("super", "brass", "saw", "keys"), pad=("strings", "super", "warm"),
                   perc=("clap2", "tambourine", "ride", "snap"), hats=("off", "eighths", "sixteenths"), atmos="", voicing="close"),
     "regal-deep": dict(bass=("reese", "saw", "square"), bass_style=("rolling", "driving", "offbeat"),
                        keys=("brass", "stab", "pluck"), keys_style=("pumpchords", "stabs", "arp"),
                        lead=("saw", "super", "hollow"), pad=("strings", "hollow", "super"),
                        perc=("ride", "tom", "rim"), hats=("sixteenths", "off", "eighths"), atmos="", voicing="close"),
-    "mystic": dict(bass=("sub", "fm", "organ"), bass_style=("long", "offbeat", "tresillo"),
+    "mystic": dict(bass=("sub", "fm", "pluck"), bass_style=("long", "offbeat", "tresillo"),
                    keys=("harp", "glass", "bell", "keys"), keys_style=("arp", "broken", "strum"),
-                   lead=("glass", "whistle", "harp", "bell"), pad=("glass", "strings", "warm", "organ"),
+                   lead=("glass", "whistle", "harp", "bell"), pad=("glass", "strings", "warm", "hollow"),
                    perc=("chime", "rim", "maracas"), hats=("sparse", "eighths", "off"), atmos="sea", voicing="close"),
     "mystic-deep": dict(bass=("sub", "reese", "fm"), bass_style=("long", "dub", "rolling"),
                         keys=("glass", "harp", "pluck"), keys_style=("arp", "pumpchords", "broken"),
                         lead=("hollow", "glass", "saw"), pad=("glass", "hollow", "super"),
                         perc=("chime", "rim", "clave"), hats=("sparse", "sixteenths", "eighths"), atmos="sea", voicing="close"),
-    "ember": dict(bass=("sub", "organ", "fm"), bass_style=("long", "dub", "offbeat"),
+    "ember": dict(bass=("sub", "square", "fm"), bass_style=("long", "dub", "offbeat"),
                   keys=("keys", "string", "harp", "glass"), keys_style=("broken", "strum", "arp"),
-                  lead=("whistle", "keys", "glass", "flute"), pad=("warm", "organ", "glass"),
+                  lead=("whistle", "keys", "glass", "flute"), pad=("warm", "strings", "glass"),
                   perc=("snap", "maracas", "rim"), hats=("sparse", "eighths", "shuffle"), atmos="fire", voicing="close"),
     "night": dict(bass=("sub", "fm", "pluck"), bass_style=("long", "offbeat", "dub"),
                   keys=("bell", "glass", "keys", "harp"), keys_style=("arp", "broken", "stabs"),
                   lead=("glass", "flute", "whistle", "keys"), pad=("glass", "warm", "hollow"),
                   perc=("rim", "maracas", "chime"), hats=("sparse", "eighths", "shuffle"), atmos="crickets", voicing="close"),
     "depths": dict(bass=("sub", "reese", "fm"), bass_style=("dub", "long", "synco"),
-                   keys=("stab", "organ", "bell", "glass"), keys_style=("dub", "stabs", "arp"),
-                   lead=("hollow", "glass", "bell", "saw"), pad=("hollow", "organ", "glass"),
+                   keys=("stab", "pluck", "bell", "glass"), keys_style=("dub", "stabs", "arp"),
+                   lead=("hollow", "glass", "bell", "saw"), pad=("hollow", "warm", "glass"),
                    perc=("rim", "clave", "chime"), hats=("sparse", "off", "eighths"), atmos="drips", voicing="close"),
     "storm": dict(bass=("reese", "saw", "square"), bass_style=("driving", "rolling", "synco"),
                   keys=("stab", "pluck", "brass"), keys_style=("arp", "stabs", "pumpchords"),
@@ -342,14 +373,14 @@ PALETTES: dict[str, dict[str, Any]] = {
     # marsh's dub bass, marimba and glass, a jawbone rattle and drips; the coast's harp and strummed strings, whistle and the
     # sea; the snow's bells and glass and wind. Each a light one and a deep one, as the others are.
     "marsh": dict(bass=("sub", "fm", "pluck"), bass_style=("dub", "long", "offbeat"),
-                  keys=("marimba", "pluck", "glass", "organ"), keys_style=("arp", "broken", "dub"),
+                  keys=("marimba", "pluck", "glass", "keys"), keys_style=("arp", "broken", "dub"),
                   lead=("flute", "hollow", "pipe", "glass"), pad=("hollow", "warm", "glass"),
                   perc=("quijada", "conga", "rim", "cabasa"), hats=("sparse", "shuffle", "eighths"), atmos="drips", voicing="close"),
     "marsh-dark": dict(bass=("reese", "sub", "saw"), bass_style=("dub", "rolling", "long"),
-                       keys=("organ", "pluck", "glass", "marimba"), keys_style=("stabs", "arp", "dub"),
-                       lead=("hollow", "glass", "saw", "pipe"), pad=("hollow", "organ", "glass"),
+                       keys=("stab", "pluck", "glass", "marimba"), keys_style=("stabs", "arp", "dub"),
+                       lead=("hollow", "glass", "saw", "pipe"), pad=("hollow", "warm", "glass"),
                        perc=("quijada", "rim", "clave"), hats=("sparse", "sixteenths", "off"), atmos="rain", voicing="close"),
-    "coast": dict(bass=("pluck", "sub", "organ"), bass_style=("offbeat", "tresillo", "offbeat_oct"),
+    "coast": dict(bass=("pluck", "sub", "fm"), bass_style=("offbeat", "tresillo", "offbeat_oct"),
                   keys=("harp", "string", "pluck", "keys"), keys_style=("strum", "arp", "broken"),
                   lead=("whistle", "flute", "keys", "hollow"), pad=("warm", "glass", "strings"),
                   perc=("tambourine", "maracas", "snap", "clap2"), hats=("eighths", "off", "shuffle"), atmos="sea", voicing="open"),
@@ -945,9 +976,14 @@ class Take:
             return 8 if count >= 16 else 4
         return 4 if count >= 16 else 2
 
+    def dropped_out(self, story: str, bar: int, count: int) -> bool:
+        """Whether a bar of a section is a long drop's drop-out (DROP_OUT): the bar before the last eight of a drop of
+        thirty-two bars or more, in anything but a calm piece."""
+        return DROP_OUT and story == "moment" and count >= 32 and bar == count - 9 and self.family.role not in CALM_ROLES
+
     def kick_plays(self, story: str, bar: int, count: int, first: int = -1) -> bool:
         """Whether the kick is in at a bar of a section (beginning at bar `first`). The same for every take of a family."""
-        if not self.kick or self.broken(story, first):
+        if not self.kick or self.broken(story, first) or self.dropped_out(story, bar, count):
             return False
         if self.family.hard:
             return story != "rise" or bar < (count - self.build_bars(count) if RISE_KICK else count // 2)
@@ -983,7 +1019,8 @@ class Take:
         first_perc = self.pick("perc", kinds)
         second_perc = kinds[(kinds.index(first_perc) + 1) % len(kinds)]
         clap_in = self.pick("clap-in", (0, 4, 8)) if not fam.hard else 0
-        perc_in = self.pick("perc-in", (8, 4, 0)) if not fam.hard else 0
+        grows = FIGHT_DRUMS_GROW and fam.hard               # a fight's drums: the hats with the theme, the percussion after
+        perc_in = self.pick("perc-in", (8, 4, 0)) if not fam.hard else 8 if grows else 0
         fill = self.pick("fill", ("snare", "toms", "lift"))
         roll = self.pick("roll", ("snare", "clap", "crack")) if fam.role not in CALM_ROLES else self.pick("roll", ("maracas", "rim", "hat"))
         roll_level = 1.0 if fam.role not in CALM_ROLES else 0.45       # an inn has no drum roll: a shaker stirs
@@ -1016,10 +1053,13 @@ class Take:
                 groove = (story in ("theme", "moment") and not self.broken(story, first)) or (story == "close" and inside < count - 2) \
                     or (fam.hard and story == "open")
                 last = inside == count - 1
-                filling = groove and inside % 8 == 7 and not (story == "close")
+                # A long drop's drop-out (DROP_OUT): the clap and the hats alone, and a pickup on the snare into the slam.
+                out_bar = self.dropped_out(story, inside, count)
+                filling = (groove and inside % 8 == 7 and not (story == "close")) or out_bar
+                this_fill = "snare" if out_bar else fill
                 if self.kick_plays(story, inside, count, first):
                     for step in self.kick:
-                        if filling and fill == "lift" and step >= 12:
+                        if filling and this_fill == "lift" and step >= 12:
                             continue
                         hit(dry, kick, bar, step, 0.92, 0.0, kick_speed)
                 if groove:
@@ -1034,11 +1074,11 @@ class Take:
                     turned = HAT_TURNS.get(hat_figure, hat_figure) if (inside // 16 + shift) % 2 == 1 else hat_figure
                     if story == "close":
                         turned = "sparse" if hat_figure != "sparse" else "off"
-                    for sound, steps in HATS[turned].items():
+                    for sound, steps in (HATS[turned] if not (grows and story == "open") else {}).items():
                         if sound == "open" and story == "theme" and inside < 8 and len(HATS[turned]) > 1:
                             continue
                         for step, loud in steps:
-                            if filling and step >= 12 and fill != "lift":
+                            if filling and step >= 12 and this_fill != "lift":
                                 continue
                             # (2026-11-18: "too much high hat and not enough dynamic sound". The sixteenths between the
                             # eighths come only at a drop; every hat is 3 dB softer there and follows the story further
@@ -1054,17 +1094,27 @@ class Take:
                     if story == "moment":
                         # A drop builds block by block: the first figure, then both, then the second alone.
                         first_on, second_on = block % 3 != 2, block % 3 != 0
+                    elif story == "theme" and THEME_STAGGERS and fam.role not in CALM_ROLES:
+                        # The percussion turns eight bars after the hats (THEME_STAGGERS).
+                        later = (max(inside - 8, 0) // 16 + shift) % 2 == 1
+                        first_on, second_on = inside >= perc_in and not later, inside >= perc_in and later
                     else:
-                        first_on, second_on = inside >= perc_in and not (odd and story == "theme"), story == "theme" and odd
-                    if first_on:
+                        begins = 0 if grows and story == "close" else perc_in
+                        first_on, second_on = inside >= begins and not (odd and story == "theme"), story == "theme" and odd
+                    if LONG_DROP_GROWS and story == "moment" and count >= 32 and inside >= 16 and not out_bar and "ride" not in kinds \
+                            and fam.role not in CALM_ROLES:
+                        # A long drop from its second block: the ride on the beat (LONG_DROP_GROWS).
+                        for step in (0, 4, 8, 12):
+                            hit(wet, "ride", bar, step, 0.2 if step % 8 == 0 else 0.16, 0.3)
+                    if first_on and not out_bar:
                         figure(first_perc, bar, 0.34 * (0.6 + 0.4 * energy), -0.35)
-                    if second_on:
+                    if second_on and not out_bar:
                         figure(second_perc, bar, 0.32 * (0.6 + 0.4 * energy), 0.4)
                     if filling:
-                        if fill == "snare":
+                        if this_fill == "snare":
                             for index, step in enumerate((12, 13, 14, 15)):
                                 hit(wet, "snare", bar, step, 0.3 + 0.1 * index)
-                        elif fill == "toms":
+                        elif this_fill == "toms":
                             for step, sound, pan in ((10, "tom_high", -0.4), (12, "tom_mid", 0.0), (14, "tom_low", 0.4)):
                                 hit(wet, sound, bar, step, 0.5, pan)
                         else:
@@ -1114,7 +1164,7 @@ class Take:
                 if story in ("theme", "moment") and inside == 0:
                     hit(wet, "crash", bar, 0, 0.5 if story == "moment" else 0.32, -0.2)
                 if story == "moment" and inside and inside % 8 == 0:
-                    hit(wet, "crash", bar, 0, 0.34, 0.25)
+                    hit(wet, "crash", bar, 0, 0.5 if self.dropped_out(story, inside - 1, count) else 0.34, 0.25)
                 if fam.hard and story == "open" and inside == 0:
                     hit(wet, "crash", bar, 0, 0.5, -0.2)
                 if fam.hard and story == "open" and last:
@@ -1158,6 +1208,8 @@ class Take:
                 bar, energy = first + inside, self.energy(story, inside / count, first)
                 chord, after = self.changes.chord(inside), self.changes.chord(inside + 1)
                 bright = 0.4 + 0.6 * energy
+                if self.dropped_out(story, inside, count):
+                    continue                                   # the drop-out: the bass out for the bar
                 if (story in ("theme", "moment") and not self.broken(story, first)) or (fam.hard and story in ("open", "close")) \
                         or (story == "close" and self.kick_plays(story, inside, count, first)):
                     notes = figure
@@ -1177,9 +1229,10 @@ class Take:
                 elif story == "rise" and builds and inside >= count - build:
                     # Eighths on one note, opening up, through the build.
                     along = (inside - (count - build)) / build
+                    calm = 0.5 if CALM_BUILD_SOFT and fam.role in CALM_ROLES else 1.0       # an inn has no drop to roll into
                     for step in range(0, 16, 2):
                         synth.play(out, sound, self.at(bar, step), 1.5 * STEP, self.bass_note(self.changes.chord(count - 1), "R"),
-                                   loud * (0.25 + 0.3 * along), seed=self.seed + bar * 16 + step, bright=0.25 + 0.7 * along)
+                                   loud * (0.25 + 0.3 * along) * calm, seed=self.seed + bar * 16 + step, bright=0.25 + 0.7 * along)
         return self.pumped(out, 0.75 if style == "long" else 0.55).astype(np.float32)
 
     # --- chords, plucks and arps -----------------------------------------------------------------
@@ -1221,6 +1274,8 @@ class Take:
                     continue
                 if story == "rise" and not through_rise and inside < count - build:
                     continue
+                if self.dropped_out(story, inside, count):
+                    continue                                   # the drop-out: the last chord rings on in the echo and the hall
                 thin = (story == "open" and inside < count // 2) or (story == "close" and inside >= count // 2)
                 # The chords' roll into the drop: in the last two bars of a rise, eighths and then sixteenths. A calm piece
                 # has no roll into its moment (2026-11-18, Cold Stars I, a night piece: a bell's sixteenths had rung into
@@ -1354,6 +1409,9 @@ class Take:
                     # sixteen bars of a long drop the tune answers itself: the main voice and the second synth alone take
                     # turns, phrase by phrase.
                     answering = late is not None and count >= 32 and inside >= count - 16 and (inside // 8) % 2 == 1
+                    if self.dropped_out(story, inside + 7, count):
+                        # The phrase's last bar is the drop-out: what is begun before it ends as it begins.
+                        notes = [Tone(note.at, min(note.length, 112 - note.at), note.degree, note.loud) for note in notes if note.at < 112]
                     if not answering:
                         say(notes, first + inside, main, 0.62, 1.0)
                     if late is not None and inside >= count // 2:
@@ -1428,6 +1486,11 @@ class Take:
             if story == "moment":
                 out.append(Air("thud", start, 2.5, 0.5 * gentle))
                 out.append(Air("sweep", start, 2 * BAR, 0.7 * gentle, 400.0, 9000.0, False, seed=self.seed + 2))
+                gap = next((inside for inside in range(count) if self.dropped_out(story, inside, count)), None)
+                if gap is not None:
+                    # The drop-out's bar of air rising into the slam, and the drop's thud again as it lands.
+                    out.append(Air("sweep", self.at(first + gap, 0), BAR, 0.8, 300.0, 8000.0, True, seed=self.seed + 5 + first))
+                    out.append(Air("thud", self.at(first + gap + 1, 0), 2.5, 0.5))
             if story in ("theme", "close") and not fam.hard:
                 out.append(Air("sweep", start, BAR, 0.35, 500.0, 6000.0, False, seed=self.seed + 3 + first))
                 out.append(Air("sweep", start - 2 * BAR, 2 * BAR, 0.3, 300.0, 5000.0, True, seed=self.seed + 4 + first))
