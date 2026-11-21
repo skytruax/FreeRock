@@ -1338,8 +1338,10 @@ SOLOISTS = {"lead guitar": True, "fiddle": True, "mandolin": True, "harmonica": 
 # (2026-11-19, the study: Lazy River Swing V's fiddle solo sat F5 to C7, Sea Raiders V's C5 to Bb6: a solo climbs an octave and a
 # note over where the tune begins, and a fiddle's tune begins high; its reach was the fiddle's whole written range.) The highest
 # note a solo sings on, where the written range runs far above it: a fiddle's E6, a mandolin's D6. The lead guitar's D6 and the
-# harmonica's C6 are their written tops already. Empty: the written range, as before.
-SOLO_TOP = {"fiddle": 88, "mandolin": 86}
+# harmonica's C6 are their written tops already. Empty: the written range, as before. (2026-11-21, the study: the whistle's
+# solos sang up to its very top, all in its shrill second octave: Silver Glade II A5 to D7, Dreaming Ballad II C#6 to C#7,
+# Sunny Wheels I and III E5 to C#7, eight takes.) A whistle's A6: a player keeps the top of a whistle for a note or two.
+SOLO_TOP = {"fiddle": 88, "mandolin": 86, "whistle": 93}
 # The figures a solo's middle is made of, three drawn for each solo: Angus Young's and Chuck Berry's (the repeated note, the
 # run in threes or fours, the trill, the double stops, the cascade, the pedal lick), the octaves Wes Montgomery and Hendrix
 # play a tune in, a figure echoed a step lower each beat, one note picked in threes against the beat, and notes slid into.
@@ -1351,7 +1353,15 @@ CLIMBS = True            # a heavy band's rise climbs where one chord is held lo
 LONG_HOLD = 9            # bars of one chord in a rise that make it a long one
 OPENS_OUT = True         # a heavy band's drummer opens the hat for the second theme, as its guitars ring (Take.drums)
 DIGS_IN = True           # a heavy band's long moment digs in at its half: the bass's octaves, the crash every other bar
-GEARS = True             # an orchestra's long moment goes up a gear every second phrase (Take.geared); False plays it one way
+# (2026-11-20, the study: Lightning Runner II's rhythm one colour all 32 bars of its arrival, the drums and the bass digging in
+# at its half and the guitars playing on as they were.) Each take its own way, as a rise's (`rise_way`): not every song's turn
+# the same ("hearing that same guitar riff climb in too many knight songs", 2026-11-19).
+HEAVY_DIG_TURNS = True   # ...and its guitars turn for the first half of the dig-in, each take its own way (Take.dig_way)
+# (2026-11-21, the judges on Lightning Runner II, its dig-in ringing: level, TuneJury 0.389 to 0.394, enjoyment 7.08 both; the
+# meter's run of the rhythm's colour at the arrival 32 bars to 16, the bass's 8 to 3.) The riff up the neck an octave was
+# judged on 20 November and left off: a take drawn to go up plays on as written.
+DIG_UP = False           # the dig-in's riff goes up the neck an octave over the muted string; False: such a take plays as written
+GEARS = True            # an orchestra's long moment goes up a gear every second phrase (Take.geared); False plays it one way
 GEAR_BARS = 8            # the phrase a long moment changes on
 # (2026-11-19, the study: Sea Raiders V's mandolin, rhythm guitar and muted guitar played the same 160, 78 and 32 notes in every
 # eight bars of its 40-bar arrival, the meter's colour unchanged all 40: a heavy band digs in at its half and an orchestra goes
@@ -3774,8 +3784,13 @@ class Take:
                 played = "riff" if rings else "chug" if climbing and self.rise_way == "drive" and figure == "riff" else figure
                 comping = SOLO_COMP and ch.band and solo_from is not None and played in ("riff", "chug") and not rings \
                     and solo_from - 1e-6 <= bar_at < solo_to - beats / 2
+                # (A heavy band's long moment turns its guitars at its dig-in, out of the solo's way: `dig_turn`.)
+                turn = None if comping else self.dig_turn(part, bars, bar)
+                if turn == "ring" and played in ("riff", "chug"):
+                    rings, played = True, "riff"
                 layer(name, played, second, raised, 0.85 if comping else 1.0, key, chord, bar, bar_at, level, density, rings=rings,
-                      up=12 if ((climbing and self.rise_way == "climb") or geared_band) and figure in ("riff", "chug") and not rings else 0,
+                      up=12 if ((climbing and self.rise_way == "climb") or geared_band or turn == "up") and figure in ("riff", "chug")
+                      and not rings else 0,
                       ending=end in ("stop", "ring", "last"), comp=comping)
                 # (A band's riff guitars are the band's whole accompaniment; the unplugged band takes the second figure too.)
                 if not (ch.band and self.heavy) and fuller(part, bar, along):
@@ -4203,6 +4218,27 @@ class Take:
         if not (DIGS_IN and self.ch.band and self.heavy and part in ("arrival", "summit") and bars >= 24):
             return self.after_solo(part, bar)
         return bar >= max(16, ((bars // 2 + 7) // 8) * 8)
+
+    @property
+    def dig_way(self) -> str:
+        """How this take's guitars turn as a heavy band's long moment digs in (HEAVY_DIG_TURNS): the riff goes up the neck an
+        octave over the muted string ("up"), its chords are struck and left to ring over the drums ("ring"), or it plays on
+        as written ("plain"). Drawn on a generator of its own, as `rise_way` is, so that not every song turns the same way.
+        The way up is left off (DIG_UP): such a take plays on as written."""
+        if not hasattr(self, "_dig_way"):
+            self._dig_way = random.Random(self.fam.seed * 7919 + self.take * 104729 + 41).choice(("up", "ring", "plain"))
+        return self._dig_way
+
+    def dig_turn(self, part: str, bars: int, bar: int) -> str | None:
+        """The turn of a bar of a heavy band's long moment (`dig_way`), in the first half of its dig-in (`digs_in`): then the
+        second half brings the riff back as it was, so that the moment ends on it (bars 16 to 23 of a 32-bar arrival, 24 to 31
+        of a 40-bar summit)."""
+        if not (HEAVY_DIG_TURNS and DIGS_IN and self.ch.band and self.heavy and part in ("arrival", "summit") and bars >= 24):
+            return None
+        start = max(16, ((bars // 2 + 7) // 8) * 8)
+        if not start <= bar < start + (bars - start) // 2 or self.dig_way == "plain" or (self.dig_way == "up" and not DIG_UP):
+            return None
+        return self.dig_way
 
     def after_solo(self, part: str, bar: int) -> bool:
         """Whether a bar of a light band's summit comes after its solo, where the band comes back in harder, as it plays its

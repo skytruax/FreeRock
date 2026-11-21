@@ -8,7 +8,9 @@ within as much) carries the stretch on; the longest
 such stretch is what the ear hears as a part that never moves. Silence is not a stretch. A stretch at the take's
 sheet (sheet.json, where there is one) is also checked for its notes: a part whose bars are the same notes all
 through is marked as such, since then nothing at all is changing. Something should change in every channel at least
-every 8 or 16 bars (the plan): a stretch of 16 bars or more is flagged.
+every 8 or 16 bars (the plan): a stretch of 16 bars or more is flagged. The drums are also heard for their ring: whether
+the kit's top ticks between its strokes (a closed hat) or sizzles there (an open hat, a ride, a crash), which the strokes
+themselves do not tell.
 
     cd app && uv run --no-sync python ../tools/boredom.py house/coast-03/1 knight/infernal-forge-anthem-1/3 ...
     ... --folder <a staged take's folder>      (a take staged somewhere else, a demo's)
@@ -23,6 +25,7 @@ from pathlib import Path
 
 import numpy as np
 import soundfile
+from scipy import signal
 
 VAR = Path(__file__).resolve().parents[1] / "var"
 CHANNELS = ("texture", "lead", "rhythm", "drums", "bass")
@@ -96,6 +99,36 @@ def timbres(audio: np.ndarray, rate: int, bar_frames: float, bars: int) -> list[
     return out
 
 
+def rings(audio: np.ndarray, rate: int, bar_frames: float, bars: int) -> list[float | None]:
+    """Each bar's ring at the top of a kit: how far the quiet quarter of its sound over 6 kHz sits under its strokes there
+    (the 25th percentile of its levels in 10 ms less their 98th, in dB), None where it has no top. (2026-11-21: Breakwater
+    I's theme turns from the open hats on the off-beats to the closed hats and back, 10 to 15 dB here, the sizzle between
+    the strokes that an ear hears; the strokes themselves stand within 1 to 3 dB of each other in every sixteenth, and in
+    the air, so the meter read its drums the same 40 bars.)"""
+    mono = audio.mean(axis=1).astype(np.float64)
+    top = signal.sosfilt(signal.butter(8, 6000.0, "highpass", fs=rate, output="sos"), mono)
+    hop = max(int(0.010 * rate), 1)
+    out: list[float | None] = []
+    for bar in range(bars):
+        a, b = int(round(bar * bar_frames)), int(round((bar + 1) * bar_frames))
+        piece = top[a:b]
+        count = len(piece) // hop
+        # No top to ring: under 50 dB below the bar's whole sound.
+        if count < 8 or float(np.sum(piece ** 2)) < 1e-5 * float(np.sum(mono[a:b] ** 2)) + 1e-20:
+            out.append(None)
+            continue
+        levels = 10 * np.log10(np.mean(piece[:count * hop].reshape(count, hop) ** 2, axis=1) + 1e-20)
+        out.append(float(np.percentile(levels, 25) - np.percentile(levels, 98)))
+    return out
+
+
+def _apart(here: tuple, there: tuple, index: int) -> float:
+    """How far two bars' measures at `index` stand apart, 0 where either bar has none."""
+    a = here[index] if len(here) > index else None
+    b = there[index] if len(there) > index else None
+    return abs(a - b) if a is not None and b is not None else 0.0
+
+
 def stretches(prints: list[tuple[np.ndarray, float] | None], still: float) -> list[tuple[int, int]]:
     """(first bar, bars) of each stretch in which nothing moves by more than `still` dB from where it began."""
     found = []
@@ -119,10 +152,9 @@ def stretches(prints: list[tuple[np.ndarray, float] | None], still: float) -> li
         if len(here) > 2 and len(prints[start]) > 2 and here[2] is not None and prints[start][2] is not None:
             a, b = here[2], prints[start][2]
             figure = 1.0 - float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b) + 1e-20))
-        top = abs(here[3] - prints[start][3]) if len(here) > 3 and len(prints[start]) > 3 else 0.0
-        air = abs(here[4] - prints[start][4]) if len(here) > 4 and len(prints[start]) > 4 else 0.0
+        top, air, ring = (_apart(here, prints[start], index) for index in (3, 4, 5))
         if moved > still or most > 2.0 * still or abs(here[1] - loud) > still or figure > 0.1 or top > 2.0 * still \
-                or air > 4.0 * still:
+                or air > 4.0 * still or ring > 3.0 * still:
             found.append((start, bar - start))
             start = bar
     return found
@@ -156,8 +188,14 @@ def meter(folder: Path, still: float) -> dict:
         if not path.is_file():
             continue
         audio, rate = soundfile.read(str(path), dtype="float32", always_2d=True)
-        runs = stretches(fingerprints(audio, rate, meta["bar_frames"], bars), still)
-        colour = stretches(timbres(audio, rate, meta["bar_frames"], bars), still)
+        prints = fingerprints(audio, rate, meta["bar_frames"], bars)
+        tints = timbres(audio, rate, meta["bar_frames"], bars)
+        if channel == "drums":
+            ring = rings(audio, rate, meta["bar_frames"], bars)
+            prints = [None if here is None else (*here, None, None, ring[bar]) for bar, here in enumerate(prints)]
+            tints = [None if here is None else (*here, ring[bar]) for bar, here in enumerate(tints)]
+        runs = stretches(prints, still)
+        colour = stretches(tints, still)
         same_colour = max(colour, key=lambda run: run[1]) if colour else (0, 0)
         playing = sum(count for _, count in runs)
         longest = max(runs, key=lambda run: run[1]) if runs else (0, 0)

@@ -1943,6 +1943,61 @@ def test_a_fiddle_or_a_mandolin_solo_sings_below_its_top():
     assert found
 
 
+def test_a_whistle_solo_sings_below_a6(monkeypatch):
+    # (2026-11-21, the study: the whistle's solos sang up to its very top, all in its shrill second octave: Silver Glade II A5
+    # to D7, Dreaming Ballad II C#6 to C#7, Sunny Wheels I and III E5 to C#7.) A whistle's solo keeps under A6.
+    takes = (("mystic-moon-glade-1", 2), ("mystic-moon-glade-2", 2), ("pastoral-open-road-2", 1), ("pastoral-open-road-2", 3))
+
+    def tops() -> list[int]:
+        out = []
+        for name, number in takes:
+            notes = orchestra.Take(_family(name), number).voices["lead"]["whistle solo"].notes
+            assert notes, (name, number)
+            out.append(max(note.pitch for note in notes))
+        return out
+    assert orchestra.SOLO_TOP["whistle"] == 93 and max(tops()) <= 93
+    monkeypatch.setattr(orchestra, "SOLO_TOP", {key: top for key, top in orchestra.SOLO_TOP.items() if key != "whistle"})
+    assert max(tops()) > 93
+
+
+def test_a_heavy_bands_long_moment_rings_its_guitars_as_it_digs_in(monkeypatch):
+    # (2026-11-20, the study: Lightning Runner II's rhythm one colour all 32 bars of its arrival, the drums and the bass
+    # digging in at its half and the guitars playing on as they were.) In the first half of the dig-in a third of the heavy
+    # takes leave their chords ringing over the drums, each take drawn its own way as a rise's is ("hearing that same guitar
+    # riff climb in too many knight songs", 2026-11-19); the second half brings the riff back to land. The way up the neck
+    # (DIG_UP) was left off: a take drawn to go up plays on as written.
+    import statistics
+    import types
+    assert orchestra.HEAVY_DIG_TURNS and not orchestra.DIG_UP
+    ways = [orchestra.Take.dig_way.fget(types.SimpleNamespace(fam=fam, take=take))
+            for fam, _ in build.plan() if fam.character.style == "knight" and fam.character.band for take in (1, 2, 3, 4)]
+    assert all(ways.count(way) >= len(ways) // 5 for way in ("up", "ring", "plain")), {way: ways.count(way) for way in set(ways)}
+
+    def phrases(take, part, name="rhythm guitar"):
+        first, last = spans_of(take)[part]
+        bars = int(round((last - first) / take.beats))
+        notes = take.voices["rhythm"][name].notes
+        return [[note for note in notes if first + k * take.beats - 1e-6 <= note.start < first + (k + 8) * take.beats - 1e-6]
+                for k in range(0, bars, 8)]
+
+    ring = orchestra.Take(_family("anywhere-storm-rider-1"), 2)
+    assert ring.heavy and ring.dig_way == "ring"
+    arrival = phrases(ring, "arrival")
+    # (Held two beats and more, but for a chord pushed an eighth early and the pickup into the riff's return.)
+    assert len(arrival[2]) * 2 <= len(arrival[1]) and statistics.median(note.length for note in arrival[2]) >= 2.0, \
+        (len(arrival[1]), len(arrival[2]))
+    assert abs(len(arrival[3]) - len(arrival[1])) <= len(arrival[1]) // 4, "the riff back for the last phrase"
+    for name, number, way in (("pastoral-banner-ride-1", 1, "up"), ("haunted-black-chapel-2", 4, "plain")):
+        take = orchestra.Take(_family(name), number)
+        assert take.heavy and take.dig_way == way
+        middles = [statistics.median(note.pitch for note in each) for each in phrases(take, "arrival") if each]
+        assert max(middles) - min(middles) <= 2, (name, middles)
+    monkeypatch.setattr(orchestra, "DIG_UP", True)
+    up = orchestra.Take(_family("pastoral-banner-ride-1"), 1)
+    middles = [statistics.median(note.pitch for note in each) for each in phrases(up, "arrival")]
+    assert middles[2] >= max(middles[:2] + middles[3:]) + 10, middles
+
+
 def test_a_riff_that_is_the_second_figure_goes_up_the_neck_too():
     # (2026-11-19, the study: Kinsman's Ballad VI's rhythm guitar, its riff the arrival's second figure, played 53 in every
     # phrase of its geared arrival: a riff goes up the neck only by `up`, and the second figure's raise did not reach it.)

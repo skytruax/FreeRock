@@ -175,6 +175,25 @@ THEME_STAGGERS = True
 # that is heard, as a long house drop brings in a layer after its first sixteen bars (not where the palette's percussion is a
 # ride already). Not in a calm piece.
 LONG_DROP_GROWS = True
+# (2026-11-21, the boredom meter on House made again on 0a807e7: Breakwater I's drums the same 40 bars from its theme's ninth
+# bar, Dripstone I's 23, Ash Wind III's, River Drums III's, Parrots III's and Mirage III's 16; Thunderhead III's 44 the night
+# before. Every sixteen-bar turn of a House groove is in the top, a hat figure for another and one high percussion for
+# another, under the same kick and the same backbeat from a theme's first bar to its last: the meter heard none of them,
+# deaf then to the hats' ring, which an ear hears.) The backbeat turns with the hats: in every second sixteen bars of a theme
+# or a drop it is thickened (a clap
+# with a snare under it) or, where it was thick, thinned to the clap alone (MIDS_TURN), a turn in the mids every sixteen bars.
+# Not in a calm piece.
+# Left off (2026-11-21, 05:26, the demo on Breakwater I): the meter heard it (its drums the same 40 bars before, 16 at the most
+# after), but the judges on the theme's bars 8 to 24: TuneJury with the House brief 1.07 to 0.85, with none 1.10 to 1.04,
+# enjoyment and SongEval level: a snare under the clap is less progressive house (claps, not snares, on two and four).
+THEME_MIDS = False
+MIDS_TURN = {("clap",): ("clap", "snare"), ("clap", "snare"): ("clap",), ("snare2",): ("snare2", "clap")}
+# The house ways of turning the mids every second sixteen bars: "snap", a finger snap laid on the backbeat; "clap2", a second
+# clap laid on it; "ghost", a soft kick on the bar's last eighth. "" for none. Left off (2026-11-21, 06:52, Breakwater I's
+# theme bars 8 to 24 side by side): the snap level (TuneJury with the House brief 1.02 to 1.08), the second clap down (1.02 to
+# 0.86 with no brief, SongEval down on every axis), the ghost kick not heard; the meter heard neither. The drums turn every
+# eight bars in the hats all along, which the meter hears since it hears their ring (tools/boredom.py, 2026-11-21).
+MIDS_WAY = ""
 # The calm moments: an inn, the night, a camp. They have no drop to speak of, no roll into one and no line doubled over the
 # tune, and they play under the usual level.
 CALM_ROLES = ("ember", "night", "camp")
@@ -1053,6 +1072,9 @@ class Take:
                 groove = (story in ("theme", "moment") and not self.broken(story, first)) or (story == "close" and inside < count - 2) \
                     or (fam.hard and story == "open")
                 last = inside == count - 1
+                # Every second sixteen bars of a theme or a drop, the mids turn with the hats (THEME_MIDS, MIDS_WAY).
+                turns = (THEME_MIDS or MIDS_WAY) and story in ("theme", "moment") and fam.role not in CALM_ROLES \
+                    and (inside // 16 + shift) % 2 == 1
                 # A long drop's drop-out (DROP_OUT): the clap and the hats alone, and a pickup on the snare into the slam.
                 out_bar = self.dropped_out(story, inside, count)
                 filling = (groove and inside % 8 == 7 and not (story == "close")) or out_bar
@@ -1062,11 +1084,19 @@ class Take:
                         if filling and this_fill == "lift" and step >= 12:
                             continue
                         hit(dry, kick, bar, step, 0.92, 0.0, kick_speed)
+                    if turns and MIDS_WAY == "ghost" and 14 not in self.kick:
+                        hit(dry, kick, bar, 14, 0.55, 0.0, kick_speed)      # a ghost kick on the bar's last eighth
                 if groove:
                     if story != "theme" or inside >= clap_in:
                         if not (story == "close" and inside >= count // 2):
+                            # The backbeat turns with the hats, in the mids (THEME_MIDS; MIDS_WAY's snap or second clap).
+                            sounds = backbeat
+                            if turns and THEME_MIDS:
+                                sounds = MIDS_TURN.get(backbeat, backbeat)
+                            elif turns and MIDS_WAY in ("snap", "clap2") and MIDS_WAY not in backbeat:
+                                sounds = backbeat + (MIDS_WAY,)
                             for step in back_steps:
-                                for sound in backbeat:
+                                for sound in sounds:
                                     hit(wet, sound, bar, step, 0.56 if sound != "snap" else 0.5)
                     # Every second sixteen bars the hats turn to another figure, and back (HAT_TURNS). As the close
                     # begins they thin to two strokes and an open hat: the first of the band to leave (2026-11-19, the

@@ -3,6 +3,26 @@
 Newest first. Words in quotation marks are what was said while listening or playing, as typed or
 dictated, where it drove the change.
 
+## 2026-11-21, morning: a heavy dig-in rings; a whistle's solo under A6; the meter hears the hats ring; House's backbeat left alone
+
+- **A heavy band's guitars ring as its long moment digs in** (handbook 4.9, `orchestra.HEAVY_DIG_TURNS`, `Take.dig_way`):
+  in a third of the heavy takes, each drawn its own way, the rhythm guitars leave their chords ringing over the drums for
+  the first half of the dig-in, and the riff comes back to land the moment. Lightning Runner II's rhythm guitar had been
+  one colour all 32 bars of its arrival; the judges level (TuneJury 0.389 to 0.394, enjoyment 7.08 both), the meter's
+  run 32 bars to 16. The riff up the neck there (`DIG_UP`) stays off, as judged on 20 November.
+- **A whistle's solo sings below A6** (handbook 4.10, `orchestra.SOLO_TOP`): its solos had sung to the whistle's very top,
+  all in its shrill second octave (Silver Glade II A5 to D7, Dreaming Ballad II C#6 to C#7, Sunny Wheels I and III E5 to
+  C#7). Every take with a whistle's solo is in the re-render ledger, as a solo is laid out within its range.
+- **The boredom meter hears the hats ring** (handbook 7.7, `tools/boredom.py`): the drums' ring, how far the quiet
+  quarter of the kit's top over 6 kHz sits under its strokes, moving by more than 4.5 dB ends a run. Breakwater I's theme
+  turns from the open hats on the off-beats to the closed hats and back every eight bars, 10 to 15 dB apart here; the
+  meter had read its drums the same 40 bars, the strokes under the clap within 1 to 3 dB of each other.
+- Tried and left off, each behind its switch (handbook 5.2): a turn of House's backbeat every second sixteen bars, to
+  give the meter's 40 bars a change in the mids. A snare under the clap (`house.THEME_MIDS`): TuneJury with the House
+  brief 1.07 to 0.85, less house to the judges. A finger snap laid on the clap (`house.MIDS_WAY = "snap"`): level, 1.02
+  to 1.08. A second clap (`"clap2"`): down, 1.02 to 0.86 with no brief. The drums were turning every eight bars in the
+  hats all along.
+
 ## 2026-11-20, night: no organs in House; House's drums grow; the bass goes up with the key; a valley's pad under pianissimo
 
 - **A long House drop drops out for a bar before its last eight** (handbook 5.5, `house.DROP_OUT`): the clap and the

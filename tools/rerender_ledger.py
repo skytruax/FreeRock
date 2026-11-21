@@ -152,6 +152,34 @@ def has_valley(piece: Piece) -> bool:
             and any(section.part == "valley" for section in fam.sections))
 
 
+def dig_rings(piece: Piece) -> bool:
+    """A heavy band's take drawn to leave its chords ringing at its long moment's dig-in (orchestra.Take.dig_way, "ring"),
+    whose arrival or summit is 24 bars or more (orchestra.HEAVY_DIG_TURNS, 2026-11-21)."""
+    ch = piece.character
+    fam = _families().get(piece.family)
+    if piece.style == "house" or fam is None or not getattr(ch, "band", False) or ch.weight < 0.8:
+        return False
+    import types
+    from freerock.studio import orchestra
+    if orchestra.Take.dig_way.fget(types.SimpleNamespace(fam=fam, take=int(piece.key.rsplit("/", 1)[1]))) != "ring":
+        return False
+    bars: dict[str, int] = {}
+    for section in fam.sections:
+        bars[section.part] = bars.get(section.part, 0) + section.bars
+    return max(bars.get("arrival", 0), bars.get("summit", 0)) >= 24
+
+
+def whistle_solo(piece: Piece) -> bool:
+    """A band's take whose staged sheet has a whistle's solo: its range is the whistle's to A6 since orchestra.SOLO_TOP's
+    whistle (2026-11-21), and the solo is laid out within its range, so every one of them is written again."""
+    if piece.style == "house":
+        return False
+    sheet = STUDIO / piece.style / piece.key / "sheet.json"
+    if not sheet.is_file():
+        return False
+    return bool(json.loads(sheet.read_text(encoding="utf-8")).get("parts", {}).get("lead", {}).get("whistle solo"))
+
+
 def lively_walk(piece: Piece, busy_from: float = 0.45) -> bool:
     """Walking music that has soft war drums (orchestra.Take: `lively`), by the rule of its day: busy from 0.45 until
     2026-11-18, from 0.35 since."""
@@ -172,6 +200,15 @@ class Change:
 
 
 CHANGES = [
+    Change("a heavy band's dig-in rings its chords", datetime.datetime(2026, 11, 21, 9, 53), "",
+           "a third of the heavy bands' takes (orchestra.Take.dig_way) leave their chords ringing over the drums for the first "
+           "half of a long moment's dig-in, the riff back for the second (Lightning Runner II's rhythm one colour all 32 bars "
+           "of its arrival, the drums and the bass digging in at its half and the guitars playing on as they were)",
+           dig_rings),
+    Change("a whistle's solo sings below A6", datetime.datetime(2026, 11, 21, 9, 53), "",
+           "a whistle's solo keeps to A6 (orchestra.SOLO_TOP), where it had sung to the instrument's top, all in its shrill "
+           "second octave (Silver Glade II A5 to D7, Dreaming Ballad II C#6 to C#7, Sunny Wheels I and III E5 to C#7)",
+           whistle_solo),
     Change("a band's valley's pad under pianissimo", datetime.datetime(2026, 11, 21, 2, 25), "",
            "in a band's valley a pad's swell goes to 0.35 of the part's level where it went to 0.55, so MuseScore plays it ppp, and its "
            "held notes are struck softer (a pad written pp stood 3 to 13 dB over a valley's single soft tune: Midnight Mass II, "

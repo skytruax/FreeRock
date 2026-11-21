@@ -1060,6 +1060,14 @@ before the bar line it reaches and taken up again on it. A bagpipe's bag holds i
   the crash comes every other bar over the ride's bell and the bass pumps its octaves, the way a band
   plays its chorus harder the second time round. *The meter had found the bass and the drums of a
   32-bar arrival or summit one colour all through.*
+- *Its guitars ring as it digs in* (`orchestra.HEAVY_DIG_TURNS`, `Take.dig_way`, `Take.dig_turn`,
+  2026-11-21): in a third of the heavy bands' takes, each drawn its own way as a rise's is, the rhythm
+  guitars leave their chords ringing over the drums for the first half of the dig-in, a chord pushed an
+  eighth early now and then, and the riff comes back for the second half to land the moment. *Lightning
+  Runner II's rhythm guitar was one colour all 32 bars of its arrival, the drums and the bass digging
+  in at its half and the guitars playing on as they were. The judges heard it level (TuneJury 0.389 to
+  0.394, enjoyment 7.08 both), the meter's run 32 bars to 16.* The riff going up the neck an octave
+  there (`DIG_UP`) was tried on 20 November and left off: a take drawn that way plays as written.
 - *A light band's long arrival goes up a gear* (`orchestra.LIGHT_GEARS`, `Take.band_geared`,
   2026-11-19): every second eight-bar phrase of an arrival of sixteen bars or more the riff goes up the
   neck an octave, the muted string chugging where it was, and the other figure (a mandolin, a banjo) an
@@ -1206,12 +1214,14 @@ Wing") and the way a singer phrases:
   through the first half of its second bar, landing on a note of the chord held a beat with a beat's breath after it.
   The tune's call, the run, the peak and the way home are still sung. Lightning Runner's solo: 71 notes and 5 trills
   before, 116 and 24 after, 12 double stops where it had none.
-- **A fiddle's or a mandolin's solo sings below its top** (`orchestra.SOLO_TOP`, 2026-11-19): a solo
+- **A fiddle's, a mandolin's or a whistle's solo sings below its top** (`orchestra.SOLO_TOP`, 2026-11-19): a solo
   climbs an octave and a note over where the tune begins, and a fiddle's tune begins high; its reach had
   been the instrument's whole written range, and Lazy River Swing V's fiddle solo sat F5 to C7. Now the
   highest note is E6 on a fiddle and D6 on a mandolin (across nine oasis shuffle and sea dog takes the
   fiddles' peaks went from G6-B6 to G5-E6); the lead guitar's D6 and the harmonica's C6 are their
-  written tops already.
+  written tops already. A whistle's is A6 (2026-11-21): *its solos sang to its very top, all in its
+  shrill second octave (Silver Glade II A5 to D7, Dreaming Ballad II C#6 to C#7, Sunny Wheels I and III
+  E5 to C#7)*, and a player keeps the top of a whistle for a note or two.
 - `orchestra.SOLOS = False` takes it away and gives the summit back to the twins.
 
 ---
@@ -1260,9 +1270,15 @@ the 60 families are light: *the house is meant to be mostly light* (the test).
   eight bars (*a theme's drums had been the same sixteen bars from each turn, the hats and the
   percussion turning on one bar: The Deep Road III, Drowned Halls III, Thunderhead II*). Not in a calm
   piece. *The judges on The Deep Road III's theme: TuneJury 0.69 to 0.78, enjoyment 6.96 to 7.17,
-  SongEval a shade down, within its noise.* (Owed: every such turn is in the top, a high percussion
-  for another under the same kick and backbeat, and Thunderhead III's theme read the same 44 bars to
-  the meter through three of them: a change in the mids every sixteen bars is still to write.)
+  SongEval a shade down, within its noise.* Every such turn is in the top, a high percussion for
+  another under the same kick and backbeat, and the meter read Breakwater I's theme the same 40 bars
+  through them; but it was deaf to the hats' ring, which an ear is not (7.7), and with it the theme
+  reads 16 at the most. A turn in the mids every second sixteen bars was tried on 21 November and left
+  off, each behind its switch: House's backbeat is the groove's anchor. *A snare under the clap, or the
+  clap and snare thinned to the clap (`house.THEME_MIDS`): TuneJury with the House brief 1.07 to 0.85,
+  the judges hearing less house. A finger snap laid on the backbeat (`house.MIDS_WAY = "snap"`): level,
+  1.02 to 1.08. A second clap laid on it (`"clap2"`): down, 1.02 to 0.86 with no brief, SongEval down on
+  every axis.* A ghost kick on the bar's last sixteenth (`"ghost"`) is written and not yet heard.
 - **A fight's drums grow** (`house.FIGHT_DRUMS_GROW`, 2026-11-20): its open is the kick, the backbeat
   and its roll, with no hats and no percussion; the hats come in with the theme, the first figure at
   its ninth bar (*a fight's open had played the theme's whole groove, the clap and the percussion in
@@ -1736,7 +1752,12 @@ stems there). Since 20 November the top has its air too: the share of the top ab
 a fifth to a hundredth of its top over 16 kHz, an open hat about a thousandth and a ride a three-thousandth: Downpour Run's
 turn from the hat to the ride is 13 to 15 dB there, one cymbal's bars within 2 to 6 dB of each other. Cobra Fever III's drums
 read one colour 47 bars across their turn from the open hat to the ride before, 22 after; pads, basses and House's
-synths read as they did. It reports the longest
+synths read as they did. Since 21 November the drums have their ring too: how far the quiet quarter of the kit's sound
+over 6 kHz sits under its strokes, which moving by more than 4.5 dB ends a run. An open hat's sizzle fills the gaps
+between the strokes that a closed hat leaves dry. Breakwater I's theme turns from one to the other every eight bars, 10
+to 15 dB apart in its ring, the bars inside a block within 2.2 dB; under its clap and snare the strokes had stood within
+1 to 3 dB of each other in every sixteenth and in the air, and the meter had read its drums the same 40 bars. It is
+measured on the drums alone. It reports the longest
 stretch that does not move, and flags 16 bars or more. Read a flag against the sheet: a close that
 peels its groove away a quiet layer at a time reads as unchanged, and a part can change its notes
 and still sound the same (0.4).

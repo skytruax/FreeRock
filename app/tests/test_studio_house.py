@@ -982,6 +982,54 @@ def test_a_long_drop_opens_up_at_its_second_block(monkeypatch):
     assert not rides(0, take.bars)
 
 
+def test_a_grooves_backbeat_turns_with_its_hats(monkeypatch):
+    # (2026-11-21, the boredom meter: Breakwater I's drums the same 40 bars from its theme's ninth bar, its sixteen-bar turns all
+    # in the top under the same kick and backbeat.) In every second sixteen bars of a theme or a drop the backbeat is turned
+    # (MIDS_TURN: a clap thickened with a snare, a clap and snare thinned to the clap), with the hats; not in a calm piece.
+    from freerock.studio import club
+    monkeypatch.setattr(house, "THEME_MIDS", True)        # (left off since the judges heard it: its way is kept, and held here)
+
+    def backbeats(take, first: int, count: int, block: int) -> set[str]:
+        heard = club.listen(take)
+        a, b = (first + 16 * block) * house.BAR, (first + 16 * block + 16) * house.BAR
+        return {sound for sound, _, at, _, _ in heard.hits if a <= at < b and sound in ("clap", "snare", "snare2")
+                and round((at / house.BAR) % 1.0 * 16) in (4, 12)}
+    take = house.Take(house.family("coast-03"), 1)
+    first, count = next((first, count) for story, first, count in take.sections if story == "theme")
+    assert count >= 32 and take.family.role not in house.CALM_ROLES
+    plain, turned = backbeats(take, first, count, 0), backbeats(take, first, count, 1)
+    assert plain and turned and plain != turned, (plain, turned)
+    monkeypatch.setattr(house, "THEME_MIDS", False)
+    assert backbeats(take, first, count, 1) == plain
+
+
+@pytest.mark.parametrize("way", ["snap", "clap2", "ghost"])
+def test_a_grooves_mids_can_turn_a_house_way(monkeypatch, way):
+    # (2026-11-21: THEME_MIDS's snare under the clap left off, the judges hearing it as less progressive house.) Each house way
+    # of turning the mids (MIDS_WAY) is heard in every second sixteen bars of a theme and not in the first: a snap or a second
+    # clap on the backbeat, or a soft kick on the bar's last eighth. (Left off at 06:52, the snap level and the second clap
+    # down to the judges: the ways are kept, and held here.)
+    from freerock.studio import club
+    assert house.MIDS_WAY == ""
+    monkeypatch.setattr(house, "MIDS_WAY", way)
+    # (The ghost kick where the kick has no stroke on the last eighth already: a four on the floor.)
+    name = "coast-03" if way != "ghost" else next(fam.name for fam in house.PLAN if fam.role not in house.CALM_ROLES
+                                                   and house.KICKS[fam.groove] and 14 not in house.KICKS[fam.groove])
+    take = house.Take(house.family(name), 1)
+    first, count = next((first, count) for story, first, count in take.sections if story == "theme")
+    heard = club.listen(take)
+
+    def struck(block: int) -> list[tuple[str, int]]:
+        a, b = (first + 16 * block) * house.BAR, (first + 16 * block + 16) * house.BAR
+        return [(sound, round((at / house.BAR) % 1.0 * 16)) for sound, _, at, _, _ in heard.hits if a <= at < b - 0.02]
+    if way == "ghost":
+        added = [hit for hit in struck(1) if hit[0] in ("kick", "kick2", "punch") and hit[1] == 14]
+        assert added and not [hit for hit in struck(0) if hit[0] in ("kick", "kick2", "punch") and hit[1] == 14]
+    else:
+        assert [hit for hit in struck(1) if hit[0] == way and hit[1] in (4, 12)]
+        assert not [hit for hit in struck(0) if hit[0] == way and hit[1] in (4, 12)]
+
+
 def test_a_calm_rise_builds_its_bass_softly(monkeypatch):
     # (2026-11-20, the render's own check: Cool of the Evening II's rise louder than its moment, its bass -15.3 dB through the
     # rise against -20.3 at the moment, the build's eighths four bars of eight with no kick to duck under.) A calm piece's bass
