@@ -2078,7 +2078,7 @@ GROOVES = {
                         roll="tamb", hit="crash"),
     "tom rock": dict(theme=[("boom", "kick", .8), ("tom low", "halves", .5), ("snare", "back", .7)],
                      moment=[("boom", "kick busy", .9), ("tom", "halves", .6), ("tom low", "pulses", .6), ("snare", "back", .9),
-                             ("crash", "down", .8, 4)], roll="tom low", hit="crash"),
+                             ("crash", "down", .8, 4)], roll="tom low", hit="crash", fill="snare"),
     "anvil rock": dict(theme=[("boom", "kick", .85), ("snare", "back", .7), ("ting", "back", .8), ("hat", "pulses", .4)],
                        moment=[("boom", "kick busy", .95), ("snare", "back", .9), ("ting", "back", .95), ("hat open", "pulses", .45),
                                ("crash", "down", .8, 4)], roll="snare", hit="crash"),
@@ -2670,6 +2670,11 @@ LAST_CHORUS = {"long": "two", "two": "walk", "walk": "oct"}
 HIGH = ("flute", "piccolo", "whistle", "recorder", "ocarina", "pan flute", "glock", "celesta", "xylophone")
 # The orchestra's own low drums: what the war drums stand in for while they play.
 LOW = ("boom", "great drum", "taiko", "deep")
+# A drummer fills with what is not keeping time (2026-11-20, the study: Downpour Surge II's summit the same 19 bars, its groove
+# "tom rock", the mid tom on the eighths and the low tom on the beat, and its fill every eight bars four sixteenths of the low
+# tom, the drum already playing the beat; the fill vanished into the groove and the summit's phrases went unmarked). On a
+# groove of the toms the pickups and fills go on the snare; the long roll up to the summit stays on the low tom, the thunder.
+TOM_FILLS_ON_SNARE = True
 
 
 # ---------------------------------------------------------------------------------------------
@@ -4181,6 +4186,12 @@ class Take:
         return CLIMBS and self.ch.band and self.heavy and part in ("build", "climb") and run >= LONG_HOLD and into >= run // 2 \
             and self.rise_way != "plain"
 
+    def fill_of(self, groove: dict) -> str | None:
+        """What a short fill is played on (a phrase's pickup, the fill every eight bars of a moment, the fill into a stop):
+        the groove's roll, or, on a groove whose roll is a drum keeping its time, what it names to fill with
+        (TOM_FILLS_ON_SNARE). The long roll up a rise stays the roll."""
+        return groove.get("fill", groove["roll"]) if TOM_FILLS_ON_SNARE else groove["roll"]
+
     def cymbal(self, layers: list, bar: int, moment: bool = False) -> list:
         """A band's drummer keeps time on the hat for sixteen bars of a theme and on the ride for the next sixteen, the
         same figure a little softer; on a groove of the toms, with no cymbal keeping time, the ride joins it softly for
@@ -4277,11 +4288,12 @@ class Take:
                     # band's drummer keeps time and fills only every other phrase.
                     period = self.fam.period * (2 if ch.band and self.heavy else 1)
                     groove = main if part == "first" else other
-                    if bar % period == period - 1 and bar < bars - 1 and groove["roll"] and not (crowded and groove["roll"] in LOW):
+                    fill = self.fill_of(groove)
+                    if bar % period == period - 1 and bar < bars - 1 and fill and not (crowded and fill in LOW):
                         count = 3 if self.pulse == 1.0 else 2
                         step = 0.25 if self.pulse == 1.0 else 0.5
                         for index in range(count):
-                            self.strike(groove["roll"], bar_at + beats - (count - index) * step, (0.3 + 0.12 * index) * (0.6 + 0.6 * level), chord, key)
+                            self.strike(fill, bar_at + beats - (count - index) * step, (0.3 + 0.12 * index) * (0.6 + 0.6 * level), chord, key)
                     if bar % period == 0 and bar > 0 and groove["hit"]:
                         light = "ting" if groove["hit"] == "crash" and not self.heavy else groove["hit"]
                         self.strike(light, bar_at, 0.35 + 0.25 * level, chord, key)
@@ -4289,9 +4301,9 @@ class Take:
                     # Under the bass's break the drummer keeps time lightly: the hat on the eighths, the kick on the bar, the
                     # snare on the backbeat, and a fill into the band's entry.
                     lay([("hat", "halves", 0.42), ("boom", "down", 0.7), ("snare", "back", 0.5)], bar, bar_at, level, 0.8, chord, key)
-                    if not self.bass_break(part, bars, bar + 1) and main["roll"]:
+                    if not self.bass_break(part, bars, bar + 1) and self.fill_of(main):
                         for index in range(4):
-                            self.strike(main["roll"], bar_at + beats - (4 - index) * 0.25, 0.5 + 0.12 * index, chord, key)
+                            self.strike(self.fill_of(main), bar_at + beats - (4 - index) * 0.25, 0.5 + 0.12 * index, chord, key)
                 elif part in ("build", "climb"):
                     # A rise begins on a theme's groove (the climb on the second theme's) and
                     # goes over to the moment's; its last bars are a roll, longer before the summit.
@@ -4336,9 +4348,10 @@ class Take:
                             for sound in ch.drums[:2 if big else 1]:
                                 if not (crowded and sound in LOW):
                                     self.strike(sound, bar_at, 0.9 if big else 0.75, chord, key)
-                    if bar % 8 == 7 and main["roll"] and bars - bar > 1 and not (crowded and main["roll"] in LOW):
+                    fill = self.fill_of(main)
+                    if bar % 8 == 7 and fill and bars - bar > 1 and not (crowded and fill in LOW):
                         for index in range(4):                       # a fill into the next time round
-                            self.strike(main["roll"], bar_at + beats - (4 - index) * 0.25, 0.45 + 0.12 * index, chord, key)
+                            self.strike(fill, bar_at + beats - (4 - index) * 0.25, 0.45 + 0.12 * index, chord, key)
                 elif part == "valley":
                     if fight and ch.band and along < 0.5:
                         # A band's fight breaks down in its valley (2026-11-17, morning: its fight pieces went only 4 to
@@ -4350,9 +4363,9 @@ class Take:
                     elif fight and ch.band:
                         # ...then the groove is back, and a fill takes it into the climb.
                         lay(main["theme"], bar, bar_at, level, 0.65, chord, key)
-                        if bar == bars - 1 and main["roll"]:
+                        if bar == bars - 1 and self.fill_of(main):
                             for index in range(4):
-                                self.strike(main["roll"], bar_at + beats - (4 - index) * 0.25, 0.4 + 0.12 * index, chord, key)
+                                self.strike(self.fill_of(main), bar_at + beats - (4 - index) * 0.25, 0.4 + 0.12 * index, chord, key)
                     elif ch.band and VALLEY_KEEPS_TIME:
                         # A band's walking valley keeps time softly (VALLEY_KEEPS_TIME): the closed hat on the beat and the
                         # bass drum on the bar under the single player, and from the valley's second half the side stick on
@@ -4365,9 +4378,9 @@ class Take:
                     end = self.ending(part, bars, bar)
                     if end == "drive":
                         lay(self.cymbal(main["theme"], bar), bar, bar_at, max(level, 0.6), 0.9, chord, key)
-                        if self.ending(part, bars, bar + 1) == "stop" and main["roll"]:
+                        if self.ending(part, bars, bar + 1) == "stop" and self.fill_of(main):
                             for index in range(4):                   # a fill into the stop
-                                self.strike(main["roll"], bar_at + beats - (4 - index) * 0.25, 0.5 + 0.12 * index, chord, key)
+                                self.strike(self.fill_of(main), bar_at + beats - (4 - index) * 0.25, 0.5 + 0.12 * index, chord, key)
                     elif end in ("stop", "last"):
                         self.strike("crash", bar_at, 0.95 if end == "stop" else 1.0, chord, key)
                         self.strike("boom", bar_at, 0.95 if end == "stop" else 1.0, chord, key)

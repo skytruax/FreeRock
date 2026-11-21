@@ -92,7 +92,9 @@ def mixed(folder: Path) -> tuple[str, dict]:
         if peak <= 0.0:
             raise ValueError("The track in %s is silent" % folder)
         out.mkdir(parents=True, exist_ok=True)
-        scratch = out / (kept + ".part.flac")
+        # Its own scratch name (2026-11-20, 17:28: the load's listening page and the new-songs loop's wrote the same take at
+        # once; one renamed the shared scratch away and the other's rename found nothing, so two rows were left off a page).
+        scratch = out / (kept + ".%d.part.flac" % os.getpid())
         soundfile.write(str(scratch), mix * (0.89 / peak), studio.RATE, format="FLAC", subtype="PCM_16")
         scratch.replace(out / name)
         channels(desk, meta, parts, peak)

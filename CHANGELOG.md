@@ -3,6 +3,20 @@
 Newest first. Words in quotation marks are what was said while listening or playing, as typed or
 dictated, where it drove the change.
 
+## 2026-11-20, evening: a groove of the toms fills on the snare
+
+- **A drummer fills with what is not keeping time** (handbook 4.8, `orchestra.TOM_FILLS_ON_SNARE`, `Take.fill_of`): on a
+  groove of the toms ("tom rock") the pickups and the moment's fills go on the snare; the long roll up to the summit stays
+  on the low tom. The fills had been four sixteenths of the low tom, the drum already playing the beat, and vanished into
+  the groove: Downpour Surge II's summit read the same 19 bars on the meter, now nothing longer than 8. The judges hear
+  it level (TuneJury 0.553 to 0.543 with the Knight brief, 0.751 to 0.787 with none; enjoyment 7.18 to 7.20): a
+  fill is too small a thing for them, as a solo is. Eight characters play the groove (55 takes made again).
+- Tried and left off: a heavy band's chorus taking its riff an octave up the neck as it digs in. On Lightning Runner II's
+  arrival the judges went down (TuneJury 0.42 to 0.33 with the brief, 0.54 to 0.42 with none), and it was the climb
+  heard in too many songs (19 November). The chorus's chords ringing over the drums at the same place is on demo.
+- The listening pages' writer takes a scratch file of its own (`tools/listen.py`): the load's page and the half-hourly
+  page had written the same take at once and left two rows off the House page.
+
 ## 2026-11-20, afternoon: House's build-up keeps the kick; a calm rise stays calm
 
 - **House's rise keeps the kick until its build** (handbook 2.3 and 5.5, `house.RISE_KICK`): the four on the floor stays

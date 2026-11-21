@@ -307,6 +307,11 @@ CHANGES = [
            "an inn's, a camp's or a night's rise is the tune over a shaker stirring again (with the closed hat its rise came up "
            "to its moment)",
            lambda p: p.style == "house" and p.character.role in ("ember", "night", "camp")),
+    Change("a groove of the toms fills on the snare", datetime.datetime(2026, 11, 20, 19, 35), "",
+           "on a groove of the toms the pickups and the moment's fills go on the snare, the long roll up to the summit staying on "
+           "the low tom (the fills had been the low tom, the drum already playing the beat, and vanished into the groove: "
+           "Downpour Surge II's summit the same 19 bars)",
+           lambda p: p.style == "knight" and "tom rock" in tuple(getattr(p.character, "grooves", ()))),
     Change("House's rise keeps the closed hat ticking", datetime.datetime(2026, 11, 20, 7, 30), "",
            "through a rise the closed hat alone plays the eighths, soft and growing, with the eight-bar build into the drop "
            "(the rise had been the tune over nothing, the pulse gone)",

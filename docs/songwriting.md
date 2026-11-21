@@ -965,7 +965,7 @@ into each change like this*).
 | rock | kick on 1 and 3, snare on 2 and 4, eighth hats | busy kick, open hats, crash every 4 bars | snare | open road, banner ride, battle cry |
 | half rock | kick on 1, snare on 3, hats | busy kick, ride, crash, low tom on the last beat | tom | black chapel, mountain stomp, dragon |
 | rock ride | kick on every beat, backbeat, hats | the same harder, ride, crash every 2 bars | snare | banner ride, sand rider, storm rider, battle cry, war machine |
-| tom rock | kick, low-tom eighths, backbeat | busy kick, toms, crash | low tom | jungle stomp, war machine |
+| tom rock | kick, low-tom eighths, backbeat | busy kick, toms, crash | low tom (its fills the snare) | jungle stomp, war machine, frost hammer, low tunnel, downpour run, warlord, banner war, bayou boogie |
 | anvil rock | kick, backbeat, a struck `ting`, hats | the same harder, open hats, crash | snare | forge anthem, mountain stomp, deep mine |
 | desert rock | kick, backbeat, bongo off-beats, jingles | busy kick, open hats, crash | high bongo | sand rider |
 | tavern rock | kick, side stick, tambourine | busy kick, snare, tambourine, open hats | tambourine | open road, tavern rock |
@@ -975,6 +975,14 @@ into each change like this*).
 `kick busy` is 1, the and of 2, 3 and the and of 4. The fills: a pickup into each phrase (each
 second phrase in heavy music), a roll at the end of each rise, four strokes every eighth bar of a
 moment.
+
+*A drummer fills with what is not keeping time* (`orchestra.TOM_FILLS_ON_SNARE`, `Take.fill_of`,
+2026-11-20). A groove names its `fill` where its roll is a drum already playing the beat: on a
+groove of the toms the pickups and the moment's fills go on the snare, and the long roll up to the
+summit stays on the low tom, the thunder. *Downpour Surge II's summit read the same 19 bars on the
+meter: its groove the mid tom on the eighths and the low tom on the beat, and its fill every eight
+bars four sixteenths of the low tom, so the fill vanished into the groove and the phrases went
+unmarked.*
 
 The cymbal turns (`Take.cymbal`). In a theme, a drummer keeps time on the hat for sixteen bars and
 on the ride for the next sixteen, the same figure a little softer. On a groove of the toms, with no

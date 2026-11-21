@@ -1839,6 +1839,37 @@ def test_a_solos_peak_is_the_chords_note_nearest_its_top():
     assert max(pitches) <= orchestra.INSTRUMENTS["lead guitar"].high
 
 
+def test_a_groove_of_the_toms_fills_on_the_snare(monkeypatch):
+    # (2026-11-20, the study: Downpour Surge II's summit the same 19 bars. Its groove is "tom rock", the mid tom on the eighths
+    # and the low tom on the beat, and its fill every eight bars was four sixteenths of the low tom, the drum already playing
+    # the beat.) On a groove of the toms a drummer fills with the snare; the long roll up to the summit stays on the low tom.
+    assert orchestra.TOM_FILLS_ON_SNARE
+    kit = orchestra.KITS["rock"]
+
+    def last_beats(take):
+        """The strokes of the last beat of each eight bars of the summit but its last: where its fills are."""
+        first, last = spans_of(take)["summit"]
+        notes = take.voices["drums"]["kit"].notes
+        found = []
+        for bar in range(7, int(round((last - first) / take.beats)) - 1, 8):
+            end = first + (bar + 1) * take.beats
+            found.append([note.pitch for note in notes if end - 1.1 <= note.start < end - 0.05])
+        return found
+
+    take = orchestra.Take(_family("anywhere-downpour-run-2"), 2)
+    assert take.groove is orchestra.GROOVES["tom rock"] and take.ch.band
+    fills = last_beats(take)
+    assert len(fills) >= 3 and all(each.count(kit["snare"]) >= 4 for each in fills), fills
+    # The climb's roll up to the summit is the low tom's, as it was: the thunder.
+    first, _ = spans_of(take)["summit"]
+    rolled = [note.pitch for note in take.voices["drums"]["kit"].notes if first - take.beats <= note.start < first - 0.05]
+    assert rolled.count(kit["tom low"]) >= 12, rolled
+    # Before, the fill was the low tom's, inside the groove, and the snare only its backbeat.
+    monkeypatch.setattr(orchestra, "TOM_FILLS_ON_SNARE", False)
+    before = last_beats(orchestra.Take(_family("anywhere-downpour-run-2"), 2))
+    assert all(each.count(kit["snare"]) <= 1 and each.count(kit["tom low"]) >= 4 for each in before), before
+
+
 def test_a_fiddle_or_a_mandolin_solo_sings_below_its_top():
     # (2026-11-19, the study: Lazy River Swing V's fiddle solo sat F5 to C7, the fiddle's whole written range above its tune.) A
     # solo keeps to SOLO_TOP where its instrument has one: a fiddle's E6, a mandolin's D6.
