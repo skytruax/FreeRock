@@ -460,11 +460,27 @@ HOUSE_OCTAVE: dict[str, int] = {"house sub": 1, "house bass pluck": 1, "house ba
                                 "house bass organ": 2, "house organ": 0, "house lead saw": 0, "house lead super": 0, "house lead sine": 1,
                                 "house bell": 1, "house pad warm": -1, "house pad hollow": -1}
 _SURGE_THIRD = "surge:patches_3rdparty/"     # the patches others made for Surge, which ship with it ("3rd:" in HOUSE)
+# (2026-11-21: "why does my house sound like generic shit", "i think mainly your instruments suck for house", "and design
+# yourself".) House's own instruments, designed as Surge patches in studio/patches.py, in the places of the factory patches
+# House leaned on most: the saw bass, the pluck, the super pad, the saw lead and the chord stab. They sound at the note
+# written (Surge's empty saw), so their octave is 0. OWN_HOUSE switches them in; False, the factory patches as before.
+OWN_HOUSE = True
+OWN_PATCHES = {"house bass saw": "own:house bass", "house pluck": "own:house pluck", "house pad super": "own:house pad",
+               "house lead saw": "own:house lead", "house stab": "own:house stab",
+               # (The second five, by how much House plays them: the drop's big lead, the glass pluck, three pads, and the
+               # harsh twin of club.harsher, a sound of its own where the wide bass had stood unheard.)
+               "house lead super": "own:house lead super", "house glass": "own:house glass", "house pad warm": "own:house pad warm",
+               "house pad hollow": "own:house pad hollow", "house pad glass": "own:house pad glass", "house bass harsh": "own:house bass harsh"}
+if OWN_HOUSE:
+    HOUSE.update(OWN_PATCHES)
+    HOUSE_OCTAVE.update({name: 0 for name in OWN_PATCHES})
 
 
 def _surge_player(patch: str) -> str:
     """A patch in HOUSE as a player's name: "3rd:" the patches others made, "@+N" its scene tuned up N cents (desk.surge)."""
     name, at, tune = patch.partition("@")
+    if name.startswith("own:"):
+        return "surge:own/" + name[4:]                  # the studio's own design (studio/patches.py)
     return (_SURGE_THIRD + name[4:] if name.startswith("3rd:") else _SURGE + name) + ".fxp" + at + tune
 
 

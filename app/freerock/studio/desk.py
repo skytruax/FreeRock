@@ -77,6 +77,12 @@ def surge(patch: str) -> dict:
     folders, for example "patches_factory/Pads/Aurora.fxp", and after an "@" how many cents its
     scene is tuned up, where the patch as it comes is not in tune ("...Trance Lead 1.fxp@+22")."""
     name, _, tune = patch.partition("@")
+    if name.startswith("own/"):
+        # One of the studio's own patches, designed in code (studio/patches.py), on Surge's empty saw.
+        from . import patches
+        if tune:
+            raise ValueError("The studio's own patches are designed in tune: %r" % patch)
+        return {"kind": "clap", "name": "CLAPi: Surge XT", "chunk": base64.b64encode(patches.state(name[4:], SURGE)).decode("ascii")}
     path = SURGE / name
     data = path.read_bytes()
     if data[:4] != b"CcnK" or data[8:12] != b"FPCh":
@@ -308,8 +314,12 @@ def geonkick(preset: str) -> str:
     with that one drum; how hard the key is struck is how loud it is. A preset file is one
     instrument as the plug-in keeps it, and the plug-in's saved state is a kit of such
     instruments, so the state is written here from the preset."""
-    path = GEONKICK / (preset + ".gkick")
-    drum = json.loads(path.read_text(encoding="utf-8"))
+    if preset.startswith("own/"):
+        from . import kicks                                  # the studio's own drum, designed in code (studio/kicks.py)
+        drum = kicks.design(preset[4:], GEONKICK)
+    else:
+        path = GEONKICK / (preset + ".gkick")
+        drum = json.loads(path.read_text(encoding="utf-8"))
     drum["kick"].update(id=0, channel=0, midiChannel=-1, noteOffEnabled=False, mute=False, solo=False, playing_key=-1)
     kit = json.dumps({"KitAppVersion": 198400, "name": Path(preset).name, "author": "", "url": "", "instruments": [drum]})
     packed = base64.b64encode(kit.encode("utf-8")).decode("ascii")

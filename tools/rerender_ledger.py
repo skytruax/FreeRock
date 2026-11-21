@@ -180,6 +180,12 @@ def whistle_solo(piece: Piece) -> bool:
     return bool(json.loads(sheet.read_text(encoding="utf-8")).get("parts", {}).get("lead", {}).get("whistle solo"))
 
 
+def house_take(piece: Piece) -> bool:
+    """A House take: since House's own instruments and kick (sounds.OWN_HOUSE, club.OWN_KICK, 2026-11-21) every one of them
+    plays its own sounds, the kick among them, where it played the factory patches and the machine's samples."""
+    return piece.style == "house"
+
+
 def lively_walk(piece: Piece, busy_from: float = 0.45) -> bool:
     """Walking music that has soft war drums (orchestra.Take: `lively`), by the rule of its day: busy from 0.45 until
     2026-11-18, from 0.35 since."""
@@ -200,6 +206,12 @@ class Change:
 
 
 CHANGES = [
+    Change("House plays its own instruments and kick", datetime.datetime(2026, 11, 21, 13, 33), "",
+           "House's sounds designed in code where it had played Surge's factory patches as they come (studio/patches.py: the "
+           "bass, the harsh twin, the pluck, the glass, the stab, four pads, two leads; their tops kept at the desk) and its kick "
+           "designed for Geonkick in the machine's sample's place (studio/kicks.py): \"why does my house sound like generic "
+           "shit\", \"i think mainly your instruments suck for house\", \"and design yourself\"",
+           house_take),
     Change("a heavy band's dig-in rings its chords", datetime.datetime(2026, 11, 21, 9, 53), "",
            "a third of the heavy bands' takes (orchestra.Take.dig_way) leave their chords ringing over the drums for the first "
            "half of a long moment's dig-in, the riff back for the second (Lightning Runner II's rhythm one colour all 32 bars "

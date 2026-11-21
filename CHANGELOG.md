@@ -3,6 +3,38 @@
 Newest first. Words in quotation marks are what was said while listening or playing, as typed or
 dictated, where it drove the change.
 
+## 2026-11-21, midday: House plays its own instruments and its own kick
+
+"Sounds like you need to listen to like progressive house on beatport and ask yourself why does my house sound like generic
+shit", "i think mainly your instruments suck for house", "find more plugins djs actually use that will patch in", "and
+design yourself".
+
+- **House's own instruments** (handbook 5.7, `studio/patches.py`, `sounds.OWN_HOUSE`): every guide to the genre names stock
+  presets used as they come first among what makes a track generic, and House had played Surge's factory patches as they
+  come. Eleven are designed in code now, on Surge's empty saw: a rolling bass (a saw and a square through a 24 dB ladder
+  that snaps open on each note, a soft waveshaper after it), a pluck, a glass pluck, a chord stab, four pads (a supersaw
+  whose filter breathes on a slow LFO, a warm one, a hollow one whose squares' width moves, a glass one), the theme's lead
+  (a nine-voice supersaw, glide, a vibrato that waits) and the drop's big lead (sixteen voices and an octave). They are in
+  tune within a few cents, measured by each note's detuned cluster.
+- **The desk keeps their tops**: its 2.5 kHz shelves and 4-6 kHz closings had been set to match the liked stems, which were
+  separated from whole mixes and are dull up there; the studio's own sounds lose only the lows their part does not need,
+  the leads a little presence at 1.2 kHz and their top eased from 6 kHz.
+- **The harsh twin is a sound of its own** (handbook 5.3, "house bass harsh", `club.HARSH_OWN`): driven saws high-passed at
+  180 Hz, so it adds grit and leaves the low end to the bass. The wide bass it had been added 0.0 to 0.4 dB to the bass in
+  five long drops of six; louder, at 0.95, only 0.6.
+- **House's own kick** (handbook 5.2, `studio/kicks.py`, `club.OWN_KICK`): designed for Geonkick in the machine's sample's
+  place, a sine falling from 240 Hz to 52 Hz with a triangle on the same fall for the punch and a burst of high-passed
+  noise for the click, driven; within 3 dB of the 909 in every octave to 2 kHz, its tail tunable.
+- The judges on the last drops of five takes, against this morning's on the factory patches: TuneJury with the House brief
+  up in four (Hammerfall I 0.89 to 1.04, Night Prowl I 1.32 to 1.54, Mirage I 0.62 to 1.18, Hollow Road III 0.72 to 1.09)
+  and level in one, SongEval up or level; Audiobox's enjoyment down in Hollow Road III (7.04 to 6.69), traced to leads 5.5
+  dB quiet and thin in their middle and a glass pad 14-16 dB bright, both refined, and the drop's big lead lifted 4 dB
+  (`club.OWN_LIFT`: the factory one had played 5.5 dB over the studio's level, measured quiet on three short notes). Night Prowl I whole, everything of
+  House's own and the kick: TuneJury 1.32 to 1.48 (1.29 to 1.66 with no brief), SongEval coherence 3.21 to 3.60.
+- **New plug-ins** in `var/tools/plugins` (all GPL, Linux-native): Dexed, Odin 2 and Airwindows Consolidated as CLAP,
+  ChowTapeModel as VST3 and LV2.
+- Every House take is in the re-render ledger.
+
 ## 2026-11-21, morning: a heavy dig-in rings; a whistle's solo under A6; the meter hears the hats ring; House's backbeat left alone
 
 - **A heavy band's guitars ring as its long moment digs in** (handbook 4.9, `orchestra.HEAVY_DIG_TURNS`, `Take.dig_way`):

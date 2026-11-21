@@ -6,6 +6,7 @@ requirements, so these are skipped where it is not installed. To run them:
     uv run --no-sync --with numba pytest tests/test_studio_house.py
 """
 import json
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -81,6 +82,70 @@ def test_house_plays_no_organ():
                 assert sound in table and "organ" not in sound, (name, field, sound)
                 assert "organ" not in club.PLAYED[(field, sound)].lower(), (name, field, sound, club.PLAYED[(field, sound)])
     assert not [instrument for instrument in club.PLAYED.values() if "organ" in instrument.lower()]
+
+
+def _surge_there() -> bool:
+    from freerock.studio import desk, patches
+    return (desk.SURGE / patches.BASE).is_file()
+
+
+@pytest.mark.skipif(not _surge_there(), reason="Surge XT's patches are not installed here")
+def test_houses_own_patches_are_written_as_designed():
+    # (2026-11-21: "i think mainly your instruments suck for house", "and design yourself".) Each of House's own patches is
+    # Surge's empty saw with its design's settings and modulations, in a state Surge reads: its header names the XML's size.
+    import re
+    import struct
+    import xml.etree.ElementTree as ET
+    from freerock.studio import desk, patches
+    for name, (values, routes) in patches.DESIGNS.items():
+        state = patches.state(name, desk.SURGE)
+        assert state[:4] == b"sub3"
+        size = struct.unpack("<I", state[4:8])[0]
+        root = ET.fromstring(state[32:32 + size].decode("utf-8"))
+        assert root.find("meta").get("name") == name
+        params = root.find("parameters")
+        for key, value in values.items():
+            assert abs(float(params.find(key).get("value")) - value) < 1e-5, (name, key)
+        for key, wanted in routes.items():
+            got = [(int(each.get("source")), float(each.get("depth"))) for each in params.find(key).findall("modrouting")]
+            assert got == [(patches.SOURCES[source], depth) for source, depth in wanted], (name, key)
+        assert re.search(r'<a_filter1_type type="0" value="[1-9]', state.decode("utf-8", "replace")), name    # each is filtered
+    # The pluck dies away and the pad swells: their envelopes as designed, in Surge's log2 seconds.
+    pluck, pad = patches.DESIGNS["house pluck"][0], patches.DESIGNS["house pad"][0]
+    assert pluck["a_env1_sustain"] == 0.0 and pluck["a_env2_sustain"] == 0.0 and pluck["a_filter1_envmod"] >= 36.0
+    assert pad["a_env1_attack"] >= patches.seconds(0.5) and pad["a_env1_release"] >= patches.seconds(1.5)
+
+
+def test_house_plays_its_own_patches():
+    # (2026-11-21) Where House leaned on the factory patches most, it plays its own (sounds.OWN_HOUSE): the desk loads them
+    # from their designs, at the note written.
+    from freerock.studio import desk, sounds
+    assert sounds.OWN_HOUSE
+    for written, design in sounds.OWN_PATCHES.items():
+        player = sounds.SOUNDS[written].players[0]
+        assert player.name == "surge:own/" + design[4:] and player.octave == 0, written
+        if _surge_there():
+            loaded = desk.surge(player.name[6:])
+            assert loaded["name"] == "CLAPi: Surge XT" and loaded["chunk"]
+
+
+@pytest.mark.skipif(not Path("/usr/share/geonkick/presets/HaraldReveryKicks/F-Kick.gkick").is_file(), reason="Geonkick is not installed here")
+def test_houses_own_kick_is_a_body_a_punch_and_a_click():
+    # (2026-11-21, "and design yourself".) House's kick is designed for Geonkick: a sine falling from 240 Hz to 52 Hz (the
+    # body), a triangle on the same fall (the punch) and a short burst of high-passed noise (the click), nothing else, and
+    # it is played in the machine's sample's place (club.OWN_KICK).
+    from freerock.studio import club, desk, kicks
+    drum = kicks.design("house kick", desk.GEONKICK)
+    on = sorted(name for name in drum if name.startswith("osc") and drum[name]["enabled"])
+    assert on == ["osc0", "osc1", "osc2"] and drum["kick"]["layers"] == [0]
+    body, punch, click = drum["osc1"], drum["osc0"], drum["osc2"]
+    assert (body["function"], punch["function"], click["function"]) == (0, 2, 4)
+    top = kicks.TOP
+    first, last = body["freq_env"]["points"][0][1], body["freq_env"]["points"][-1][1]
+    assert abs(20.0 * (top / 20.0) ** first - 240.0) < 1.0 and abs(20.0 * (top / 20.0) ** last - 52.0) < 1.0
+    assert click["filter"]["enabled"] and click["ampl_env"]["points"][1][0] * drum["kick"]["ampl_env"]["length"] <= 12.0
+    assert desk.geonkick("own/house kick").startswith('<LV2 "LV2i: Geonkick Single')
+    assert club.OWN_KICK and club.KICK_TRIM > 0.0
 
 
 def test_the_chorus_and_the_echo_never_make_a_number_that_is_not_one():
@@ -647,7 +712,9 @@ def test_a_long_drops_bass_grows_harsher_halfway():
     a, _ = halves[-1]
     first = max(note.loud for note in twin.notes if a <= note.start < a + 16.0)
     last = max(note.loud for note in twin.notes if a + 32.0 <= note.start)
-    assert first < 0.6 * last and last <= club.HARSH
+    # (House's own twin, high-passed, comes nearer the bass: club.HARSH_OWN, 2026-11-21.)
+    from freerock.studio import sounds
+    assert first < 0.6 * last and last <= (club.HARSH_OWN if sounds.OWN_HOUSE else club.HARSH)
     assert twin.instrument != next(part.instrument for name, part in sheet.parts["bass"].items() if name not in twins)
     # ...and none in a calm piece.
     calm = next(each for each in house.PLAN if each.role in house.CALM_ROLES)

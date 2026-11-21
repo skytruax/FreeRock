@@ -1249,7 +1249,13 @@ the 60 families are light: *the house is meant to be mostly light* (the test).
   broken (0, 6, 10), broken2 (0, 6, 8, 14), broken3 (0, 3, 8, 10), half (0, 10), none. It plays in
   the theme and the drops, and in the close until four bars from the end; in fights everywhere but
   the second half of each rise, on the `punch` sound. *Everything but the drums ducks under the kick,
-  so the kick is part of the changes*: every take of a family keeps it.
+  so the kick is part of the changes*: every take of a family keeps it. *The kick itself is House's
+  own* (`studio/kicks.py`, `club.OWN_KICK`, 2026-11-21: "and design yourself"), struck on Geonkick in
+  the machine's sample's place: a sine falling from 240 Hz to 52 Hz (105 Hz at 25 ms, 72 at 45, held
+  low a moment), a triangle on the same fall for the punch a small loudspeaker plays, a burst of
+  noise high-passed at 1.8 kHz for 10 ms for the click, and drive; down 12 dB by 142 ms, so the bass
+  has the back of each beat. Measured against the TR-8's 909: within 3 dB in every octave to 2 kHz,
+  turned up 5.1 dB (`club.KICK_TRIM`) to the 909's weight in the mix.
 - **Backbeat**: clap, clap and snare, or a second snare, on 2 and 4 (on 3 in half time), from bar 0,
   4 or 8 of the theme. Half-time grooves, inns and camps use a snap, a rim or a clap.
 - **Hats** from the palette (`house.HATS`): off-beat opens, eighths, sixteenths, shuffle or sparse.
@@ -1309,7 +1315,13 @@ the wide one. It comes in over eight bars in the desk's four-bar volume steps (u
 the way, in), up to about half the bass's level. This is the move of deadmau5's "Turning Point", where
 a harsher bass fades in under the same notes and the timbre seems to change, and of "Phantoms Can't
 Hang", whose bass turns harsher before a core's midpoint. The boredom meter had heard Moonwell's bass
-keep one colour through 44 bars of its last drop. Calm pieces keep one bass.
+keep one colour through 44 bars of its last drop. Calm pieces keep one bass. *With House's own
+instruments the twin is a sound of its own* (`"house bass harsh"`, `club.HARSH_OWN`, 2026-11-21):
+three detuned saws and a square driven hard, opened to 2.4 kHz and high-passed at 180 Hz, so it adds
+the grit and leaves the low end to the bass and the sub; it comes in at 0.85 of the bass's strength.
+*The wide bass it had been added 0.0 to 0.4 dB to the bass in five long drops of six, never heard,
+and at 0.95 of the bass's strength only 0.6; the high-passed twin at 0.55 lifted the bass's 300 Hz to
+3 kHz by about 1 dB, and is brought nearer.*
 
 ### 5.4 Plucks, stabs and arps; leads; pads
 
@@ -1480,6 +1492,42 @@ chorus and the hall are the desk's now*.
   and for plucked-string chords, trumpet, brass, and slow strings for the strings pad. Surge is not
   sent controller 1: each patch puts it on something of its own, and one new lead went 49 cents out
   of tune in the drops on it.
+- **House's own instruments** (`studio/patches.py`, `sounds.OWN_HOUSE`, 2026-11-21: "why does my
+  house sound like generic shit", "i think mainly your instruments suck for house", "and design
+  yourself"). Every guide to the genre names stock presets used as they come first among what makes
+  a track generic, and House had leaned on five: the saw bass, the pluck, the super pad, the saw lead
+  and the chord stab. Each is now designed in code on Surge's empty saw, its effects the desk's:
+  - *the rolling bass*: a saw and a square a few cents apart through a 24 dB ladder low-pass that
+    opens on each note and closes within a sixteenth or two (the sub under it on its own track);
+  - *the pluck*: three detuned saws and one an octave up through a driven 24 dB low-pass shut low
+    and thrown open by an envelope gone in a quarter of a second, harder notes brighter: the sound
+    the dotted-eighth echo is written for;
+  - *the pad*: a seven-voice supersaw over a five-voice one an octave down and a triangle an octave
+    up, through a 12 dB low-pass that a scene LFO opens and closes by an octave each way in about
+    twelve seconds, slow in and slow out;
+  - *the lead*: a nine-voice supersaw over a square an octave down, a glide of 40 ms and a vibrato
+    that waits a third of a second;
+  - *the chord stab*: three saws and a square through the ladder, struck and gone in under half a
+    second.
+  The second five, by how much House plays them: *the drop's big lead* (sixteen saws spread wide,
+  seven an octave up, a square an octave down); *the glass pluck* (a narrow pulse and a triangle an
+  octave up, thrown open and shut in a sixth of a second); *the warm pad* (saws over a triangle under
+  a kilohertz, opening half an octave each way in seventeen seconds); *the hollow pad* (squares whose
+  width a slow triangle moves); *the glass pad* (triangles and narrow pulses an octave up, high-passed,
+  its filter turning slowly); and the harsh twin (5.3).
+  The desk no longer cuts their tops (its 2.5 kHz shelves and 4-6 kHz closings were made to match
+  the liked stems, which were separated from whole mixes and are dull up there): each keeps its top
+  and loses only the lows its part does not need; a lead gets 2 dB of presence at 1.2 kHz and its top
+  eased 4 dB from 6 kHz. *Opened to 2.5 and 3.2 kHz, the leads came out 5.5 dB quieter in the mix and
+  7 to 10 dB short at 1.25 to 2.5 kHz, the loudness's weighting taking a very bright sound down whole:
+  they are shut lower now and opened by the envelope at each note.* The drop's big lead is lifted
+  4 dB at the desk (`club.OWN_LIFT`): *the factory one it replaced had measured quiet on the level's
+  three short notes and been turned up 5.5 dB, so the drops had been heard with their hook that much
+  over the studio's level, and the own lead, measured true, sat 5 dB under it where Audiobox's
+  enjoyment fell (Mirage I, Hollow Road III).* They are in tune within a few
+  cents (measured by each note's detuned cluster, not its loudest voice). *The judges on five takes'
+  last drops against the factory patches: TuneJury with the House brief up in four (Mirage I 0.62 to
+  1.18, Hollow Road III 0.72 to 1.09) and level in one, SongEval up or level.*
 - **Effects.** Tape on the chords, the lead and the drum room; a light chorus on synth leads; slow
   phasers on the chords (about eight bars a turn) and the pads (slower); a longer echo from side to
   side on the lead and the chords; more of the (darker) hall on everything but the bass.

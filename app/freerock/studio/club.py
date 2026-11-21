@@ -185,6 +185,23 @@ SPAN = 4            # bars: a voice's level is read four at a time (a house phra
 UNDER = 0.6         # a note written under this part of the loudest in its four bars is a line under the tune: a doubling, an echo
 SUBBED = ("house bass pluck", "house bass saw")      # the basses that are heard more than felt: a sine goes under them
 HARSH = 0.55        # how far under the bass its harsh twin plays, once it is all the way in (`harsher`)
+OWN_KICK = True     # House's own kick (studio/kicks.py) for every machine's; False: the machine's recorded kick
+# dB: the own kick turned up to the 909's loudness: 3.6 by a trial's four strokes at one strength, and 1.5 more by Night Prowl I's
+# last drop, where the drums came out 1.1 dB under the 909's, the kick 1.9 dB lighter under 60 Hz (2026-11-21)
+KICK_TRIM = 5.1
+# (2026-11-21: the wide twin added 0.0 to 0.4 dB to the bass in five long drops of six, unheard, and louder at 0.95 only 0.6.)
+# With House's own instruments the twin is a sound of its own, driven saws with the low end left to the bass
+# (studio/patches.py, "house bass harsh"), whatever the bass is.
+# It is high-passed, adding no low end, so it can come nearer the bass: at 0.55 it lifted the bass's 300 Hz to 3 kHz by 1.0 dB
+# once all the way in (Night Prowl I), the grit there but faint; at 0.85 by about 2.5.
+HARSH_OWN = 0.85
+# (2026-11-21, the demos: the drop's big lead of House's own sat 5 to 5.6 dB under the factory one in the mix (Mirage I,
+# Hollow Road III), where Audiobox's enjoyment fell. The factory patch had measured quiet on the level's three short notes
+# and been turned up 5.5 dB, playing that much over the studio's level in a drop; the own lead is measured true.) The drop's
+# hook is lifted to the balance the drops had: dB at the desk, by written instrument.
+OWN_LIFT = {"house lead super": 4.0}
+if sounds.OWN_HOUSE:
+    PLAYED[("bass", "harsh")] = "house bass harsh"
 # The drop's big synths, whose edge is the hook: their top is left open and their filter opens further than the band's
 # ("i wish i could hear more of that saw synths top end"). The other leads, a calm piece's sung melody and the riff's
 # pluck in the quiet, keep the gentler top (2026-11-18: the open top had reached them too, and an inn's tune stood
@@ -310,6 +327,9 @@ def lines(heard: Heard, seed: int, work: Path) -> tuple[dict[str, list[desk.Line
             if name in KICKS:
                 strokes.append((at / BEAT, loud))
         template = desk.bare("house kit", [desk.sfizz(file)])
+        # (2026-11-21, "and design yourself": House's own kick, studio/kicks.py, in the place of the machine's sample; it is
+        # 3.6 dB quieter than the 909's at the same strength, so it is turned up that much, before the kick's chain.)
+        kick_template = desk.bare("house own kick", [desk.geonkick("own/house kick")]) if OWN_KICK else template
         chains = {
             # The kick: its stroke brought out, what is under 30 Hz taken away, held together; nothing of it in the hall.
             "kick": ([sounds.punch(0.35, -0.1), sounds.equalise(low_cut=30.0, bands=((320.0, -2.5, 1.2), (3500.0, 2.0, 1.6))), sounds.smash(0.3)], 0.0, 1.0),
@@ -322,7 +342,10 @@ def lines(heard: Heard, seed: int, work: Path) -> tuple[dict[str, list[desk.Line
         }
         for which, notes in sets.items():
             effects, send, volume = chains[which]
-            out["drums"].append(desk.Line("house %s" % which, template, notes, volume=volume, send=send, effects=effects))
+            if which == "kick" and OWN_KICK:
+                effects = [sounds.turned(KICK_TRIM)] + effects
+            out["drums"].append(desk.Line("house %s" % which, kick_template if which == "kick" else template, notes, volume=volume,
+                                          send=send, effects=effects))
     # ----- the voices: each sound of each channel, its notes shared out by how bright they are asked for
     for channel, table, name, written, cut, mine, taste, ride in voices(heard):
             title = "%s %s%s" % (table, name, " (to %d Hz)" % cut if cut else "")
@@ -333,6 +356,11 @@ def lines(heard: Heard, seed: int, work: Path) -> tuple[dict[str, list[desk.Line
             # 6 to 19 dB too much from 900 Hz to 3.5 kHz in the leads and keys, the pads 16 dB over at 3.5 kHz; MuseScore's
             # instruments had measured dull the night before. So each line is toned by what plays it.)
             synth_played = not (written in muse.PARTS and muse.available())
+            # (2026-11-21, "i think mainly your instruments suck for house": House's own patches, sounds.OWN_HOUSE.) A sound of
+            # the studio's own is shaped in its synth, its filter opening with each note: the cuts below, made to tame the
+            # factory patches' tops against the liked stems (separated from whole mixes, so dull at the top), would only muffle
+            # it. It keeps its top, the lows its part does not need taken away.
+            own = sounds.HOUSE.get(written, "").startswith("own:")
             effects, settings = heard.marks.get((channel, table, name.split(" ")[0]), ({}, {}))
             for line in sounds.lines(Voice(notes=mine, instrument=written, effects=dict(effects), settings=dict(settings)), title, house.BPM,
                                      taste=taste, room=1.0, seed=seed, muse_level=sounds.LEVEL):
@@ -345,8 +373,8 @@ def lines(heard: Heard, seed: int, work: Path) -> tuple[dict[str, list[desk.Line
                     # 2026-11-17, night: a house bass is closed well down. The growl beside the sub has its own cut.)
                     # (Third pass, 2026-11-17, midday, twenty tracks: still 7 to 13 dB heavy from 450 Hz to 1.8 kHz: closed
                     # from 1.8 kHz, the shelf down from 800 Hz.)
-                    line.effects = list(line.effects) + [sounds.equalise(low_cut=30.0, high_cut=1800.0, high_shelf=(800.0, -6.0)),
-                                                         sounds.wide(0.25)]
+                    shut = dict(high_cut=2400.0, high_shelf=(900.0, -3.0)) if own else dict(high_cut=1800.0, high_shelf=(800.0, -6.0))
+                    line.effects = list(line.effects) + [sounds.equalise(low_cut=30.0, **shut), sounds.wide(0.25)]
                     line.send = 0.0
                 elif channel == "rhythm":
                     # (Measured against the house stems that were liked: the plucks had 11 to 24 dB too much above 3 kHz.)
@@ -364,7 +392,9 @@ def lines(heard: Heard, seed: int, work: Path) -> tuple[dict[str, list[desk.Line
                     # (...but MuseScore's brass and keys, open to 20 kHz at a drop, were 12 to 21 dB over the liked stems from 2.5
                     # to 10 kHz: they keep a gentler top of their own, closed from 8 kHz; the moving low-pass shuts the rest.)
                     top = dict(high_shelf=(2500.0, -10.0)) if synth_played else dict(high_cut=8000.0, high_shelf=(2500.0, -13.0))
-                    line.effects = list(line.effects) + [sounds.equalise(low_cut=80.0, bands=tone, **top)] \
+                    if own:
+                        tone, top = (), dict(high_shelf=(9000.0, -2.0))
+                    line.effects = list(line.effects) + [sounds.equalise(low_cut=150.0 if own else 80.0, bands=tone, **top)] \
                         + moved + [sounds.warm(0.3), sounds.wide(1.3), sounds.echo(house.BPM, 0.26, left=3, right=4, again=0.36)]
                     line.send = max(line.send, 0.24)
                 elif channel == "lead":
@@ -379,7 +409,12 @@ def lines(heard: Heard, seed: int, work: Path) -> tuple[dict[str, list[desk.Line
                     # (2026-11-18, by ear, Rain on the Roofs: "i wish i could hear more of that saw synths top end". The cuts
                     # measured against the liked stems' average, 5 dB at 2.5 kHz and 8 dB from 3.5, hid the saw's edge: now
                     # only its very top eased, and a little air.)
-                    if synth_played and written in OPEN_TOP:
+                    if own:
+                        # (a little presence where a lead sings, the top eased from 6 kHz: the demos' leads short at 1.25-2.5 kHz)
+                        toned = sounds.equalise(low_cut=120.0, bands=((1200.0, 2.0, 1.0),), high_shelf=(6000.0, -4.0))
+                        if written in OWN_LIFT:
+                            line.effects = [sounds.turned(OWN_LIFT[written])] + list(line.effects)
+                    elif synth_played and written in OPEN_TOP:
                         toned = sounds.equalise(low_cut=85.0, high_shelf=(7000.0, -2.0))
                     elif synth_played:
                         toned = sounds.equalise(low_cut=85.0, bands=((2500.0, -5.0, 1.0),), high_shelf=(3500.0, -8.0))
@@ -397,6 +432,8 @@ def lines(heard: Heard, seed: int, work: Path) -> tuple[dict[str, list[desk.Line
                     # doing the rest; and wider.)
                     closed = sounds.equalise(low_cut=110.0, high_cut=4200.0, high_shelf=(2500.0, -10.0)) if synth_played \
                         else sounds.equalise(low_cut=110.0, high_cut=6000.0, high_shelf=(3000.0, -9.0))
+                    if own:
+                        closed = sounds.equalise(low_cut=180.0, high_shelf=(6000.0, -4.0))
                     # (...and the pads wider, turning more slowly than the chords, further into the room.)
                     line.effects = list(line.effects) + [closed, sounds.ensemble(0.55), sounds.phase(0.25, rate=0.04), sounds.wide(1.4)]
                     line.send = max(line.send, 0.36)
@@ -613,7 +650,7 @@ def harsher(parts: dict[str, dict[str, Voice]], form: list[dict]) -> None:
         for note in here[name]:
             # In over eight bars, a step for each of the desk's four-bar volume steps: under half way, most of the way, in.
             step = (0.45, 0.73, 1.0)[min(int((note.start - a) // 16.0), 2)]
-            notes.append(Note(note.start, note.length, note.pitch, note.loud * HARSH * step))
+            notes.append(Note(note.start, note.length, note.pitch, note.loud * (HARSH_OWN if sounds.OWN_HOUSE else HARSH) * step))
     if notes:
         twin = "harsh saw" if played == PLAYED[("bass", "harsh")] else "harsh"
         parts["bass"]["bass " + twin] = Voice(instrument=PLAYED[("bass", twin)], notes=notes)
