@@ -597,6 +597,67 @@ def test_the_fm_bass_has_a_growl_beside_it_as_the_sub_has(monkeypatch):
     assert ("fm growl" in lines) == (not sounds.HOUSE["house bass fm"].startswith("own:"))
 
 
+def test_a_lone_sub_is_heard(monkeypatch):
+    # (2026-11-22, midday: the sub playing a camp's bass alone 6.8 to 7.5 dB thin in its middle, three of three; with only the
+    # harsh twin over it 3.4 on average.) Where the sub is the bass with nothing over it but its harsh twin, its growl is
+    # SUB_ALONE_GROWL of the bass's level (the voice's last field but one is how far under the line it plays); beside another
+    # bass, or with the switch off, 0.45 as before.
+    from freerock.studio import club
+    monkeypatch.setattr(club.muse, "available", lambda: False)
+
+    def growl(*sounds: str) -> float:
+        heard = club.Heard()
+        for sound in sounds:
+            heard.notes[("bass", "bass", sound)].append((0.0, house.BAR, 40.0, 0.5, 0.0, 1.0))
+        levels = {name: level for _, _, name, _, _, _, level, _ in club.voices(heard)}
+        return levels["sub growl"] / levels["sub"]
+    monkeypatch.setattr(club, "SUB_ALONE_GROWL", 0.8)
+    assert abs(growl("sub") - 0.8) < 1e-9
+    assert abs(growl("sub", "harsh") - 0.8) < 1e-9
+    assert abs(growl("sub", "pluck") - 0.45) < 1e-9
+    assert abs(growl("sub", "pluck", "harsh") - 0.45) < 1e-9
+    monkeypatch.setattr(club, "SUB_ALONE_GROWL", None)
+    assert abs(growl("sub") - 0.45) < 1e-9
+
+
+def test_the_own_fm_bass_middle_is_cut(monkeypatch, tmp_path):
+    # (2026-11-22, the day's House studies: the own FM bass 3 to 8 dB heavy at 450 to 900 Hz in all eleven takes that drew it.)
+    # FM_MIDDLE cuts it an octave wide at 600 Hz at the desk, in the bass's own equaliser; off, the band is flat.
+    from freerock.studio import club, sounds
+    monkeypatch.setattr(club.muse, "available", lambda: False)
+    heard = club.Heard()
+    heard.notes[("bass", "bass", "fm")].append((0.0, house.BAR, 40.0, 0.5, 0.0, 1.0))
+
+    def bands(value) -> str:
+        monkeypatch.setattr(club, "FM_MIDDLE", value)
+        out, _ = club.lines(heard, 1, tmp_path)
+        line = next(line for line in out["bass"] if "fm" in line.name)
+        return next(effect for effect in line.effects if "channel_eq" in effect)
+    if not sounds.HOUSE["house bass fm"].startswith("own:"):
+        return
+    assert " 600 -4 1 " in bands(-4.0)
+    assert " 600 " not in bands(None)
+
+
+def test_the_own_bell_can_be_given_a_body(monkeypatch, tmp_path):
+    # (2026-11-22: the own bell 37 dB over the liked stems at its top and 8 thin in its middle, four takes of four.) BELL_BODY
+    # gives it a body at 450 Hz and eases its top from 4 kHz in the chords' equaliser; off, its top is kept open.
+    from freerock.studio import club, sounds
+    monkeypatch.setattr(club.muse, "available", lambda: False)
+    heard = club.Heard()
+    heard.notes[("rhythm", "keys", "bell")].append((0.0, house.BAR, 64.0, 0.5, 0.0, 1.0))
+
+    def eq(value) -> str:
+        monkeypatch.setattr(club, "BELL_BODY", value)
+        out, _ = club.lines(heard, 1, tmp_path)
+        line = next(line for line in out["rhythm"] if "bell" in line.name)
+        return next(effect for effect in line.effects if "channel_eq" in effect)
+    if not sounds.HOUSE["house bell"].startswith("own:"):
+        return
+    assert " 450 4 1.5 " in eq((4.0, -6.0)) and " 4000 -6 " in eq((4.0, -6.0))
+    assert " 450 " not in eq(None) and " 9000 -2 " in eq(None)
+
+
 def test_every_house_family_has_ground_the_atlas_knows():
     # As every orchestra character does (test_studio), so that the player's preference for the ground underfoot reaches
     # House (2026-11-18: none of House's pieces had one).

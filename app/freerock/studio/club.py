@@ -191,6 +191,25 @@ SUBBED = ("house bass pluck", "house bass saw")      # the basses that are heard
 # is House's own, one track fewer.
 FM_GROWL = False
 GROWLED = ("house sub", "house bass fm")
+# (2026-11-22, midday, every House take studied that day: the sub playing the bass alone, in the three camps that drew it, 6.8
+# to 7.5 dB thin in its middle against the liked stems and 34 to 52 under at its top; the sub with only the harsh twin over it
+# in walking music 1.0 to 5.9 thin, ten takes, 3.4 on average; with a pluck over it, or any other bass, level to 8 dB heavy. A
+# sine is felt, not heard, and its growl at 0.45 is not enough on its own.) Where the sub is the bass with nothing over it but
+# its harsh twin, its growl is SUB_ALONE_GROWL of the bass's level, not 0.45. None: 0.45. (The demo sub1, three camps: the
+# bass 4.1 to 4.4 dB fuller from 226 Hz to 1.8 kHz, its lowest octaves unmoved; the judges level in all six windows, SongEval
+# a shade up in four: in for its musical reason, a bass heard as well as felt.)
+SUB_ALONE_GROWL: float | None = 0.8
+TWINS = ("harsh", "harsh saw")       # the writer's names of the bass's harsh twin (`harsher`), which come in late in a drop
+# (2026-11-22, the day's House studies: the own FM bass 3 to 8 dB heavy in its middle against the liked stems in every take that
+# drew it, eleven, at 450 to 900 Hz: its own sidebands, not the growl, which is off under it.) The own FM bass is cut FM_MIDDLE dB
+# an octave wide at 600 Hz at the desk. None: as it was. (Off until the judges have heard it: the demo fm1.)
+FM_MIDDLE: float | None = None
+# (2026-11-22, the day's House studies: the own bell, the chords in the snowfields' and the haunted palettes, 36.6 to 37.8 dB over
+# the liked stems at its top and 5.5 to 8.4 thin in its middle in all four takes that drew it, ten dB beyond any other House
+# sound: its FM partials at three and a half times the note ring over nothing.) BELL_BODY: the own bell given a body at 450 Hz
+# and its top eased from 4 kHz at the desk, (body dB, top dB). None: its top kept open as the own chords' are. (Off until the
+# judges have heard it: the demo bell1.)
+BELL_BODY: tuple[float, float] | None = None
 HARSH = 0.55        # how far under the bass its harsh twin plays, once it is all the way in (`harsher`)
 OWN_KICK = True     # House's own kick (studio/kicks.py) for every machine's; False: the machine's recorded kick
 # dB: the own kick turned up to the 909's loudness: 3.6 by a trial's four strokes at one strength, and 1.5 more by Night Prowl I's
@@ -273,6 +292,7 @@ def voices(heard: Heard) -> list[tuple[str, str, str, str, float, list[Note], fl
     plays it, the cut at its top in Hz or 0, the notes in beats, how far it is turned down, and the
     volume moves that play its bars as loud as they were written, if its instrument does not)."""
     spans = {key: _spans(notes) for key, notes in heard.notes.items()}
+    alone = {name for channel, _, name in heard.notes if channel == "bass" and name not in TWINS} == {"sub"}
     most: dict[str, float] = defaultdict(float)
     for (channel, _, _), levels in spans.items():
         most[channel] = max(most[channel], max(levels.values()))
@@ -314,8 +334,9 @@ def voices(heard: Heard) -> list[tuple[str, str, str, str, float, list[Note], fl
             # sine under 100 Hz, which a small loudspeaker does not play at all. The FM bass the same the next morning: 17 to
             # 30 dB short from 450 Hz up.) A sawtooth on the same notes, closed
             # above 900 Hz and well under the sub, is the part of the bass that is heard; the sub is the part that is felt.
+            growl = SUB_ALONE_GROWL if SUB_ALONE_GROWL is not None and written == "house sub" and alone else 0.45
             out.append((channel, table, name + " growl", "house bass saw", 900.0, sorted(every, key=lambda note: note.start),
-                        taste * 0.45, ride))
+                        taste * growl, ride))
         if written in SUBBED:
             # (2026-11-17, morning: against the liked house stems the plucked and the sawtooth basses had 6 to 8 dB too much
             # in their middle and too little under 200 Hz.) The other way about: the sub on the same notes under the bass
@@ -394,7 +415,8 @@ def lines(heard: Heard, seed: int, work: Path) -> tuple[dict[str, list[desk.Line
                     # (Third pass, 2026-11-17, midday, twenty tracks: still 7 to 13 dB heavy from 450 Hz to 1.8 kHz: closed
                     # from 1.8 kHz, the shelf down from 800 Hz.)
                     shut = dict(high_cut=2400.0, high_shelf=(900.0, -3.0)) if own else dict(high_cut=1800.0, high_shelf=(800.0, -6.0))
-                    line.effects = list(line.effects) + [sounds.equalise(low_cut=30.0, **shut), sounds.wide(0.25)]
+                    middle = ((600.0, FM_MIDDLE, 1.0),) if own and written == "house bass fm" and FM_MIDDLE is not None else ()
+                    line.effects = list(line.effects) + [sounds.equalise(low_cut=30.0, bands=middle, **shut), sounds.wide(0.25)]
                     line.send = 0.0
                 elif channel == "rhythm":
                     # (Measured against the house stems that were liked: the plucks had 11 to 24 dB too much above 3 kHz.)
@@ -414,6 +436,8 @@ def lines(heard: Heard, seed: int, work: Path) -> tuple[dict[str, list[desk.Line
                     top = dict(high_shelf=(2500.0, -10.0)) if synth_played else dict(high_cut=8000.0, high_shelf=(2500.0, -13.0))
                     if own:
                         tone, top = (), dict(high_shelf=(9000.0, -2.0))
+                        if written == "house bell" and BELL_BODY is not None:
+                            tone, top = ((450.0, BELL_BODY[0], 1.5),), dict(high_shelf=(4000.0, BELL_BODY[1]))
                     line.effects = list(line.effects) + [sounds.equalise(low_cut=150.0 if own else 80.0, bands=tone, **top)] \
                         + moved + [sounds.warm(0.3), sounds.wide(1.3), sounds.echo(house.BPM, 0.26, left=3, right=4, again=0.36)]
                     line.send = max(line.send, 0.24)

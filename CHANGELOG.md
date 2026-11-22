@@ -17,6 +17,16 @@ that drive with more music for every scenario, following everything weve learned
   place, and the marsh, the coast and the snowfields their own town, inn, camp, night, cave, storm, fight and boss
   music, where they had borrowed from the kinds nearest; a third battleground. Every kind of place now has music for
   every moment in all three styles.
+- The plan keeps House's titles as a list of its own (`build.HOUSE_TITLES`, the test keeps it House's): for an afternoon it
+  had imported the House synthesiser for them, which needs numba, and every study of a Knight or Warcraft take stopped there.
+- **House's sub heard** (`club.SUB_ALONE_GROWL`, handbook 5.3): where the sub plays the bass with nothing over it but its
+  harsh twin (camps and inns alone 5.9 to 7.5 dB thin in its middle, walking music under its twin 3.4), its growl comes up
+  from 0.45 to 0.8 of the bass: the bass 4 dB fuller in its middle, its bottom unmoved, the judges level.
+- Tried and left off (`orchestra.FRETLESS_FIRM`, `PIZZICATO_FLOOR`, handbook 3.6): the fretless struck firmer (its tone
+  unchanged, the judges level) and a low pizzicato bass line raised to D2 (Gull's Wind up with every judge; White Hearth,
+  its line a whole octave up, lost its lowest octave and came out down).
+- Tried and left off (`orchestra.CALM_ARRIVAL_JOINS`, handbook 3.8): a calm piece's rise's two singers on through its arrival
+  (three caves whose arrival had not arrived came in over their rise by 0.6 to 1.9 dB; the judges did not agree).
 - **A heavy close breaks down before its ending** (`orchestra.HEAVY_CLOSE_BREAK`, `Take.break_span`, handbook 4.9):
   five heavy songs in a night's studies drove the summit's riff on through the close, the rhythm one colour 43 to 56
   bars. In a close of sixteen bars or more the bass takes four bars alone over the drummer, the guitars and the lead

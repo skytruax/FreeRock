@@ -730,6 +730,14 @@ as a pad, played its bass from A2 to F#4 around A3; the desk raised it 8.9 dB to
 line 7 dB over the liked stems in the mids and 16 at the top, with nothing under it. The moonwell and
 the elven hymn had the harp's the same way, around B3.)
 
+*Tried and left off: a plucked bass played to be heard* (2026-11-22, morning: in a night's studies of Warcraft's walks,
+inns and camps the bass stood 7 to 12 dB thin in its middle wherever its line was plucked, never where it was bowed or
+blown). The fretless struck no softer than mezzo-forte (`orchestra.FRETLESS_FIRM`, 0.55): its tone did not change (MuseScore's
+fretless is dark at every strength), the judges level. A pizzicato line's key note no lower than D2
+(`orchestra.PIZZICATO_FLOOR`, 38): the bass 2 to 7 dB fuller from 450 Hz up, Gull's Wind up with every judge, but White
+Hearth, its line a whole octave up, lost its lowest octave and came out down: a bass's place is low. Both switches are
+kept, off; a fuller pizzicato is owed another way.
+
 *The bass follows the key* (`orchestra.BASS_FOLLOWS_KEY`, `bass_tonics`, 2026-11-20). Each part's key
 note for the bass is the one nearest the part before's, moved by octaves into the instrument's range
 with room for the scale over it, and the part's line is centred on it: a key lifted for the summit
@@ -833,6 +841,16 @@ far back as `sounds.DEPTHS` says (strings 0, woodwinds 0.45, horns 0.6, trumpets
 percussion 0.85 to 0.95), by early reflections (`sounds.row`). `Take.voice` gives each voice a pan
 within ±0.35, used only where a player has no seat. MuseScore's recordings are laid in at the centre,
 except the band's heavy guitars; any placement the Muse Sounds carry themselves is (unconfirmed).
+
+*Tried and left off: a calm arrival keeps its rise's singers* (`orchestra.CALM_ARRIVAL_JOINS`, 2026-11-22: three caves in
+one night's studies came to their arrival no louder than their rise; one cave in nine and one night in eight of all those
+studied). The rise is sung by its soloist, its partner joining at two fifths of the way and the strongest player at seven
+tenths; the arrival is the strong players'. Where those are soft (slow violins, a glockenspiel) and the rise's bright (a
+high flute, the vibes), the moment came in under the rise. With the rise's two singers on through the arrival's first
+statement the moment came in over its rise in all three caves, by 0.6 to 1.9 dB, but the judges did not agree (enjoyment
+up on two, TuneJury with no brief down on the same two, the rest level), and the switch would change every calm piece for
+a flaw in one cave in nine: kept, off. A calm arrival is a release more than a climax; a cave whose arrival does not
+arrive is owed a narrower fix.
 
 ### 3.9 Dynamics and articulation
 
@@ -1378,6 +1396,14 @@ growl (5.7). *A long theme's bass lifting at its half was tried and left off* (`
 from its half, as a house bassline climbs toward the drop): *the judges level on Moonwell I and Hollow Road III
 (TuneJury +0.11 and +0.01 on their themes, SongEval within 0.04; their drops, where nothing changed, moved as
 much), and the meter read both basses' colour 4 to 6 bars either way.*
+
+*A sub with nothing over it is heard* (`club.SUB_ALONE_GROWL`, 2026-11-22). The sub is a sine, felt and not heard; its
+growl, a saw on the same notes closed above 900 Hz at 0.45 of the bass, is the part that is heard. Where the sub played a
+camp's or an inn's bass alone it stood 5.9 to 7.5 dB thin in its middle against the liked stems (six calm takes of six),
+and under only its harsh twin in walking music 3.4 on average (fourteen takes), where every other bass was level or
+heavier. Where the sub is the bass with nothing over it but its twin (`club.TWINS`), its growl is 0.8 of the bass: in
+three camps the bass 4.1 to 4.4 dB fuller from 226 Hz to 1.8 kHz, its lowest octaves unmoved; *the judges level in all
+six windows, SongEval a shade up in four*: in for its musical reason.
 
 **The bass grows harsher through a long drop** (`club.harsher`, on the sheet as the part `bass
 harsh`). Halfway through every drop of 32 bars or more, a second bass plays the bass's own notes and

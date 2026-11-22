@@ -1938,6 +1938,21 @@ def test_no_two_families_share_a_title_across_the_styles():
     assert {title for title, count in titles.items() if count > 1} <= {"Cold Stars"}
 
 
+def test_the_plan_knows_houses_titles_without_the_house_synthesiser():
+    # (2026-11-22: build.plan imported house for its titles, house imports synth and synth numba, and every study of a Knight or
+    # Warcraft take, run without numba, stopped there.) The plan's copy of House's titles is house.PLAN's, and the plan is made
+    # in a Python that cannot import numba.
+    import subprocess
+    import sys
+    from freerock.studio import build, house
+    assert set(build.HOUSE_TITLES) == {fam.title for fam in house.PLAN} and len(build.HOUSE_TITLES) == len(house.PLAN)
+    code = ("import sys; sys.modules['numba'] = None; from freerock.studio import build; "
+            "plan = build.plan(); assert 'freerock.studio.house' not in sys.modules; print(len(plan))")
+    done = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, timeout=600)
+    assert done.returncode == 0, done.stderr[-2000:]
+    assert int(done.stdout.split()[-1]) == len(build.plan())
+
+
 def test_a_plucked_bass_is_played_to_be_heard(monkeypatch):
     # (2026-11-22, morning: Warcraft's plucked bass lines stood 7 to 12 dB thin in their middle, never its bowed or blown ones.)
     # In an orchestra's piece the fretless is struck no softer than FRETLESS_FIRM, and a pizzicato line's key note sits no lower

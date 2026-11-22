@@ -201,6 +201,20 @@ def stop_time(piece: Piece) -> bool:
     return summit["first"] + summit["bars"] - ends >= orchestra.STOP_BARS + 4
 
 
+def sub_alone(piece: Piece) -> bool:
+    """A House take whose staged sheet's bass is the sub with nothing over it but its harsh twin: since club.SUB_ALONE_GROWL
+    (2026-11-22) its growl is 0.8 of the bass, not 0.45."""
+    if piece.style != "house":
+        return False
+    sheet = STUDIO / piece.style / piece.key / "sheet.json"
+    if not sheet.is_file():
+        return False
+    from freerock.studio import club
+    bass = json.loads(sheet.read_text(encoding="utf-8")).get("parts", {}).get("bass", {})
+    names = {name.split(" ", 1)[-1] for name, voice in bass.items() if voice.get("notes")}
+    return names - set(club.TWINS) == {"sub"}
+
+
 def close_breaks(piece: Piece) -> bool:
     """A heavy band's take whose close is sixteen bars or more: since orchestra.HEAVY_CLOSE_BREAK (2026-11-22) it breaks down
     there, the bass's riff alone over the drummer for the four bars before its last eight."""
@@ -258,6 +272,10 @@ class Change:
 
 
 CHANGES = [
+    Change("House's sub heard", datetime.datetime(2026, 11, 22, 18, 20), "",
+           "where the sub is the bass with nothing over it but its harsh twin, its growl (a saw closed above 900 Hz) at 0.8 of the "
+           "bass, not 0.45 (club.SUB_ALONE_GROWL)",
+           sub_alone),
     Change("a heavy close breaks down before its ending", datetime.datetime(2026, 11, 22, 12, 25), "",
            "in a heavy band's close of sixteen bars or more the bass's riff alone over the drummer for four bars, the guitars "
            "and the lead resting, before the band crashes back in for the last eight and the stop (orchestra.HEAVY_CLOSE_BREAK)",

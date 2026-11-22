@@ -1445,7 +1445,11 @@ HEAVY_CLOSE_BREAK = True
 # the tune going to the slow violins and a glockenspiel, softer players than the rise had grown to.) In the calm roles
 # (`calm`) the rise's two singers (its soloist and the partner who joined it) sing on through the arrival's first statement,
 # doubling the strongest player in their own registers, as a flute doubles the violins in a tutti. False: the arrival from
-# the strong players alone. (Off until the judges have heard it: the demo arrive1, 2026-11-22.)
+# the strong players alone. LEFT OFF (2026-11-22, the demos arrive1 and arrive2 on the three caves, the first rise and the
+# arrival's first eight bars): the moment came in over its rise in all three (Glimmering Veins -0.4 to +0.6 dB, Glimmering
+# Cave II -0.9 to +1.9, Icebound Halls +0.1 to +1.3), but the judges did not agree: TuneJury with the brief and SongEval
+# level, Audiobox's enjoyment up on two (+0.19, +0.09), TuneJury with no brief down on the same two (-0.23, -0.31), where
+# the high flute doubling the violins was loudest. A switch for every calm piece, for a flaw in one cave in nine: off.
 CALM_ARRIVAL_JOINS = False
 BASS_SOLO = True         # a heavy band's bass leads it back in after the valley, alone (Take.bass_break); False: the band climbs together
 # The bass's riffs for its break, a bar each over the chord's root in semitones, as (beat, beats, interval) in a bar of four.
@@ -2746,7 +2750,11 @@ BASS_TOP: int | None = 45
 # where the same song's plucked line at A2 read -5.3.) A plucked bass in an orchestra's piece is played to be heard:
 # The fretless no softer than mezzo-forte (FRETLESS_FIRM, its strokes' least strength; MuseScore's fretless played softly, at
 # 0.38, is a dark thud: -10 to -12 in all seven takes it played, even centred at C3). None: as written.
-# (Both off until the judges have heard them: the demo pluck1, 2026-11-22.)
+# Both LEFT OFF (2026-11-22, the demo pluck1, before and after on four songs): the firmer fretless did not change its tone (its
+# octaves within 1 dB on Golden Morning, Coal Hours' darker by share) and the judges stayed level; the pizzicato floor lifted
+# the bass 2 to 7 dB from 450 Hz up, Gull's Wind up in every judge (SongEval +0.09 to +0.15), but White Hearth, its line a
+# whole octave up, lost its lowest octave (57 Hz -14 dB) and came out down (TuneJury with no brief -0.25 and -0.32): a bass's
+# place is low. A fuller pizzicato is owed another way (its doubling, or its sample). (0.55 and 38 were the values tried.)
 FRETLESS_FIRM: float | None = None
 # ...and a pizzicato line (the basses' and the celli's, and the acoustic bass, which the pizzicato basses play) has its key note
 # no lower than D2 (PIZZICATO_FLOOR, by octaves, `bass_tonics`): a low pizzicato is a thud with little over its note (lines

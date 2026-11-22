@@ -97,6 +97,26 @@ def _shapes_last(character) -> list[int]:
 MORE_FAMILIES = 1
 
 
+# House's titles (house.PLAN's, the test keeps them the same), written out here so that the plan, which the study and the lanes
+# read without the House synthesiser's numba, need not import house (2026-11-22: it did for an afternoon, and every study of a
+# Knight or Warcraft take stopped on "No module named 'numba'").
+HOUSE_TITLES = (
+    'Ambush', 'Ash Wind', 'Banners', 'Bellows and Sparks', 'Bells under the Hill', 'Blades', 'Breakers', 'Breakwater',
+    'Bullfrog Bass', 'By the Fire', 'Cairn Wind', 'Canopy', 'Capture the Flag', 'Caravan at Noon', 'Charge', 'Cinder Bloom',
+    'Cold Stars', 'Cool of the Evening', 'Driftwood Hearth', 'Dripstone', 'Drowned Halls', 'Dunes at Dawn',
+    'Embers under Stars', 'Fireflies', 'Fishmarket', 'Gaslight', 'Gilded Halls', 'Glade at Dusk', "Gull's Morning",
+    'Hammerfall', 'Harbour Lights', 'Hay Bale Sunset', 'Heat Haze', 'Hoarfrost', 'Hold the Line', 'Hollow Road',
+    'Ice Bridge', 'Lanterns in the Fog', 'Lanterns on the Square', 'Larks over the Ridge', 'Last Candle', 'Last Stand',
+    'Long Road Home', 'Market Day', 'Mill Stream', 'Mirage', 'Monsoon Drums', 'Moonlit Ebb', 'Moonwell',
+    'Morning on the Hill', 'Moth Wings', 'Night Prowl', 'Northern Lights', 'Oasis', 'Owl Light', 'Parrots', 'Peat Smoke',
+    'Rain on the Roofs', 'Red Rock', 'Reedlight', 'River Drums', 'Salt Caravan', 'Seaspray', 'Siege Bells', 'Snowglobe',
+    'Snowmelt', 'Squall', 'Stand Fast', 'Starfall', 'Stone and Sky', 'Sunken Grotto', 'Sunlit Fields', 'The Dark Hall',
+    'The Deep Road', 'The Forge at Rest', 'The High Moor', 'The Kind Ghost', "The King's Road", 'The Leviathan',
+    'The Long Wait', 'The Long Watch', 'The Old Swamp', 'Thunderhead', 'Tide Camp', 'Tidepools', 'Under the Mountain',
+    "Will-o'-the-Wisp", 'Willow Lanterns', 'Wind over the Pass',
+)
+
+
 def plan() -> list[tuple[Family, int]]:
     """Every family of the library and how many takes of it there are. A character that is
     for walking about gets a family of three takes (and the light ones a second family of
@@ -166,10 +186,9 @@ def plan() -> list[tuple[Family, int]]:
     # own key, pace, changes and tunes, two takes: Knight Rock's first (the music they play), then Warcraft's; each set named
     # after every family made before it, so that none of those is given another title, and numbered on from the
     # character's own. Each family's first take is made and studied before its second (handbook 8.7). Their titles keep clear
-    # of House's too (a new marsh camp had drawn Peat Smoke, a House family's): House's are written by hand unlike every title
-    # here (the test), so keeping clear of them changes no title drawn before.
-    from . import house
-    titles.update(each.title for each in house.PLAN)
+    # of House's too (HOUSE_TITLES; a new marsh camp had drawn Peat Smoke, a House family's): House's are written by hand unlike
+    # every title here (the test), so keeping clear of them changes no title drawn before.
+    titles.update(HOUSE_TITLES)
     for _ in range(MORE_FAMILIES):
         for style in ("knight", "warcraft"):
             for index, character in enumerate(CHARACTERS):
