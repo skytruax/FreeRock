@@ -430,7 +430,7 @@ every kind of place.
 | | Warcraft and Knight Rock | House |
 |---|---|---|
 | Character: a kind of track | `orchestra.Character` in `orchestra.CHARACTERS`: 149, of which 131 Warcraft and 18 Knight Rock | none; palettes by kind of place (`house.PALETTES`) |
-| Family: the changes | `orchestra.Family`, from `orchestra.family(character, seed, name, title)`: key, tempo, metre, lift, the chord under every bar, part lengths and levels | `house.Family` in `house.PLAN` (60): tonic, loop, five lengths, kick pattern, swing, drum machine, palette |
+| Family: the changes | `orchestra.Family`, from `orchestra.family(character, seed, name, title)`: key, tempo, metre, lift, the chord under every bar, part lengths and levels | `house.Family` in `house.PLAN` (89): tonic, loop, five lengths, kick pattern, swing, drum machine, palette |
 | Take: one band playing it | `orchestra.Take(fam, take)`: tunes, figures, bass, drums and players, from its own seed | `house.Take(fam, take)`: sounds and ways chosen in turn (`Take.pick`) |
 
 A character's fields: `kinds`, `role`, `light`, `serves` (what it is for, 2.6); `modes`, `bpm`,
@@ -452,9 +452,21 @@ second wave is a key higher); `titles` (two word lists); `style` and `band`.
 | depths, night | 2, and later 2 |
 | camp | 2 and 2, planned after all the above |
 | added after the camps (`build.LAST_ADDED`: the bosses deep tide and fallen crusade) | 2 and 2, planned last |
+| every character once more (`build.MORE_FAMILIES`, 2026-11-22) | 2, planned after everything: Knight Rock's, then Warcraft's |
 
-That gives 262 Warcraft families with 610 takes (about 4,830 minutes) and 36 Knight Rock families
-with 82 takes (about 650 minutes). House has 60 families of 3 takes (`house.TAKES`).
+That gives 471 Warcraft families with 1,034 takes (about 8,200 minutes) and 108 Knight Rock families
+with 239 takes (about 1,900 minutes). House has 89 families of 3 takes (`house.TAKES`, about 1,300
+minutes).
+
+*More music for every scenario* (2026-11-22: "The drive is still at 11 percent tonight we need new music
+following everything we learned"; "lets work on filling that drive with more music for every scenario,
+following everything weve learned"). Each character has `build.MORE_FAMILIES` more families of two
+takes beyond the plan's own (one so far: 36 Knight Rock families and 157 Warcraft, 386 takes, about 50
+hours), each with its own key, pace, changes and tunes, and written by everything the handbook has
+learned, as any take is. They are numbered on from the character's own (`haunted-requiem-4`) and named
+after every family before them, so no family made before changes; a family numbered ten would take the
+next character's seed, and `build.plan` refuses it. Each one's first take is made and studied before
+its second (8.7). Their first takes go to the night lane before the second takes of any of them.
 
 **Seeds and names.** A family's seed is 20261115 × 100 + its character's index × 10 + its number,
 0 for the first (`build.MASTER`). Its name is the character's first kind (or `anywhere`, for a
@@ -1121,6 +1133,14 @@ before the bar line it reaches and taken up again on it. A bagpipe's bag holds i
   enjoyment 6.6 against 7.4): it had died away as an orchestra's does, its riff thinning to nothing.*
   The family's form and levels are not touched (its takes play channel by channel together); the
   tune and the pads still wind down over the band.
+- *A heavy close breaks down before its ending* (`orchestra.HEAVY_CLOSE_BREAK`, `Take.break_span`,
+  2026-11-22: five heavy songs in one night's studies drove the summit's riff on through the close,
+  the rhythm one colour for 43 to 56 bars: Sand Fever I, Hammer Thunder I, II, IV and V). In a close
+  of sixteen bars or more the four bars before its last eight are the bass's break, as after the
+  valley (below): its riff alone over the drummer keeping time, the guitars and the lead resting;
+  then the band crashes back in and drives into the stop, as a rock band lays out before its last
+  chorus. The meter: the rhythm's one colour from 56 bars to 35 in Sand Fever I, 43 to 35 in Hammer
+  Thunder IV. *The judges on each close's last sixteen bars, before and after: Sand Fever I's SongEval up 0.13 to 0.27 on all four of its scores and Audiobox's enjoyment 7.06 to 7.40, TuneJury level; Hammer Thunder IV's TuneJury with the band brief 0.61 to 0.85, its clarity up 0.13, the rest level; nothing down in either.*
 - *The bass leads the band back in after the valley* (`orchestra.BASS_SOLO`, `Take.bass_break`,
   2026-11-19: "do bass solos too"). The first four bars of a heavy band's climb (eight in a climb of
   24 bars or more) are the bass's: its riff over each bar's root (one of `BASS_RIFFS`, drawn for the
@@ -1279,8 +1299,8 @@ Every track is 110 BPM (`house.BPM`) in four. A family names a tonic (all twelve
 a loop from `house.LOOPS`: 26 loops of four chords, each chord one or two bars, in seven modes (M1–M6
 major, L1–L3 lydian, X1–X3 mixolydian, D1–D4 dorian, N1–N6 minor, P1–P2 phrygian, P3–P4 phrygian
 dominant). Chord colours (`COLOURS`): triad, 7, 9, sus2, sus4, 5 and 6. Every section starts at the
-top of the loop (`house.Changes.chord`). Swing delays the off sixteenths by up to 0.16 of one. 32 of
-the 60 families are light: *the house is meant to be mostly light* (the test).
+top of the loop (`house.Changes.chord`). Swing delays the off sixteenths by up to 0.16 of one. 49 of
+the 89 families are light: *the house is meant to be mostly light* (the test).
 
 ### 5.2 The groove: kick, clap, hats
 
@@ -1492,8 +1512,17 @@ III's finding).
 ### 5.6 Palettes and the calm roles
 
 A palette (`house.PALETTES`) lists the sounds and ways a take may draw on for each channel; the
-three takes of a family take different ones (`Take.pick`). There are 21: a light and a dark one for
-each kind of place, and ember, night, depths, storm and battle.
+three takes of a family take different ones (`Take.pick`). There are 27: a light and a dark one for
+each of the eleven kinds of place, and ember, night, depths, storm and battle.
+
+*Every kind of place has music for every moment* (2026-11-22, twenty families more: 89). Each of the
+eleven kinds of place has five to eight families for walking about (a new one each: Hay Bale Sunset,
+Cairn Wind, Gaslight, Salt Caravan, Monsoon Drums, Cinder Bloom, Gilded Halls, Moth Wings, Willow
+Lanterns, Tidepools, Hoarfrost) and at least one for the town, the inn, the camp, the night, the cave,
+the storm, the fight and the boss; the marsh, the coast and the snowfields, which had borrowed those
+from the kinds nearest them, have their own (Fishmarket, Driftwood Hearth, Tide Camp, Moonlit Ebb,
+Sunken Grotto, Squall, Breakers, The Leviathan), and the battleground a third (Siege Bells). Each new
+family has a key and chord loop (tonic and loop) no other family has.
 
 | Palette | Bass | Chords | Lead | Pad | Weather |
 |---|---|---|---|---|---|

@@ -1906,6 +1906,123 @@ def test_a_harmonica_solo_is_bent_as_a_harp_player_bends_it(monkeypatch):
     assert "bend" not in build.write(fam, 2).parts["lead"]["harmonica solo"].effects
 
 
+def test_every_character_has_more_families(monkeypatch):
+    # (2026-11-22: "tonight we need new music following everything we learned", "lets work on filling that drive with more music
+    # for every scenario".) Each character of Knight Rock and Warcraft has MORE_FAMILIES more families, planned after every
+    # other (Knight's first), so that no family made before changes its name, title or seed; each new title is new, and each
+    # new family's number follows its character's own.
+    from freerock.studio import build
+    assert build.MORE_FAMILIES >= 1
+    now = build.plan()
+    monkeypatch.setattr(build, "MORE_FAMILIES", 0)
+    before = build.plan()
+    assert [(fam.name, fam.title, fam.seed, takes) for fam, takes in now[:len(before)]] == \
+        [(fam.name, fam.title, fam.seed, takes) for fam, takes in before]
+    more = now[len(before):]
+    characters = {(fam.character.style, fam.character.name) for fam, _ in before}
+    assert {(fam.character.style, fam.character.name) for fam, _ in more} == characters
+    assert [fam.character.style for fam, _ in more] == sorted((fam.character.style for fam, _ in more), key=["knight", "warcraft"].index)
+    names = {fam.name for fam, _ in before}
+    assert not names & {fam.name for fam, _ in more}
+    titles = [fam.title for fam, _ in now]
+    assert len(titles) == len(set(titles))
+
+
+def test_no_two_families_share_a_title_across_the_styles():
+    # (2026-11-22: a new Warcraft family drew Peat Smoke, a House family's title, and a new House night was to be Northern Hush,
+    # a Warcraft night's.) A title names one family in the player, whatever its style: House's are written by hand unlike any
+    # other, and the families added after the plan's own keep clear of them. (Cold Stars was found twice, both made: kept.)
+    from collections import Counter
+    from freerock.studio import build, house
+    titles = Counter([fam.title for fam in house.PLAN] + [fam.title for fam, _ in build.plan()])
+    assert {title for title, count in titles.items() if count > 1} <= {"Cold Stars"}
+
+
+def test_a_plucked_bass_is_played_to_be_heard(monkeypatch):
+    # (2026-11-22, morning: Warcraft's plucked bass lines stood 7 to 12 dB thin in their middle, never its bowed or blown ones.)
+    # In an orchestra's piece the fretless is struck no softer than FRETLESS_FIRM, and a pizzicato line's key note sits no lower
+    # than PIZZICATO_FLOOR; a bowed line and a band's bass keep their places. (The switches are turned on here, whichever way
+    # they are set.)
+    import statistics
+    from freerock.studio import build
+    plan = {fam.name: fam for fam, _ in build.plan()}
+
+    def line(name: str, take: int, instrument: str):
+        voices = [voice for voice in orchestra.Take(plan[name], take).voices["bass"].values() if voice.instrument == instrument and voice.notes]
+        return voices[0].notes
+    monkeypatch.setattr(orchestra, "FRETLESS_FIRM", 0.55)
+    monkeypatch.setattr(orchestra, "PIZZICATO_FLOOR", 38)
+    fretless = line("desert-oasis-embers-2", 1, "fretless")
+    assert min(note.loud for note in fretless) >= orchestra.FRETLESS_FIRM - 1e-9
+    floored = statistics.median(note.pitch for note in line("highland-snowfall-1", 1, "basses pizz"))
+    assert floored >= orchestra.PIZZICATO_FLOOR
+    bowed = statistics.median(note.pitch for note in line("frozen-ice-fields-1", 1, "basses slow"))
+    picked = statistics.median(note.pitch for note in line("anywhere-glow-cave-2", 2, "picked bass"))
+    monkeypatch.setattr(orchestra, "PIZZICATO_FLOOR", None)
+    monkeypatch.setattr(orchestra, "FRETLESS_FIRM", None)
+    assert statistics.median(note.pitch for note in line("highland-snowfall-1", 1, "basses pizz")) < floored
+    assert min(note.loud for note in line("desert-oasis-embers-2", 1, "fretless")) < 0.55
+    assert statistics.median(note.pitch for note in line("frozen-ice-fields-1", 1, "basses slow")) == bowed
+    assert statistics.median(note.pitch for note in line("anywhere-glow-cave-2", 2, "picked bass")) == picked
+
+
+def test_a_heavy_close_breaks_down_before_its_ending(monkeypatch):
+    # (2026-11-22, morning: five heavy songs drove the summit's riff on through the close, the rhythm one colour 43 to 56 bars.)
+    # A heavy band's close of sixteen bars or more lays out for the four bars before its last eight (HEAVY_CLOSE_BREAK): the
+    # bass's riff alone over the drummer, the guitars and the lead resting, then the band drives back in to the stop.
+    from freerock.studio import build
+    fam = next(fam for fam, _ in build.plan() if fam.name == "desert-sand-rider-2")
+
+    def close_bars(take: "orchestra.Take") -> tuple[int, dict[str, list[int]]]:
+        section, first = next((section, first) for section, first, _, _ in take.spans if section.part == "close")
+        counts = {channel: [sum(1 for voice in take.voices[channel].values() for note in voice.notes
+                                if first + bar * take.beats - 1e-6 <= note.start < first + (bar + 1) * take.beats - 1e-6)
+                            for bar in range(section.bars)] for channel in ("rhythm", "bass", "lead", "drums")}
+        return section.bars, counts
+    assert orchestra.HEAVY_CLOSE_BREAK
+    bars, counts = close_bars(orchestra.Take(fam, 1))
+    assert bars >= 16
+    gap = range(bars - 12, bars - 8)
+    assert all(counts["rhythm"][bar] == 0 and counts["lead"][bar] == 0 and counts["bass"][bar] > 0 and counts["drums"][bar] > 0
+               for bar in gap), counts
+    assert all(counts["rhythm"][bar] > 0 for bar in range(bars - 8, bars - 4)), counts          # the band back in to drive
+    assert counts["rhythm"][bars - 13] > 0
+    monkeypatch.setattr(orchestra, "HEAVY_CLOSE_BREAK", False)
+    _, straight = close_bars(orchestra.Take(fam, 1))
+    assert all(straight["rhythm"][bar] > 0 for bar in gap)
+
+
+def test_a_calm_arrival_keeps_the_rises_singer(monkeypatch):
+    # (2026-11-22, morning: three caves came to their arrival no louder than their rise: the rise's high flute stopped there, the
+    # tune going to softer players.) In a calm piece the rise's two singers sing on through the arrival's first statement with
+    # the strongest player (CALM_ARRIVAL_JOINS); off, the arrival is the strong players' alone. A walk is as it was either way.
+    def arrival_singers(take: "orchestra.Take") -> set[str]:
+        section, first = next((section, first) for section, first, _, _ in take.spans if section.part == "arrival")
+        until = first + take.fam.period * take.beats
+        return {name for name, voice in take.voices["lead"].items()
+                if any(first - 1e-6 <= note.start < until - 1e-6 for note in voice.notes)}
+    joined = 0
+    for name, number in (("anywhere-crystal-cave-1", 1), ("anywhere-crystal-cave-2", 2), ("highland-frozen-cavern-1", 1)):
+        monkeypatch.setattr(orchestra, "CALM_ARRIVAL_JOINS", False)
+        before = orchestra.Take(_family(name), number)
+        assert orchestra.calm(before.ch.role, before.ch.busy)
+        monkeypatch.setattr(orchestra, "CALM_ARRIVAL_JOINS", True)
+        after = orchestra.Take(_family(name), number)
+        rise = {before.solo, before.mate} - set(before.strong[:2])
+        if not rise:
+            continue
+        joined += 1
+        assert not rise & arrival_singers(before), (name, rise)
+        assert arrival_singers(after) - arrival_singers(before) == rise, (name, rise)
+    assert joined >= 2
+    walk = _family("pastoral-sea-shanty-1")
+    monkeypatch.setattr(orchestra, "CALM_ARRIVAL_JOINS", True)
+    on = orchestra.Take(walk, 1)
+    monkeypatch.setattr(orchestra, "CALM_ARRIVAL_JOINS", False)
+    off = orchestra.Take(walk, 1)
+    assert not orchestra.calm(on.ch.role, on.ch.busy) and arrival_singers(on) == arrival_singers(off)
+
+
 def test_a_light_band_plays_stop_time_after_its_solo(monkeypatch):
     # (2026-11-21, the study: a light band's rhythm one colour 20 to 31 bars through its summit after the solo.) A blues or a
     # country band's way back from a solo (STOP_TIME): for STOP_BARS bars the band strikes the chord together on the bar's

@@ -91,6 +91,12 @@ def _shapes_last(character) -> list[int]:
     return [2, 2]
 
 
+# (2026-11-22: "tonight we need new music following everything we learned"; "lets work on filling that drive with more music
+# for every scenario, following everything weve learned".) How many families each character of Knight Rock and of Warcraft has
+# beyond the plan's own (`plan`): each one more song for its kind of place. 0: the plan's own, as before.
+MORE_FAMILIES = 1
+
+
 def plan() -> list[tuple[Family, int]]:
     """Every family of the library and how many takes of it there are. A character that is
     for walking about gets a family of three takes (and the light ones a second family of
@@ -98,7 +104,12 @@ def plan() -> list[tuple[Family, int]]:
     out: list[tuple[Family, int]] = []
     titles: set[str] = set()
 
+    numbers: dict[int, set[int]] = {}
+
     def add(index: int, character, number: int, takes: int) -> None:
+        if number >= 10:      # (its seed would be the next character's family's: MORE_FAMILIES has outgrown the seeds)
+            raise ValueError("%s: a family numbered %d would have another character's seed" % (character.name, number + 1))
+        numbers.setdefault(index, set()).add(number)
         seed = MASTER * 100 + index * 10 + number
         rng = random.Random(seed)
         first, second = character.titles
@@ -150,6 +161,20 @@ def plan() -> list[tuple[Family, int]]:
     for index, character in last:
         for number, takes in enumerate(_shapes_last(character)):
             add(index, character, number, takes)
+    # (2026-11-22: "The drive is still at 11 percent tonight we need new music following everything we learned", "lets work
+    # on filling that drive with more music for every scenario".) Each character has MORE_FAMILIES more families, each its
+    # own key, pace, changes and tunes, two takes: Knight Rock's first (the music they play), then Warcraft's; each set named
+    # after every family made before it, so that none of those is given another title, and numbered on from the
+    # character's own. Each family's first take is made and studied before its second (handbook 8.7). Their titles keep clear
+    # of House's too (a new marsh camp had drawn Peat Smoke, a House family's): House's are written by hand unlike every title
+    # here (the test), so keeping clear of them changes no title drawn before.
+    from . import house
+    titles.update(each.title for each in house.PLAN)
+    for _ in range(MORE_FAMILIES):
+        for style in ("knight", "warcraft"):
+            for index, character in enumerate(CHARACTERS):
+                if character.style == style:
+                    add(index, character, max(numbers.get(index, {-1})) + 1, 2)
     return out
 
 

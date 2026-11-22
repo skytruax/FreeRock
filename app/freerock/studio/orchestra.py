@@ -1432,6 +1432,21 @@ LEAD_ANSWERS = True      # a band's lead guitar answers its own long notes with 
 ANSWERS_SING_THE_THEME = True    # the lead's answers are the first theme's opening played quick (Take._answered); False: a scale run
 MOVES_LISTEN = True      # a riff's move to another chord waits where the lead holds a note a semitone or a tritone from it (Take._rubs)
 ROCK_ENDING = True       # a heavy band's close ends as a rock band ends (Take.ending); False: it dies away as an orchestra's does
+# (2026-11-22, morning: five heavy songs in one night's studies drove the summit's riff on through the close, the rhythm one
+# colour 43 to 56 bars: Sand Fever I, Hammer Thunder I, II, IV and V.) A heavy band's close of sixteen bars or more breaks down
+# for the four bars before its last eight: the bass alone with its riff over the drummer keeping time (the bass's break, as
+# after the valley), the guitars and the lead resting; then the band crashes back in and drives eight bars into the stop, the
+# way a rock band lays out before its last chorus. The judges on two closes: up or level on every score, nothing down
+# (2026-11-22, close1). False: the close drives from its first bar to the stop.
+HEAVY_CLOSE_BREAK = True
+# (2026-11-22, morning: three caves in one night's studies came to their arrival no louder than their rise, or under it:
+# Glimmering Veins I, Glimmering Cave II, Icebound Halls; one cave in nine and one night in eight of all those studied. The
+# rise's tune was on a high flute, the vibes or the celesta joining it, and at the arrival the flute and its partner stopped,
+# the tune going to the slow violins and a glockenspiel, softer players than the rise had grown to.) In the calm roles
+# (`calm`) the rise's two singers (its soloist and the partner who joined it) sing on through the arrival's first statement,
+# doubling the strongest player in their own registers, as a flute doubles the violins in a tutti. False: the arrival from
+# the strong players alone. (Off until the judges have heard it: the demo arrive1, 2026-11-22.)
+CALM_ARRIVAL_JOINS = False
 BASS_SOLO = True         # a heavy band's bass leads it back in after the valley, alone (Take.bass_break); False: the band climbs together
 # The bass's riffs for its break, a bar each over the chord's root in semitones, as (beat, beats, interval) in a bar of four.
 BASS_RIFFS = (
@@ -1565,6 +1580,11 @@ def _lengths(bar_s: float, period: int, fight: bool) -> dict[str, int]:
     return bars
 
 
+def calm(role: str, busy: float) -> bool:
+    """A role played under a murmur (`_levels`): the night, the inn, the cave and the camp; a rowdy inn excepted."""
+    return role in ("night", "ember", "depths", "camp") and not (role == "ember" and busy >= 0.6)
+
+
 def _levels(role: str, heavy: float, busy: float = 0.5) -> dict[str, tuple[float, float]]:
     """How hard each part of the story is played, from its start to its end. The first arrival
     is clearly under the summit, and the valley between them is the quietest the story gets
@@ -1578,7 +1598,7 @@ def _levels(role: str, heavy: float, busy: float = 0.5) -> dict[str, tuple[float
     # (A rowdy tavern is not a quiet room: an inn's music busy 0.6 or more is shaped as walking music is, its opening and
     # its middle present and not whispered; the player turns every inn down 4 dB anyway. Found 2026-11-18: a dwarven
     # drinking hall's demo opened at -38 dB and its middle fell to -41.)
-    if role in ("night", "ember", "depths", "camp") and not (role == "ember" and busy >= 0.6):
+    if calm(role, busy):
         top, under = 0.45 + 0.4 * heavy, 0.4 + 0.26 * heavy
         return {"open": (0.14, 0.26), "first": (0.34, 0.44), "second": (0.3, 0.42), "build": (0.36, 0.38 + 0.2 * heavy),
                 "arrival": (under, under), "valley": (0.18, 0.16), "climb": (0.26, 0.42 + 0.3 * heavy), "summit": (top, top),
@@ -2720,6 +2740,20 @@ PARTNERS = {"basses": "celli", "basses slow": "celli slow", "basses pizz": "cell
 # pad and a pluck.) No bass line is centred above A2: an organ plays its bass on the pedals, a harp on its low strings.
 # None: the instrument's home less 5, as before.
 BASS_TOP: int | None = 45
+# (2026-11-22, morning: a night's studies of Warcraft's walks, inns and camps: wherever the bass line was plucked it stood 7 to
+# 12 dB thin in its middle against the liked stems, never where it was bowed or blown: Raider's Fury's basses, contrabassoon
+# and tuba centred at B1 +3.9, Hoarfrost Hush's bowed basses at C#2 -1.0, One More Toast's bowed basses and tuba at C2 +1.5
+# where the same song's plucked line at A2 read -5.3.) A plucked bass in an orchestra's piece is played to be heard:
+# The fretless no softer than mezzo-forte (FRETLESS_FIRM, its strokes' least strength; MuseScore's fretless played softly, at
+# 0.38, is a dark thud: -10 to -12 in all seven takes it played, even centred at C3). None: as written.
+# (Both off until the judges have heard them: the demo pluck1, 2026-11-22.)
+FRETLESS_FIRM: float | None = None
+# ...and a pizzicato line (the basses' and the celli's, and the acoustic bass, which the pizzicato basses play) has its key note
+# no lower than D2 (PIZZICATO_FLOOR, by octaves, `bass_tonics`): a low pizzicato is a thud with little over its note (lines
+# centred at C#2 to E2 read -7 to -9, at G#2 to A#2 -1.5 to -2.6: Morning Hornpipe in A at E2 -7.2, its second take at G#2
+# -2.2). A bowed or blown line keeps its place. None: as a bowed line.
+PIZZICATO_FLOOR: int | None = None
+PLUCKED = ("basses pizz", "celli pizz", "acoustic bass")
 
 
 # (2026-11-20, the study: Blood Machine I's bass, in Eb phrygian, played its key note on Eb2 and every other root under it,
@@ -2730,19 +2764,20 @@ BASS_TOP: int | None = 45
 BASS_FOLLOWS_KEY = True  # each part's key note for the bass is the one nearest the part before's, in the instrument's range
 
 
-def bass_tonics(spans: list, inst: "Instrument", centre: int) -> list[int]:
+def bass_tonics(spans: list, inst: "Instrument", centre: int, floor: int = 0) -> list[int]:
     """The bass's key note in each part of a take's story (`Take.spans`): the first nearest the bass's centre, each other the
     one nearest the part before's, so that a key a step up is a step up; moved by octaves into the instrument's range,
-    with room for the scale over it (BASS_FOLLOWS_KEY). Off, each is the key note nearest the centre, as it was."""
+    with room for the scale over it (BASS_FOLLOWS_KEY), and never under `floor` (a pizzicato line's, PIZZICATO_FLOOR). Off,
+    each is the key note nearest the centre, as it was."""
     out: list[int] = []
     for _, _, key, _ in spans:
         if not BASS_FOLLOWS_KEY:
             out.append(key.home(centre))
             continue
         tonic = key.home(centre if not out else out[-1])
-        while tonic < inst.low:
+        while tonic < max(inst.low, floor):
             tonic += 12
-        while tonic + 11 > inst.high and tonic - 12 >= inst.low:
+        while tonic + 11 > inst.high and tonic - 12 >= max(inst.low, floor):
             tonic -= 12
         out.append(tonic)
     return out
@@ -2929,6 +2964,8 @@ class Take:
     def put(self, channel: str, name: str, start: float, length: float, pitch: int, loud: float, tag: str = "",
             tied: bool = False) -> None:
         inst = INSTRUMENTS[name]
+        if name == "fretless" and FRETLESS_FIRM is not None and not self.ch.band:
+            loud = max(loud, FRETLESS_FIRM)                     # the fretless played to be heard (FRETLESS_FIRM)
         while pitch < inst.low:
             pitch += 12
         while pitch > inst.high:
@@ -3304,11 +3341,16 @@ class Take:
                 run_up(players)
             elif part == "arrival":
                 # The first arrival: the first theme from whoever is strongest, a second strong
-                # player joining for the second time round, and a slower line underneath.
+                # player joining for the second time round, and a slower line underneath; in a calm
+                # piece the rise's singers on with the strongest the first time (CALM_ARRIVAL_JOINS).
+                joiners = [name for name in dict.fromkeys((solo, mate)) if name not in strong[:2]] \
+                    if CALM_ARRIVAL_JOINS and not ch.band and calm(ch.role, ch.busy) else []
                 for index, (bar, full) in enumerate(turns(bars)):
                     use = (tune, again, adorned)[index % 3] if full else tune.cut(half, whole)
                     loud = self.hard(section.level[0])
                     sing(strong[0], use, bar, loud)
+                    for name in (joiners if index == 0 else ()):
+                        sing(name, use, bar, loud * 0.8, octave=octave_of(name, strong[0]))
                     if len(strong) > 1 and full and (index >= 1 or ch.weight >= 0.9 or not ch.band):
                         # (In light music the second player has the tune a third above, not the same notes.)
                         sing(strong[1], use.moved(steps=2) if ch.light and not ch.band else use, bar, loud * 0.92,
@@ -3945,7 +3987,8 @@ class Take:
                 if doubled and partner:
                     self.put("bass", partner, at, length, pitch + (12 if INSTRUMENTS[partner].home > inst.home else -12), loud * 0.8,
                              tag=" doubled")
-        tonics, middle = bass_tonics(self.spans, inst, centre), centre
+        floor = PIZZICATO_FLOOR if PIZZICATO_FLOOR is not None and name in PLUCKED and not ch.band else 0
+        tonics, middle = bass_tonics(self.spans, inst, centre, floor), centre
         for index_of, (section, first, key, chords) in enumerate(self.spans):
             part, bars = section.part, section.bars
             runs = held_runs(section.chords)
@@ -3990,7 +4033,7 @@ class Take:
                     low(bar_at, beats * 0.25, root, self.hard(max(level, 0.7), 0.9))   # a stop: the root with the band's chord
                     continue
                 if self.bass_break(part, bars, bar):
-                    self._bass_solo_bar(key, chord, chords, bar, bars, bar_at, root, inst, low, level)
+                    self._bass_solo_bar(key, chord, chords, bar, bars, bar_at, root, inst, low, level, part=part)
                     continue
                 end = self.ending(part, bars, bar)
                 if end == "drive":
@@ -4214,15 +4257,26 @@ class Take:
             self._rise_way = random.Random(self.fam.seed * 7919 + self.take * 104729 + 37).choice(("climb", "drive", "plain"))
         return self._rise_way
 
-    def bass_break(self, part: str, bars: int, bar: int) -> bool:
-        """Whether a bar is in a heavy band's bass break (BASS_SOLO, 2026-11-19: "do bass solos too"): the first four bars of the
-        climb (eight in a climb of twenty-four bars or more), where after the valley the bass leads the band back in alone,
-        the drummer keeping time lightly, the guitars and the lead resting; then the band comes in."""
-        if not (BASS_SOLO and self.ch.band and self.heavy and part == "climb"):
-            return False
-        return bar < (8 if bars >= 24 else 4)
+    def break_span(self, part: str, bars: int) -> tuple[int, int] | None:
+        """Where a heavy band's bass break falls in a part of the story, (its first bar, how many bars), or None: the first
+        four bars of the climb (eight in a climb of twenty-four bars or more, BASS_SOLO), and in a close of sixteen bars or
+        more the four bars before its last eight (HEAVY_CLOSE_BREAK), the band back in for the drive into its rock ending."""
+        if not (self.ch.band and self.heavy):
+            return None
+        if BASS_SOLO and part == "climb":
+            return 0, (8 if bars >= 24 else 4)
+        if HEAVY_CLOSE_BREAK and ROCK_ENDING and part == "close" and bars >= 16:
+            return bars - 12, 4
+        return None
 
-    def _bass_solo_bar(self, key: Key, chord: Chord, chords: list, bar: int, bars: int, bar_at: float, root: int, inst, low, level: float) -> None:
+    def bass_break(self, part: str, bars: int, bar: int) -> bool:
+        """Whether a bar is in a heavy band's bass break (BASS_SOLO, 2026-11-19: "do bass solos too"; `break_span`): the bass
+        alone, the drummer keeping time lightly, the guitars and the lead resting; then the band comes in."""
+        span = self.break_span(part, bars)
+        return span is not None and span[0] <= bar < span[0] + span[1]
+
+    def _bass_solo_bar(self, key: Key, chord: Chord, chords: list, bar: int, bars: int, bar_at: float, root: int, inst, low, level: float,
+                       part: str = "climb") -> None:
         """A bar of the bass's break (`bass_break`): the take's riff over the chord's root (BASS_RIFFS, drawn for the take), its
         second time an octave's leap at its end, the octave pumped with passing notes in the third of each four, and in the
         break's last bar a run up the blues scale into the band's entry. It sits up the neck, to be heard alone."""
@@ -4230,9 +4284,10 @@ class Take:
         riff = BASS_RIFFS[own.randrange(len(BASS_RIFFS))]
         scale = self.beats / 4.0
         loud = self.hard(max(level, 0.75), 1.0)
-        length = 8 if bars >= 24 else 4
+        start, length = self.break_span(part, bars) or (0, 8 if bars >= 24 else 4)
+        at = bar - start                                                 # the bar of the break
         base = root + (12 if root + 12 <= inst.home + 6 else 0)          # up the neck, as a soloist plays
-        if bar == length - 1:
+        if at == length - 1:
             nxt = chords[min(bar + 1, len(chords) - 1)]
             goal = key.pitch(nxt.root, base + 7)
             steps = sorted({key.tonic + 12 * octave + interval for octave in range(1, 6) for interval in BLUES})
@@ -4241,12 +4296,12 @@ class Take:
             for each, note in enumerate(run):
                 low(bar_at + each * fast, fast * 0.85, note, loud * (0.85 + 0.15 * each / max(len(run) - 1, 1)))
             return
-        if bar % 4 == 2:
+        if at % 4 == 2:
             for each, interval in enumerate((0, 12, 0, 10, 0, 7, 0, 3)):
                 low(bar_at + each * 0.5 * scale, 0.45 * scale, base + interval, loud * (1.0 if each % 2 == 0 else 0.85))
             return
         for index, (on, beats_long, interval) in enumerate(riff):
-            if bar % 4 == 1 and index == len(riff) - 1:
+            if at % 4 == 1 and index == len(riff) - 1:
                 interval = 12                                            # the second time: the leap to the octave
             low(bar_at + on * scale, beats_long * scale * 0.9, base + interval, loud * (1.0 if on == 0 else 0.88))
 
@@ -4275,15 +4330,17 @@ class Take:
                 voice.notes = kept
 
     def make_room(self) -> None:
-        """The lead rests through the bass's break (`bass_break`): its notes there are taken out, every voice of the lead."""
-        if not (BASS_SOLO and self.ch.band and self.heavy):
+        """The lead rests through the bass's breaks (`bass_break`, `break_span`): its notes there are taken out, every voice
+        of the lead."""
+        if not (self.ch.band and self.heavy):
             return
         for section, first, _, _ in self.spans:
-            if section.part != "climb":
+            span = self.break_span(section.part, section.bars)
+            if span is None:
                 continue
-            until = first + (8 if section.bars >= 24 else 4) * self.beats
+            since, until = first + span[0] * self.beats, first + (span[0] + span[1]) * self.beats
             for voice in self.voices["lead"].values():
-                voice.notes = [note for note in voice.notes if not (first - 1e-6 <= note.start < until - 1e-6)]
+                voice.notes = [note for note in voice.notes if not (since - 1e-6 <= note.start < until - 1e-6)]
 
     def ending(self, part: str, bars: int, bar: int) -> str | None:
         """Where a bar of a heavy band's close stands in its rock ending (ROCK_ENDING, 2026-11-19, the judges: in every band song

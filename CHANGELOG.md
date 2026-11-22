@@ -3,6 +3,25 @@
 Newest first. Words in quotation marks are what was said while listening or playing, as typed or
 dictated, where it drove the change.
 
+## 2026-11-22, day: more music for every scenario
+
+"The drive is still at 11 percent tonight we need new music following everything we learned"; "lets work on filling
+that drive with more music for every scenario, following everything weve learned".
+
+- **Every character of Knight Rock and Warcraft has a family more** (`build.MORE_FAMILIES`, handbook 2.5): 36 Knight
+  Rock families and 157 Warcraft, two takes each (386 takes, about 50 hours), each its own key, pace, changes and tunes,
+  written with everything learned so far; planned after every family before them, so none of those changes. Their
+  first takes are made and studied before their second (handbook 8.7). A family numbered ten would take another
+  character's seed: `build.plan` refuses it.
+- **House: twenty families more** (handbook 5.6), 89 in all: a new one for walking in each of the eleven kinds of
+  place, and the marsh, the coast and the snowfields their own town, inn, camp, night, cave, storm, fight and boss
+  music, where they had borrowed from the kinds nearest; a third battleground. Every kind of place now has music for
+  every moment in all three styles.
+- **A heavy close breaks down before its ending** (`orchestra.HEAVY_CLOSE_BREAK`, `Take.break_span`, handbook 4.9):
+  five heavy songs in a night's studies drove the summit's riff on through the close, the rhythm one colour 43 to 56
+  bars. In a close of sixteen bars or more the bass takes four bars alone over the drummer, the guitars and the lead
+  resting, before the band crashes back in for its last eight and the stop. The judges on each close's last sixteen bars, before and after: Sand Fever I's SongEval up 0.13 to 0.27 on all four of its scores and Audiobox's enjoyment 7.06 to 7.40, TuneJury level; Hammer Thunder IV's TuneJury with the band brief 0.61 to 0.85, its clarity up 0.13, the rest level; nothing down in either.
+
 ## 2026-11-22, night: the blues harp, after John Popper; House's room, bass lift and machine kicks left off
 
 "You gotta work on your fucking harmonica. Look up John Popper".

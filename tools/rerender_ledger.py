@@ -201,6 +201,16 @@ def stop_time(piece: Piece) -> bool:
     return summit["first"] + summit["bars"] - ends >= orchestra.STOP_BARS + 4
 
 
+def close_breaks(piece: Piece) -> bool:
+    """A heavy band's take whose close is sixteen bars or more: since orchestra.HEAVY_CLOSE_BREAK (2026-11-22) it breaks down
+    there, the bass's riff alone over the drummer for the four bars before its last eight."""
+    ch = piece.character
+    fam = _families().get(piece.family)
+    if piece.style == "house" or fam is None or not getattr(ch, "band", False) or ch.weight < 0.8:
+        return False
+    return any(section.part == "close" and section.bars >= 16 for section in fam.sections)
+
+
 def plays_harmonica(piece: Piece) -> bool:
     """A band's or an orchestra's take whose staged sheet has a harmonica in it, anywhere: since sounds.BLUES_HARP, the harp
     phrasing and orchestra.HARP_BENDS (2026-11-22) the harmonica is a blues harp, its solo a harp player's and bent."""
@@ -248,6 +258,10 @@ class Change:
 
 
 CHANGES = [
+    Change("a heavy close breaks down before its ending", datetime.datetime(2026, 11, 22, 12, 25), "",
+           "in a heavy band's close of sixteen bars or more the bass's riff alone over the drummer for four bars, the guitars "
+           "and the lead resting, before the band crashes back in for the last eight and the stop (orchestra.HEAVY_CLOSE_BREAK)",
+           close_breaks),
     Change("House's whistle with its edge", datetime.datetime(2026, 11, 22, 8, 20), "",
            "the whistle and the flute written for House played on the whistle with its edge (patches \"house lead whistle\": the "
            "sine leaned toward a saw, the octave's triangle louder, more breath, a soft saturation, the filter at 6 kHz) in the "

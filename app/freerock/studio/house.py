@@ -550,6 +550,30 @@ PLAN: tuple[Family, ...] = (
     Family("camp-01", "Embers under Stars", ("pastoral", "regal", "highland"), "camp", S01, True, 2, "L2", (8, 16, 8, 16, 8), "half", 0.08, "606", "ember"),
     Family("camp-02", "The Long Wait", ("haunted", "infernal", "mystic"), "camp", S01, False, 9, "D3", (8, 16, 8, 16, 8), "none", 0.0, "808", "night"),
     Family("camp-03", "Heat Haze", ("desert", "jungle", "mystic"), "camp", S01, True, 6, "X1", (8, 16, 8, 16, 8), "half", 0.12, "707", "ember"),
+    # (2026-11-22: "lets work on filling that drive with more music for every scenario, following everything weve learned".) A
+    # new set: a family more for each kind of place, its key, changes, shape, groove and machine none of its kind's; and the
+    # marsh's, the coast's and the snow's own inn, night, cave, camp, storm, fight, boss and town, which had the nearest of the
+    # others' until now; and a third battleground.
+    Family("pastoral-05", "Hay Bale Sunset", ("pastoral",), W, S01, True, 2, "M5", (16, 16, 8, 24, 16), "four", 0.08, "707", "pastoral"),
+    Family("highland-06", "Cairn Wind", ("highland", "frozen"), W, S01, False, 4, "N4", (16, 24, 8, 24, 8), "four", 0.0, "808", "highland-deep"),
+    Family("haunted-06", "Gaslight", ("haunted",), W, S01, False, 10, "N5", T8, "broken", 0.0, "909", "haunted-dark"),
+    Family("desert-06", "Salt Caravan", ("desert",), W, S01, True, 3, "P4", (16, 16, 8, 24, 16), "broken3", 0.1, "707", "desert"),
+    Family("jungle-06", "Monsoon Drums", ("jungle", "marsh"), W, S01, False, 2, "N6", T8, "broken2", 0.06, "808", "jungle-dark"),
+    Family("infernal-05", "Cinder Bloom", ("infernal",), W, S01, True, 9, "D4", E5, "four", 0.0, "707", "infernal-light"),
+    Family("regal-05", "Gilded Halls", ("regal",), W, S01, True, 7, "M3", T8, "four", 0.04, "909", "regal"),
+    Family("mystic-05", "Moth Wings", ("mystic",), W, S01, True, 1, "L2", (16, 16, 8, 24, 16), "broken", 0.08, "606", "mystic"),
+    Family("marsh-04", "Willow Lanterns", ("marsh",), W, S01, True, 4, "D1", E5, "four", 0.06, "707", "marsh"),
+    Family("coast-04", "Tidepools", ("coast",), W, S01, True, 11, "L1", T8, "broken", 0.08, "606", "coast"),
+    Family("frozen-04", "Hoarfrost", ("frozen",), W, S01, False, 6, "N2", (16, 24, 8, 24, 8), "four", 0.0, "808", "frozen-deep"),
+    Family("ember-04", "Driftwood Hearth", ("marsh", "coast", "frozen"), "ember", S01, True, 2, "M4", (8, 16, 8, 16, 8), "half", 0.12, "707", "ember"),
+    Family("night-04", "Moonlit Ebb", ("marsh", "coast", "frozen"), "night", S01, True, 9, "L1", E5, "four", 0.04, "808", "night"),
+    Family("depths-04", "Sunken Grotto", ("marsh", "coast", "frozen"), "depths", S01, False, 4, "N6", (16, 24, 8, 24, 8), "broken2", 0.0, "909", "depths"),
+    Family("camp-04", "Tide Camp", ("marsh", "coast", "frozen"), "camp", S01, True, 7, "L3", (8, 16, 8, 16, 8), "half", 0.1, "606", "ember"),
+    Family("storm-03", "Squall", ("marsh", "coast", "frozen"), "storm", S01, False, 0, "N3", (8, 16, 16, 24, 8), "broken", 0.0, "909", "storm"),
+    Family("battle-05", "Breakers", ("marsh", "coast", "frozen"), "battle", S2, False, 2, "P3", (4, 16, 8, 16, 8), "four", 0.0, "909", "battle"),
+    Family("boss-03", "The Leviathan", ("marsh", "coast", "frozen"), "boss", S2, False, 3, "N5", (8, 16, 8, 24, 8), "four", 0.0, "909", "battle"),
+    Family("town-03", "Fishmarket", ("marsh", "coast", "frozen"), "town", S01, True, 10, "M6", (8, 16, 8, 16, 8), "broken2", 0.1, "707", "coast"),
+    Family("battleground-03", "Siege Bells", ANY, "battleground", S012, False, 6, "N4", (4, 16, 8, 24, 8), "four", 0.0, "909", "battle"),
 )
 TAKES = (1, 2, 3)
 NUMERALS = {1: "I", 2: "II", 3: "III", 4: "IV", 5: "V"}
