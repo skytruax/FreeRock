@@ -1817,6 +1817,7 @@ def test_a_light_bands_summit_comes_back_harder_after_its_solo(monkeypatch):
     # judges heard it, with GEARED_SHAPE: LIGHT_SUMMIT_TURNS. Their ways are kept, and held here.)
     monkeypatch.setattr(orchestra, "LIGHT_SUMMIT_TURNS", True)
     monkeypatch.setattr(orchestra, "GEARED_SHAPE", True)
+    monkeypatch.setattr(orchestra, "STOP_TIME", False)      # (the stop-time after the solo is its own way back: held apart here)
     seen = 0
     for name, number in (("coast-sea-dog-2", 5), ("desert-oasis-shuffle-2", 1)):
         take = orchestra.Take(_family(name), number)
@@ -1848,6 +1849,36 @@ def test_a_light_bands_summit_comes_back_harder_after_its_solo(monkeypatch):
             assert figure(cut) != figure(cut - beats) and len(figure(cut)) != len(figure(cut - beats)), name
         else:
             assert figure(cut) == figure(cut - beats) or len(figure(cut)) == len(figure(cut - beats)), name    # the octaves stay
+        seen += 1
+    assert seen == 2
+
+
+def test_a_light_band_plays_stop_time_after_its_solo(monkeypatch):
+    # (2026-11-21, the study: a light band's rhythm one colour 20 to 31 bars through its summit after the solo.) A blues or a
+    # country band's way back from a solo (STOP_TIME): for STOP_BARS bars the band strikes the chord together on the bar's
+    # first beat and lays out, the rhythm, the bass and the texture alike, while the tune carries on alone; then the band is
+    # back in. (Left off since the judges heard it: its way is kept, and held here.)
+    monkeypatch.setattr(orchestra, "STOP_TIME", True)
+    seen = 0
+    for name, number in (("coast-sea-dog-2", 5), ("desert-oasis-shuffle-2", 1)):
+        take = orchestra.Take(_family(name), number)
+        assert take.ch.band and not take.heavy and not take.fight and take.soloed
+        first, last = spans_of(take)["summit"]
+        beats = take.fam.beats
+        cut = first + take.solo_bars * beats
+
+        def struck(channel: str, a: float, b: float) -> list:
+            return [note for voice in take.voices[channel].values() for note in voice.notes if a - 1e-6 <= note.start < b - 1e-6]
+
+        stops = [cut + bar * beats for bar in range(orchestra.STOP_BARS)]
+        for at in stops:
+            for channel in ("rhythm", "bass", "texture"):
+                late = [note for note in struck(channel, at, at + beats) if note.start > at + 1e-6]
+                assert not late, (name, channel, at, late[:3])
+            assert struck("rhythm", at, at + 1e-3) and struck("bass", at, at + 1e-3), (name, at)
+        assert struck("lead", cut, cut + orchestra.STOP_BARS * beats), name           # the tune carries on alone
+        back = cut + orchestra.STOP_BARS * beats
+        assert any(note.start > back + 1e-6 for note in struck("rhythm", back, back + beats)), name     # the band back in
         seen += 1
     assert seen == 2
 

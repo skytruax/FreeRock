@@ -208,6 +208,10 @@ if sounds.OWN_HOUSE:
 # 20 dB over the liked leads there).
 OPEN_TOP = ("house lead saw", "house lead super")
 SUB_UNDER = 0.8     # ...this far under the bass it holds up (0.7 until the third pass: the liked basses have 3 to 7 dB more at 28 to 57 Hz)
+# House's room, at the foot of every channel's folder (sounds.hall): how long it rings (s), nothing in it over (Hz) or under
+# (Hz), and how long its lows ring against the rest. A darker room than the orchestra's, as it was set the first night
+# (2026-11-16) and never tried since.
+ROOM = (1.5, 6000.0, 80.0, 1.2)
 
 
 def _span_of(at: float) -> int:
@@ -744,7 +748,8 @@ def perform(sheet: Sheet) -> dict:
         folders.append((desk.Line(channel, desk.bare(channel, []), effects=bus, moves=moves), under[channel]))
     seconds = sheet.bars * house.BAR
     rpp = work / "track.rpp"
-    rpp.write_text(desk.project(folders, bpm=float(house.BPM), seconds=seconds, out=work, tail=forever.POST_S, hall=sounds.hall(1.5, top=6000.0)), encoding="utf-8")       # a darker room than the orchestra's
+    rpp.write_text(desk.project(folders, bpm=float(house.BPM), seconds=seconds, out=work, tail=forever.POST_S,
+                                 hall=sounds.hall(ROOM[0], top=ROOM[1], low=ROOM[2], low_ring=ROOM[3])), encoding="utf-8")
     with reaper.Display() as display:
         desk.render(rpp, display=display, timeout=300.0 + 12.0 * seconds)       # (see build.stage)
     parts = desk.stems(work, [bus.name for bus, _ in folders], frames)

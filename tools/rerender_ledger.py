@@ -180,6 +180,27 @@ def whistle_solo(piece: Piece) -> bool:
     return bool(json.loads(sheet.read_text(encoding="utf-8")).get("parts", {}).get("lead", {}).get("whistle solo"))
 
 
+def stop_time(piece: Piece) -> bool:
+    """A light band's take whose staged sheet has a solo at the summit with STOP_BARS + 4 bars of the summit or more after it:
+    where orchestra.STOP_TIME is on, the band plays stop-time there (left off since the judges heard it, 2026-11-21: this is
+    for the day it is switched on). (The solo's end is read as its last note's bar,
+    so a solo ending on a rest counts the rest as after it: a take more rather than one missed.)"""
+    ch = piece.character
+    if piece.style == "house" or not getattr(ch, "band", False) or ch.weight >= 0.8 or getattr(ch, "role", "") in FIGHTS:
+        return False
+    sheet = STUDIO / piece.style / piece.key / "sheet.json"
+    if not sheet.is_file():
+        return False
+    data = json.loads(sheet.read_text(encoding="utf-8"))
+    solo = [note for name, part in data.get("parts", {}).get("lead", {}).items() if name.endswith(" solo") for note in part["notes"]]
+    summit = next((section for section in data.get("form", []) if section.get("part") == "summit"), None)
+    if not solo or summit is None:
+        return False
+    from freerock.studio import orchestra
+    ends = -(-max(note[0] + note[1] for note in solo) // data["beats"])        # the bar after the solo's last note
+    return summit["first"] + summit["bars"] - ends >= orchestra.STOP_BARS + 4
+
+
 def house_take(piece: Piece) -> bool:
     """A House take: since House's own instruments and kick (sounds.OWN_HOUSE, club.OWN_KICK, 2026-11-21) every one of them
     plays its own sounds, the kick among them, where it played the factory patches and the machine's samples."""
@@ -206,6 +227,13 @@ class Change:
 
 
 CHANGES = [
+    Change("House's own sounds as designed, and the rest of them", datetime.datetime(2026, 11, 21, 21, 35), "",
+           "House's own Surge patches drawn as their designs say (Surge's classic oscillator makes a square at its Shape -1 and an "
+           "octave-up double saw at +1, which the designs had read as a triangle and a square: the leads' squares under them had "
+           "been saws at the note, the hollow pad saws, the glass pad squares), and the rest of what House played as the factory "
+           "made it its own: the FM bass, the reese, the square bass, the whistle's lead, the bell (the plucked bass and the "
+           "hollow lead stay the factory's)",
+           house_take),
     Change("House plays its own instruments and kick", datetime.datetime(2026, 11, 21, 13, 33), "",
            "House's sounds designed in code where it had played Surge's factory patches as they come (studio/patches.py: the "
            "bass, the harsh twin, the pluck, the glass, the stab, four pads, two leads; their tops kept at the desk) and its kick "

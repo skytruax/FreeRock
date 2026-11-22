@@ -116,6 +116,36 @@ def test_houses_own_patches_are_written_as_designed():
     assert pad["a_env1_attack"] >= patches.seconds(0.5) and pad["a_env1_release"] >= patches.seconds(1.5)
 
 
+def test_houses_own_oscillators_are_the_waves_they_say():
+    # (2026-11-21, afternoon: the classic oscillator's Shape -1 is a pulse and +1 a double saw, an octave up; the designs had
+    # read them the other way about.) A classic oscillator is a saw or a pulse, a triangle is the modern oscillator's, and an
+    # oscillator of another kind is written with its own settings' kinds: the FM2's ratios as whole numbers.
+    import struct
+    import xml.etree.ElementTree as ET
+    from freerock.studio import desk, patches
+    with pytest.raises(ValueError):
+        patches.osc(1, shape=1.0)
+    for name, (values, _) in patches.DESIGNS.items():
+        state = patches.state(name, desk.SURGE)
+        size = struct.unpack("<I", state[4:8])[0]
+        params = ET.fromstring(state[32:32 + size].decode("utf-8")).find("parameters")
+        for n in (1, 2, 3):
+            kind = int(params.find("a_osc%d_type" % n).get("value"))
+            if params.find("a_mute_o%d" % n).get("value") == "1":
+                continue
+            if kind == patches.CLASSIC:
+                assert float(params.find("a_osc%d_param0" % n).get("value")) in (patches.SAW, patches.PULSE), (name, n)
+            elif kind == patches.FM2:
+                assert params.find("a_osc%d_param1" % n).get("type") == "0" == params.find("a_osc%d_param3" % n).get("type"), name
+            elif kind == patches.MODERN:
+                assert float(params.find("a_osc%d_param2" % n).get("value")) == 1.0, name     # its triangle all the way in
+    # As described: the hollow pad's squares, the glass pad's triangles, the lead's square an octave under it.
+    hollow, glass, lead = (patches.DESIGNS[name][0] for name in ("house pad hollow", "house pad glass", "house lead"))
+    assert hollow["a_osc1_param0"] == patches.PULSE and hollow["a_osc1_param1"] == 0.5
+    assert glass["a_osc1_type"] == patches.MODERN
+    assert lead["a_osc2_param0"] == patches.PULSE and lead["a_osc2_octave"] == -1
+
+
 def test_house_plays_its_own_patches():
     # (2026-11-21) Where House leaned on the factory patches most, it plays its own (sounds.OWN_HOUSE): the desk loads them
     # from their designs, at the note written.
@@ -1095,6 +1125,35 @@ def test_a_grooves_mids_can_turn_a_house_way(monkeypatch, way):
     else:
         assert [hit for hit in struck(1) if hit[0] == way and hit[1] in (4, 12)]
         assert not [hit for hit in struck(0) if hit[0] == way and hit[1] in (4, 12)]
+
+
+def test_a_long_themes_bass_lifts_at_its_half(monkeypatch):
+    # (2026-11-21, the study: Stone and Sky III's bass one colour 31 to 40 bars through its 48-bar theme.) With THEME_BASS_TURNS,
+    # in the second half of a theme of 32 bars or more the bass's roots on the off-beats of two and four go up an octave (or,
+    # where they are there already, its third off-beat goes to the fifth); its first half and every other part as they were.
+    from freerock.studio import club
+
+    def bass_of(name: str, number: int) -> tuple:
+        take = house.Take(house.family(name), number)
+        heard = club.listen(take)
+        notes = sorted((round(note[0] / club.BEAT, 3), int(round(note[2]))) for (channel, _, _), each in heard.notes.items()
+                       if channel == "bass" for note in each)
+        return take, notes
+
+    monkeypatch.setattr(house, "THEME_BASS_TURNS", False)
+    take, before = bass_of("highland-04", 3)
+    monkeypatch.setattr(house, "THEME_BASS_TURNS", True)
+    _, after = bass_of("highland-04", 3)
+    assert len(before) == len(after)
+    long = [(first * 4.0, (first + count // 2) * 4.0, (first + count) * 4.0) for story, first, count in take.sections
+            if story == "theme" and count >= 32 and not take.broken(story, first)]
+    assert long
+    moved = [(was, now) for was, now in zip(before, after) if was != now]
+    assert moved
+    for was, now in moved:
+        assert was[0] == now[0] and any(half <= was[0] < end for _, half, end in long), (was, now)
+        assert round((was[0] % 4.0) * 4.0) in (6, 10, 14), (was, now)       # the off-beats of two and four, or the third
+    assert all(was == now for was, now in zip(before, after) if not any(half <= was[0] < end for _, half, end in long))
 
 
 def test_a_calm_rise_builds_its_bass_softly(monkeypatch):

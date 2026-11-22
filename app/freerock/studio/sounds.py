@@ -470,7 +470,13 @@ OWN_PATCHES = {"house bass saw": "own:house bass", "house pluck": "own:house plu
                # (The second five, by how much House plays them: the drop's big lead, the glass pluck, three pads, and the
                # harsh twin of club.harsher, a sound of its own where the wide bass had stood unheard.)
                "house lead super": "own:house lead super", "house glass": "own:house glass", "house pad warm": "own:house pad warm",
-               "house pad hollow": "own:house pad hollow", "house pad glass": "own:house pad glass", "house bass harsh": "own:house bass harsh"}
+               "house pad hollow": "own:house pad hollow", "house pad glass": "own:house pad glass", "house bass harsh": "own:house bass harsh",
+               # (The third set, that afternoon: the rest of what House played as the factory made it, the sub aside. The plucked
+               # bass and the hollow lead were designed too, and the judges kept the factory's: Reedlight I's theme down on every
+               # judge with the hollow lead, TuneJury 1.64 to 1.40, Audiobox's enjoyment 7.69 to 7.35, and its drop level to down
+               # with the plucked bass. Their designs wait in patches.DESIGNS for another try.)
+               "house bass fm": "own:house bass fm", "house bass wide": "own:house bass wide",
+               "house bass square": "own:house bass square", "house lead sine": "own:house lead sine", "house bell": "own:house bell"}
 if OWN_HOUSE:
     HOUSE.update(OWN_PATCHES)
     HOUSE_OCTAVE.update({name: 0 for name in OWN_PATCHES})
@@ -939,12 +945,13 @@ def bus(channel: str, style: str = "") -> list[str]:
     return [equalise(low_cut=28.0, high_shelf=(5000.0, 1.0)), squeeze(-14.0, 2.0, 30.0, 250.0, 1.0), warm(0.15), ceiling(-1.5, push=0.5)]
 
 
-def hall(seconds: float, *, top: float = 10000.0) -> str:
+def hall(seconds: float, *, top: float = 10000.0, low: float = 80.0, low_ring: float = 1.2) -> str:
     """The hall at the foot of a channel's folder (Dragonfly's hall reverb, giving only what
-    the room adds): a concert hall that rings `seconds`, nothing in it above `top` Hz."""
+    the room adds): a concert hall that rings `seconds`, nothing in it above `top` Hz or under `low`,
+    its lows (under 400 Hz) ringing `low_ring` times as long as the rest."""
     # Its "Large Bright Hall", with less ring in the bass and less wobble (its maker's advice for an orchestra).
     return desk.bare("hall", [desk.lv2("Dragonfly Hall Reverb", dry_level=0.0, early_level=0.0, late_level=100.0, size=min(24.0 + 7.5 * seconds, 58.0),
-                                       width=100.0, delay=28.0, diffuse=90.0, low_cut=80.0, low_xo=400.0, low_mult=1.2, high_cut=top,
+                                       width=100.0, delay=28.0, diffuse=90.0, low_cut=low, low_xo=400.0, low_mult=low_ring, high_cut=top,
                                        high_xo=min(5800.0, top * 0.58), high_mult=0.5, spin=1.0, wander=15.0, decay=seconds, early_send=20.0,
                                        modulation=10.0)])
 

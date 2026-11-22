@@ -1374,6 +1374,16 @@ LIGHT_GEARS = True       # a light band's long arrival goes up a gear every seco
 # making a light band's octaves a walk) still down (-0.11, -0.31): its banjo an octave up or the ride is the rest. The meter heard
 # the turn (Anchor Dog V's rhythm one colour 38 bars before, 22 after). The light band's summit is still owed its turn.
 LIGHT_SUMMIT_TURNS = False  # after a light band's solo its summit comes back harder: the rhythm up a gear, the ride, the bass moving more
+# (2026-11-21, the study: a light band's rhythm one colour 20 to 31 bars through its summit after the solo, Whiskey Groove II
+# and IV, Ridge Rover III, Sunny Wheels I; the last chorus played harder judged level and down, above.) A blues or a country
+# band's way back from a solo: stop-time, the band striking the chord together on the bar's first beat and laying out while
+# the tune carries on alone, three bars, then the drummer's fill in the fourth and the band back in on a crash.
+# (Left off, the same evening: the judges on Whiskey Groove's sixteen bars from four before the solo's end, TuneJury with the
+# band brief 0.79 to 0.38 and with none 1.48 to -0.93, Audiobox's enjoyment 7.44 to 6.76, SongEval level: three bars of the
+# tune alone over the band's stabs heard as a hole, not a breath; Midnight Vigil's level, 0.37 to 0.31, enjoyment 7.39 to
+# 7.49. Its way is kept, and held in its test.)
+STOP_TIME = False        # after a light band's solo its band plays stop-time for STOP_BARS bars (Take.stop_time)
+STOP_BARS = 4
 # (2026-11-20, the study: Lazy River Sway I's banjo, geared after its solo, back at its own register within twelve bars, and
 # from a chord spread over 21 semitones: a geared voicing was led apart from the bars before it, about a centre an octave up,
 # and each voice moves to the nearest note of the next chord anywhere within 14 semitones of it, so it walked back down.)
@@ -2768,8 +2778,8 @@ class Take:
         self.gaps = [(first + section.bars * self.beats - self.breath, first + section.bars * self.beats)
                      for section, first, _, _ in self.spans if section.part in ("build", "climb")]
         self.cast()
-        for write in (self.lead, self.answer, self.make_room, self.texture, self.rhythm, self.bass, self.drums, self.war_drums, self.marks,
-                      self.breathe, self.effects):
+        for write in (self.lead, self.answer, self.make_room, self.texture, self.lay_out, self.rhythm, self.bass, self.drums,
+                      self.war_drums, self.marks, self.breathe, self.effects):
             write()
 
     def own(self, what: str) -> random.Random:
@@ -3708,6 +3718,10 @@ class Take:
                             continue
                         if not self.breathing(bar_at + on):
                             self.put("rhythm", "muted guitar", bar_at + on, 0.22, chug, loud * 0.62)
+            elif figure == "stoptime":
+                # A stop (STOP_TIME): the chord struck short on the bar's first beat, and nothing after it.
+                for rank, pitch in enumerate(notes):
+                    pluck(name, rank, bar_at, beats * 0.25, pitch, loud, short=True)
             elif figure == "pattern":
                 for slot, which in enumerate(pattern_b if second else pattern_a):
                     if which is None or (thin and slot % 2):
@@ -3738,6 +3752,11 @@ class Take:
                            "close": 0.4 * (1.0 - along)}[part]
                 if self.bass_break(part, bars, bar):
                     continue                                     # the guitars rest while the bass leads the band back in
+                if self.stop_time(part, bars, bar):
+                    # Stop-time after a light band's solo (STOP_TIME): the chord together on the first beat, the second figure
+                    # and the muted string resting, the tune alone after it.
+                    layer(name, "stoptime", second, 0, 1.0, key, chord, bar, first + bar * beats, max(level, 0.7), 1.0)
+                    continue
                 end = self.ending(part, bars, bar)
                 if end == "drive":
                     density, level = 0.8, max(level, 0.6)        # the riff goes on through a band's close
@@ -3927,6 +3946,9 @@ class Take:
                        "climb": two if along < 0.5 else drive, "summit": one, "close": "long"}[part]
                 if self.after_solo(part, bar):
                     way = LAST_CHORUS.get(way, way)          # a light band's last chorus: its bass moves more (LIGHT_SUMMIT_TURNS)
+                if self.stop_time(part, bars, bar):
+                    low(bar_at, beats * 0.25, root, self.hard(max(level, 0.7), 0.9))   # a stop: the root with the band's chord
+                    continue
                 if self.bass_break(part, bars, bar):
                     self._bass_solo_bar(key, chord, chords, bar, bars, bar_at, root, inst, low, level)
                     continue
@@ -4188,6 +4210,30 @@ class Take:
                 interval = 12                                            # the second time: the leap to the octave
             low(bar_at + on * scale, beats_long * scale * 0.9, base + interval, loud * (1.0 if on == 0 else 0.88))
 
+    def lay_out(self) -> None:
+        """The texture stops with the band in a light band's stop-time (`stop_time`): its notes struck after a stop's first beat
+        are taken out, and one struck on it or held into it is cut to the band's short chord, so that the tune is alone
+        between the band's chords."""
+        for section, first, _, _ in self.spans:
+            if section.part != "summit":
+                continue
+            stops = [first + bar * self.beats for bar in range(section.bars) if self.stop_time("summit", section.bars, bar)]
+            if not stops:
+                continue
+            short = self.beats * 0.25
+            for voice in self.voices["texture"].values():
+                kept = []
+                for note in voice.notes:
+                    at = next((bar_at for bar_at in stops if bar_at - 1e-6 <= note.start < bar_at + self.beats - 1e-6), None)
+                    if at is not None and note.start > at + 1e-6:
+                        continue                                    # struck after a stop's chord: taken out
+                    into = next((bar_at for bar_at in stops if note.start < bar_at - 1e-6 < note.start + note.length - 1e-6), None)
+                    if at is not None or into is not None:
+                        ends = (at if at is not None else into) + short
+                        note = Note(note.start, max(min(note.length, ends - note.start), 0.05), note.pitch, note.loud)
+                    kept.append(note)
+                voice.notes = kept
+
     def make_room(self) -> None:
         """The lead rests through the bass's break (`bass_break`): its notes there are taken out, every voice of the lead."""
         if not (BASS_SOLO and self.ch.band and self.heavy):
@@ -4246,6 +4292,18 @@ class Take:
         twice as often and the bass pumping its octaves (`digs_in`)."""
         return LIGHT_SUMMIT_TURNS and self.ch.band and not self.heavy and not self.fight and part == "summit" \
             and self.soloed and bar >= self.solo_bars
+
+    def stop_time(self, part: str, bars: int, bar: int) -> str | None:
+        """A bar of a light band's stop-time after its solo (STOP_TIME): "stop" in the first STOP_BARS - 1 bars after it, the
+        chord struck together on the bar's first beat and nothing after it, the tune alone; "pickup" in the last, struck the
+        same, with the drummer's fill into the band's return; None elsewhere, and where the summit has fewer than four bars
+        after the stops for the band to come back in."""
+        if not (STOP_TIME and self.ch.band and not self.heavy and not self.fight and part == "summit" and self.soloed):
+            return None
+        inside = bar - self.solo_bars
+        if not 0 <= inside < STOP_BARS or bars - self.solo_bars < STOP_BARS + 4:
+            return None
+        return "pickup" if inside == STOP_BARS - 1 else "stop"
 
     def geared(self, part: str, bars: int, bar: int) -> bool:
         """Whether a bar of an orchestra's arrival or summit is in one of its geared phrases: where the moment is two phrases
@@ -4399,9 +4457,20 @@ class Take:
                         for index in range(count):
                             done = ((bar - (bars - length)) * count + index) / (length * count)
                             self.strike(roll, bar_at + index * step, (0.2 + 0.7 * done) * (0.6 + 0.4 * ch.weight), chord, key)
+                elif self.stop_time(part, bars, bar):
+                    # Stop-time after a light band's solo (STOP_TIME): the crash and the bass drum with the band's chord on the
+                    # first beat, the hat on two and four keeping the time, and in the last bar a fill into the band's return.
+                    self.strike("crash", bar_at, 0.85, chord, key)
+                    self.strike("boom", bar_at, 0.85, chord, key)
+                    lay([("hat", "back", 0.35)], bar, bar_at, level, 0.6, chord, key)
+                    if self.stop_time(part, bars, bar) == "pickup" and self.fill_of(main):
+                        for index in range(4):
+                            self.strike(self.fill_of(main), bar_at + beats - (4 - index) * 0.25, 0.5 + 0.12 * index, chord, key)
                 elif part in ("arrival", "summit"):
                     big = part == "summit"
                     groove = self.cymbal(main["moment"], bar, moment=True)
+                    if self.stop_time(part, bars, bar - 1) == "pickup":
+                        self.strike("crash", bar_at, 0.95, chord, key)       # the band back in after its stop-time
                     if self.after_solo(part, bar):
                         # After a light band's solo the drummer goes over to the ride for the last chorus (2026-11-20, the
                         # study: Lazy River Sway I's drums one colour 27 bars of its summit, on the hats all through).

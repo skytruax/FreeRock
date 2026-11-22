@@ -895,6 +895,21 @@ BASSES = {
     "long": ((0, 15.0, "R"),),
     "dub": ((0, 3.0, "R"), (7, 1.5, "R"), (10, 3.0, "F")),
 }
+# (2026-11-21, the study: Stone and Sky III, The Forge at Rest III and Ash Wind I's bass one colour 31 to 40 bars through a
+# theme, its figure the same from the eighth bar to the rise.) In a walking or fighting piece's theme of 32 bars or more, the
+# bass lifts at the theme's half, as a house bassline does on its way to the drop: its roots on the off-beats of two and
+# four pop up an octave (`lifted`). The long and the dub figures stay as they are. Off until the judges have heard it.
+THEME_BASS_TURNS = False
+LIFT_STEPS = (6, 14)            # the sixteenths of the off-beats of two and four
+
+
+def lifted(figure: tuple) -> tuple:
+    """A bass figure lifted for the second half of a long theme: its roots on the off-beats of two and four an octave up;
+    a figure that pops its octave there already puts its fifth on the third off-beat instead."""
+    out = tuple((step, length, "O" if which == "R" and step in LIFT_STEPS else which) for step, length, which in figure)
+    if out == tuple(figure):
+        out = tuple((step, length, "F" if which == "R" and step == 10 else which) for step, length, which in figure)
+    return out
 # Where chords are struck in a bar, by figure: (sixteenth, how long).
 STABS = (
     ((2, 1.5), (6, 1.5), (10, 1.5), (14, 1.5)),
@@ -1245,6 +1260,9 @@ class Take:
                     notes = figure
                     if story == "theme" and inside < 4 and style in ("rolling", "synco", "tresillo"):
                         notes = BASSES["offbeat"]              # it starts plainly and fills in
+                    elif (THEME_BASS_TURNS and story == "theme" and count >= 32 and inside >= count // 2 and style not in ("long", "dub")
+                          and fam.role not in CALM_ROLES):
+                        notes = lifted(figure)                 # a long theme's second half: the bass lifts
                     for step, length, which in notes:
                         pitch = self.bass_note(chord, which if not (which in ("O", "F") and story == "theme" and inside < 8) else "R", after)
                         synth.play(out, sound, self.at(bar, step), length * STEP * 0.92, pitch, loud * 0.5 * (0.85 + rng.random() * 0.15),

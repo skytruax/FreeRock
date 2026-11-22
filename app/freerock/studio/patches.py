@@ -22,11 +22,25 @@ from pathlib import Path
 BASE = "patches_factory/Templates/Init Saw.fxp"
 
 # Surge XT 1.3's numbers (src/common/SurgeStorage.h, ModulationSource.h; sst-filters' FilterConfiguration.h).
-CLASSIC = 0                                         # the classic oscillator: Shape -1 triangle, 0 saw, +1 pulse
+CLASSIC = 0                                         # the classic oscillator: a saw, or a pulse (see `osc`)
+SINE, FM3, FM2, MODERN = 1, 5, 6, 8                 # the sine, the two FM oscillators (each a sine modulated by sines), the modern
+# The classic oscillator's Shape: 0 a saw; -1 a pulse as wide as its Width 1, a square at 0.5 (Surge's own "Init Square"
+# template). Its +1 is a double saw, at the default widths a saw an octave over the note, and no design uses it.
+# (2026-11-21, afternoon: the first two sets of designs had read -1 as a triangle and +1 as a square. Played alone and
+# their harmonics read, -1 at 0.5 had only the odd harmonics, a square's, and +1 only the even ones: their "squares" had
+# been saws an octave up, and their "triangles" squares. A triangle is the modern oscillator's: `triangle`.)
+SAW, PULSE = 0.0, -1.0
 LP12, LP24, LADDER, HP12, OBXD4 = 1, 2, 3, 4, 12    # filters; the legacy ladder's subtype 3 is 24 dB
 WS_SOFT = 1                                         # the waveshaper's soft saturation (after the first filter); its drive in dB
 SOURCES = {"velocity": 1, "keytrack": 2, "amp env": 15, "filter env": 16, "lfo1": 17, "lfo2": 18, "scene lfo1": 23,
            "scene lfo2": 24, "random": 31}
+# An oscillator of another kind keeps its seven settings in other units, some of them whole numbers where the saw's are
+# fractions, and starts from other values (the saw's unison of one voice would be the FM2's feedback turned all the way
+# up). It takes all seven, kinds and values, from a patch that has it as its first oscillator, and the design's on top:
+# Surge's empty sine and empty FM2, and for the FM3, which has no empty patch, the factory's "FM Bass 5" (whose values
+# the design replaces, every one: see `fm3`).
+KINDS = {SINE: "patches_factory/Templates/Init Sine.fxp", FM2: "patches_factory/Templates/Init FM2.fxp",
+         FM3: "patches_factory/Basses/FM Bass 5.fxp", MODERN: "patches_factory/Templates/Init Modern.fxp"}
 
 
 def seconds(value: float) -> float:
@@ -42,11 +56,50 @@ def rate(value: float) -> float:
     return math.log2(value)
 
 
-def osc(n: int, *, shape: float = 0.0, octave: int = 0, pitch: float = 0.0, voices: int = 1, detune: float = 0.1,
+def osc(n: int, *, shape: float = SAW, octave: int = 0, pitch: float = 0.0, voices: int = 1, detune: float = 0.1,
         level: float = 1.0, width: float = 0.5) -> dict:
+    """The classic oscillator: a saw (`SAW`) or a pulse `width` wide (`PULSE`, a square at 0.5). With more than one voice
+    the outermost are `detune` semitones either side of the note and the rest between."""
+    if shape not in (SAW, PULSE):
+        raise ValueError("the classic oscillator is drawn as a saw or a pulse here, not Shape %r" % shape)
     p = "a_osc%d_" % n
     return {p + "type": CLASSIC, p + "octave": octave, p + "pitch": pitch, p + "param0": shape, p + "param1": width,
             p + "param5": detune, p + "param6": voices, "a_level_o%d" % n: level, "a_mute_o%d" % n: 0}
+
+
+def triangle(n: int, *, octave: int = 0, pitch: float = 0.0, voices: int = 1, detune: float = 0.1, level: float = 1.0) -> dict:
+    """A triangle: the modern oscillator with its saw and pulse out and its third wave (a triangle) all the way in."""
+    p = "a_osc%d_" % n
+    return {p + "type": MODERN, p + "octave": octave, p + "pitch": pitch, p + "param0": 0.0, p + "param1": 0.0, p + "param2": 1.0,
+            p + "param3": 0.5, p + "param4": 0.0, p + "param5": detune, p + "param6": voices, "a_level_o%d" % n: level,
+            "a_mute_o%d" % n: 0}
+
+
+def sine(n: int, *, feedback: float = 0.0, octave: int = 0, pitch: float = 0.0, level: float = 1.0) -> dict:
+    """The sine oscillator (its shape 0, the pure sine); feedback leans it toward a saw."""
+    p = "a_osc%d_" % n
+    return {p + "type": SINE, p + "octave": octave, p + "pitch": pitch, p + "param0": 0, p + "param1": feedback,
+            p + "retrigger": 1, "a_level_o%d" % n: level, "a_mute_o%d" % n: 0}
+
+
+def fm2(n: int, *, m1: float, r1: int = 1, m2: float = 0.0, r2: int = 1, feedback: float = 0.0, octave: int = 0,
+        pitch: float = 0.0, level: float = 1.0) -> dict:
+    """The FM2 oscillator: a sine modulated by two sines at whole-number ratios of its note. An amount `m` is a
+    modulation index of 32 pi m cubed (0.2 is 0.8, 0.3 is 2.7, 0.4 is 6.4): the higher, the more harmonics. Its phase
+    starts again with every note, so every note has the same attack."""
+    p = "a_osc%d_" % n
+    return {p + "type": FM2, p + "octave": octave, p + "pitch": pitch, p + "param0": m1, p + "param1": r1, p + "param2": m2,
+            p + "param3": r2, p + "param4": 0.0, p + "param5": 0.0, p + "param6": feedback, p + "retrigger": 1,
+            "a_level_o%d" % n: level, "a_mute_o%d" % n: 0}
+
+
+def fm3(n: int, *, m1: float, r1: float = 1.0, m2: float = 0.0, r2: float = 1.0, feedback: float = 0.0, octave: int = 0,
+        pitch: float = 0.0, level: float = 1.0) -> dict:
+    """The FM3 oscillator: as the FM2, its ratios any number (3.5 is a bell's), its third modulator left off."""
+    p = "a_osc%d_" % n
+    return {p + "type": FM3, p + "octave": octave, p + "pitch": pitch, p + "param0": m1, p + "param1": r1, p + "param2": m2,
+            p + "param3": r2, p + "param4": 0.0, p + "param5": 0.0, p + "param6": feedback, p + "retrigger": 1,
+            "a_level_o%d" % n: level, "a_mute_o%d" % n: 0}
 
 
 def env(which: int, attack: float, decay: float, sustain: float, release: float) -> dict:
@@ -55,6 +108,9 @@ def env(which: int, attack: float, decay: float, sustain: float, release: float)
 
 
 # Each design: its parameters (on the empty saw) and its modulations, {parameter: [(source, depth), ...]}.
+# (The first two sets were measured, refined against the factory patches and judged while their squares were saws an octave
+# up and their triangles squares (see SAW, PULSE); the measurements beside them are of those. Drawn as they are described
+# from the afternoon of 2026-11-21, measured and judged again.)
 DESIGNS: dict[str, tuple[dict, dict]] = {
     # The rolling bass's body (the sub plays under it on its own track): a saw and a square a few cents apart, through a
     # 24 dB ladder low-pass that opens on each note and closes within a sixteenth or two, so a line of eighths or sixteenths
@@ -62,7 +118,7 @@ DESIGNS: dict[str, tuple[dict, dict]] = {
     # (2026-11-21, the first demo: its middle 10 dB under the factory saw's at 320 to 640 Hz, where a bass is heard on small
     # loudspeakers, and weighed by loudness it took 2.6 dB more of the lows: the ladder a little more open, the envelope
     # leaving more of itself, and a soft waveshaper after the filter for the harmonics that carry it.)
-    "house bass": ({**osc(1), **osc(2, shape=1.0, pitch=0.07, level=0.55),
+    "house bass": ({**osc(1), **osc(2, shape=PULSE, pitch=0.07, level=0.55),
                     "a_filter1_type": LADDER, "a_filter1_subtype": 3, "a_filter1_cutoff": hz(450.0), "a_filter1_resonance": 0.25,
                     "a_filter1_envmod": 30.0, "a_filter1_keytrack": 0.5, "a_ws_type": WS_SOFT, "a_ws_drive": 6.0,
                     **env(2, 0.004, 0.16, 0.22, 0.08), **env(1, 0.002, 0.5, 0.8, 0.07), "polylimit": 4},
@@ -70,7 +126,7 @@ DESIGNS: dict[str, tuple[dict, dict]] = {
     # The harsh twin (club.harsher): what comes in under a long drop's second half on the bass's own notes, heard as the
     # bass turning harsher. Three detuned saws and a square driven hard through a soft waveshaper, opened to 2.4 kHz, and a
     # 12 dB high-pass at 180 Hz after it, so that it adds the grit and leaves the low end to the bass and the sub.
-    "house bass harsh": ({**osc(1, voices=3, detune=0.15), **osc(2, shape=1.0, level=0.5),
+    "house bass harsh": ({**osc(1, voices=3, detune=0.15), **osc(2, shape=PULSE, level=0.5),
                           "a_filter1_type": LP24, "a_filter1_subtype": 1, "a_filter1_cutoff": hz(2400.0), "a_filter1_resonance": 0.1,
                           "a_filter1_envmod": 12.0, "a_filter2_type": HP12, "a_filter2_subtype": 0, "a_filter2_cutoff": hz(180.0),
                           "a_ws_type": WS_SOFT, "a_ws_drive": 9.0,
@@ -88,7 +144,7 @@ DESIGNS: dict[str, tuple[dict, dict]] = {
     # through a soft 12 dB low-pass that a slow scene LFO (one turn in about twelve seconds) opens and closes by an octave
     # each way: a pad that breathes on its own under the chords, never the same two bars running. Slow in and slow out.
     "house pad": ({**osc(1, voices=7, detune=0.28), **osc(2, octave=-1, voices=5, detune=0.2, level=0.5),
-                   **osc(3, shape=-1.0, octave=1, level=0.2),
+                   **triangle(3, octave=1, level=0.2),
                    "a_filter1_type": LP12, "a_filter1_subtype": 0, "a_filter1_cutoff": hz(1400.0), "a_filter1_resonance": 0.15,
                    "a_filter1_keytrack": 0.3, "a_lfo6_shape": 0, "a_lfo6_rate": rate(0.08), "a_lfo6_trigmode": 0,
                    **env(1, 0.9, 1.0, 0.9, 2.2), "polylimit": 16},
@@ -99,7 +155,7 @@ DESIGNS: dict[str, tuple[dict, dict]] = {
     # (2026-11-21, the demos: open to 2.5 kHz the leads came out 5 to 5.6 dB quieter in the mix and 7 to 10 dB short at 1.25 to
     # 2.5 kHz, the loudness's weighting taking a very bright sound down whole, its middle with it; 13 to 16 dB brighter at
     # 10 kHz. Shut lower and opened by the envelope at each note: the middle back, the fizz gone, the attack bright.)
-    "house lead": ({**osc(1, voices=9, detune=0.18), **osc(2, shape=1.0, octave=-1, level=0.3),
+    "house lead": ({**osc(1, voices=9, detune=0.18), **osc(2, shape=PULSE, octave=-1, level=0.3),
                     "a_filter1_type": LP24, "a_filter1_subtype": 0, "a_filter1_cutoff": hz(1800.0), "a_filter1_resonance": 0.2,
                     "a_filter1_envmod": 18.0, "a_filter1_keytrack": 0.6,
                     **env(2, 0.004, 0.5, 0.4, 0.3), **env(1, 0.005, 0.6, 0.85, 0.3), "a_portamento": seconds(0.04),
@@ -110,7 +166,7 @@ DESIGNS: dict[str, tuple[dict, dict]] = {
     # the anthem's shine and a square an octave down for its body, open high, a short glide: the drop's lead, wider and
     # brighter than the theme's.
     "house lead super": ({**osc(1, voices=16, detune=0.3), **osc(2, octave=1, voices=7, detune=0.2, level=0.2),
-                          **osc(3, shape=1.0, octave=-1, level=0.25),
+                          **osc(3, shape=PULSE, octave=-1, level=0.25),
                           "a_filter1_type": LP24, "a_filter1_subtype": 0, "a_filter1_cutoff": hz(2200.0), "a_filter1_resonance": 0.15,
                           "a_filter1_envmod": 16.0, "a_filter1_keytrack": 0.5,
                           **env(2, 0.004, 0.6, 0.5, 0.4), **env(1, 0.006, 0.8, 0.9, 0.4), "a_portamento": seconds(0.02),
@@ -118,21 +174,21 @@ DESIGNS: dict[str, tuple[dict, dict]] = {
                          {}),
     # The glass pluck (arpeggios and bells over the chords): a narrow pulse and a triangle an octave up, through a 24 dB
     # low-pass thrown open and shut in a sixth of a second: hollow and bright, a bell's ring without a bell's clang.
-    "house glass": ({**osc(1, shape=1.0, width=0.3), **osc(2, shape=-1.0, octave=1, level=0.5),
+    "house glass": ({**osc(1, shape=PULSE, width=0.3), **triangle(2, octave=1, level=0.5),
                      "a_filter1_type": LP24, "a_filter1_subtype": 0, "a_filter1_cutoff": hz(1800.0), "a_filter1_resonance": 0.2,
                      "a_filter1_envmod": 36.0, "a_filter1_keytrack": 0.7,
                      **env(2, 0.002, 0.15, 0.0, 0.2), **env(1, 0.002, 0.5, 0.0, 0.4), "polylimit": 16},
                     {"a_filter1_cutoff": [("velocity", 10.0)]}),
     # The warm pad: five saws over a triangle an octave down through a soft low-pass well under a kilohertz, opening and
     # closing half an octave each way in about seventeen seconds: the pad of the calm places, a bed rather than a shine.
-    "house pad warm": ({**osc(1, voices=5, detune=0.15), **osc(2, shape=-1.0, octave=-1, level=0.6),
+    "house pad warm": ({**osc(1, voices=5, detune=0.15), **triangle(2, octave=-1, level=0.6),
                         "a_filter1_type": LP12, "a_filter1_subtype": 0, "a_filter1_cutoff": hz(900.0), "a_filter1_resonance": 0.1,
                         "a_filter1_keytrack": 0.3, "a_lfo6_shape": 0, "a_lfo6_rate": rate(0.06), "a_lfo6_trigmode": 0,
                         **env(1, 1.2, 1.0, 0.9, 2.5), "polylimit": 16},
                        {"a_filter1_cutoff": [("scene lfo1", 8.0)]}),
     # The hollow pad: squares, three a little apart and one an octave down, through a resonant 24 dB low-pass; a slow
     # triangle moves the squares' width (the hollowness itself breathing) and a slower sine the filter.
-    "house pad hollow": ({**osc(1, shape=1.0, width=0.5, voices=3, detune=0.12), **osc(2, shape=1.0, width=0.5, octave=-1, level=0.5),
+    "house pad hollow": ({**osc(1, shape=PULSE, width=0.5, voices=3, detune=0.12), **osc(2, shape=PULSE, width=0.5, octave=-1, level=0.5),
                          "a_filter1_type": LP24, "a_filter1_subtype": 0, "a_filter1_cutoff": hz(1200.0), "a_filter1_resonance": 0.35,
                          "a_filter1_keytrack": 0.4, "a_lfo6_shape": 1, "a_lfo6_rate": rate(0.1), "a_lfo6_trigmode": 0,
                          "a_lfo7_shape": 0, "a_lfo7_rate": rate(0.05), "a_lfo7_trigmode": 0,
@@ -140,7 +196,7 @@ DESIGNS: dict[str, tuple[dict, dict]] = {
                         {"a_osc1_param1": [("scene lfo1", 0.3)], "a_filter1_cutoff": [("scene lfo2", 6.0)]}),
     # The glass pad: triangles a little apart and narrow pulses an octave up, high-passed at 250 Hz and open on top, its
     # filter turning slowly: air and shimmer over the chords, nothing under them.
-    "house pad glass": ({**osc(1, shape=-1.0, voices=3, detune=0.08), **osc(2, shape=1.0, width=0.25, octave=1, voices=3, detune=0.15, level=0.35),
+    "house pad glass": ({**triangle(1, voices=3, detune=0.08), **osc(2, shape=PULSE, width=0.25, octave=1, voices=3, detune=0.15, level=0.35),
                         "a_filter1_type": LP12, "a_filter1_subtype": 0, "a_filter1_cutoff": hz(3000.0), "a_filter1_resonance": 0.1,
                         "a_filter2_type": HP12, "a_filter2_subtype": 0, "a_filter2_cutoff": hz(200.0),
                         "a_lfo6_shape": 0, "a_lfo6_rate": rate(0.12), "a_lfo6_trigmode": 0,
@@ -148,11 +204,76 @@ DESIGNS: dict[str, tuple[dict, dict]] = {
                        {"a_filter1_cutoff": [("scene lfo1", 7.0)]}),     # (14 to 16 dB brighter than the factory pad at 5-10 kHz, open to 5 kHz: shut lower)
     # The chord stab: three saws and a square through a 24 dB ladder, a quick envelope snapping it open and the note gone
     # in under half a second, so the chords are struck and leave room: a deep house stab, not a held organ.
-    "house stab": ({**osc(1, voices=3, detune=0.1), **osc(2, shape=1.0, pitch=0.05, level=0.5),
+    "house stab": ({**osc(1, voices=3, detune=0.1), **osc(2, shape=PULSE, pitch=0.05, level=0.5),
                     "a_filter1_type": LADDER, "a_filter1_subtype": 3, "a_filter1_cutoff": hz(500.0), "a_filter1_resonance": 0.2,
                     "a_filter1_envmod": 36.0, "a_filter1_keytrack": 0.4,
                     **env(2, 0.003, 0.18, 0.1, 0.15), **env(1, 0.002, 0.4, 0.0, 0.2), "polylimit": 16},
                    {}),
+    # ----- the third set (2026-11-21, afternoon): the rest of what House still played as Surge's factory made it, by how
+    # much it plays them: the FM bass, the plucked bass, the whistle's lead, the reese, the square bass, the hollow lead
+    # and the bell. (The sub stays Surge's: a sine, whose whole job is to be one.)
+    # The FM bass: one sine modulated by two, at the note and an octave over it, with a little feedback toward a saw. The
+    # filter envelope throws both modulations up at each note (an index of about 6 for a moment, 2.5 held), so a note
+    # starts bright and woody and settles round: the FM bass of the deep house records, where the factory's had been a
+    # sine with a little on top, 17 to 30 dB short of the liked stems from 450 Hz up. Harder notes start brighter.
+    "house bass fm": ({**fm2(1, m1=0.27, r1=1, m2=0.2, r2=2, feedback=0.15),
+                       "a_filter1_type": LP24, "a_filter1_subtype": 0, "a_filter1_cutoff": hz(3000.0), "a_filter1_keytrack": 0.5,
+                       "a_ws_type": WS_SOFT, "a_ws_drive": 3.0,
+                       **env(2, 0.001, 0.15, 0.2, 0.1), **env(1, 0.0015, 0.5, 0.7, 0.06), "polylimit": 4},
+                      {"a_osc1_param0": [("filter env", 0.12), ("velocity", 0.05)], "a_osc1_param2": [("filter env", 0.08)]}),
+    # The plucked bass: a saw and a square through a resonant 24 dB ladder shut at 180 Hz and thrown open four octaves by
+    # an envelope gone in a tenth of a second, the note itself dying away over half a second: the squelch of a deep house
+    # pluck, its quack the resonance. (The sub goes under it on its own track: club.SUBBED.)
+    "house bass pluck": ({**osc(1), **osc(2, shape=PULSE, pitch=0.04, level=0.5), "a_osc1_retrigger": 1, "a_osc2_retrigger": 1,
+                          "a_filter1_type": LADDER, "a_filter1_subtype": 3, "a_filter1_cutoff": hz(180.0), "a_filter1_resonance": 0.45,
+                          "a_filter1_envmod": 40.0, "a_filter1_keytrack": 0.5, "a_ws_type": WS_SOFT, "a_ws_drive": 4.0,
+                          **env(2, 0.001, 0.09, 0.05, 0.08), **env(1, 0.001, 0.45, 0.1, 0.06), "polylimit": 4},
+                         {"a_filter1_cutoff": [("velocity", 8.0)]}),
+    # The reese: two pairs of saws pulled apart, a quarter of a semitone and a seventh (the outer voices 12 and 7 cents
+    # either side of the note; at 32 and 21, as first drawn, the beating was a wobble), their beating a slow turning in the
+    # bass, through a driven 24 dB low-pass at 650 Hz that a slow LFO (one turn in eight seconds) opens and closes by
+    # half an octave, and a soft waveshaper's grit: a bass that moves while it holds.
+    "house bass wide": ({**osc(1, voices=2, detune=0.12), **osc(2, voices=2, detune=0.07, pitch=-0.03, level=0.7),
+                         "a_filter1_type": LP24, "a_filter1_subtype": 1, "a_filter1_cutoff": hz(650.0), "a_filter1_resonance": 0.2,
+                         "a_filter1_envmod": 10.0, "a_filter1_keytrack": 0.3, "a_ws_type": WS_SOFT, "a_ws_drive": 8.0,
+                         "a_lfo6_shape": 0, "a_lfo6_rate": rate(0.125), "a_lfo6_trigmode": 0,
+                         **env(2, 0.005, 0.4, 0.5, 0.2), **env(1, 0.003, 1.0, 1.0, 0.12), "polylimit": 4},
+                        {"a_filter1_cutoff": [("scene lfo1", 7.0)]}),
+    # The square bass: two squares a few cents apart through a 24 dB low-pass at 500 Hz that each note opens two octaves
+    # and lets settle to a third of that: hollow and woody, the odd harmonics a square has, the bass of the organ-bass
+    # records without the organ.
+    "house bass square": ({**osc(1, shape=PULSE), **osc(2, shape=PULSE, pitch=0.06, level=0.6), "a_osc1_retrigger": 1,
+                           "a_filter1_type": LP24, "a_filter1_subtype": 0, "a_filter1_cutoff": hz(500.0), "a_filter1_resonance": 0.2,
+                           "a_filter1_envmod": 24.0, "a_filter1_keytrack": 0.5, "a_ws_type": WS_SOFT, "a_ws_drive": 4.0,
+                           **env(2, 0.001, 0.22, 0.35, 0.1), **env(1, 0.0015, 0.6, 0.8, 0.07), "polylimit": 4},
+                          {}),
+    # The whistle's lead (the whistle and the flute written for House): a sine with a breath of noise under it and a
+    # quiet triangle an octave up, soft in (30 ms), a slide of 60 ms between notes and a vibrato that waits for the note
+    # to settle: a tune whistled, not a synth's beep. The breath is kept under 4.5 kHz and over 200 Hz.
+    "house lead sine": ({**sine(1, feedback=0.05), **triangle(2, octave=1, level=0.12),
+                         "a_mute_noise": 0, "a_level_noise": 0.05, "a_noisecol": 0.3,
+                         "a_filter1_type": LP12, "a_filter1_subtype": 0, "a_filter1_cutoff": hz(4500.0), "a_filter1_keytrack": 0.5,
+                         "a_filter2_type": HP12, "a_filter2_subtype": 0, "a_filter2_cutoff": hz(200.0),
+                         **env(1, 0.03, 1.0, 0.9, 0.3), "a_portamento": seconds(0.06),
+                         "a_lfo0_shape": 0, "a_lfo0_rate": rate(5.0), "a_lfo0_delay": seconds(0.35), "a_lfo0_attack": seconds(0.4),
+                         "polylimit": 4},
+                        {"a_pitch": [("lfo1", 0.18)]}),
+    # The hollow lead (the hollow and the pipe): two squares a little apart and a narrow pulse, through a 24 dB low-pass
+    # at 2 kHz that each note lifts a little: odd harmonics, a reed's hollowness, with the lead's slide and late vibrato.
+    "house lead hollow": ({**osc(1, shape=PULSE, voices=2, detune=0.06), **osc(2, shape=PULSE, width=0.25, pitch=-0.05, level=0.35),
+                           "a_filter1_type": LP24, "a_filter1_subtype": 0, "a_filter1_cutoff": hz(2000.0), "a_filter1_resonance": 0.3,
+                           "a_filter1_envmod": 10.0, "a_filter1_keytrack": 0.6,
+                           **env(2, 0.004, 0.4, 0.5, 0.3), **env(1, 0.008, 0.6, 0.85, 0.3), "a_portamento": seconds(0.04),
+                           "a_lfo0_shape": 0, "a_lfo0_rate": rate(5.5), "a_lfo0_delay": seconds(0.35), "a_lfo0_attack": seconds(0.3),
+                           "polylimit": 8},
+                          {"a_pitch": [("lfo1", 0.15)]}),
+    # The bell: a sine modulated at three and a half times its note, partials no string or pipe has, and at its note for
+    # the body; the strike throws the bell's modulation up and lets it fall over most of a second, so each note clangs
+    # and then sings, ringing two seconds. A sine an octave up for its shimmer. Harder notes clang more.
+    "house bell": ({**fm3(1, m1=0.26, r1=3.5, m2=0.18, r2=1.0), **sine(2, octave=1, level=0.15),
+                    "a_filter1_type": LP12, "a_filter1_subtype": 0, "a_filter1_cutoff": hz(7000.0), "a_filter1_keytrack": 0.3,
+                    **env(2, 0.001, 0.8, 0.0, 1.0), **env(1, 0.001, 2.0, 0.0, 1.2), "polylimit": 16},
+                   {"a_osc1_param0": [("filter env", 0.12), ("velocity", 0.06)], "a_osc1_param2": [("filter env", 0.06)]}),
 }
 
 
@@ -176,6 +297,17 @@ def xml(name: str, surge: Path) -> str:
         meta.set("category", "FreeRock")
         meta.set("author", "FreeRock")
     params = root.find("parameters")
+    for n in (1, 2, 3):
+        kind = values.get("a_osc%d_type" % n, CLASSIC)
+        if kind == CLASSIC:
+            continue
+        theirs = ET.fromstring(_split((surge / KINDS[kind]).read_bytes())[1]).find("parameters")
+        if int(theirs.find("a_osc1_type").get("value")) != kind:
+            raise ValueError("%s: %s's first oscillator is not of kind %d" % (name, KINDS[kind], kind))
+        for k in range(7):
+            node, their = params.find("a_osc%d_param%d" % (n, k)), theirs.find("a_osc1_param%d" % k)
+            node.attrib.clear()
+            node.attrib.update(their.attrib)
     for key, value in values.items():
         node = params.find(key)
         if node is None:

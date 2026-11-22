@@ -3,6 +3,36 @@
 Newest first. Words in quotation marks are what was said while listening or playing, as typed or
 dictated, where it drove the change.
 
+## 2026-11-21, evening: House's own sounds as they were designed, and the rest of them
+
+"Gimme new demos and shit".
+
+- **House's own patches as designed** (handbook 5.7, `studio/patches.py`): Surge's classic oscillator makes a square at its
+  Shape -1 (Surge's own "Init Square") and a double saw at +1, an octave over its note at the default widths, and the
+  morning's designs had read -1 as a triangle and +1 as a square: their squares were saws an octave up (the leads' body
+  under them a saw at the note, the hollow pad saws) and their triangles squares (the glass pad buzzing where it should
+  shimmer), found by playing each alone and reading its harmonics. Every design is drawn as written now; a triangle is the
+  modern oscillator's (`patches.triangle`), and an oscillator of another kind takes its settings' kinds from a patch that
+  has it (`patches.KINDS`). The first takes on the morning's patches had stood 17 to 32 dB over the liked stems at the top
+  in their chords and pads; with the patches as designed alone, Glade at Dusk III's drop: TuneJury 1.16 to 1.39.
+- **The rest of House's factory sounds are its own** (`sounds.OWN_PATCHES`): the FM bass, the reese, the square bass, the
+  whistle's lead (for the whistle and the flute) and the bell, drawn on Surge's FM, sine and modern oscillators as well as
+  the classic (`patches.fm2`, `fm3`, `sine`). The factory FM bass had played an octave under its written note; the own one
+  is 10 to 12 dB fuller from 320 Hz to 1.25 kHz (Moonwell I's drop TuneJury 1.13 to 1.48, SongEval up 0.2 to 0.34). Against
+  the factory patches, with everything of House's own: TuneJury with the House brief up in every window of four songs
+  (Larks over the Ridge II 1.12 to 1.50, Night Prowl III 1.06 to 1.45, Snowmelt II's theme 1.48 to 1.87, Hollow Road III
+  with the bell 0.63 to 1.24), Audiobox's production up in all and its enjoyment in five of eight; SongEval down 0.1 to 0.5
+  in most (the whistle's lead is nearly a sine: a breath more is owed).
+- The plucked bass and the hollow lead were designed too and stay the factory's: Reedlight I's theme down on every judge
+  with the hollow lead (TuneJury 1.64 to 1.40, enjoyment 7.69 to 7.35), its drop level to down with the plucked bass.
+- Switches for the next demos, as they were: House's room (`club.ROOM`, the first night's 1.5 s dark hall) and a long
+  theme's bass lifting at its half (`house.THEME_BASS_TURNS`, off; `house.lifted`).
+- Tried and left off: a light Knight band's stop-time after its solo (`orchestra.STOP_TIME`, handbook 4): the band striking
+  the chord together on each bar's first beat for three bars, the tune alone, then a fill. The judges on Whiskey Groove's
+  sixteen bars from four before the solo's end: TuneJury 0.79 to 0.38 (with no brief 1.48 to -0.93), Audiobox's enjoyment
+  7.44 to 6.76; Midnight Vigil's level (0.37 to 0.31).
+- The re-render ledger: every House take again (the own sounds as designed).
+
 ## 2026-11-21, midday: House plays its own instruments and its own kick
 
 "Sounds like you need to listen to like progressive house on beatport and ask yourself why does my house sound like generic

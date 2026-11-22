@@ -1085,6 +1085,19 @@ before the bar line it reaches and taken up again on it. A bagpipe's bag holds i
   the turn (38 bars of one colour, 22 after), but the judges did not like it on the banjo band: Anchor Dog V's summit
   level, Lazy River Sway I's down (TuneJury -0.16 with the brief, -0.46 with none), and with its octave bass kept as
   octaves still down (-0.11, -0.31). The light band's summit after its solo is still owed a turn of its own.
+- *Tried and left off: a light band plays stop-time after its solo* (`orchestra.STOP_TIME`, `STOP_BARS`, `Take.stop_time`,
+  `Take.lay_out`, 2026-11-21): a blues or a country band's way back from a solo. For three bars the band strikes the chord together
+  on the bar's first beat, short, and lays out: the rhythm, the bass on the root, the texture cut to the chord, the
+  crash and the bass drum on the stroke, the hat on two and four keeping the time; the tune carries on alone. In the
+  fourth bar the same stroke and the drummer's fill, and the band is back in on a crash. Only where the summit has
+  STOP_BARS + 4 bars after the solo, so the band has four bars back before the close. *The study: a light band's
+  rhythm one colour 20 to 31 bars through its summit after the solo (Whiskey Groove II and IV, Ridge Rover III,
+  Sunny Wheels I), where the last chorus played harder had been judged level and down. The judges on
+  Whiskey Groove's sixteen bars from four before the solo's end: TuneJury with the band brief 0.79 to
+  0.38, with none 1.48 to -0.93, Audiobox's enjoyment 7.44 to 6.76, SongEval level: three bars of the
+  tune alone over the band's stabs heard as a hole, not a breath; Midnight Vigil's level (0.37 to 0.31,
+  enjoyment 7.39 to 7.49).* The light band's summit after its
+  solo is still owed a turn of its own.
 - *A heavy band's close ends as a rock band ends* (`orchestra.ROCK_ENDING`, `Take.ending`, 2026-11-19):
   through the close the riff drives on (its density 0.8, at least 0.6 of the way up), the bass in
   eighths and the groove every bar, with a fill into the stop; then the last four bars (two in a short
@@ -1528,6 +1541,35 @@ chorus and the hall are the desk's now*.
   cents (measured by each note's detuned cluster, not its loudest voice). *The judges on five takes'
   last drops against the factory patches: TuneJury with the House brief up in four (Mirage I 0.62 to
   1.18, Hollow Road III 0.72 to 1.09) and level in one, SongEval up or level.*
+  *Until that afternoon the designs were not quite what is written here.* Surge's classic oscillator
+  makes a square at its Shape −1 (Surge's own "Init Square") and a double saw at +1, an octave over
+  its note at the default widths, and the designs had read −1 as a triangle and +1 as a square:
+  *played alone and their harmonics read, the "squares" had only the even harmonics (the leads' body
+  under them a saw at the note, the hollow pad saws) and the "triangles" only the odd ones, squares
+  (the glass pad buzzing where it should shimmer); the first takes on them stood 17 to 32 dB over the
+  liked stems at the top in their chords and pads.* Each is drawn as written now (`patches.SAW`,
+  `PULSE`; a triangle is the modern oscillator's, `triangle`), and an oscillator of another kind takes
+  its settings' kinds from a patch that has it (`patches.KINDS`). *With the patches as designed
+  alone, Glade at Dusk III's drop: TuneJury 1.16 to 1.39.*
+  The third set, that evening, the rest of what House played as the factory made it, the sub aside
+  (a sine, whose whole job is to be one): *the FM bass*, one sine modulated by two at its note and an
+  octave over it, the filter envelope throwing both up at each note and letting them settle, bright
+  and woody and then round (*the factory's had sounded an octave under its written note, 17 to 30 dB
+  short of the liked stems from 450 Hz up; the own one is 10 to 12 dB fuller from 320 Hz to 1.25 kHz:
+  Moonwell I's drop TuneJury 1.13 to 1.48, SongEval up 0.2 to 0.34*); *the reese*, two pairs of saws
+  24 and 14 cents apart through a driven low-pass that a slow LFO turns; *the square bass*, two
+  squares through a low-pass each note opens two octaves; *the whistle's lead* (for the whistle and
+  the flute), a sine with a breath of noise and a quiet triangle an octave up, a slide and a late
+  vibrato; and *the bell*, a sine modulated at three and a half times its note, clanging and then
+  singing. *Against the factory patches, with everything of House's own: TuneJury with the House brief
+  up in every window of four songs (Larks over the Ridge II's drop 1.12 to 1.50, Night Prowl III's 1.06
+  to 1.45, Snowmelt II's theme 1.48 to 1.87, Hollow Road III's drop with the bell 0.63 to 1.24),
+  Audiobox's production up in all and its enjoyment in five of eight (6.81 to 7.24, 6.91 to 7.32);
+  SongEval down 0.1 to 0.5 in most. The whistle's lead is nearly a sine, 25 to 55 dB under the factory
+  lead from 2.5 kHz up: a breath more is owed.* The plucked bass and the hollow lead were designed too
+  and stay the factory's (their designs kept in `patches.DESIGNS`): *the judges heard Reedlight I's
+  theme down on every judge with the hollow lead (TuneJury 1.64 to 1.40, enjoyment 7.69 to 7.35), and
+  its drop level to down with the plucked bass.*
 - **Effects.** Tape on the chords, the lead and the drum room; a light chorus on synth leads; slow
   phasers on the chords (about eight bars a turn) and the pads (slower); a longer echo from side to
   side on the lead and the chords; more of the (darker) hall on everything but the bass.
