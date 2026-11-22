@@ -867,11 +867,24 @@ parts and their levels. This is what differs.
 | kit rock, kit room | the AVL Red Zeppelin kit (a 26-inch bass drum), the Black Pearl kit | the kick under the bass drum, 6 dB down |
 
 The light pieces are *the same band unplugged*: fiddle (a Muse solo violin), whistle (piccolo),
-harmonica (a recorded harmonica in the sampler), accordion (TinySOL's, in the sampler), steel-strung guitars and mandolin
+harmonica (a blues harp: VCSL's Hohner Special 20s in C and F, through a harp player's amp, below), accordion (TinySOL's, in the sampler), steel-strung guitars and mandolin
 (Muse acoustic guitars), banjo (a strumstick in the sampler), ocarina and pan flute (Muse flutes).
 Hall sends are small: rhythm guitars −19 dB, muted −22, lead −11, bass −26, organ −14
 (`sounds.MUSE_SENDS`). Channel places at the summit (`build.BAND`): lead −17, rhythm −18.5, drums
 −17.5, bass −19.5, texture −24 LUFS; lighter pieces (`BAND_LIGHT`) drums −18.5, bass −19.5, rhythm −18.5.
+
+**The harmonica is a blues harp** (2026-11-21: "You gotta work on your fucking harmonica. Look up John Popper";
+`sounds.BLUES_HARP`). It was VCSL's chromatic Super 64, smooth and even, a canned vibrato on every held note: the
+wrong instrument for a rock band's harp player. Now VCSL's Hohner Special 20s, the diatonic harp of the blues and of
+Popper's first records, a C harp and an F harp together (three notes an octave each, so no note is stretched more
+than a tone; `samples/merged/blues-harp`, links to their recordings): held straight for the long notes, the staccato
+takes for the quick ones, the hand vibrato's cupped wah for the wails. Through a harp player's amp (`sounds.harp_amp`,
+Calf's saturator): the bullet microphone's band (250 Hz to 5.5 kHz), the tubes warmed, the reed's honk lifted at
+1.4 kHz, the speaker's top rolled off, a slapback a sixteenth behind. *The judges, against the chromatic harp on
+three songs: SongEval up in five windows of six (Whiskey Groove's solo end +0.27 on every score), TuneJury with the
+brief level, with none down on two songs.* Driven 18 dB harder into the tubes, as a harp cupped round a bullet
+microphone can push an amp, it was tried and left off: SongEval 0.11 to 0.14 down where the harp carries the tune
+(Whiskey Groove's theme), the rest level. Its playing is a harp player's (4.10).
 
 **The tune stands over the guitars wherever it sings** (`build.TUNE_LIFT`, `build.tune_lift`, 2026-11-19). The
 lead's place is set at the summit, where the twin guitars play the theme together; one guitar or a fiddle singing it
@@ -1235,6 +1248,21 @@ Wing") and the way a singer phrases:
   written tops already. A whistle's is A6 (2026-11-21): *its solos sang to its very top, all in its
   shrill second octave (Silver Glade II A5 to D7, Dreaming Ballad II C#6 to C#7, Sunny Wheels I and III
   E5 to C#7)*, and a player keeps the top of a whistle for a note or two.
+- **A harmonica's solo is a harp player's** (2026-11-21, evening: "You gotta work on your fucking harmonica.
+  Look up John Popper"; `orchestra.SOLOISTS`, `HARP_FLURRIES`, `HARP_BENDS`). It had taken the guitar's figures,
+  double stops and all (Campfire Ballad's solo two notes a third apart on every eighth). Now single notes, as
+  Popper plays; its trill the warble between two holes a third apart; its quick figures flurries of
+  thirty-seconds where the song is slow (at most 110 to the minute), the way his runs pour out; its notes of a
+  second and a half or more on the hand vibrato's wail (`sounds.Sound.held`, the blues harp's "wail" player).
+  And it is bent, as a blues harp is: half of its sung notes (an eighth or longer, not the flurries) on the
+  key note, the third or the fifth are taken from under and let go up onto their pitch over 90 ms (a whole
+  tone into the key note, the flat seventh's pull; a half tone into the major third and the fifth, the blue
+  notes; a quarter tone into a minor third), and a third of the long notes that end a sentence fall a half
+  tone over their last eighth (`orchestra.harp_bends`, written on the sheet as the solo's `bend` marks after
+  the take is played in, so each lines up with its note as played; the desk plays them on the sampler's
+  pitch wheel, `desk.PITCH`, two semitones each way, on every track of the harp). Campfire Ballad's solo
+  bends 7 notes of 140, Lantern Walk's 8: a harp player's, not a whammy's. *The judges on both solos, bent
+  against straight: level (TuneJury within 0.06, SongEval 0.00 to 0.07 up on both, enjoyment within 0.02).*
 - `orchestra.SOLOS = False` takes it away and gives the summit back to the twins.
 
 ---
@@ -1268,7 +1296,13 @@ the 60 families are light: *the house is meant to be mostly light* (the test).
   low a moment), a triangle on the same fall for the punch a small loudspeaker plays, a burst of
   noise high-passed at 1.8 kHz for 10 ms for the click, and drive; down 12 dB by 142 ms, so the bass
   has the back of each beat. Measured against the TR-8's 909: within 3 dB in every octave to 2 kHz,
-  turned up 5.1 dB (`club.KICK_TRIM`) to the 909's weight in the mix.
+  turned up 5.1 dB (`club.KICK_TRIM`) to the 909's weight in the mix. *Each machine its own kick was tried
+  and left off* (`club.MACHINE_KICKS`, `kicks.DESIGNS`, 2026-11-22): the 808's deeper body falling only from
+  85 Hz, the 707's short knock with a band-passed burst round 2 kHz, the 606's long dark boom at 55 Hz, each
+  drawn after the TR-8's within 3 to 4 dB in every band. *The judges on Drowned Halls I (808), Morning on the
+  Hill I (707) and Mill Stream I (606): TuneJury with the House brief down 0.36 to 0.39 in four windows of six,
+  Audiobox's enjoyment down in all six (to -0.66 with the 808's drop), SongEval up on the 808*: a progressive
+  house drop wants the punchy kick, whatever machine the rest of the kit is.
 - **Backbeat**: clap, clap and snare, or a second snare, on 2 and 4 (on 3 in half time), from bar 0,
   4 or 8 of the theme. Half-time grooves, inns and camps use a snap, a rim or a clap.
 - **Hats** from the palette (`house.HATS`): off-beat opens, eighths, sixteenths, shuffle or sparse.
@@ -1319,7 +1353,11 @@ house basses have their weight (40 to 80 Hz)*. The theme starts plain: the busie
 off-beat roots for four bars, and no figure has octaves or fifths for eight. The breakdown, and the
 close once the kick has gone, hold one long note to a bar, *8 to 10 dB under the groove*. In two
 takes of three, eighths on one note open up through the end of a rise. The desk adds the sub and the
-growl (5.7).
+growl (5.7). *A long theme's bass lifting at its half was tried and left off* (`house.THEME_BASS_TURNS`,
+`house.lifted`, 2026-11-21: in a theme of 32 bars or more, the roots on its off-beats of two and four up an octave
+from its half, as a house bassline climbs toward the drop): *the judges level on Moonwell I and Hollow Road III
+(TuneJury +0.11 and +0.01 on their themes, SongEval within 0.04; their drops, where nothing changed, moved as
+much), and the meter read both basses' colour 4 to 6 bars either way.*
 
 **The bass grows harsher through a long drop** (`club.harsher`, on the sheet as the part `bass
 harsh`). Halfway through every drop of 32 bars or more, a second bass plays the bass's own notes and
@@ -1566,13 +1604,23 @@ chorus and the hall are the desk's now*.
   to 1.45, Snowmelt II's theme 1.48 to 1.87, Hollow Road III's drop with the bell 0.63 to 1.24),
   Audiobox's production up in all and its enjoyment in five of eight (6.81 to 7.24, 6.91 to 7.32);
   SongEval down 0.1 to 0.5 in most. The whistle's lead is nearly a sine, 25 to 55 dB under the factory
-  lead from 2.5 kHz up: a breath more is owed.* The plucked bass and the hollow lead were designed too
+  lead from 2.5 kHz up: a breath more is owed.* *The whistle with its edge* (`patches` "house lead whistle",
+  `sounds.WHISTLE_EDGE`, 2026-11-22: a fifth of House's songs lead with it): the sine leaned toward a saw, the
+  octave's triangle nearly twice as loud, more breath, a soft saturation for the odd harmonics a real whistle's edge
+  tone has, the filter opened to 6 kHz; a template of its own. Measured alone, 31 dB more in its top and the same
+  middle; in Morning on the Hill III the lead within 5 dB of the liked stems in every octave from 450 Hz up (it had
+  been 15 to 30 under from 3.5 kHz). *The judges on Morning on the Hill III and Larks over the Ridge II, both ways: SongEval up in all four windows on every score (0.05 to 0.31), TuneJury with the House brief mixed (+0.18 and +0.07, -0.06 and -0.31), with none level, Audiobox's enjoyment level.* The plucked bass and the hollow lead were designed too
   and stay the factory's (their designs kept in `patches.DESIGNS`): *the judges heard Reedlight I's
   theme down on every judge with the hollow lead (TuneJury 1.64 to 1.40, enjoyment 7.69 to 7.35), and
   its drop level to down with the plucked bass.*
 - **Effects.** Tape on the chords, the lead and the drum room; a light chorus on synth leads; slow
   phasers on the chords (about eight bars a turn) and the pads (slower); a longer echo from side to
-  side on the lead and the chords; more of the (darker) hall on everything but the bass.
+  side on the lead and the chords; more of the (darker) hall on everything but the bass. *A longer,
+  cleaner hall was tried and left off* (`club.ROOM`, 2026-11-21): 2.8 seconds, nothing in it under
+  300 Hz or over 8 kHz, its lows ringing 0.8 of the rest, against the hall as it was set the first night
+  (1.5 seconds, 80 Hz to 6 kHz, its lows 1.2). *On Glade at Dusk III, Night Prowl III and Hollow Road
+  III, six windows: TuneJury with the House brief down in four (-0.11 to -0.26) and level in two, with
+  none down in five (-0.10 to -0.17); SongEval and Audiobox within their noise.*
 - **Brightness as a moving filter** (`club.cutoff`, since 2026-11-18). Each part's brightness is its
   low-pass, an effect mark on its sheet that moves with the music (see 0.3). Until then a voice was
   split over up to four tracks closed at fixed points (900 Hz, 2.2 kHz, 5 kHz or open), so its tone
@@ -1588,7 +1636,9 @@ chorus and the hall are the desk's now*.
   at 0.8 (0.7 until the third pass: the liked basses had 3 to 7 dB more at 28 to 57 Hz): *an octave
   under, tried the same morning, put the sub at 25 to 45 Hz*. Beside the sub and
   the FM bass a sawtooth growl closed at 900 Hz plays at 0.45: *the part of the bass that is heard;
-  the sub is the part that is felt*.
+  the sub is the part that is felt*. Not beside House's own FM bass (`club.FM_GROWL`, 2026-11-22), which has a
+  middle of its own: taken away in three songs, the bass moved 1 dB or less in every octave and the judges stayed
+  level; *Sunlit Fields II's bass, 7 dB over the liked stems at 450 to 900 Hz, is the FM bass's own middle.*
 - **The kit** (`club.kit_file`). The TR-8 recordings the writer used become an SFZ instrument for
   sfizz, one key per drum. The kick has its own dry track (its stroke brought out, under 30 Hz cut,
   parallel compression, no hall). The hats, shakers, tambourine and ride have a line of their own

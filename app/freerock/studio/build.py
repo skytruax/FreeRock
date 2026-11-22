@@ -262,6 +262,13 @@ def write(fam: Family, take: int) -> Sheet:
         for name, voice in written.voices[channel].items():
             if voice.notes:
                 humanise(voice, rng, timing=0.004 if channel == "drums" else 0.007, bpm=fam.bpm)
+    from . import orchestra
+    harp = written.voices["lead"].get("harmonica solo")
+    if harp is not None and harp.notes and orchestra.HARP_BENDS and written.solo_key is not None:
+        # A harmonica's solo bent as a harp player bends it (orchestra.HARP_BENDS), on the notes as they are played.
+        bends = orchestra.harp_bends(harp.notes, written.solo_key, fam.bpm, fam.seed * 31 + take * 7 + 11)
+        if bends:
+            harp.mark("bend", bends)
     # ----- What the desk stacks on what the writer wrote (2026-11-16: "stack on top of this for interesting layers",
     # "better get the kickdrum in those moments", "more depth more instruments .... more bass and kick in the intense parts").
     from .score import Note, Voice

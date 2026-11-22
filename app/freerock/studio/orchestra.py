@@ -1334,7 +1334,19 @@ SOLO_FLANGER = True      # a flanger sweeps slowly under the solo, a little (Tak
 SOLO_COMP = True         # under a solo the rhythm guitar comps: the chord on the bar's first beat, muted eighths after, no fills
 TURNS_TO_HAT = True      # a band's groove on the ride turns to the hat for its second sixteen bars (Take.cymbal); False: it stays
 # Who may take a band's solo, and whether they can sound two notes at once (double stops, octaves, a held note doubled):
-SOLOISTS = {"lead guitar": True, "fiddle": True, "mandolin": True, "harmonica": True, "whistle": False}
+SOLOISTS = {"lead guitar": True, "fiddle": True, "mandolin": True, "harmonica": False, "whistle": False}
+# (2026-11-21, evening: "You gotta work on your fucking harmonica. Look up John Popper".) A harmonica's solo is a harp player's:
+# single notes, as John Popper plays them (it had taken the guitar's double stops: Campfire Ballad's solo two notes a third
+# apart on every eighth), its trill the warble between two holes a third apart, and its quick figures flurries of
+# thirty-seconds where the song is slow (at most 110 to the minute), the way his runs pour out. False: the guitar's figures.
+HARP_FLURRIES = True
+# (The same night.) A blues harp is bent: a draw note pulled flat with the throat and let go up onto its pitch, the blue notes of
+# the blues (the minor third let go to the major, the flat fifth to the fifth, the flat seventh a whole tone up to the key
+# note), and a long note that ends a sentence falling away. The harmonica's solo is bent so (`harp_bends`, its "bend" marks):
+# half of its sung notes (an eighth or longer, not the flurries) on the key note, the third or the fifth taken from under
+# and let go over 90 ms, and a third of the notes of a beat and a half or more that end a sentence falling a half tone over
+# their last eighth. False: the solo played straight, as the guitar's.
+HARP_BENDS = True
 # (2026-11-19, the study: Lazy River Swing V's fiddle solo sat F5 to C7, Sea Raiders V's C5 to Bb6: a solo climbs an octave and a
 # note over where the tune begins, and a fiddle's tune begins high; its reach was the fiddle's whole written range.) The highest
 # note a solo sings on, where the written range runs far above it: a fiddle's E6, a mandolin's D6. The lead guitar's D6 and the
@@ -2223,8 +2235,31 @@ def settings_of(character: Character) -> tuple[str, ...]:
 BLUES = (0, 3, 5, 7, 10)
 
 
+def harp_bends(notes: list[Note], key: Key, bpm: float, seed: int) -> list[tuple[float, float]]:
+    """A harmonica solo's bends (HARP_BENDS) as "bend" marks, (beat, semitones off the note), from its notes as played: a
+    note let go up onto (from a whole tone under the key note, a half under the major third or the fifth, a quarter under
+    a minor third), or a sentence's long last note falling away and set right in the rest after it."""
+    rng = random.Random(seed)
+    let_go = 0.09 * bpm / 60.0                             # beats: a bend let go over 90 ms
+    minor = MODES[key.mode][2] == 3
+    under = {0: 2.0, 7: 1.0, 3 if minor else 4: 0.5 if minor else 1.0}
+    played = sorted(notes, key=lambda note: note.start)
+    out: list[tuple[float, float]] = []
+    for index, note in enumerate(played):
+        later = played[index + 1].start if index + 1 < len(played) else note.start + note.length + 4.0
+        end = note.start + note.length
+        by = under.get((note.pitch - key.tonic) % 12)
+        if by and note.length >= 0.5 and rng.random() < 0.5:
+            # (held in tune up to the note, so that the wheel jumps down in the breath before it, not across the note before)
+            out += [(note.start - 0.02, 0.0), (note.start - 0.01, -by), (note.start + min(let_go, note.length / 2), 0.0)]
+        elif note.length >= 1.5 and later - end >= 0.5 and rng.random() < 1 / 3:
+            back = end + 0.8 * (later - end)                # set right in the rest, when the note has died away
+            out += [(end - 0.5, 0.0), (end, -1.0), (back, -1.0), (back + 0.01, 0.0)]
+    return out
+
+
 def guitar_solo(rng: random.Random, tune: Line, bars: int, beats: float, pulse: float, bpm: float, chords: list[Chord],
-                mode: str, low: int, high: int, two: bool = True) -> Line:
+                mode: str, low: int, high: int, two: bool = True, harp: bool = False) -> Line:
     """A guitar solo over `bars` bars, in scale steps of the key: sung, not shredded. ("i want fucking guitar solos in my
     knight rock, study eddie vedder and pearl jam"; of the first one, all runs and bends under a wah rocked from end to
     end: "all wammy no chill", "thats not a guitar solo thats a solo effect track", "do better", 2026-11-18.)
@@ -2245,6 +2280,9 @@ def guitar_solo(rng: random.Random, tune: Line, bars: int, beats: float, pulse: 
     five = (0, 1, 2, 4, 5) if bright else (0, 2, 3, 4, 6)
     span = 2 * beats
     fast = 0.25 if bpm <= (150 if pulse == 1.0 else 120) else 0.5
+    # A harp player's flurries (HARP_FLURRIES): its runs and its warbles in thirty-seconds where the song is slow; its tongued
+    # notes and its sung sentences as a guitar's.
+    quick = 0.125 if harp and HARP_FLURRIES and pulse == 1.0 and bpm <= 110 else fast
     out: list[tuple[float, float, int, float]] = []
 
     def snap(step: int) -> int:
@@ -2498,22 +2536,22 @@ def guitar_solo(rng: random.Random, tune: Line, bars: int, beats: float, pulse: 
             group = int(ways["sequence"][-1])
             move = up if ways["sequence"].startswith("up") else down
             head = tone(down(ceiling, 2 * group) if move is up else down(ceiling), at, ceiling)
-            count = max(int(round(beats / fast)), group)
+            count = max(int(round(beats / quick)), group)
             steps = []
             while len(steps) < count:
                 steps += [move(head, each) for each in range(group)]
                 head = move(head)
             steps = steps[:count]
-            rhythm = [(each * fast, fast) for each in range(count)] + [(beats, beats)]
+            rhythm = [(each * quick, quick) for each in range(count)] + [(beats, beats)]
             steps.append(tone(move(steps[-1]), second, ceiling))
             put(at, rhythm, steps, weight)
         elif kind == "trill":
             # A trill, hammered on and pulled off between a note of the chord and the note over it for a bar, then a fall by
             # step onto the chord.
-            width = ways["trill"]                               # (a step wide, or a third)
+            width = 2 if harp and HARP_FLURRIES else ways["trill"]      # (a step wide, or a third; a harp's warble a third)
             note = tone(down(ceiling, 1 + width), at, ceiling)
-            count = max(int(round(beats / fast)), 2)
-            rhythm = [(each * fast, fast) for each in range(count)] + [(beats, 0.5), (beats + 0.5, 0.5), (beats + 1.0, 1.0)]
+            count = max(int(round(beats / quick)), 2)
+            rhythm = [(each * quick, quick) for each in range(count)] + [(beats, 0.5), (beats + 0.5, 0.5), (beats + 1.0, 1.0)]
             steps = [note if each % 2 == 0 else min(up(note, width), ceiling) for each in range(count)]
             steps += [down(note), down(note, 2), tone(down(note, 3), second + 1.0, ceiling)]
             put(at, rhythm, steps, weight)
@@ -2767,6 +2805,7 @@ class Take:
         self.heavy = self.ch.weight >= 0.8
         self.fight = self.ch.role in FIGHTS
         self.soloed = False             # whether the lead guitar takes a solo at the summit (see lead)
+        self.solo_key: Key | None = None    # the key the solo is in (a harmonica's is bent in it: harp_bends)
         self.solo_bars = 0              # how many of the summit's first bars the solo takes
         # The breath before an arrival: for the last beat or two of each rise the tune rests and
         # the accompaniment stops striking, so that the downbeat lands the harder. It is the
@@ -3359,10 +3398,11 @@ class Take:
                         length = period * solo_turns
                         mine = [chords[min(bar + each, len(chords) - 1)] for each in range(length)]
                         sing(strong[0], guitar_solo(own, tune, length, beats, self.pulse, fam.bpm, mine, key.mode, min(reach), max(reach),
-                                                    two=SOLOISTS.get(strong[0], True)),
+                                                    two=SOLOISTS.get(strong[0], True), harp=strong[0] == "harmonica"),
                              bar, loud, tag=" solo")
                         self.soloed = True
                         self.solo_bars = bar + length
+                        self.solo_key = key
                         continue
                     sing(strong[0], use, bar, loud)
                     if len(strong) > 1:

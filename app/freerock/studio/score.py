@@ -44,6 +44,7 @@ EFFECTS = {
     "echo": "the tape echo's send: 0 none, 1 thrown all the way up (a phrase's last note)",
     "lowpass": "the low-pass filter, in Hz (20000 is open)",
     "highpass": "the high-pass filter, in Hz (20 is open)",
+    "bend": "how far the notes are bent off their pitch, in semitones (-2 to 2, 0 in tune): the sampler's pitch wheel",
 }
 # ...and how each is set where it does not move (Voice.settings).
 SETTINGS = {

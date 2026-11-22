@@ -30,6 +30,7 @@ from .score import Note
 
 RATE = 48000
 TICKS = 960                    # to a quarter note, in the notes REAPER is given
+PITCH = 128                    # a Line's control on this "controller" is the pitch wheel: 0 to 16383, 8192 in tune
 # Every project begins with this much silence, which is cut from what REAPER renders. Some
 # instruments (the AVL drum kits, DrumGizmo) fetch their recordings when the first stretch of
 # sound is asked of them, and play nothing in it: a note on the first beat would be lost.
@@ -348,7 +349,7 @@ class Line:
     volume: float = 1.0                                          # 1 is as the template has it
     pan: float = 0.0
     moves: list[tuple[float, float]] = field(default_factory=list)      # (beat, gain): the volume riding up and down
-    controls: list[tuple[float, int, int]] = field(default_factory=list)   # (beat, controller, value 0 to 127): written among the notes
+    controls: list[tuple[float, int, int]] = field(default_factory=list)   # (beat, controller, value 0 to 127; PITCH: the wheel): among the notes
     early: float = 0.0                                           # seconds it is played ahead
     send: float = 0.0                                            # how much of it goes to its folder's hall (1 is all of it)
     effects: list[str] = field(default_factory=list)             # effects put after its own, as `js` writes them
@@ -397,10 +398,13 @@ def _events(notes: list[Note], bpm: float, seconds: float, early: float, control
     last: dict[int, int] = {}
     for beat, controller, value in sorted(controls or []):
         tick = min(max(int(round((beat - ahead) * TICKS)), 0), end - 2)
-        value = min(max(int(round(value)), 0), 127)
+        value = min(max(int(round(value)), 0), 16383 if controller == PITCH else 127)
         if last.get(controller) == value:
             continue
         last[controller] = value
+        if controller == PITCH:
+            events.append((tick, 1, "e0 %02x %02x" % (value & 0x7F, value >> 7)))     # the pitch wheel: its low seven bits, then its high
+            continue
         events.append((tick, 1, "b0 %02x %02x" % (controller, value)))      # a controller move at a note's start comes before the note
     events.sort()
     out, now = [], 0

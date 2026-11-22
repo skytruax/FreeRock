@@ -91,6 +91,15 @@ RECORDED: dict[str, tuple[str, dict]] = {
     # A chromatic harmonica (a Hohner Super 64), with its own vibrato on the held notes and its accented notes for the short ones.
     "harmonica long": (VC + "Aerophones/Free Aerophones/Harmonica-Hohner-Super64/Sustains/Vib", dict(WIND, attack=20.0, release=160.0)),
     "harmonica short": (VC + "Aerophones/Free Aerophones/Harmonica-Hohner-Super64/Sustains/Accented", dict(WIND, attack=6.0, release=110.0)),
+    # (2026-11-21: "You gotta work on your fucking harmonica. Look up John Popper".) A blues harp: Hohner Special 20s, the
+    # diatonic harmonica of the blues and of John Popper's first records, where the Super 64 above is a chromatic harmonica,
+    # smooth and even, its vibrato on every held note. VCSL recorded two, in C (its C, E and G) and in F (its F, A and C), three
+    # notes an octave each: together nearly every whole step from C3 to F6, so no note is stretched more than a tone
+    # (samples/merged/blues-harp, links to their recordings). Held straight; the staccato takes for the quick notes (the F
+    # harp's, two of each, the C harp's E and G between them); the hand vibrato's wah, cupped, for the wails.
+    "blues harp long": ("merged/blues-harp/long", dict(WIND, attack=10.0, release=120.0)),
+    "blues harp short": ("merged/blues-harp/short", dict(WIND, attack=3.0, release=70.0)),
+    "blues harp wail": ("merged/blues-harp/wail", dict(WIND, attack=12.0, release=160.0)),
     # The accordion is TinySOL's (IRCAM, CC BY 4.0): every semitone from A1 played soft, medium and loud, most of them
     # twice more. Until 2026-11-18 the harmonica stood in for it, whose recordings go only from C4 to C6: an accordion's
     # chords from F3 were a harmonica stretched, and reedy where an accordion is full.
@@ -257,7 +266,7 @@ SWELLS = {1.5: _IDIO + "Suspended Cymbal 1/susCymb1_cresc_1.5s.wav", 2.0: _IDIO 
 class Player:
     """One of the real instruments that play a written one, and which of its notes it takes."""
     name: str                  # a recorded instrument, a big drum, or "surge:<patch file under Surge's patch folders>"
-    notes: str = "all"         # all | long | short
+    notes: str = "all"         # all | long | short | held (a held note, where its sound has `held`; then not a long one)
     low: int = 0               # only the written notes from here
     high: int = 127            # to here
     over: float = 0.0          # only the notes struck at least this hard (0 to 1)
@@ -274,6 +283,7 @@ class Player:
 class Sound:
     players: tuple[Player, ...]
     short: float = 0.26        # seconds: a note shorter than this is a short note
+    held: float = 0.0          # seconds: a note at least this long is a held one, for its "held" player; 0: none
 
 
 def _bowed(name: str, seat: float, long: str = "long") -> Sound:
@@ -283,6 +293,11 @@ def _bowed(name: str, seat: float, long: str = "long") -> Sound:
         # sits under them at their pitch, in the middle: felt more than heard, and the only thing down there.
         players += (Player(SUB, "long", over=0.55, gain=-9.0, octave=1, seat=0.0),)
     return Sound(players)
+
+
+# The harmonica the writers name is a blues harp (the Special 20s: "blues harp long", "short", "wail"); False: the chromatic Super 64
+# it was until 2026-11-21.
+BLUES_HARP = True
 
 
 def _blown(name: str, seat: float, long: str = "long") -> Sound:
@@ -381,7 +396,10 @@ SOUNDS: dict[str, Sound] = {
     "harpsichord": Sound((Player("harpsichord", seat=-0.15),)),
     # The accordion is a real one (TinySOL's; until 2026-11-18 the harmonica, the same kind of instrument, played its
     # parts). The banjo's are a strumstick's: three strings and the same twang; there is no banjo here.
-    "accordion": _blown("accordion", 0.15), "harmonica": _blown("harmonica", 0.1),
+    "accordion": _blown("accordion", 0.15),
+    # (The blues harp's long notes, a second and a fifth and longer, are its wails: the hand vibrato's take.)
+    "harmonica": (Sound((Player("blues harp long", "long", seat=0.1), Player("blues harp short", "short", seat=0.1),
+                         Player("blues harp wail", "held", seat=0.1)), short=0.2, held=1.5) if BLUES_HARP else _blown("harmonica", 0.1)),
     "guitar": Sound((Player("folk harp", seat=-0.25),)), "steel guitar": Sound((Player("strumstick", seat=-0.25),)),
     "mandolin": Sound((Player("strumstick", octave=1, seat=0.2),)),
     "twelve string": Sound((Player("strumstick", seat=-0.25), Player("psaltery", octave=1, gain=-7.0, seat=-0.25))),
@@ -465,6 +483,12 @@ _SURGE_THIRD = "surge:patches_3rdparty/"     # the patches others made for Surge
 # House leaned on most: the saw bass, the pluck, the super pad, the saw lead and the chord stab. They sound at the note
 # written (Surge's empty saw), so their octave is 0. OWN_HOUSE switches them in; False, the factory patches as before.
 OWN_HOUSE = True
+# (2026-11-22, night: Morning on the Hill III's study, its whistle lead 8.6 dB thin in its middle and 22 under the liked
+# stems at its top.) The whistle written for House (the whistle and the flute, a fifth of its takes) played on the whistle
+# with its edge (patches "house lead whistle": the sine leaned toward a saw, the octave's triangle louder, more breath, a
+# soft saturation, the low-pass at 6 kHz), measured alone with 31 dB more in its top than the pure one and the same middle.
+# A template of its own, so the lanes' is not touched until it is judged. False: the pure whistle ("house lead sine").
+WHISTLE_EDGE = True
 OWN_PATCHES = {"house bass saw": "own:house bass", "house pluck": "own:house pluck", "house pad super": "own:house pad",
                "house lead saw": "own:house lead", "house stab": "own:house stab",
                # (The second five, by how much House plays them: the drop's big lead, the glass pluck, three pads, and the
@@ -476,7 +500,8 @@ OWN_PATCHES = {"house bass saw": "own:house bass", "house pluck": "own:house plu
                # judge with the hollow lead, TuneJury 1.64 to 1.40, Audiobox's enjoyment 7.69 to 7.35, and its drop level to down
                # with the plucked bass. Their designs wait in patches.DESIGNS for another try.)
                "house bass fm": "own:house bass fm", "house bass wide": "own:house bass wide",
-               "house bass square": "own:house bass square", "house lead sine": "own:house lead sine", "house bell": "own:house bell"}
+               "house bass square": "own:house bass square", "house bell": "own:house bell",
+               "house lead sine": "own:house lead whistle" if WHISTLE_EDGE else "own:house lead sine"}
 if OWN_HOUSE:
     HOUSE.update(OWN_PATCHES)
     HOUSE_OCTAVE.update({name: 0 for name in OWN_PATCHES})
@@ -564,7 +589,7 @@ def family(name: str) -> str:
         return "strings short" if name.endswith(("short", "pizz")) else "strings"
     if first == "violin":
         return "solo strings short" if name.endswith(("short", "pizz")) else "solo strings"
-    if first in ("flute", "piccolo", "oboe", "clarinet", "bassoon", "recorder", "ocarina", "harmonica", "accordion", "bagpipe"):
+    if first in ("flute", "piccolo", "oboe", "clarinet", "bassoon", "recorder", "ocarina", "harmonica", "blues", "accordion", "bagpipe"):
         return "woodwind short" if name.endswith("short") else "woodwind"
     if first in ("horn", "trumpet", "trombone", "tuba"):
         return "brass short" if name.endswith("short") else "brass"
@@ -750,6 +775,17 @@ def echo(bpm: float, amount: float, *, left: int = 3, right: int = 3, again: flo
                     dry=1.0, medium=1, mix_mode=1)
 
 
+def harp_amp(amount: float) -> str:
+    """A harp player's amp (Calf's saturator): the bullet microphone's band before it (250 Hz to 5.5 kHz), the tubes driven
+    by `amount` (0 to 1) with their even harmonics, a lift where the reed honks, and the speaker's top rolled off after.
+    (Pushed 18 dB harder into the tubes, as a harp cupped round a bullet microphone can push an amp, it was tried and left off
+    on 2026-11-22: the judges' SongEval 0.11 to 0.14 down where the harp carries the tune, Whiskey Groove's theme, the rest
+    level.)"""
+    return desk.lv2("Calf Saturator", level_in=1.0 + amount, level_out=1.0 / (1.0 + 0.8 * amount), mix=1.0, drive=2.0 + 7.0 * amount,
+                    blend=8.0, hp_pre_freq=250.0, lp_pre_freq=5500.0, hp_post_freq=180.0, lp_post_freq=6000.0, p_freq=1400.0,
+                    p_level=1.0 + 0.6 * amount, p_q=0.9)
+
+
 def excite(amount: float) -> str:
     """Air (Calf's exciter): new harmonics made above 7.5 kHz out of what is under them, mixed in a little."""
     return desk.lv2("Calf Exciter", amount=amount, drive=8.5, blend=0.0, freq=7500.0)
@@ -783,7 +819,7 @@ def drum_room() -> str:
                     low_boost=30.0, boost_freq=300.0, in_low_cut=4.0)
 
 
-LOW_CUT = {"harmonica": 200.0, "accordion": 110.0, "bagpipe": 220.0, "violins": 170.0, "violas": 115.0, "celli": 58.0, "basses": 30.0, "violin": 175.0, "flute": 230.0, "piccolo": 480.0, "oboe": 210.0,
+LOW_CUT = {"harmonica": 200.0, "blues": 220.0, "accordion": 110.0, "bagpipe": 220.0, "violins": 170.0, "violas": 115.0, "celli": 58.0, "basses": 30.0, "violin": 175.0, "flute": 230.0, "piccolo": 480.0, "oboe": 210.0,
            "clarinet": 130.0, "bassoon": 52.0, "recorder": 220.0, "ocarina": 400.0, "horn": 60.0, "trumpet": 150.0, "trombone": 55.0, "tuba": 30.0}
 VOICING = desk.TEMPLATES / "voicing.json"          # what the ear worked out for each instrument's top (see `levels`)
 _voicing: dict[str, dict] | None = None
@@ -840,6 +876,11 @@ def chain(name: str, bpm: float) -> list[str]:
         return [punch(0.5, 0.0), equalise(low_cut=32.0, low_shelf=(200.0, 2.0), bands=((480.0, -4.0, 1.4), (2200.0, -2.0, 1.6)),
                                          high_shelf=(5000.0, 3.5)),
                 smash(0.3), warm(0.15)]
+    if name.startswith("blues harp"):
+        # A harp cupped round a bullet microphone into a small tube amp, as a rock band's harp player plays (John Popper's
+        # rig: a mic into a pair of overdriven tube heads, an echo after them): the microphone's band, nothing under 250 Hz
+        # or over 5.5 kHz; the amp pushed into its tubes' growl; the reed's honk at 1.4 kHz; a slapback a sixteenth behind.
+        return [equalise(low_cut=230.0, bands=((1400.0, 2.5, 1.0),)), harp_amp(0.6), echo(bpm, 0.12, left=1, right=1, again=0.12)]
     if kind == "woodwind" and _dry(name):
         # Recorded close: the keys and the breath are nearer than they are from a seat in the hall.
         return [equalise(low_cut=cut, high_shelf=(7500.0, -3.0))]
@@ -1141,7 +1182,7 @@ def level(name: str) -> dict[str, float]:
 # The further back, the more of the hall is heard with it and the less of its top.
 DEPTHS = (("violin", 0.0), ("viola", 0.0), ("celli", 0.0), ("basses", 0.05), ("strumstick", 0.25), ("harp", 0.3), ("folk harp", 0.3),
           ("psaltery", 0.3), ("zither", 0.3), ("harpsichord", 0.35), ("piano", 0.35), ("kalimba", 0.4), ("mbira", 0.4),
-          ("recorder", 0.4), ("ocarina", 0.4), ("harmonica", 0.3), ("accordion", 0.3), ("bagpipe", 0.35), ("flute", 0.45), ("piccolo", 0.45), ("oboe", 0.45), ("clarinet", 0.45), ("bassoon", 0.45),
+          ("recorder", 0.4), ("ocarina", 0.4), ("harmonica", 0.3), ("blues harp", 0.3), ("accordion", 0.3), ("bagpipe", 0.35), ("flute", 0.45), ("piccolo", 0.45), ("oboe", 0.45), ("clarinet", 0.45), ("bassoon", 0.45),
           ("small organ", 0.5), ("horn", 0.6), ("balafon", 0.6), ("frame drum", 0.6), ("trumpet", 0.65), ("trombone", 0.65), ("tuba", 0.65),
           ("surge", 0.7), ("marimba", 0.7), ("vibes", 0.7), ("glock", 0.75), ("tube glock", 0.75), ("xylophone", 0.75), ("anvil", 0.75),
           ("hand chimes", 0.8), ("organ", 0.85), ("tubular bells", 0.85), ("war drum", 0.85), ("tom mallet", 0.85), ("kit", 0.85), ("avl", 0.85),
@@ -1379,7 +1420,7 @@ def marked(voice: Voice, bpm: float) -> list[str]:
     it shouldnt be standard"): the pedals (studio/jsfx/pedals) and the filters (studio/jsfx/sweep), each mark drawn as
     that effect's envelope, set as the part's settings say. None for a part with no marks."""
     marks, settings = voice.effects, voice.settings
-    unknown = set(marks) - set(PEDAL_MARKS) - set(SWEEP_MARKS)
+    unknown = set(marks) - set(PEDAL_MARKS) - set(SWEEP_MARKS) - {"bend"}         # (a bend is the pitch wheel's: `bent`)
     if unknown:
         raise ValueError("The desk does not play the effect marks %s" % ", ".join(sorted(unknown)))
     second = 60.0 / bpm
@@ -1425,7 +1466,27 @@ def lines(voice: Voice, title: str, bpm: float, *, taste: float = 1.0, room: flo
     if pedals:
         for line in made:
             line.effects = list(line.effects[:1]) + pedals + list(line.effects[1:])
+    if voice.effects.get("bend"):
+        wheel = bent(voice.effects["bend"], bpm)
+        for line in made:
+            line.controls = sorted(line.controls + wheel)       # on each of its players' tracks: whichever plays the note is bent
     return made
+
+
+def bent(points: list[tuple[float, float]], bpm: float) -> list[tuple[float, int, int]]:
+    """A part's "bend" marks (beat, semitones) as the pitch wheel (desk.PITCH) of the sampler, whose wheel reaches two
+    semitones each way: drawn straight from mark to mark, a step every hundredth of a second where it moves."""
+    step = 0.01 * bpm / 60.0
+    out: list[tuple[float, int, int]] = []
+
+    def wheel(semitones: float) -> int:
+        return min(max(int(round(8192 + min(max(semitones, -2.0), 2.0) / 2.0 * 8192)), 0), 16383)
+    for (at, value), (to, then) in zip(points, points[1:] + [points[-1]]):
+        out.append((at, desk.PITCH, wheel(value)))
+        count = int((to - at) / step) if then != value and to > at else 0
+        for each in range(1, count):
+            out.append((at + each * step, desk.PITCH, wheel(value + (then - value) * each / count)))
+    return out
 
 
 def _lines(voice: Voice, title: str, bpm: float, *, taste: float = 1.0, room: float = 1.0, seed: int = 0,
@@ -1475,7 +1536,8 @@ def _lines(voice: Voice, title: str, bpm: float, *, taste: float = 1.0, room: fl
         notes = []
         for note in voice.notes if not player.takes else ():
             long = note.length * beat >= sound.short
-            if (player.notes == "long" and not long) or (player.notes == "short" and long):
+            held = bool(sound.held) and note.length * beat >= sound.held
+            if (player.notes == "long" and (not long or held)) or (player.notes == "short" and long) or (player.notes == "held" and not held):
                 continue
             if not (player.low <= note.pitch <= player.high and player.over <= note.loud < player.under):
                 continue

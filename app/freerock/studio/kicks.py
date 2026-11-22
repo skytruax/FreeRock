@@ -45,6 +45,31 @@ DESIGNS: dict[str, dict] = {
                    "level": [(0.0, 0.0), (1.0, 1.0), (35.0, 1.0), (100.0, 0.42), (180.0, 0.1), (280.0, 0.0)],
                    "punch": 0.55, "punch_level": [(0.0, 0.0), (1.0, 1.0), (30.0, 0.6), (90.0, 0.15), (150.0, 0.0)],
                    "click": 1.0, "click_ms": 10.0, "click_hz": 2200.0, "drive": 3.0, "drive_in": 0.6, "drive_out": 0.5},
+    # (2026-11-22, night: the one kick above stood in for all four machines.) Each machine's own, drawn after its kick as the
+    # TR-8 plays it and read alongside it (to -12, -24 and -40 dB from its peak; its body's pitch at 5, 15, 30 and 60 ms;
+    # 120-500 Hz, 500 Hz-2 kHz and 2-8 kHz against its body at 40-120 Hz). Driven harder than the 909's for the harmonics an
+    # analogue drum has in its middle, and so falling sooner, since the drive holds a tail up.
+    # The 808: 54, 159, 296 ms; 84, 58, 49, 46 Hz, the deepest body and the least fall; 120-500 Hz 11 dB under its body,
+    # 2-8 kHz 43: round, the punch and the click soft. Drawn: 76, 172, 260 ms; 76, 61, 52 Hz; -13, -29, -40 dB.
+    "house kick 808": {"length": 320.0,
+                       "pitch": [(0.0, 95.0), (6.0, 80.0), (15.0, 60.0), (30.0, 50.0), (60.0, 47.0), (320.0, 45.0)],
+                       "level": [(0.0, 0.0), (1.0, 1.0), (15.0, 1.0), (50.0, 0.33), (120.0, 0.1), (220.0, 0.03), (300.0, 0.0)],
+                       "punch": 0.8, "punch_level": [(0.0, 0.0), (1.0, 1.0), (25.0, 0.6), (80.0, 0.15), (140.0, 0.0)],
+                       "click": 0.06, "click_ms": 5.0, "click_hz": 1500.0, "drive": 4.5, "drive_in": 0.6, "drive_out": 0.45},
+    # The 707: 42, 51, 71 ms, a knock and gone; 108 to 55 Hz in 30 ms; its middle and top only 19 dB under its body: the
+    # knock is half of it, a burst of noise round 2 kHz. Drawn: 27, 38, 71 ms; 105, 84, 61 Hz; -11, -22, -17 dB.
+    "house kick 707": {"length": 110.0,
+                       "pitch": [(0.0, 140.0), (5.0, 110.0), (15.0, 82.0), (30.0, 60.0), (110.0, 55.0)],
+                       "level": [(0.0, 0.0), (1.0, 1.0), (28.0, 1.0), (45.0, 0.25), (62.0, 0.06), (100.0, 0.0)],
+                       "punch": 0.3, "punch_level": [(0.0, 0.0), (1.0, 1.0), (15.0, 0.5), (40.0, 0.0)],
+                       "click": 1.2, "click_ms": 40.0, "click_hz": 2000.0, "click_type": 2, "drive": 3.5, "drive_in": 0.5, "drive_out": 0.5},
+    # The 606: 93, 290, 546 ms, the longest boom; a body at 55 Hz from the first, hardly falling; 120-500 Hz 13 dB under it,
+    # 2-8 kHz 41: dark, a soft click. Drawn: 108, 316, 546 ms; 73, 61, 52 Hz; -13, -30, -40 dB.
+    "house kick 606": {"length": 560.0,
+                       "pitch": [(0.0, 75.0), (8.0, 62.0), (25.0, 56.0), (560.0, 54.0)],
+                       "level": [(0.0, 0.0), (1.0, 1.0), (15.0, 1.0), (55.0, 0.26), (190.0, 0.075), (400.0, 0.025), (546.0, 0.01), (556.0, 0.0)],
+                       "punch": 0.9, "punch_level": [(0.0, 0.0), (1.0, 1.0), (30.0, 0.5), (110.0, 0.0)],
+                       "click": 0.06, "click_ms": 5.0, "click_hz": 1500.0, "drive": 5.0, "drive_in": 0.6, "drive_out": 0.42},
 }
 
 
@@ -82,5 +107,5 @@ def design(name: str, presets: Path) -> dict:
     click.update(enabled=True, is_fm=False, function=4, phase=0.0)
     click["ampl_env"] = {"amplitude": spec["click"], "apply_type": 0,
                          "points": [[0.0, 1.0], [at(spec["click_ms"]), 0.0], [1.0, 0.0]]}
-    click["filter"].update(enabled=True, type=1, cutoff=spec["click_hz"])
+    click["filter"].update(enabled=True, type=spec.get("click_type", 1), cutoff=spec["click_hz"])     # 1 high-pass, 2 band-pass
     return out

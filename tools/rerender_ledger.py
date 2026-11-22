@@ -201,6 +201,27 @@ def stop_time(piece: Piece) -> bool:
     return summit["first"] + summit["bars"] - ends >= orchestra.STOP_BARS + 4
 
 
+def plays_harmonica(piece: Piece) -> bool:
+    """A band's or an orchestra's take whose staged sheet has a harmonica in it, anywhere: since sounds.BLUES_HARP, the harp
+    phrasing and orchestra.HARP_BENDS (2026-11-22) the harmonica is a blues harp, its solo a harp player's and bent."""
+    if piece.style == "house":
+        return False
+    sheet = STUDIO / piece.style / piece.key / "sheet.json"
+    if not sheet.is_file():
+        return False
+    parts = json.loads(sheet.read_text(encoding="utf-8")).get("parts", {})
+    return any(voice.get("instrument") == "harmonica" for channel in parts.values() for voice in channel.values())
+
+
+def house_whistle(piece: Piece) -> bool:
+    """A House take whose staged sheet plays the whistle's lead ("house lead sine", the whistle and the flute written for
+    House): since sounds.WHISTLE_EDGE (2026-11-22) it is played on the whistle with its edge."""
+    if piece.style != "house":
+        return False
+    sheet = STUDIO / piece.style / piece.key / "sheet.json"
+    return sheet.is_file() and '"house lead sine"' in sheet.read_text(encoding="utf-8")
+
+
 def house_take(piece: Piece) -> bool:
     """A House take: since House's own instruments and kick (sounds.OWN_HOUSE, club.OWN_KICK, 2026-11-21) every one of them
     plays its own sounds, the kick among them, where it played the factory patches and the machine's samples."""
@@ -227,6 +248,17 @@ class Change:
 
 
 CHANGES = [
+    Change("House's whistle with its edge", datetime.datetime(2026, 11, 22, 8, 20), "",
+           "the whistle and the flute written for House played on the whistle with its edge (patches \"house lead whistle\": the "
+           "sine leaned toward a saw, the octave's triangle louder, more breath, a soft saturation, the filter at 6 kHz) in the "
+           "near sine's place, sounds.WHISTLE_EDGE",
+           house_whistle),
+    Change("the blues harp, a harp player's solo, bent", datetime.datetime(2026, 11, 22, 8, 20), "",
+           "the harmonica a blues harp (VCSL's Special 20s in C and F through a harp player's amp, sounds.BLUES_HARP) in the "
+           "chromatic one's place; its solo single notes, warbles a third wide, thirty-seconds in a slow song, the hand "
+           "vibrato's wail on the long notes; its sung notes bent onto from under on the sampler's pitch wheel "
+           "(orchestra.HARP_BENDS): \"You gotta work on your fucking harmonica. Look up John Popper\"",
+           plays_harmonica),
     Change("House's own sounds as designed, and the rest of them", datetime.datetime(2026, 11, 21, 21, 35), "",
            "House's own Surge patches drawn as their designs say (Surge's classic oscillator makes a square at its Shape -1 and an "
            "octave-up double saw at +1, which the designs had read as a triangle and a square: the leads' squares under them had "

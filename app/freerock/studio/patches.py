@@ -258,6 +258,20 @@ DESIGNS: dict[str, tuple[dict, dict]] = {
                          "a_lfo0_shape": 0, "a_lfo0_rate": rate(5.0), "a_lfo0_delay": seconds(0.35), "a_lfo0_attack": seconds(0.4),
                          "polylimit": 4},
                         {"a_pitch": [("lfo1", 0.18)]}),
+    # (2026-11-21, night: Morning on the Hill III's study, its whistle lead 8.6 dB thin in its middle and 22 under the liked
+    # stems at its top: a sine is too pure to carry a tune over a full band, and a fifth of House's takes lead with it.) The
+    # whistle with its edge, the sound of the air splitting on the lip: the sine leaned toward a saw (feedback 0.12), the
+    # triangle an octave up nearly twice as loud, more breath, a soft saturation for the odd harmonics a real whistle's
+    # edge tone has (4 dB), and the low-pass opened to 6 kHz. The same slide, the same late vibrato (sounds.WHISTLE_EDGE).
+    "house lead whistle": ({**sine(1, feedback=0.12), **triangle(2, octave=1, level=0.22),
+                            "a_mute_noise": 0, "a_level_noise": 0.08, "a_noisecol": 0.3,
+                            "a_filter1_type": LP12, "a_filter1_subtype": 0, "a_filter1_cutoff": hz(6000.0), "a_filter1_keytrack": 0.5,
+                            "a_ws_type": WS_SOFT, "a_ws_drive": 4.0,
+                            "a_filter2_type": HP12, "a_filter2_subtype": 0, "a_filter2_cutoff": hz(200.0),
+                            **env(1, 0.03, 1.0, 0.9, 0.3), "a_portamento": seconds(0.06),
+                            "a_lfo0_shape": 0, "a_lfo0_rate": rate(5.0), "a_lfo0_delay": seconds(0.35), "a_lfo0_attack": seconds(0.4),
+                            "polylimit": 4},
+                           {"a_pitch": [("lfo1", 0.18)]}),
     # The hollow lead (the hollow and the pipe): two squares a little apart and a narrow pulse, through a 24 dB low-pass
     # at 2 kHz that each note lifts a little: odd harmonics, a reed's hollowness, with the lead's slide and late vibrato.
     "house lead hollow": ({**osc(1, shape=PULSE, voices=2, detune=0.06), **osc(2, shape=PULSE, width=0.25, pitch=-0.05, level=0.35),

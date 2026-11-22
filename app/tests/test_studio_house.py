@@ -146,6 +146,37 @@ def test_houses_own_oscillators_are_the_waves_they_say():
     assert lead["a_osc2_param0"] == patches.PULSE and lead["a_osc2_octave"] == -1
 
 
+def test_houses_whistle_has_its_edge():
+    # (2026-11-22, night: Morning on the Hill III's whistle lead 22 dB under the liked stems at its top.) The whistle written
+    # for House plays the whistle with its edge: the pure one's sine and triangle, the sine leaned toward a saw, the triangle
+    # louder, a soft saturation, the low-pass opened; a template of its own beside the pure whistle's.
+    from freerock.studio import patches, sounds
+    pure, edge = (patches.DESIGNS[name][0] for name in ("house lead sine", "house lead whistle"))
+    assert edge["a_osc1_type"] == pure["a_osc1_type"] == patches.SINE and edge["a_osc2_type"] == pure["a_osc2_type"] == patches.MODERN
+    assert edge["a_osc1_param1"] > pure["a_osc1_param1"] and edge["a_level_o2"] > pure["a_level_o2"]
+    assert edge["a_ws_type"] == patches.WS_SOFT and "a_ws_type" not in pure
+    assert edge["a_filter1_cutoff"] > pure["a_filter1_cutoff"]
+    assert sounds.OWN_PATCHES["house lead sine"] == ("own:house lead whistle" if sounds.WHISTLE_EDGE else "own:house lead sine")
+    assert sounds.template_of("surge:own/house lead whistle") != sounds.template_of("surge:own/house lead sine")
+
+
+def test_each_machine_has_its_own_kick(monkeypatch):
+    # (2026-11-22, night: House's own kick was the 909's for every machine.) The 808, the 707 and the 606 each have a kick of
+    # House's own drawn after the TR-8's (club.MACHINE_KICKS): the 808's body the deepest and falling least, the 707's the
+    # shortest with a band-passed knock, the 606's the longest; the 909 keeps its own, and every one is a Geonkick drum.
+    from freerock.studio import club, desk, kicks
+    designs = {machine: kicks.DESIGNS[name] for machine, (name, _) in club.MACHINE_KICK.items()}
+    assert designs["909"] is kicks.DESIGNS["house kick"] and club.MACHINE_KICK["909"][1] == club.KICK_TRIM
+    assert designs["808"]["pitch"][0][1] < designs["909"]["pitch"][0][1] and designs["808"]["pitch"][-1][1] < designs["909"]["pitch"][-1][1]
+    assert designs["707"]["length"] < min(each["length"] for machine, each in designs.items() if machine != "707")
+    assert designs["707"].get("click_type") == 2 and "click_type" not in designs["909"]
+    assert designs["606"]["length"] > max(each["length"] for machine, each in designs.items() if machine != "606")
+    if (desk.GEONKICK / (kicks.TEMPLATE + ".gkick")).is_file():
+        for name in ("house kick 808", "house kick 707", "house kick 606"):
+            drum = kicks.design(name, desk.GEONKICK)
+            assert drum["kick"]["name"] == name and drum["osc2"]["filter"]["type"] == kicks.DESIGNS[name].get("click_type", 1)
+
+
 def test_house_plays_its_own_patches():
     # (2026-11-21) Where House leaned on the factory patches most, it plays its own (sounds.OWN_HOUSE): the desk loads them
     # from their designs, at the note written.
@@ -552,8 +583,18 @@ def test_the_fm_bass_has_a_growl_beside_it_as_the_sub_has(monkeypatch):
     monkeypatch.setattr(club.muse, "available", lambda: False)
     heard = club.Heard()
     heard.notes[("bass", "bass", "fm")].append((0.0, house.BAR, 40.0, 0.5, 0.0, 1.0))
+    heard.notes[("bass", "bass", "sub")].append((0.0, house.BAR, 40.0, 0.5, 0.0, 1.0))
+    monkeypatch.setattr(club, "FM_GROWL", True)
     lines = {name: (written, cut) for _, _, name, written, cut, *_ in club.voices(heard)}
     assert lines["fm growl"] == ("house bass saw", 900.0) and "fm sub" not in lines
+    # (2026-11-21, the study: House's own FM bass has the middle the factory one lacked; with the growl under it Sunlit Fields
+    # II's bass stood 6.3 dB over the liked stems there.) FM_GROWL off: the growl under the sub alone, where the FM bass is
+    # House's own.
+    from freerock.studio import sounds
+    monkeypatch.setattr(club, "FM_GROWL", False)
+    lines = {name: (written, cut) for _, _, name, written, cut, *_ in club.voices(heard)}
+    assert lines["sub growl"] == ("house bass saw", 900.0)
+    assert ("fm growl" in lines) == (not sounds.HOUSE["house bass fm"].startswith("own:"))
 
 
 def test_every_house_family_has_ground_the_atlas_knows():

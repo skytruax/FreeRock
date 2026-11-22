@@ -184,11 +184,25 @@ def _loud(levels: list[float]) -> list[float]:
 SPAN = 4            # bars: a voice's level is read four at a time (a house phrase is eight, every part a whole number of them)
 UNDER = 0.6         # a note written under this part of the loudest in its four bars is a line under the tune: a doubling, an echo
 SUBBED = ("house bass pluck", "house bass saw")      # the basses that are heard more than felt: a sine goes under them
+# The basses with a sawtooth growl under them, closed above 900 Hz (`voices`): the sub, and the factory FM bass, which had no
+# middle of its own. House's own FM bass has one, and the growl under it is not heard: taken away in three songs, the bass moved
+# 1 dB or less in every octave and the judges stayed level (2026-11-22; Sunlit Fields II's bass, 7 dB over the liked stems at
+# 450 to 900 Hz, is the FM bass's own middle, not the growl's). FM_GROWL False: the growl under the sub alone where the FM bass
+# is House's own, one track fewer.
+FM_GROWL = False
+GROWLED = ("house sub", "house bass fm")
 HARSH = 0.55        # how far under the bass its harsh twin plays, once it is all the way in (`harsher`)
 OWN_KICK = True     # House's own kick (studio/kicks.py) for every machine's; False: the machine's recorded kick
 # dB: the own kick turned up to the 909's loudness: 3.6 by a trial's four strokes at one strength, and 1.5 more by Night Prowl I's
 # last drop, where the drums came out 1.1 dB under the 909's, the kick 1.9 dB lighter under 60 Hz (2026-11-21)
 KICK_TRIM = 5.1
+# (2026-11-22, night: the own kick was the 909's for every machine.) Each machine its own kick (studio/kicks.py: the 808's, the
+# 707's and the 606's drawn after the TR-8's), turned up as far again as each stands under its machine's at one strength, past
+# the 909's trim (by the first 150 ms of one stroke: the 808's 1.0 dB more, the 707's 2.0, the 606's 0.6 less). False: the
+# 909's kick for every machine, as it was.
+MACHINE_KICKS = False
+MACHINE_KICK = {"909": ("house kick", KICK_TRIM), "808": ("house kick 808", KICK_TRIM + 1.0), "707": ("house kick 707", KICK_TRIM + 2.0),
+                "606": ("house kick 606", KICK_TRIM - 0.6)}
 # (2026-11-21: the wide twin added 0.0 to 0.4 dB to the bass in five long drops of six, unheard, and louder at 0.95 only 0.6.)
 # With House's own instruments the twin is a sound of its own, driven saws with the low end left to the bass
 # (studio/patches.py, "house bass harsh"), whatever the bass is.
@@ -210,7 +224,8 @@ OPEN_TOP = ("house lead saw", "house lead super")
 SUB_UNDER = 0.8     # ...this far under the bass it holds up (0.7 until the third pass: the liked basses have 3 to 7 dB more at 28 to 57 Hz)
 # House's room, at the foot of every channel's folder (sounds.hall): how long it rings (s), nothing in it over (Hz) or under
 # (Hz), and how long its lows ring against the rest. A darker room than the orchestra's, as it was set the first night
-# (2026-11-16) and never tried since.
+# (2026-11-16). (A longer, cleaner one, 2.8 s from 300 Hz to 8 kHz with its lows at 0.8, was tried on 2026-11-21 and left
+# off: TuneJury down in four of six windows with the House brief, five of six without; handbook 5.7, Effects.)
 ROOM = (1.5, 6000.0, 80.0, 1.2)
 
 
@@ -294,7 +309,7 @@ def voices(heard: Heard) -> list[tuple[str, str, str, str, float, list[Note], fl
             for cut, mine in sorted(bands.items()):
                 out.append((channel, table, name + suffix, written, cut, mine, level, ride))
                 every += mine
-        if written in ("house sub", "house bass fm"):
+        if written in GROWLED and (written != "house bass fm" or FM_GROWL or not sounds.HOUSE.get(written, "").startswith("own:")):
             # (2026-11-17, night: against the liked house stems the bass was 30 dB short in its middle and 44 at its top: a
             # sine under 100 Hz, which a small loudspeaker does not play at all. The FM bass the same the next morning: 17 to
             # 30 dB short from 450 Hz up.) A sawtooth on the same notes, closed
@@ -333,7 +348,8 @@ def lines(heard: Heard, seed: int, work: Path) -> tuple[dict[str, list[desk.Line
         template = desk.bare("house kit", [desk.sfizz(file)])
         # (2026-11-21, "and design yourself": House's own kick, studio/kicks.py, in the place of the machine's sample; it is
         # 3.6 dB quieter than the 909's at the same strength, so it is turned up that much, before the kick's chain.)
-        kick_template = desk.bare("house own kick", [desk.geonkick("own/house kick")]) if OWN_KICK else template
+        kick_name, kick_trim = MACHINE_KICK.get(machine, MACHINE_KICK["909"]) if MACHINE_KICKS else MACHINE_KICK["909"]
+        kick_template = desk.bare("house own kick", [desk.geonkick("own/" + kick_name)]) if OWN_KICK else template
         chains = {
             # The kick: its stroke brought out, what is under 30 Hz taken away, held together; nothing of it in the hall.
             "kick": ([sounds.punch(0.35, -0.1), sounds.equalise(low_cut=30.0, bands=((320.0, -2.5, 1.2), (3500.0, 2.0, 1.6))), sounds.smash(0.3)], 0.0, 1.0),
@@ -347,7 +363,7 @@ def lines(heard: Heard, seed: int, work: Path) -> tuple[dict[str, list[desk.Line
         for which, notes in sets.items():
             effects, send, volume = chains[which]
             if which == "kick" and OWN_KICK:
-                effects = [sounds.turned(KICK_TRIM)] + effects
+                effects = [sounds.turned(kick_trim)] + effects
             out["drums"].append(desk.Line("house %s" % which, kick_template if which == "kick" else template, notes, volume=volume,
                                           send=send, effects=effects))
     # ----- the voices: each sound of each channel, its notes shared out by how bright they are asked for

@@ -3,6 +3,39 @@
 Newest first. Words in quotation marks are what was said while listening or playing, as typed or
 dictated, where it drove the change.
 
+## 2026-11-22, night: the blues harp, after John Popper; House's room, bass lift and machine kicks left off
+
+"You gotta work on your fucking harmonica. Look up John Popper".
+
+- **The harmonica is a blues harp** (handbook 4.1, `sounds.BLUES_HARP`): VCSL's Hohner Special 20s in C and F, the
+  diatonic harp Popper played for years, in the place of the chromatic Super 64 and its canned vibrato; held straight,
+  its staccato takes for the quick notes, the hand vibrato's wail for the long ones (`sounds.Sound.held`: a note of a
+  second and a half or more goes to the "held" player). Through a harp player's amp (`sounds.harp_amp`: the bullet
+  microphone's band, warm tubes, the reed's honk at 1.4 kHz, a slapback). Against the chromatic harp on three songs:
+  SongEval up in five windows of six, TuneJury with the brief level.
+- **Its solo is a harp player's** (handbook 4.10, `orchestra.SOLOISTS`, `HARP_FLURRIES`): single notes in the place of
+  the guitar's double stops, its trill the warble a third wide, its quick figures thirty-seconds in a slow song.
+- **And bent** (`orchestra.HARP_BENDS`, `harp_bends`): half its sung notes on the key note, the third or the fifth let
+  go up onto from under, now and then a sentence's long last note falling away; written on the sheet as the solo's
+  `bend` marks (`score.EFFECTS`), played on the sampler's pitch wheel (`desk.PITCH`, `sounds.bent`), checked by a
+  render to bend exactly two semitones at the wheel's foot. Judged level on both solos (SongEval 0.00 to 0.07 up).
+- Tried and left off: the harp's amp driven 18 dB harder (SongEval 0.11 to 0.14 down where the harp carries the tune);
+  House's room longer and cleaner (`club.ROOM` 2.8 s, 300 Hz to 8 kHz: TuneJury down in four windows of six with the
+  brief, five without); a long theme's bass lifting at its half (`house.THEME_BASS_TURNS`: level, the meter unmoved);
+  each drum machine its own kick (`club.MACHINE_KICKS`, the 808's, 707's and 606's drawn after the TR-8's in
+  `kicks.DESIGNS`: TuneJury down 0.36 to 0.39 in four windows of six, enjoyment down in all six).
+- **House's whistle with its edge** (`patches` "house lead whistle", `sounds.WHISTLE_EDGE`): the whistle and the flute
+  written for House, a fifth of its songs, had led on a near sine (Morning on the Hill III's lead 22 dB under the liked
+  stems at its top); the sine leaned toward a saw, the octave's triangle louder, more breath, a soft saturation, the
+  filter at 6 kHz: within 5 dB of the liked stems in every octave from 450 Hz up. The judges on Morning on the Hill III and Larks over the Ridge II, both ways: SongEval up in all four windows on every score (0.05 to 0.31), TuneJury with the House brief mixed (+0.18 and +0.07, -0.06 and -0.31), with none level, Audiobox's enjoyment level.
+- No growl under House's own FM bass (`club.FM_GROWL`): it was not heard (the bass within 1 dB in every octave
+  without it, the judges level); one track fewer.
+- Found by the judges themselves: TuneJury gives the same audio scores 0.1 apart from run to run (it hears through
+  LAION-CLAP, which crops at random); SongEval and Audiobox give the same numbers. A demo is read by its judges'
+  agreement across windows, not one TuneJury number.
+- The re-render ledger: every take with a harmonica (the blues harp, its playing, its bends), and every House take that
+  leads on the whistle.
+
 ## 2026-11-21, evening: House's own sounds as they were designed, and the rest of them
 
 "Gimme new demos and shit".

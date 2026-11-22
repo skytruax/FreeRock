@@ -1853,6 +1853,59 @@ def test_a_light_bands_summit_comes_back_harder_after_its_solo(monkeypatch):
     assert seen == 2
 
 
+def test_a_harmonica_solo_is_a_harp_players():
+    # (2026-11-21, evening: "You gotta work on your fucking harmonica. Look up John Popper".) A harmonica's solo is a harp
+    # player's (HARP_FLURRIES): single notes, never two at once (Campfire Ballad's had been the guitar's double stops); its
+    # runs and warbles in thirty-seconds where the song is slow; and its long notes go to the blues harp's wail, the hand
+    # vibrato's take (sounds.BLUES_HARP).
+    from freerock.studio import build, sounds
+    assert orchestra.HARP_FLURRIES and not orchestra.SOLOISTS["harmonica"]
+    take = orchestra.Take(next(fam for fam, _ in build.plan() if fam.name == "anywhere-campfire-1"), 4)
+    assert take.fam.bpm <= 110 and take.soloed
+    solo = [note for name, voice in take.voices["lead"].items() if name.endswith(" solo") for note in voice.notes]
+    starts = [round(note.start, 3) for note in solo]
+    assert solo and len(starts) == len(set(starts)), "a harp's solo sounds one note at a time"
+    flurry = [note for note in solo if note.length <= 0.125]
+    assert len(flurry) >= 16, len(flurry)
+    if sounds.BLUES_HARP:
+        harp = sounds.SOUNDS["harmonica"]
+        assert {player.notes: player.name for player in harp.players} == {"long": "blues harp long", "short": "blues harp short",
+                                                                        "held": "blues harp wail"}
+        assert harp.held > harp.short
+
+
+def test_a_harmonica_solo_is_bent_as_a_harp_player_bends_it(monkeypatch):
+    # (2026-11-22, night: the same.) A blues harp is bent (HARP_BENDS): the solo's sung notes on the key note, the third or the
+    # fifth let go up onto from under (a whole tone, a half, a half), written on the sheet as its "bend" marks, which the desk
+    # plays on the sampler's pitch wheel on every track of the harp; nothing else is bent, and straight it is not bent at all.
+    from freerock.studio import build, desk, sounds
+    from freerock.studio.theory import MODES
+    assert orchestra.HARP_BENDS
+    fam = next(fam for fam, _ in build.plan() if fam.name == "anywhere-campfire-1")
+    sheet = build.write(fam, 2)
+    harp = sheet.parts["lead"]["harmonica solo"]
+    marks = harp.effects["bend"]
+    assert marks and marks[-1][1] == 0.0 and all(-2.0 <= value <= 0.0 for _, value in marks)
+    key = orchestra.Take(fam, 2).solo_key
+    under = {0: 2.0, 7: 1.0, 3 if MODES[key.mode][2] == 3 else 4: 0.5 if MODES[key.mode][2] == 3 else 1.0}
+    played = sorted(harp.notes, key=lambda note: note.start)
+    for at, value in marks:
+        if value in (-0.5, -2.0) or (value == -1.0 and any(abs(note.start - 0.01 - at) < 1e-6 for note in played)):
+            note = next(note for note in played if abs(note.start - 0.01 - at) < 1e-6)       # a note let go up onto
+            assert note.length >= 0.5 and under[(note.pitch - key.tonic) % 12] == -value, (at, value, note)
+    bent_notes = sum(1 for _, value in marks if value < 0) / len(played)
+    assert 0.02 <= bent_notes <= 0.25, bent_notes                                 # a harp player's, not a whammy's
+    others = [name for channel in sheet.parts.values() for name, voice in channel.items() if "bend" in voice.effects and voice is not harp]
+    assert not others, others
+    tracks = sounds.lines(harp, "solo", fam.bpm)
+    assert len(tracks) >= 2 and all(any(controller == desk.PITCH for _, controller, _ in line.controls) for line in tracks)
+    assert sounds.bent([(1.0, -2.0), (1.5, 0.0)], 120.0)[0] == (1.0, desk.PITCH, 0)
+    assert sounds.bent([(1.0, -1.0), (1.5, 0.0)], 120.0)[-1] == (1.5, desk.PITCH, 8192)
+    assert "e0 00 40" in " ".join(desk._events([], 120.0, 4.0, 0.0, [(0.0, desk.PITCH, 8192)]))      # the wheel in tune: 64 << 7
+    monkeypatch.setattr(orchestra, "HARP_BENDS", False)
+    assert "bend" not in build.write(fam, 2).parts["lead"]["harmonica solo"].effects
+
+
 def test_a_light_band_plays_stop_time_after_its_solo(monkeypatch):
     # (2026-11-21, the study: a light band's rhythm one colour 20 to 31 bars through its summit after the solo.) A blues or a
     # country band's way back from a solo (STOP_TIME): for STOP_BARS bars the band strikes the chord together on the bar's
