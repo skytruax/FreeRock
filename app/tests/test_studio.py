@@ -2008,6 +2008,20 @@ def test_a_light_bands_bass_is_given_presence(monkeypatch):
     assert build.tamed_tone("picked bass", "picked bass", band=True, channel="bass", light=True) is None
 
 
+def test_a_bands_harp_lead_can_be_darker(monkeypatch):
+    # (2026-11-23, night: the blues harp leading a band's tune or solo 12 to 16 dB over the liked stems at its top, a fiddle's
+    # solo in the same song 9 to 11.) HARP_LEAD gives a band's harmonica lead a tone of its own; off, it has the band lead's.
+    from freerock.studio import build
+    assert build.HARP_LEAD is None
+    band_lead = build.tamed_tone("fiddle solo", "fiddle", band=True, channel="lead")
+    assert build.tamed_tone("harmonica solo", "harmonica", band=True, channel="lead") == band_lead
+    monkeypatch.setattr(build, "HARP_LEAD", (4500.0, 2500.0, -6.0, 3.0))
+    dark = build.tamed_tone("harmonica solo", "harmonica", band=True, channel="lead")
+    assert dark != band_lead and " 700 3 1 " in dark
+    assert build.tamed_tone("fiddle solo", "fiddle", band=True, channel="lead") == band_lead
+    assert build.tamed_tone("harmonica", "harmonica", band=False, channel="lead") != dark      # an orchestra's harp is its own
+
+
 def test_a_heavy_close_breaks_down_before_its_ending(monkeypatch):
     # (2026-11-22, morning: five heavy songs drove the summit's riff on through the close, the rhythm one colour 43 to 56 bars.)
     # A heavy band's close of sixteen bars or more lays out for the four bars before its last eight (HEAVY_CLOSE_BREAK): the

@@ -489,6 +489,11 @@ OWN_HOUSE = True
 # soft saturation, the low-pass at 6 kHz), measured alone with 31 dB more in its top than the pure one and the same middle.
 # A template of its own, so the lanes' is not touched until it is judged. False: the pure whistle ("house lead sine").
 WHISTLE_EDGE = True
+# (2026-11-23, night) The FM bass held lighter (patches "house bass fm light": less feedback toward a saw, less of the
+# waveshaper's grit) for the FM bass written for House. LEFT OFF (fmlight2, three songs: under the harsh twin the bass's
+# middle 3 to 4 dB nearer the liked stems, alone in a camp a dull thud, its top 16 to 38 dB down from 1.8 kHz; TuneJury with
+# the House brief down in all three last drops, Audiobox up: the judges did not agree).
+FM_LIGHT = False
 OWN_PATCHES = {"house bass saw": "own:house bass", "house pluck": "own:house pluck", "house pad super": "own:house pad",
                "house lead saw": "own:house lead", "house stab": "own:house stab",
                # (The second five, by how much House plays them: the drop's big lead, the glass pluck, three pads, and the
@@ -499,7 +504,7 @@ OWN_PATCHES = {"house bass saw": "own:house bass", "house pluck": "own:house plu
                # bass and the hollow lead were designed too, and the judges kept the factory's: Reedlight I's theme down on every
                # judge with the hollow lead, TuneJury 1.64 to 1.40, Audiobox's enjoyment 7.69 to 7.35, and its drop level to down
                # with the plucked bass. Their designs wait in patches.DESIGNS for another try.)
-               "house bass fm": "own:house bass fm", "house bass wide": "own:house bass wide",
+               "house bass fm": "own:house bass fm light" if FM_LIGHT else "own:house bass fm", "house bass wide": "own:house bass wide",
                "house bass square": "own:house bass square", "house bell": "own:house bell",
                "house lead sine": "own:house lead whistle" if WHISTLE_EDGE else "own:house lead sine"}
 if OWN_HOUSE:

@@ -221,6 +221,15 @@ DESIGNS: dict[str, tuple[dict, dict]] = {
                        "a_ws_type": WS_SOFT, "a_ws_drive": 3.0,
                        **env(2, 0.001, 0.15, 0.2, 0.1), **env(1, 0.0015, 0.5, 0.7, 0.06), "polylimit": 4},
                       {"a_osc1_param0": [("filter env", 0.12), ("velocity", 0.05)], "a_osc1_param2": [("filter env", 0.08)]}),
+    # The FM bass held lighter (2026-11-23, night: eased 4 dB at 600 Hz at the desk, club.FM_MIDDLE, it still stood 4.6 to
+    # 7.9 dB over the liked stems there, its weight spread from 226 Hz to 3.5 kHz: what its feedback toward a saw and the
+    # waveshaper's drive put over the note's first few harmonics). The same note, a little less modulated (0.25 for 0.27),
+    # the saw's feedback and the grit less (0.06 for 0.15, 1.5 dB of drive for 3): sounds.FM_LIGHT plays it for the FM bass.
+    "house bass fm light": ({**fm2(1, m1=0.25, r1=1, m2=0.2, r2=2, feedback=0.06),
+                             "a_filter1_type": LP24, "a_filter1_subtype": 0, "a_filter1_cutoff": hz(3000.0), "a_filter1_keytrack": 0.5,
+                             "a_ws_type": WS_SOFT, "a_ws_drive": 1.5,
+                             **env(2, 0.001, 0.15, 0.2, 0.1), **env(1, 0.0015, 0.5, 0.7, 0.06), "polylimit": 4},
+                            {"a_osc1_param0": [("filter env", 0.12), ("velocity", 0.05)], "a_osc1_param2": [("filter env", 0.08)]}),
     # The plucked bass: a saw and a square through a resonant 24 dB ladder shut at 180 Hz and thrown open four octaves by
     # an envelope gone in a tenth of a second, the note itself dying away over half a second: the squelch of a deep house
     # pluck, its quack the resonance. (The sub goes under it on its own track: club.SUBBED.)
@@ -300,19 +309,9 @@ def _split(data: bytes) -> tuple[bytes, str, bytes]:
     return state[8:32], state[32:32 + size].decode("utf-8"), state[32 + size:]
 
 
-# (2026-11-22, night: House's own FM bass, eased 4 dB at 600 Hz at the desk (club.FM_MIDDLE), still stood 4.6 to 7.9 dB over
-# the liked stems there, its weight spread from 226 Hz to 3.5 kHz: what its feedback toward a saw and the waveshaper's drive
-# put over the notes' first few harmonics.) The FM bass held lighter, as (its first modulation, its feedback, the
-# waveshaper's drive in dB): the note's own two modulations as designed, the saw and the grit less. None: as designed.
-FM_LIGHT: tuple[float, float, float] | None = None
-
-
 def xml(name: str, surge: Path) -> str:
     """The design's patch as Surge's XML: the empty saw with the design's parameters and modulations set."""
     values, routes = DESIGNS[name]
-    if name == "house bass fm" and FM_LIGHT is not None:
-        m1, feedback, drive = FM_LIGHT
-        values = {**values, "a_osc1_param0": m1, "a_osc1_param6": feedback, "a_ws_drive": drive}
     _, text, _ = _split((surge / BASE).read_bytes())
     root = ET.fromstring(text)
     meta = root.find("meta")

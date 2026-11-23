@@ -912,6 +912,14 @@ parts and their levels. This is what differs.
 The light pieces are *the same band unplugged*: fiddle (a Muse solo violin), whistle (piccolo),
 harmonica (a blues harp: VCSL's Hohner Special 20s in C and F, through a harp player's amp, below), accordion (TinySOL's, in the sampler), steel-strung guitars and mandolin
 (Muse acoustic guitars), banjo (a strumstick in the sampler), ocarina and pan flute (Muse flutes).
+*Tried and left off: the banjo played by MuseScore* (banjo1, 2026-11-23). The light Knight songs with a banjo scored
+lower than those without with every judge, their openings, where it plays alone, most (SongEval 3.09 against 3.14, TuneJury
+with no brief -0.30 against -0.03 in the open), the oasis shuffle lowest of every Knight character. The strumstick's range
+covers the banjo's parts (its files are named an octave low: nothing is folded). Played by MuseScore's picked steel-string,
+on two oasis shuffles and a Warcraft drinking song: the rhythm's jangle and air gone (7 to 14 kHz 4 to 5 dB down) and its
+pick nearer the liked stems, an exposed opening's Audiobox up 0.6; SongEval's coherence up in five windows of six, but
+TuneJury with no brief down in four and Audiobox down in two themes. The judges did not agree, and the oasis band would
+lose a colour: its steel guitar is MuseScore's too. The strumstick stays.
 Hall sends are small: rhythm guitars −19 dB, muted −22, lead −11, bass −26, organ −14
 (`sounds.MUSE_SENDS`). Channel places at the summit (`build.BAND`): lead −17, rhythm −18.5, drums
 −17.5, bass −19.5, texture −24 LUFS; lighter pieces (`BAND_LIGHT`) drums −18.5, bass −19.5, rhythm −18.5.
@@ -928,6 +936,12 @@ three songs: SongEval up in five windows of six (Whiskey Groove's solo end +0.27
 brief level, with none down on two songs.* Driven 18 dB harder into the tubes, as a harp cupped round a bullet
 microphone can push an amp, it was tried and left off: SongEval 0.11 to 0.14 down where the harp carries the tune
 (Whiskey Groove's theme), the rest level. Its playing is a harp player's (4.10).
+
+Leading a band's tune or solo, the harp read 4 to 11 dB thin in its middle and 12 to 16 over the liked stems at its top in
+the studies of the night of 2026-11-22's 71 harp takes, where a fiddle's or a guitar's solo reads 7 to 11 over (the
+lantern walk's four takes, one song: the harp's solos +12.7 and +15.2, the fiddle's +9.3 and +10.8). A darker tone of its
+own for a band's harmonica lead, closed at 4.5 kHz, 6 dB down from 2.5 kHz, 3 dB of body at 700 Hz (`build.HARP_LEAD`), is
+a switch, off until its demo is judged (harplead1).
 
 **The tune stands over the guitars wherever it sings** (`build.TUNE_LIFT`, `build.tune_lift`, 2026-11-19). The
 lead's place is set at the summit, where the twin guitars play the theme together; one guitar or a fiddle singing it
@@ -1422,9 +1436,17 @@ six windows, SongEval a shade up in four*: in for its musical reason.
 its sidebands: 3 to 8 dB heavy against the liked stems at 450 to 900 Hz in every take that drew it that day, sixteen.
 At the desk it is cut 4 dB an octave wide at 600 Hz, in the bass's own equaliser: the middle 1.5 to 2.4 dB lighter, *TuneJury
 with the House brief up in all six windows of three songs, the rest level*. It is still 4.6 to 7.9 over there, its weight
-spread from 226 Hz to 3.5 kHz: a broader easing, or a lighter modulation in the patch, is owed. The
-patch held lighter is a switch (`patches.FM_LIGHT`: its first modulation, its feedback toward a saw and the
-waveshaper's drive), off until its demo (fmlight1: 0.25, 0.06 and 1.5 dB for 0.27, 0.15 and 3) is judged.
+spread from 226 Hz to 3.5 kHz: a broader easing, or a lighter modulation in the patch, is owed.
+
+*Tried and left off: the FM bass held lighter* (`sounds.FM_LIGHT`, the patch "house bass fm light", 2026-11-23). The
+same note a little less modulated (0.25 for 0.27), its feedback toward a saw and the waveshaper's grit less (0.06 for
+0.15, 1.5 dB of drive for 3), a design of its own with its own track template: a design reaches a render only through its
+template, built once, so the first try, which set the numbers in the rendering process (fmlight1), played the old patch in
+both arms (and so measured the judges' own drift between two House renders of one patch: up to 0.18 on TuneJury, 0.11 on
+SongEval, 0.16 on Audiobox). Played as a player of its own (fmlight2): under the harsh twin the bass's middle came 3 to
+4 dB nearer the liked stems, but alone, in a camp, it lost its top (16 dB down at 1.8 kHz, 38 at 3.5 kHz: a dull thud);
+TuneJury with the House brief down in all three last drops (0.13 to 0.19) and SongEval leaning down, TuneJury with no
+brief and Audiobox leaning up. The judges did not agree, and the camp's bass went dull: off.
 
 *Tried and left off: the own bell given a body* (`club.BELL_BODY`, 2026-11-22). The FM bell designed for House, the
 chords in the snowfields' and the haunted palettes, stood 36.6 to 38.0 dB over the liked stems at its top and 5.5 to 13.6

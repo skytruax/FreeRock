@@ -254,6 +254,15 @@ def project_at(style: str, family: str, take: int) -> Path:
 LIGHT_BAND_BASS = 4.0
 
 
+# (2026-11-23, night: the blues harp, wherever it leads a band's tune or solo, 4 to 11 dB thin in its middle and 12 to 16 over
+# the liked stems at its top in the studies of the night's 71 harp takes, where a fiddle's or a guitar's solo reads 7 to 11
+# over: in the lantern walk's four takes, the same song, the harp's solos +12.7 and +15.2, the fiddle's +9.3 and +10.8. A
+# harp through a small amp's speaker is darker than that.) A band's harmonica lead: (where its top is closed, Hz; where its
+# top is shelved down from, Hz; by how much, dB; its body at 700 Hz, dB), in place of the band lead's own tone. None: the band
+# lead's tone, as the fiddle's and the guitar's. (Off until its demo is judged: harp1.)
+HARP_LEAD: tuple[float, float, float, float] | None = None
+
+
 def tamed_tone(name: str, instrument: str, band: bool = False, channel: str = "", light: bool = False) -> str | None:
     """The top of a voice that comes out bright against the liked stems, taken down (2026-11-17, midday, the morning's
     storms, inns, bosses and battles: the brass stabs and the tubular bells at the moments had the accompaniment 12 to
@@ -285,6 +294,9 @@ def tamed_tone(name: str, instrument: str, band: bool = False, channel: str = ""
         # their texture falls away from 900 Hz, 35 to 41 dB down at the top, as an organ through a turning speaker does. Closed
         # at 7.5 kHz it came only 4 to 5 dB nearer, so it is closed lower.)
         return sounds.equalise(high_cut=5000.0, high_shelf=(2500.0, -8.0))
+    if band and channel == "lead" and instrument == "harmonica" and HARP_LEAD is not None:
+        top, shelf, down, body = HARP_LEAD
+        return sounds.equalise(high_cut=top, high_shelf=(shelf, down), bands=((700.0, body, 1.0),))
     if band and channel == "lead":
         # (The band's lead guitar, fiddle and whistles, 10 to 20 dB over: the liked band's lead is a guitar through a cabinet,
         # falling away above 5 kHz, where ours fizzed. Its bite at 1 to 3 kHz is kept.)

@@ -5,6 +5,15 @@ dictated, where it drove the change.
 
 ## 2026-11-23, night: a render that waits is stopped sooner
 
+- Tried and left off (`sounds.FM_LIGHT`, the patch "house bass fm light", handbook 5.3): House's FM bass held lighter, its
+  feedback and grit less. The switch of 2026-11-22 (`patches.FM_LIGHT`) set the design's numbers in the rendering process,
+  which never reach a render (a design is played through its track template, built once): it is gone, and the lighter
+  patch is a design and a player of its own. Judged (fmlight2): nearer the liked stems under the harsh twin, a dull thud
+  alone in a camp; TuneJury with the House brief down in every last drop, Audiobox up: off.
+- Tried and left off (banjo1, handbook 4.1): the banjo played by MuseScore's picked steel-string in place of the strumstick:
+  SongEval's coherence up in five windows of six, TuneJury with no brief down in four, Audiobox split; the band would lose a colour.
+- A band's harmonica lead darker, a switch (`build.HARP_LEAD`, handbook 4.1), off until its demo is judged (harplead1): the
+  harp leading a band 12 to 16 dB over the liked stems at its top in the night's 71 harp takes, a fiddle's solo 7 to 11.
 - **A REAPER that writes nothing for fifteen minutes is stopped and tried once more** (`desk.RENDER_STALL`, `reaper.Stalled`,
   handbook 6.6): one met "Can't write to REAPER configuration file" at its start, three renders having begun together, and
   waited on that message for 6,121 s, its whole time limit, holding one of the night's three places all that while. A
@@ -27,8 +36,6 @@ dictated, where it drove the change.
 - **A light band's bass given presence** (`build.LIGHT_BAND_BASS`, handbook 3.6): 4 dB more at 800 Hz on a light Knight band's
   bass, picked or fretless, 3.7 to 13 dB thin in its middle in the day's studies; judged on the whole sound (bass1): the
   light songs a hair up with SongEval and TuneJury's brief, the heavy band's last drop down, so the light band's alone.
-- House's own FM bass held lighter, a switch (`patches.FM_LIGHT`: its first modulation, its feedback and the waveshaper's
-  drive), off until its demo is judged (fmlight1).
 
 ## 2026-11-22, day: more music for every scenario
 
