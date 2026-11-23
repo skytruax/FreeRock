@@ -300,7 +300,7 @@ class Bucket:
                   follow: dict[str, list[str]] | None = None, floor: dict[str, float] | None = None,
                   track: str = "", after: str = "", gain_db: float | None = None, source: str = "",
                   credit: str = "", family: str = "", light: bool = False, settings: tuple[str, ...] | list[str] = (),
-                  stamp: str = "") -> str:
+                  lead: str = "", stamp: str = "") -> str:
         """Puts a piece of written music in the bucket and returns its id.
 
         A piece is music that was written as a whole and is kept as its parts: `parts` holds one
@@ -326,7 +326,8 @@ class Bucket:
         the same place in the story are the same length, bar for bar and chord for chord, so
         the player may take any channel of one with the other channels of another. `light`
         says the piece is of the lighter kind; light and heavy take turns. `settings` are the
-        sorts of ground it was written for (atlas.SETTINGS: woods, water, heights...).
+        sorts of ground it was written for (atlas.SETTINGS: woods, water, heights...). `lead` is the instrument
+        that leads its song (studio.lead_of), so that one song is not followed by another of the same lead.
 
         The bucket notes how many pieces of its track come before each piece (its `place`): a
         long track uses a story word more than once (a theme, a second theme, the calm between
@@ -401,7 +402,7 @@ class Bucket:
             "serves": sorted(set(int(tier) for tier in serves)), "bar_frames": float(bar_frames), "bars": int(bars),
             "frames": int(whole), "windows": count, "tonic": tonic, "follow": follow or {}, "floor": floor or {},
             "source": source, "credit": credit, "family": family, "light": bool(light), "settings": list(settings),
-            "created": time.time(), "place": place, "stamp": stamp})
+            "lead": lead, "created": time.time(), "place": place, "stamp": stamp})
 
     def _seat(self, track: str, after: str, stamp: str, title: str) -> tuple[int, str]:
         """Where in its track a piece to be put in stands, and its id."""
@@ -591,7 +592,7 @@ class Bucket:
                 "pieces": {piece_id: dict({name: piece[name] for name in (
                     "title", "track", "next", "story", "moods", "role", "serves", "bar_frames", "bars", "frames",
                     "windows", "tonic", "follow", "floor", "family", "light")}, place=piece.get("place"),
-                    settings=piece.get("settings") or [])
+                    settings=piece.get("settings") or [], lead=piece.get("lead") or "")
                     for piece_id, piece in self.live_pieces().items()},
                 "free_share": FREE_SHARE,
                 "clips": [self.brief(clip) for clip in self.live()]}

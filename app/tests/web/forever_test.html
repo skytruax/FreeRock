@@ -586,7 +586,7 @@ function makePieces(key, pieces, free) {
     base.pieces[piece.id] = { title: piece.id, track: piece.track || piece.id, next: piece.then || "", story: piece.story || "",
       moods: piece.moods || [], role: piece.role || "wander", serves: piece.serves || [0, 1], bar_frames: BAR, bars,
       frames: windows * bars * BAR, windows, tonic: piece.tonic || "A minor", follow: piece.follow || {}, floor: piece.floor || {},
-      family: piece.family || "", light: piece.light === true, settings: piece.settings || [] };
+      family: piece.family || "", light: piece.light === true, settings: piece.settings || [], lead: piece.lead || "" };
     if (piece.place !== undefined) base.pieces[piece.id].place = piece.place;
   }
   if (free !== undefined) base.free_share = 1;
@@ -1136,6 +1136,25 @@ tests.pieceFamilies = async () => {
   const order = [];
   for (const entry of [...run.engine.log].sort((a, b) => a.at - b.at)) if (order[order.length - 1] !== pieceOf(entry)) order.push(pieceOf(entry));
   return { order };
+};
+
+// A song is followed by one led by another instrument where one suits the place as well, and by one that suits it better
+// whatever leads it.
+tests.pieceVoices = async () => {
+  const order = async (key, pieces, kinds, seconds) => {
+    const run = await render(seconds, { bucket: makePieces(key, pieces), tickEvery: 2.0, random: seeded(5),
+                                        target: Object.assign(mix(1), { kinds }) });
+    const songs = [];
+    for (const entry of [...run.engine.log].sort((a, b) => a.at - b.at)) if (songs[songs.length - 1] !== pieceOf(entry)) songs.push(pieceOf(entry));
+    return songs;
+  };
+  const led = (id, lead, moods) => ({ id, lead, moods: moods || ["pastoral"] });
+  return {
+    round: await order("voices", [led("guitar1", "lead guitar"), led("guitar2", "lead guitar"), led("fiddle1", "fiddle"),
+                                  led("fiddle2", "fiddle"), led("harp1", "harp"), led("harp2", "harp")], ["pastoral"], 170),
+    unsaid: await order("unsaid", [led("one", ""), led("two", ""), led("three", "")], ["pastoral"], 90),
+    place: await order("place", [led("fiddle1", "fiddle"), led("fiddle2", "fiddle"), led("horn1", "horn", ["highland"])], ["pastoral"], 60),
+  };
 };
 
 // One track ends and another comes in under its last bar: a crossfade, nothing at full strength at once.

@@ -263,7 +263,9 @@ dynamically to match the mood in general".
    light and heavy in turn, one for one; then the round of what has been heard: never heard first, then the one heard
    longest ago (a track heard costs 1.2, and up to 1.0 more for each of its last three hearings, falling away over some
    six hours; a sister tune of the same character heard in the last two hours 0.8). The page remembers this for 60
-   days, so each night starts with what the last did not play. Among those the hour and the weather choose by shade
+   days, so each night starts with what the last did not play. A song led by the instrument that led the last one counts
+   0.3 against it, by what led the one before 0.15 (a piece knows its lead, `studio.lead_of`, from its music sheet; a
+   fight's does not count). Among those the hour and the weather choose by shade
    (night darker by 1.5 steps, rain by 0.5 to 1) and the ground underfoot by its setting. The calm after a fight is no
    place: a song that begins in it is walking music.
 5. **Inside a song, the music follows the mood as it changes**: a fight brings the drums and the bass up, and **drives

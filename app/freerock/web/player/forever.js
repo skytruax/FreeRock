@@ -123,6 +123,10 @@
   const HEARD_TAU = 21600;     // ...falling away over some six hours: what was heard tonight weighs, last night's hardly
   const SISTER_FOR = 7200;     // a sister family (the same character's other tune) heard in this while...
   const SISTER_OFF = 0.8;      // ...counts this much against: to an ear nearly the same tune
+  // A song led by the instrument that led the last one counts this much against it, and by what led the one before that, half
+  // as much ("make sure to switch up the instruments from song to song so theres variety", 2026-11-23): more than a piece of
+  // the place's second kind counts against one of its first, less than a piece written for other ground.
+  const LED_ALIKE = 0.3;
   // A track for neither this kind of place nor a neighbour counts this much against it: more than a track that suits the
   // place heard three times tonight (1.2 + 3 + a sister's 0.8), so it comes only where nothing else will do ("for songs
   // to match locations"; at 2 a desert's track came in once the hills' had each been heard twice).
@@ -209,6 +213,7 @@
       this.driven = false;       // the fight that is on has driven the song on already (see _drive)
       this.movedAt = -Infinity;  // when it last did
       this.restDue = null;       // when the next moment of silence is due, where pieces are strung together
+      this.led = [];             // which instruments led the last two songs that began, the later first (see _ledAlike)
       this.pieceAt = new Map();  // piece id -> when it was last played here
       this.pieceTurn = 0;
       this.heavy = 0;            // how many tracks in a row have been heavy ones
@@ -776,6 +781,13 @@
       return cost;
     }
 
+    // How far a song is led like the last ones: by the instrument that led the last song, or the one before it (LED_ALIKE).
+    // Among songs that suit the place about as well, one with another voice comes next. A fight is chosen for the fight.
+    _ledAlike(meta) {
+      if (!meta.lead || !meta.serves.includes(0)) return 0;
+      return (this.led[0] === meta.lead ? LED_ALIKE : 0) + (this.led[1] === meta.lead ? LED_ALIKE / 2 : 0);
+    }
+
     static family(meta) { return meta.family || meta.track; }
 
     static kind(family) { return family.replace(/-\d+$/, ""); }
@@ -824,8 +836,8 @@
     // chosen. What suits: first that it answers how hard the game is asking (`serves`), then
     // that it is for this kind of moment (a fight, a cave, the night: `role`), then that it
     // was written for this kind of place (`moods`), then that it is light or heavy as the
-    // turn is, then that it stands at the right place in the story (a beginning after an
-    // ending). Of several that suit equally, the one played least, then longest ago.
+    // turn is, then that it is not led like the last song, then that it stands at the right place in the story (a
+    // beginning after an ending). Of several that suit equally, the one played least, then longest ago.
     //
     // Light and heavy take turns: after a heavy track the next is a light one, so that staying
     // in one place does not grow too intense, and after two light ones a heavy one may come.
@@ -1008,7 +1020,7 @@
         if (piece.id === options.except && index.size > 1) continue;
         const story = !piece.meta.story || piece.meta.story === want ? 0 : STARTS_ELSEWHERE;
         const far = this._mood(piece.meta) >= 1 ? FAR : 0;
-        const score = [off(piece) + turn(piece) + story + far + this._rotation(piece.meta), piece.plays,
+        const score = [off(piece) + turn(piece) + story + far + this._rotation(piece.meta) + this._ledAlike(piece.meta), piece.plays,
                        this.pieceAt.has(piece.id) ? this.pieceAt.get(piece.id) : -1];
         let order = 0;
         for (let i = 0; i < 3 && !order; i++) order = score[i] - bestScore[i];
@@ -1496,9 +1508,10 @@
           this.begun.set(family, times);
           if (this.memory) this._remember();
         }
-        // A track beginning: light and heavy are counted, so that they take turns.
+        // A track beginning: light and heavy are counted, so that they take turns, and what leads it is kept (see _ledAlike).
         if (group.entry === "start" && piece.meta.serves.includes(0)) {
           if (piece.meta.light) { this.light += 1; this.heavy = 0; } else { this.heavy += 1; this.light = 0; }
+          this.led = [piece.meta.lead || "", ...this.led].slice(0, 2);
         }
       }
       for (const node of [group.bed, group.rest]) {

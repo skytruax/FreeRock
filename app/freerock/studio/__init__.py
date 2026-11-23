@@ -107,6 +107,36 @@ def described(folder: Path) -> dict[str, Any]:
     return json.loads((Path(folder) / "track.json").read_text(encoding="utf-8"))
 
 
+# What an ear hears as one voice, by the names the sheets have for it (`lead_of`).
+ONE_VOICE = {"lead super": "lead saw", "violin": "violins", "violins slow": "violins", "full choir": "choir", "oohs": "choir"}
+
+
+def lead_of(folder: Path) -> str:
+    """The instrument that leads a staged song, by its music sheet: the part of the lead channel with the most notes in the
+    first theme (in the whole song where none is there), its solos aside. "" for a song without a sheet or without a lead.
+
+    (2026-11-23, "make sure to switch up the instruments from song to song so theres variety": the player goes on to a song led
+    by another instrument where one suits the place as well.)"""
+    path = Path(folder) / "sheet.json"
+    if not path.is_file():
+        return ""                       # (130 of Warcraft's takes of before the sheets; each gets one when it is next performed)
+    sheet = json.loads(path.read_text(encoding="utf-8"))
+    beats = float(sheet["beats"])
+    theme = next((part for part in sheet["form"] if part["story"] == "theme"), None)
+    parts = {name: part["notes"] for name, part in sheet["parts"].get("lead", {}).items() if not name.endswith(" solo")}
+
+    def counted(first: float, last: float) -> dict[str, int]:
+        return {name: sum(first <= note[0] < last for note in notes) for name, notes in parts.items()}
+
+    found = counted(theme["first"] * beats, (theme["first"] + theme["bars"]) * beats) if theme else {}
+    if not any(found.values()):
+        found = counted(0.0, float("inf"))
+    if not any(found.values()):
+        return ""
+    best = max(sorted(found), key=found.__getitem__)
+    return ONE_VOICE.get(best, best)
+
+
 def read_track(folder: Path) -> tuple[dict[str, Any], dict[str, np.ndarray]]:
     meta = described(folder)
     parts = {}
@@ -209,13 +239,14 @@ def import_track(bucket: forever.Bucket, folder: Path, before: Before | None = N
         edges.append(int(round(bars * bar)))
     whole = edges[-1]
     stamp = stamp_of(folder, meta)
+    lead = lead_of(folder)
 
     def told(section: dict[str, Any]) -> dict[str, Any]:
         return {"title": "%s (%s)" % (meta["title"], section["story"]), "tonic": section.get("tonic", meta["tonic"]),
                 "story": section["story"], "moods": meta["moods"], "role": meta["role"], "serves": meta["serves"],
                 "follow": meta.get("follow") or {}, "floor": (meta.get("floor") or {}).get(section["story"], {}),
                 "track": source, "source": source, "credit": meta.get("credit", ""), "family": "%s/%s" % (meta["style"], meta["family"]),
-                "light": bool(meta.get("light")), "settings": meta.get("settings") or []}
+                "light": bool(meta.get("light")), "settings": meta.get("settings") or [], "lead": lead}
 
     kept = before.unchanged(source, folder, stamp, [last - first for first, last in zip(edges, edges[1:])]) if before else []
     if kept:

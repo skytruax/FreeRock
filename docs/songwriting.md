@@ -455,8 +455,8 @@ second wave is a key higher); `titles` (two word lists); `style` and `band`.
 | every character once more (`build.MORE_FAMILIES`, 2026-11-22) | 2, planned after everything: Knight Rock's, then Warcraft's |
 | every Knight Rock character a second time (`build.MORE_FAMILIES`, that night) | 2, planned after the round before |
 
-That gives 471 Warcraft families with 1,034 takes (about 8,200 minutes) and 144 Knight Rock families
-with 311 takes (about 2,500 minutes). House has 126 families of 3 takes (`house.TAKES`, about 1,850
+That gives 489 Warcraft families with 1,074 takes (about 8,500 minutes) and 176 Knight Rock families
+with 379 takes (about 3,050 minutes). House has 136 families of 3 takes (`house.TAKES`, about 2,000
 minutes).
 
 *More music for every scenario* (2026-11-22: "The drive is still at 11 percent tonight we need new
@@ -486,7 +486,10 @@ been heard counts by family and goes round (`_rotation`): a family never heard c
 heard costs 1.2 and up to 1.0 more for each of its last three hearings (falling away over some six
 hours), remembered for 60 days; a sister family (the same name but its number) heard in the last two
 hours costs 0.8 ("for us to hear new songs every night and it not go back to those old ones until it
-finally goes back around", 2026-11-17).
+finally goes back around", 2026-11-17). A song led by the instrument that led the last one costs 0.3, and by what led the
+one before it 0.15 (`_ledAlike`; "make sure to switch up the instruments from song to song", 2026-11-23): which instrument that
+is, `studio.lead_of` reads off the song's sheet (the lead channel's part with the most notes in the first theme, solos aside) when a
+bucket is built.
 
 ### 2.6 From a staged track to pieces
 
@@ -1345,7 +1348,7 @@ a loop from `house.LOOPS`: 26 loops of four chords, each chord one or two bars, 
 major, L1–L3 lydian, X1–X3 mixolydian, D1–D4 dorian, N1–N6 minor, P1–P2 phrygian, P3–P4 phrygian
 dominant). Chord colours (`COLOURS`): triad, 7, 9, sus2, sus4, 5 and 6. Every section starts at the
 top of the loop (`house.Changes.chord`). Swing delays the off sixteenths by up to 0.16 of one. 59 of
-the 126 families are light. The walking, inn and night music is about as dark as it is light (49 of 87 are
+the 136 families are light. The walking, inn and night music is about as dark as it is light (49 of 89 are
 light; the test keeps it between four and six in ten), and every inn, camp, night and town has a dark
 one ("need some darker stuff", 2026-11-23; it was mostly light, six in ten, from the first night on).
 
@@ -1353,8 +1356,8 @@ one ("need some darker stuff", 2026-11-23; it was mostly light, six in ten, from
 
 `house.Take.drums`:
 
-- **Kick** on the family's pattern in sixteenths (`house.KICKS`): four (0, 4, 8, 12) in 36 families,
-  broken (0, 6, 10), broken2 (0, 6, 8, 14), broken3 (0, 3, 8, 10), half (0, 10), none. It plays in
+- **Kick** on the family's pattern in sixteenths (`house.KICKS`): four (0, 4, 8, 12) in 65 of the 136 families,
+  broken (0, 6, 10) in 21, broken2 (0, 6, 8, 14) in 20, broken3 (0, 3, 8, 10) in 13, half (0, 10) in 9, none in 8. It plays in
   the theme and the drops, and in the close until four bars from the end; in fights everywhere but
   the second half of each rise, on the `punch` sound. *Everything but the drums ducks under the kick,
   so the kick is part of the changes*: every take of a family keeps it. *The kick itself is House's
@@ -1605,6 +1608,10 @@ family has a key and chord loop (tonic and loop) no other family has.
 65 in 100 of the walking music were light. Thirteen dark walking families, at least one for each kind of place, and an inn, a camp, a
 night and a town: minor and phrygian loops, the deep and dark palettes, no swing but a trace, each with a key and loop no
 other has.
+
+*Where the same songs came round most* (2026-11-23, the standing cycle's first round: ten more, 136). House's storms had been
+heard 2.4 times each, its towns 2.1 and its camps 2.0. Four storms (Cannonade, Black Rain, Sandblast, Ice Fang), two towns
+(Smog Quarter, Customs Wall), a camp (Dead Radio), a night (Sleepless Shift), an inn (Cellar Door) and a cave (Ossuary), all dark.
 
 *A second of every calm moment* (2026-11-22, night: twenty more, 109; "lots of options of inns camping,
 caves dungeons and just a not repetative experienxe"). The inn, the camp, the cave, the night and the
@@ -2101,9 +2108,9 @@ The studio needs REAPER, MuseScore Studio and Surge XT under `var/tools/`, the s
 into `var/tools/plugins/`, the LV2 plug-ins from the system's packages, Muse Sounds from the Muse
 Sounds Manager, and the sample sets under `var/samples/`. `tools/stems/README.md` says how to fetch
 each and under what licence. Renders are heavy; on the music machine they run under `taskset` and
-`nice` on a share of the processors ("continue to make tracks in the bg at half cpu so the player
-still works"), and nothing is killed to make room ("dont hard stop any renders or tasks 9am is not a
-hard stop"). Never rewrite an instrument's SFZ file while a render runs: sfizz loads it again and the
+`nice` on the efficient processors only, the whole machine under a quarter by day and more by night ("i think were still using too much
+CPU usage ... we want it under 25 percent", 2026-11-23), and nothing is killed to make room ("dont hard stop any renders or
+tasks 9am is not a hard stop"). Never rewrite an instrument's SFZ file while a render runs: sfizz loads it again and the
 render stops dead. `render_some.py` writes every instrument out before it begins for that reason.
 
 ### 8.2 List what there is

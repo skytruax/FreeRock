@@ -3,6 +3,13 @@
 Newest first. Words in quotation marks are what was said while listening or playing, as typed or
 dictated, where it drove the change.
 
+## 2026-11-23, afternoon: a song is followed by one led by another instrument
+
+- **"make sure to switch up the instruments from song to song so theres variety"**: the player knew a song's place, mood, shade and when it
+  was last heard, and nothing of who plays it. A piece now says which instrument leads its song (`studio.lead_of`, from the music
+  sheet, at a build), and a song led like the last one gives way to another where one suits the place as well. It takes effect at the
+  next build of each bucket (a song without a sheet says nothing: 130 of Warcraft's of before the sheets).
+
 ## 2026-11-23, afternoon: fourteen gritty, dark characters, and the standing cycle
 
 - **"we want to not hear the same music much, thats why 8tb make more options in all genres, make them gritty and darker"**,

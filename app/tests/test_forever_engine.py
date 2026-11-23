@@ -532,6 +532,19 @@ async def test_the_takes_of_one_family_count_as_one_song_and_its_sister_families
     assert heard[3] == "dance-2", "the sister family did not come before a second hearing of the others: %s" % heard
 
 
+async def test_a_song_is_followed_by_one_led_by_another_instrument_where_one_suits_the_place_as_well(results):
+    """("make sure to switch up the instruments from song to song so theres variety", 2026-11-23.)"""
+    voices = of(results, "pieceVoices")
+    lead = lambda song: song.rstrip("0123456789")          # noqa: E731
+    assert len(voices["round"]) >= 6 and len(set(voices["round"][:6])) == 6, "a song came again before the round was done: %s" % voices["round"]
+    leads = [lead(song) for song in voices["round"][:6]]
+    assert all(one != other for one, other in zip(leads, leads[1:])), "two songs led by the same instrument in a row: %s" % voices["round"]
+    # Without a lead told nothing changes (a bucket of before, or a song without a sheet).
+    assert len(voices["unsaid"]) >= 3 and len(set(voices["unsaid"][:3])) == 3, voices["unsaid"]
+    # What suits the place comes first: the second fiddle (the place's own kind) before the horn (a neighbouring kind's).
+    assert voices["place"][:2] == ["fiddle1", "fiddle2"] or voices["place"][:2] == ["fiddle2", "fiddle1"], voices["place"]
+
+
 async def test_with_six_loudspeakers_the_music_is_laid_over_all_of_them_and_each_can_be_sounded_alone(results):
     six = of(results, "sixSpeakers")
     assert six["speakers"] == 6 and six["status"] == 6

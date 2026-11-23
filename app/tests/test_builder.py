@@ -114,6 +114,45 @@ def test_a_build_takes_what_did_not_change_and_leaves_the_bucket_that_plays_alon
     assert new.version > old.version
 
 
+def _sheet(folder: Path, parts: dict[str, list[float]], first: int = 8, bars: int = 16) -> None:
+    """A music sheet with a theme at bar `first`, and the lead channel's parts by the beats (four to a bar) their notes begin at."""
+    notes = {name: {"notes": [[at, 1.0, 64, 0.8] for at in starts]} for name, starts in parts.items()}
+    (folder / "sheet.json").write_text(json.dumps({"beats": 4.0, "form": [
+        {"story": "open", "first": 0, "bars": first}, {"story": "theme", "first": first, "bars": bars}], "parts": {"lead": notes}}), encoding="utf-8")
+
+
+def test_a_song_says_which_instrument_leads_it(tmp_path):
+    """(2026-11-23, "make sure to switch up the instruments from song to song so theres variety".)"""
+    folder = tmp_path / "a"
+    folder.mkdir()
+    assert studio.lead_of(folder) == ""                         # a song with no sheet (a Warcraft take of before the sheets)
+    inside = [32.0 + beat for beat in range(8)]
+    _sheet(folder, {"fiddle": inside, "lead guitar": inside[:3], "lead guitar solo": inside * 4, "horns": [4.0, 5.0, 6.0]})
+    assert studio.lead_of(folder) == "fiddle"                   # the most notes in the first theme, a solo not counted
+    _sheet(folder, {"violins slow": inside})
+    assert studio.lead_of(folder) == "violins"                  # a section and its player are one voice
+    _sheet(folder, {"fiddle": [], "whistle": [2.0, 3.0]})
+    assert studio.lead_of(folder) == "whistle"                  # a theme without a tune: the song's
+    _sheet(folder, {"fiddle": []})
+    assert studio.lead_of(folder) == ""
+
+
+def test_the_player_is_told_which_instrument_leads_a_song_and_a_bucket_of_before_says_nothing(tmp_path):
+    folder = _stage(tmp_path, 1)
+    old = _bucket(tmp_path, [folder])
+    assert {piece["lead"] for piece in old.describe()["pieces"].values()} == {""}       # no sheet yet
+    for piece in old.pieces.values():
+        del piece["lead"]                                        # a bucket of before
+    old._save()
+    assert {piece["lead"] for piece in old.describe()["pieces"].values()} == {""}
+    _sheet(folder, {"fiddle": [40.0, 41.0]})
+
+    new, done = pieces.build_beside(tmp_path, "warcraft")
+
+    assert (done["put"], done["taken"]) == (1, 1)                 # its sheet has come since: told anew, its recordings as they were
+    assert {piece["lead"] for piece in new.describe()["pieces"].values()} == {"fiddle"}
+
+
 def test_pieces_cut_before_stamps_were_kept_are_taken_only_if_nothing_was_staged_since(tmp_path, monkeypatch):
     settled, fresh = _stage(tmp_path, 1), _stage(tmp_path, 2)
     with monkeypatch.context() as patched:
