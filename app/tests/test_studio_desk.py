@@ -220,3 +220,49 @@ def test_a_line_of_single_notes_is_slurred_and_chords_are_not():
     assert joined[2].length == 0.5                                  # a gap: the next note starts afresh
     assert sounds._slurred([Note(0.0, 2.0, 60, 0.5), Note(0.0, 2.0, 64, 0.5)], 1.0) is None       # together: a chord
     assert sounds._slurred([Note(0.0, 2.0, 60, 0.5), Note(1.0, 2.0, 64, 0.5)], 1.0) is None       # one over the other
+
+
+def _fake_reaper(tmp_path, monkeypatch, body: str):
+    """A stand-in for REAPER: a shell script with the given body, in a home of its own."""
+    import stat
+    from freerock.studio import reaper
+    home = tmp_path / "reaper-home"
+    home.mkdir()
+    script = home / "reaper"
+    script.write_text("#!/bin/sh\n" + body)
+    script.chmod(script.stat().st_mode | stat.S_IEXEC)
+    monkeypatch.setattr(reaper, "HOME", home)
+    monkeypatch.setattr(reaper, "XDG", tmp_path / "xdg")
+    monkeypatch.setattr(reaper, "STALL_LOOK", 0.2)
+    monkeypatch.setattr(reaper, "picture", lambda display, to: to.write_bytes(b""))
+    monkeypatch.setattr(desk, "RENDER_STALL", 1.0)
+    rpp = tmp_path / "work" / "take.rpp"
+    rpp.parent.mkdir()
+    rpp.write_text("")
+    return rpp
+
+
+def test_a_render_that_writes_nothing_is_stopped_and_tried_once_more(tmp_path, monkeypatch):
+    # (2026-11-23: a REAPER met "Can't write to REAPER configuration file" at its start and waited on that message for
+    # 6,121 s, the whole of its time limit.) A render that writes nothing for RENDER_STALL seconds is stopped, its window
+    # pictured, and tried once more; a second that writes nothing is the error, long before the time limit.
+    import time
+    from freerock.studio import reaper
+    runs = tmp_path / "runs"
+    rpp = _fake_reaper(tmp_path, monkeypatch, "echo run >> '%s'\nexec sleep 30\n" % runs)
+    began = time.monotonic()
+    with pytest.raises(reaper.Stalled):
+        desk.render(rpp, display=":0", timeout=60.0)
+    assert time.monotonic() - began < 15.0
+    assert runs.read_text().split() == ["run", "run"]
+    assert (rpp.parent / "reaper-waiting.png").exists()
+
+
+def test_a_render_that_keeps_writing_is_left_to_finish(tmp_path, monkeypatch):
+    # A slow render writes as it goes, and goes on for as long as its time limit allows.
+    rpp = _fake_reaper(tmp_path, monkeypatch, "")
+    out = rpp.parent / "texture.wav"
+    script = rpp.parent.parent / "reaper-home" / "reaper"
+    script.write_text("#!/bin/sh\nfor i in 1 2 3 4 5 6 7 8 9 10; do echo x >> '%s'; sleep 0.3; done\n" % out)
+    desk.render(rpp, display=":0", timeout=60.0)
+    assert out.read_text().count("x") == 10

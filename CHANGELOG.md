@@ -3,6 +3,14 @@
 Newest first. Words in quotation marks are what was said while listening or playing, as typed or
 dictated, where it drove the change.
 
+## 2026-11-23, night: a render that waits is stopped sooner
+
+- **A REAPER that writes nothing for fifteen minutes is stopped and tried once more** (`desk.RENDER_STALL`, `reaper.Stalled`,
+  handbook 6.6): one met "Can't write to REAPER configuration file" at its start, three renders having begun together, and
+  waited on that message for 6,121 s, its whole time limit, holding one of the night's three places all that while. A
+  render writes its files as it goes; one that has written nothing for that long is waiting on a message. A second that
+  writes nothing is the error, as before.
+
 ## 2026-11-22, night: a second inn, camp, cave and night
 
 "lets work on filling that drive with more music for every scenario, following everything weve learned"; and since the

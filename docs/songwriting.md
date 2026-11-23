@@ -1879,6 +1879,13 @@ and the end fade) as one volume envelope. `desk.ride_points` makes each envelope
 the curve either side, so no held peak slips through. REAPER renders again. Both projects are kept;
 `tools/reaper.sh <style>/<family>/<take>` opens one in REAPER's window.
 
+A render that waits is a REAPER with a message open, and nobody to answer it. It is stopped at its time
+limit (300 s and twelve for every second of music), its window pictured beside the project
+(`reaper-waiting.png`); and since 2026-11-23 it is stopped sooner if it writes nothing for fifteen
+minutes (`desk.RENDER_STALL`), and tried once more (`reaper.Stalled`): that night one met "Can't write
+to REAPER configuration file" at its start, three renders having begun together, and held one of the
+night's three places for its whole limit, 6,121 s.
+
 ### 6.7 File formats
 
 | What | Format | Where |

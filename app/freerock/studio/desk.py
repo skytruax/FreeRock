@@ -18,6 +18,7 @@ from __future__ import annotations
 import base64
 import json
 import re
+import sys
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -535,11 +536,21 @@ def project_flat(folders: list[tuple[Line, list[Line]]], *, bpm: float, seconds:
     return "\n".join(whole) + "\n"
 
 
+RENDER_STALL = 900.0     # seconds a render may write nothing before it is stopped and tried once more (`render`)
+
+
 def render(rpp: Path, *, display: str, timeout: float = 600.0) -> None:
     """Has REAPER render a project as the project says. REAPER ends by itself when it is done;
     if something is wrong with the project it puts up a message and waits, which the time
-    limit ends, leaving a picture of the message."""
-    reaper.run(["-renderproject", str(rpp)], display=display, work=rpp.parent, timeout=timeout)
+    limit ends, leaving a picture of the message. A REAPER that writes nothing for RENDER_STALL
+    seconds is waiting on a message as well: it is stopped then, and the render is tried once
+    more (2026-11-23: a message at REAPER's start, its configuration file busy, held a render's
+    place for its whole time limit, 6,121 s); a second that writes nothing is the error."""
+    try:
+        reaper.run(["-renderproject", str(rpp)], display=display, work=rpp.parent, timeout=timeout, stall=RENDER_STALL)
+    except reaper.Stalled as first:
+        print("%s: %s. Trying once more." % (rpp, first), file=sys.stderr, flush=True)
+        reaper.run(["-renderproject", str(rpp)], display=display, work=rpp.parent, timeout=timeout, stall=RENDER_STALL)
 
 
 def heard(path: Path) -> np.ndarray:

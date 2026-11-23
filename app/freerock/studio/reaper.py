@@ -15,6 +15,7 @@ tools/stems/README.md says how each piece was fetched and under what licence.
 from __future__ import annotations
 
 import os
+import stat
 import subprocess
 import time
 from pathlib import Path
@@ -121,8 +122,30 @@ def environment(display: str, more: dict[str, str] | None = None) -> dict[str, s
     return env
 
 
+STALL_LOOK = 30.0       # seconds between looks at whether a render has written anything (`run`'s `stall`)
+
+
+class Stalled(RuntimeError):
+    """REAPER wrote nothing in its folder for longer than its `stall` and was stopped (2026-11-23: one met "Can't write to
+    REAPER configuration file" at its start, three renders having begun together, and waited on that message for 6,121 s,
+    the whole of its time limit, holding one of the night's three places all that while)."""
+
+
+def last_written(folder: Path, since: float) -> float:
+    """When anything in `folder`, or under it, was last written; `since` if nothing has been since then."""
+    latest = since
+    for path in folder.rglob("*"):
+        try:
+            info = path.stat()
+        except FileNotFoundError:
+            continue            # made and taken away again between the listing and the look: a render's temporary file
+        if stat.S_ISREG(info.st_mode):
+            latest = max(latest, info.st_mtime)
+    return latest
+
+
 def run(arguments: list[str], *, display: str, work: Path, timeout: float = 300.0,
-        env: dict[str, str] | None = None, done: Path | None = None) -> str:
+        env: dict[str, str] | None = None, done: Path | None = None, stall: float | None = None) -> str:
     """Runs REAPER with these arguments and returns what it printed.
 
     Rendering a project (`-renderproject file.rpp`) ends by itself. A script does not: REAPER
@@ -131,11 +154,13 @@ def run(arguments: list[str], *, display: str, work: Path, timeout: float = 300.
 
     If REAPER is still running after `timeout` seconds without either, it is stopped, a picture
     of its window is left in `work`, and that is an error: a REAPER that waits is a REAPER with
-    a question open."""
+    a question open. With a `stall`, so is a REAPER that has written nothing anywhere under `work` for that many seconds
+    (a render writes its files as it goes), and the error is `Stalled`."""
     work.mkdir(parents=True, exist_ok=True)
     if done is not None:
         done.unlink(missing_ok=True)
     began = time.monotonic()
+    wall, looked = time.time(), began
     heard = work / ("reaper-%d.out" % os.getpid())
     with open(heard, "wb") as out:
         reaper = subprocess.Popen([str(HOME / "reaper"), "-nosplash", "-newinst", "-ignoreerrors", *arguments], cwd=str(HOME),
@@ -151,6 +176,15 @@ def run(arguments: list[str], *, display: str, work: Path, timeout: float = 300.
                     reaper.kill()
                     reaper.wait(10)
                 break
+            if stall is not None and time.monotonic() - looked >= STALL_LOOK:
+                looked = time.monotonic()
+                if time.time() - last_written(work, wall) > stall:
+                    shot = work / "reaper-waiting.png"
+                    picture(display, shot)
+                    reaper.kill()
+                    reaper.wait(10)
+                    raise Stalled("REAPER wrote nothing for %.0f s and was stopped after %.0f s. Its window is pictured in %s. It said: %s" % (
+                        stall, time.monotonic() - began, shot, heard.read_text(encoding="utf-8", errors="replace").strip()[-1500:]))
             if time.monotonic() - began > timeout:
                 shot = work / "reaper-waiting.png"
                 picture(display, shot)
