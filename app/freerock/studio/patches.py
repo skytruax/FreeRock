@@ -300,9 +300,19 @@ def _split(data: bytes) -> tuple[bytes, str, bytes]:
     return state[8:32], state[32:32 + size].decode("utf-8"), state[32 + size:]
 
 
+# (2026-11-22, night: House's own FM bass, eased 4 dB at 600 Hz at the desk (club.FM_MIDDLE), still stood 4.6 to 7.9 dB over
+# the liked stems there, its weight spread from 226 Hz to 3.5 kHz: what its feedback toward a saw and the waveshaper's drive
+# put over the notes' first few harmonics.) The FM bass held lighter, as (its first modulation, its feedback, the
+# waveshaper's drive in dB): the note's own two modulations as designed, the saw and the grit less. None: as designed.
+FM_LIGHT: tuple[float, float, float] | None = None
+
+
 def xml(name: str, surge: Path) -> str:
     """The design's patch as Surge's XML: the empty saw with the design's parameters and modulations set."""
     values, routes = DESIGNS[name]
+    if name == "house bass fm" and FM_LIGHT is not None:
+        m1, feedback, drive = FM_LIGHT
+        values = {**values, "a_osc1_param0": m1, "a_osc1_param6": feedback, "a_ws_drive": drive}
     _, text, _ = _split((surge / BASE).read_bytes())
     root = ET.fromstring(text)
     meta = root.find("meta")

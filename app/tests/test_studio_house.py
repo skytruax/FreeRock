@@ -640,6 +640,24 @@ def test_the_own_fm_bass_middle_is_cut(monkeypatch, tmp_path):
     assert " 600 " not in bands(None)
 
 
+def test_the_own_fm_bass_can_be_held_lighter(monkeypatch):
+    # (2026-11-22, night: still 4.6 to 7.9 dB heavy over the liked stems at 450 to 900 Hz after the desk's cut.) FM_LIGHT
+    # sets the FM bass's first modulation, its feedback and the waveshaper's drive, and nothing else of it or of any other
+    # design; off, it is as designed.
+    import xml.etree.ElementTree as ET
+    from freerock.studio import desk, patches
+
+    def values(light, name="house bass fm") -> dict[str, str]:
+        monkeypatch.setattr(patches, "FM_LIGHT", light)
+        params = ET.fromstring(patches.xml(name, desk.SURGE).split("?>", 1)[1]).find("parameters")
+        return {node.tag: node.get("value") for node in params}
+    designed, lighter = values(None), values((0.25, 0.06, 1.5))
+    assert float(designed["a_osc1_param0"]) == patches.DESIGNS["house bass fm"][0]["a_osc1_param0"]
+    assert {key for key in designed if designed[key] != lighter[key]} == {"a_osc1_param0", "a_osc1_param6", "a_ws_drive"}
+    assert (float(lighter["a_osc1_param0"]), float(lighter["a_osc1_param6"]), float(lighter["a_ws_drive"])) == (0.25, 0.06, 1.5)
+    assert values((0.25, 0.06, 1.5), "house bass pluck") == values(None, "house bass pluck")
+
+
 def test_the_own_bell_can_be_given_a_body(monkeypatch, tmp_path):
     # (2026-11-22: the own bell 37 dB over the liked stems at its top and 8 thin in its middle, four takes of four.) BELL_BODY
     # gives it a body at 450 Hz and eases its top from 4 kHz in the chords' equaliser; off, its top is kept open.

@@ -226,6 +226,20 @@ def sub_alone(piece: Piece) -> bool:
     return names - set(club.TWINS) == {"sub"}
 
 
+def light_band_bass(piece: Piece) -> bool:
+    """A light band's take (Knight Rock's light characters) whose staged sheet has a bass on MuseScore's electric bass, picked or
+    fretless: since build.LIGHT_BAND_BASS (2026-11-22) it has 4 dB more at 800 Hz."""
+    ch = piece.character
+    if piece.style == "house" or not getattr(ch, "band", False) or not getattr(ch, "light", False):
+        return False
+    sheet = STUDIO / piece.style / piece.key / "sheet.json"
+    if not sheet.is_file():
+        return False
+    parts = json.loads(sheet.read_text(encoding="utf-8")).get("parts", {})
+    return any(voice.get("instrument") in ("picked bass", "fretless") and voice.get("notes")
+               for channel in parts.values() for voice in channel.values())
+
+
 def close_breaks(piece: Piece) -> bool:
     """A heavy band's take whose close is sixteen bars or more: since orchestra.HEAVY_CLOSE_BREAK (2026-11-22) it breaks down
     there, the bass's riff alone over the drummer for the four bars before its last eight."""
@@ -283,6 +297,9 @@ class Change:
 
 
 CHANGES = [
+    Change("a light band's bass given presence", datetime.datetime(2026, 11, 23, 1, 5), "",
+           "4 dB more at 800 Hz on a light Knight band's bass, picked or fretless, in an equaliser of its own (build.LIGHT_BAND_BASS)",
+           light_band_bass),
     Change("House's own FM bass, its middle eased", datetime.datetime(2026, 11, 22, 20, 25), "",
            "the own FM bass cut 4 dB an octave wide at 600 Hz at the desk (club.FM_MIDDLE)",
            fm_bass),

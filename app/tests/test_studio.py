@@ -1912,20 +1912,32 @@ def test_every_character_has_more_families(monkeypatch):
     # other (Knight's first), so that no family made before changes its name, title or seed; each new title is new, and each
     # new family's number follows its character's own.
     from freerock.studio import build
-    assert build.MORE_FAMILIES >= 1
+    want = dict(build.MORE_FAMILIES)
+    assert want.get("knight", 0) >= 1 and want.get("warcraft", 0) >= 1
     now = build.plan()
-    monkeypatch.setattr(build, "MORE_FAMILIES", 0)
+    monkeypatch.setattr(build, "MORE_FAMILIES", {})
     before = build.plan()
     assert [(fam.name, fam.title, fam.seed, takes) for fam, takes in now[:len(before)]] == \
         [(fam.name, fam.title, fam.seed, takes) for fam, takes in before]
     more = now[len(before):]
     characters = {(fam.character.style, fam.character.name) for fam, _ in before}
     assert {(fam.character.style, fam.character.name) for fam, _ in more} == characters
-    assert [fam.character.style for fam, _ in more] == sorted((fam.character.style for fam, _ in more), key=["knight", "warcraft"].index)
     names = {fam.name for fam, _ in before}
     assert not names & {fam.name for fam, _ in more}
     titles = [fam.title for fam, _ in now]
     assert len(titles) == len(set(titles))
+    # Each round after every round before it, Knight Rock's before Warcraft's within it; a style given a round more has it
+    # after the other's last (2026-11-22, night: Knight Rock's second), and the rounds before it are as they were.
+    from collections import Counter
+    for style in ("knight", "warcraft"):
+        count = Counter(fam.character.name for fam, _ in more if fam.character.style == style)
+        assert set(count.values()) == {want[style]}, style
+    monkeypatch.setattr(build, "MORE_FAMILIES", {"knight": 1, "warcraft": 1})
+    one = build.plan()
+    assert [(fam.name, fam.title, fam.seed) for fam, _ in now[:len(one)]] == [(fam.name, fam.title, fam.seed) for fam, _ in one]
+    assert [fam.character.style for fam, _ in one[len(before):]] == \
+        sorted((fam.character.style for fam, _ in one[len(before):]), key=["knight", "warcraft"].index)
+    assert {fam.character.style for fam, _ in now[len(one):]} == {"knight"}
 
 
 def test_no_two_families_share_a_title_across_the_styles():
@@ -1979,6 +1991,21 @@ def test_a_plucked_bass_is_played_to_be_heard(monkeypatch):
     assert min(note.loud for note in line("desert-oasis-embers-2", 1, "fretless")) < 0.55
     assert statistics.median(note.pitch for note in line("frozen-ice-fields-1", 1, "basses slow")) == bowed
     assert statistics.median(note.pitch for note in line("anywhere-glow-cave-2", 2, "picked bass")) == picked
+
+
+def test_a_light_bands_bass_is_given_presence(monkeypatch):
+    # (2026-11-22, night: the light bands' bass, MuseScore's electric bass played softly, 3.7 to 13 dB thin in its middle in
+    # the studies of the day's new Knight families; judged in for the light band's alone, bass1.) A light band's bass, picked
+    # or fretless, has LIGHT_BAND_BASS dB more at 800 Hz in an equaliser of its own; a heavy band's and an orchestra's none.
+    from freerock.studio import build
+    assert build.LIGHT_BAND_BASS == 4.0
+    light = build.tamed_tone("picked bass", "picked bass", band=True, channel="bass", light=True)
+    assert light and " 800 4 1.2 " in light
+    assert build.tamed_tone("bass", "fretless", band=True, channel="bass", light=True) == light
+    assert build.tamed_tone("picked bass", "picked bass", band=True, channel="bass", light=False) is None
+    assert build.tamed_tone("bass", "fretless", band=False, channel="bass", light=True) is None
+    monkeypatch.setattr(build, "LIGHT_BAND_BASS", 0.0)
+    assert build.tamed_tone("picked bass", "picked bass", band=True, channel="bass", light=True) is None
 
 
 def test_a_heavy_close_breaks_down_before_its_ending(monkeypatch):

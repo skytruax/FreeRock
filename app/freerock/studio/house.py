@@ -574,6 +574,32 @@ PLAN: tuple[Family, ...] = (
     Family("boss-03", "The Leviathan", ("marsh", "coast", "frozen"), "boss", S2, False, 3, "N5", (8, 16, 8, 24, 8), "four", 0.0, "909", "battle"),
     Family("town-03", "Fishmarket", ("marsh", "coast", "frozen"), "town", S01, True, 10, "M6", (8, 16, 8, 16, 8), "broken2", 0.1, "707", "coast"),
     Family("battleground-03", "Siege Bells", ANY, "battleground", S012, False, 6, "N4", (4, 16, 8, 24, 8), "four", 0.0, "909", "battle"),
+    # (2026-11-22, night: the drive at 12%, "more music for every scenario"; and since the 17th, "lots of options of inns
+    # camping, caves dungeons and just a not repetative experienxe".) Every group of places had one inn, one camp, one cave,
+    # one night and one boss of House's own, three takes of each, while its walking music had five or six families: a second
+    # of each, its key, changes, groove and machine none of its sibling's (the family of the same moment for the same places),
+    # and a second town for the green lands. The inns all light, the caves and the bosses all heavy, the camps and the nights
+    # light where their sibling was heavy and heavy where it was light ("light and heavy take turns").
+    Family("ember-05", "Low Rafters", ("pastoral", "regal", "highland"), "ember", S01, True, 9, "D2", (8, 16, 8, 16, 8), "none", 0.1, "707", "ember"),
+    Family("ember-06", "Hushed Parlour", ("haunted", "mystic", "jungle"), "ember", S01, True, 3, "D4", (8, 16, 8, 16, 8), "broken", 0.12, "808", "ember"),
+    Family("ember-07", "Mint Tea", ("desert", "jungle", "infernal"), "ember", S01, True, 10, "P4", (8, 16, 8, 16, 8), "none", 0.14, "606", "desert"),
+    Family("ember-08", "Mended Nets", ("marsh", "coast", "frozen"), "ember", S01, True, 11, "X2", (8, 16, 8, 16, 8), "broken", 0.08, "808", "coast"),
+    Family("camp-05", "Bedroll Sky", ("pastoral", "regal", "highland"), "camp", S01, True, 5, "M1", (8, 16, 8, 16, 8), "none", 0.06, "808", "night"),
+    Family("camp-06", "Ghostfire", ("haunted", "infernal", "mystic"), "camp", S01, True, 0, "L3", (8, 16, 8, 16, 8), "half", 0.06, "606", "ember"),
+    Family("camp-07", "Nomad Fire", ("desert", "jungle", "mystic"), "camp", S01, False, 8, "N5", (8, 16, 8, 16, 8), "none", 0.0, "808", "night"),
+    Family("camp-08", "Ice Fishing", ("marsh", "coast", "frozen"), "camp", S01, True, 1, "D1", (8, 16, 8, 16, 8), "broken", 0.08, "707", "frozen"),
+    Family("depths-05", "Lodestone", ("highland", "regal", "infernal"), "depths", S01, False, 7, "P1", (16, 16, 16, 24, 8), "broken3", 0.0, "909", "depths"),
+    Family("depths-06", "Glowworm Hollow", ("haunted", "mystic", "jungle"), "depths", S01, False, 10, "N1", E5, "four", 0.0, "808", "depths"),
+    Family("depths-07", "Sandstone Hollow", ("desert", "pastoral"), "depths", S01, False, 5, "P4", (16, 24, 8, 24, 8), "broken", 0.06, "909", "desert-dark"),
+    Family("depths-08", "Frozen Echoes", ("marsh", "coast", "frozen"), "depths", S01, False, 0, "D3", T8, "four", 0.0, "808", "frozen-deep"),
+    Family("boss-04", "Throne of Ash", ("haunted", "infernal", "desert", "jungle"), "boss", S2, False, 8, "N2", (8, 16, 8, 24, 8), "broken2", 0.0, "808", "battle"),
+    Family("boss-05", "The Usurper", ("pastoral", "regal", "highland", "mystic"), "boss", S2, False, 1, "N1", (8, 16, 8, 24, 8), "broken3", 0.0, "909", "battle"),
+    Family("boss-06", "Drowned King", ("marsh", "coast", "frozen"), "boss", S2, False, 10, "N3", (8, 16, 8, 24, 8), "broken", 0.0, "808", "battle"),
+    Family("night-05", "Dewfall", ("pastoral", "regal", "highland", "mystic"), "night", S01, True, 3, "L2", E5, "broken", 0.06, "606", "night"),
+    Family("night-06", "Whispering Boughs", ("haunted", "mystic", "jungle"), "night", S01, True, 11, "D2", T8, "four", 0.04, "808", "night"),
+    Family("night-07", "Desert Nocturne", ("desert", "highland", "infernal"), "night", S01, False, 9, "P3", (16, 16, 8, 24, 16), "broken3", 0.0, "707", "desert-dark"),
+    Family("night-08", "Black Water", ("marsh", "coast", "frozen"), "night", S01, False, 6, "N4", (16, 24, 8, 24, 8), "broken2", 0.0, "909", "coast-deep"),
+    Family("town-04", "Guildhall Steps", ("regal", "pastoral", "highland"), "town", S01, True, 0, "M3", (8, 16, 8, 16, 8), "broken2", 0.08, "909", "regal"),
 )
 TAKES = (1, 2, 3)
 NUMERALS = {1: "I", 2: "II", 3: "III", 4: "IV", 5: "V"}

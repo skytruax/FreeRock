@@ -453,20 +453,23 @@ second wave is a key higher); `titles` (two word lists); `style` and `band`.
 | camp | 2 and 2, planned after all the above |
 | added after the camps (`build.LAST_ADDED`: the bosses deep tide and fallen crusade) | 2 and 2, planned last |
 | every character once more (`build.MORE_FAMILIES`, 2026-11-22) | 2, planned after everything: Knight Rock's, then Warcraft's |
+| every Knight Rock character a second time (`build.MORE_FAMILIES`, that night) | 2, planned after the round before |
 
-That gives 471 Warcraft families with 1,034 takes (about 8,200 minutes) and 108 Knight Rock families
-with 239 takes (about 1,900 minutes). House has 89 families of 3 takes (`house.TAKES`, about 1,300
+That gives 471 Warcraft families with 1,034 takes (about 8,200 minutes) and 144 Knight Rock families
+with 311 takes (about 2,500 minutes). House has 109 families of 3 takes (`house.TAKES`, about 1,600
 minutes).
 
-*More music for every scenario* (2026-11-22: "The drive is still at 11 percent tonight we need new music
-following everything we learned"; "lets work on filling that drive with more music for every scenario,
-following everything weve learned"). Each character has `build.MORE_FAMILIES` more families of two
-takes beyond the plan's own (one so far: 36 Knight Rock families and 157 Warcraft, 386 takes, about 50
-hours), each with its own key, pace, changes and tunes, and written by everything the handbook has
-learned, as any take is. They are numbered on from the character's own (`haunted-requiem-4`) and named
-after every family before them, so no family made before changes; a family numbered ten would take the
-next character's seed, and `build.plan` refuses it. Each one's first take is made and studied before
-its second (8.7). Their first takes go to the night lane before the second takes of any of them.
+*More music for every scenario* (2026-11-22: "The drive is still at 11 percent tonight we need new
+music following everything we learned"; "lets work on filling that drive with more music for every
+scenario, following everything weve learned"). Each character has `build.MORE_FAMILIES` more families
+of two takes beyond the plan's own, by style (Knight Rock two, Warcraft one: 72 Knight Rock families
+and 157 Warcraft, 458 takes, about 60 hours; Knight Rock's second round that night, the music they
+play, while Warcraft had 210 first takes still to make), each with its own key, pace, changes and
+tunes, and written by everything the handbook has learned, as any take is. They are numbered on from
+the character's own (`haunted-requiem-4`) and named after every family before them, so no family made
+before changes; a family numbered ten would take the next character's seed, and `build.plan` refuses
+it. Each one's first take is made and studied before its second (8.7). Their first takes go to the
+night lane before the second takes of any of them.
 
 **Seeds and names.** A family's seed is 20261115 × 100 + its character's index × 10 + its number,
 0 for the first (`build.MASTER`). Its name is the character's first kind (or `anywhere`, for a
@@ -738,6 +741,16 @@ fretless is dark at every strength), the judges level. A pizzicato line's key no
 Hearth, its line a whole octave up, lost its lowest octave and came out down: a bass's place is low. Both switches are
 kept, off; a fuller pizzicato is owed another way.
 
+*A light band's bass given presence* (`build.LIGHT_BAND_BASS`, 2026-11-22, night). The light bands' bass,
+MuseScore's electric bass played softly in the walks, inns, camps and nights, stood 3.7 to 13 dB thin in its
+middle in the studies of the day's new Knight families, where the heavy band's sits within 5. Its sound has
+4 dB more at 800 Hz (7 over the sample in all). Judged as the whole sound's (bass1: two light songs, a heavy
+band and a Warcraft fretless): the octave at 894 Hz 3 dB nearer the liked stems in all four, the mix's
+loudness unmoved; the judges near level, SongEval up in sixteen of the light songs' twenty scores and
+TuneJury with the brief up in three of their four windows, but the heavy band's last drop down (TuneJury
+with no brief -0.18) and the fretless level. So it is the light band's alone, in an equaliser of its own
+after the sound's (`build.tamed_tone`); the heavy band's and the orchestra's are as they were.
+
 *The bass follows the key* (`orchestra.BASS_FOLLOWS_KEY`, `bass_tonics`, 2026-11-20). Each part's key
 note for the bass is the one nearest the part before's, moved by octaves into the instrument's range
 with room for the scale over it, and the part's line is centred on it: a key lifted for the summit
@@ -892,7 +905,7 @@ parts and their levels. This is what differs.
 | single guitar | the LP alone | a heavy band's opening riff |
 | lead guitar | `Electric LP - Lead` | more at 260 Hz, less at 3.2 kHz, echo and tape |
 | clean guitar | `Electric SC - Clean` | the valley's tune; a band's plain `guitar` becomes it (`build.stage`) |
-| picked bass, fretless | `Electric Bass` | more at 800 Hz, narrowed |
+| picked bass, fretless | `Electric Bass` | more at 800 Hz (a light band's 4 dB more again, `build.LIGHT_BAND_BASS`), narrowed |
 | rock organ | `Hammond Organ` | less at 1.5 kHz, narrowed |
 | kit rock, kit room | the AVL Red Zeppelin kit (a 26-inch bass drum), the Black Pearl kit | the kick under the bass drum, 6 dB down |
 
@@ -1317,8 +1330,8 @@ Every track is 110 BPM (`house.BPM`) in four. A family names a tonic (all twelve
 a loop from `house.LOOPS`: 26 loops of four chords, each chord one or two bars, in seven modes (M1–M6
 major, L1–L3 lydian, X1–X3 mixolydian, D1–D4 dorian, N1–N6 minor, P1–P2 phrygian, P3–P4 phrygian
 dominant). Chord colours (`COLOURS`): triad, 7, 9, sus2, sus4, 5 and 6. Every section starts at the
-top of the loop (`house.Changes.chord`). Swing delays the off sixteenths by up to 0.16 of one. 49 of
-the 89 families are light: *the house is meant to be mostly light* (the test).
+top of the loop (`house.Changes.chord`). Swing delays the off sixteenths by up to 0.16 of one. 59 of
+the 109 families are light: *the house is meant to be mostly light* (the test).
 
 ### 5.2 The groove: kick, clap, hats
 
@@ -1409,7 +1422,15 @@ six windows, SongEval a shade up in four*: in for its musical reason.
 its sidebands: 3 to 8 dB heavy against the liked stems at 450 to 900 Hz in every take that drew it that day, sixteen.
 At the desk it is cut 4 dB an octave wide at 600 Hz, in the bass's own equaliser: the middle 1.5 to 2.4 dB lighter, *TuneJury
 with the House brief up in all six windows of three songs, the rest level*. It is still 4.6 to 7.9 over there, its weight
-spread from 226 Hz to 3.5 kHz: a broader easing, or a lighter modulation in the patch, is owed.
+spread from 226 Hz to 3.5 kHz: a broader easing, or a lighter modulation in the patch, is owed. The
+patch held lighter is a switch (`patches.FM_LIGHT`: its first modulation, its feedback toward a saw and the
+waveshaper's drive), off until its demo (fmlight1: 0.25, 0.06 and 1.5 dB for 0.27, 0.15 and 3) is judged.
+
+*Tried and left off: the own bell given a body* (`club.BELL_BODY`, 2026-11-22). The FM bell designed for House, the
+chords in the snowfields' and the haunted palettes, stood 36.6 to 38.0 dB over the liked stems at its top and 5.5 to 13.6
+thin in its middle in all ten takes that drew it; its partials at three and a half times the note fall outside the key
+(Owl Light I's chords read 64% in it). Given 4 dB at 450 Hz and its top 6 dB down from 4 kHz at the desk: SongEval up in
+five windows of six, TuneJury down in four. Kept, off: the bright clang may be part of its House.
 
 **The bass grows harsher through a long drop** (`club.harsher`, on the sheet as the part `bass
 harsh`). Halfway through every drop of 32 bars or more, a second bass plays the bass's own notes and
@@ -1555,6 +1576,20 @@ the storm, the fight and the boss; the marsh, the coast and the snowfields, whic
 from the kinds nearest them, have their own (Fishmarket, Driftwood Hearth, Tide Camp, Moonlit Ebb,
 Sunken Grotto, Squall, Breakers, The Leviathan), and the battleground a third (Siege Bells). Each new
 family has a key and chord loop (tonic and loop) no other family has.
+
+*A second of every calm moment* (2026-11-22, night: twenty more, 109; "lots of options of inns camping,
+caves dungeons and just a not repetative experienxe"). The inn, the camp, the cave, the night and the
+boss had one family for each group of places, three takes, where the walking music had five to eight:
+an evening at one inn heard the same three songs. Each group of places now has a second of each, its
+key, chord loop, kick and machine none of its sibling's (the family of the same moment for the same
+places): inns Low Rafters, Hushed Parlour, Mint Tea and Mended Nets, all light; camps Bedroll Sky,
+Ghostfire, Nomad Fire and Ice Fishing; caves Lodestone, Glowworm Hollow, Sandstone Hollow and Frozen
+Echoes; nights Dewfall, Whispering Boughs, Desert Nocturne and Black Water; bosses Throne of Ash, The
+Usurper and Drowned King; and the green lands a second town, Guildhall Steps. The caves and the bosses
+are heavy; a camp or a night is light where its sibling is heavy and heavy where it is light (light
+and heavy take turns). Some take a kind's palette for their colour: the desert's oud for Mint Tea and
+the tomb under the sand, the coast's harp and the sea for the harbour inn, the snow's bells for the
+fishing camp, the deep coast for the black water at night.
 
 | Palette | Bass | Chords | Lead | Pad | Weather |
 |---|---|---|---|---|---|

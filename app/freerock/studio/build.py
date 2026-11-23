@@ -93,27 +93,31 @@ def _shapes_last(character) -> list[int]:
 
 # (2026-11-22: "tonight we need new music following everything we learned"; "lets work on filling that drive with more music
 # for every scenario, following everything weve learned".) How many families each character of Knight Rock and of Warcraft has
-# beyond the plan's own (`plan`): each one more song for its kind of place. 0: the plan's own, as before.
-MORE_FAMILIES = 1
+# beyond the plan's own (`plan`), by style: each one more song for its kind of place. 0 (or no entry): the plan's own, as
+# before. (That night Knight Rock, the music they play, was given a second round: Warcraft had 210 first takes still to make.)
+MORE_FAMILIES = {"knight": 2, "warcraft": 1}
 
 
 # House's titles (house.PLAN's, the test keeps them the same), written out here so that the plan, which the study and the lanes
 # read without the House synthesiser's numba, need not import house (2026-11-22: it did for an afternoon, and every study of a
 # Knight or Warcraft take stopped on "No module named 'numba'").
 HOUSE_TITLES = (
-    'Ambush', 'Ash Wind', 'Banners', 'Bellows and Sparks', 'Bells under the Hill', 'Blades', 'Breakers', 'Breakwater',
-    'Bullfrog Bass', 'By the Fire', 'Cairn Wind', 'Canopy', 'Capture the Flag', 'Caravan at Noon', 'Charge', 'Cinder Bloom',
-    'Cold Stars', 'Cool of the Evening', 'Driftwood Hearth', 'Dripstone', 'Drowned Halls', 'Dunes at Dawn',
-    'Embers under Stars', 'Fireflies', 'Fishmarket', 'Gaslight', 'Gilded Halls', 'Glade at Dusk', "Gull's Morning",
-    'Hammerfall', 'Harbour Lights', 'Hay Bale Sunset', 'Heat Haze', 'Hoarfrost', 'Hold the Line', 'Hollow Road',
-    'Ice Bridge', 'Lanterns in the Fog', 'Lanterns on the Square', 'Larks over the Ridge', 'Last Candle', 'Last Stand',
-    'Long Road Home', 'Market Day', 'Mill Stream', 'Mirage', 'Monsoon Drums', 'Moonlit Ebb', 'Moonwell',
-    'Morning on the Hill', 'Moth Wings', 'Night Prowl', 'Northern Lights', 'Oasis', 'Owl Light', 'Parrots', 'Peat Smoke',
-    'Rain on the Roofs', 'Red Rock', 'Reedlight', 'River Drums', 'Salt Caravan', 'Seaspray', 'Siege Bells', 'Snowglobe',
-    'Snowmelt', 'Squall', 'Stand Fast', 'Starfall', 'Stone and Sky', 'Sunken Grotto', 'Sunlit Fields', 'The Dark Hall',
-    'The Deep Road', 'The Forge at Rest', 'The High Moor', 'The Kind Ghost', "The King's Road", 'The Leviathan',
-    'The Long Wait', 'The Long Watch', 'The Old Swamp', 'Thunderhead', 'Tide Camp', 'Tidepools', 'Under the Mountain',
-    "Will-o'-the-Wisp", 'Willow Lanterns', 'Wind over the Pass',
+    'Ambush', 'Ash Wind', 'Banners', 'Bedroll Sky', 'Bellows and Sparks', 'Bells under the Hill', 'Black Water', 'Blades',
+    'Breakers', 'Breakwater', 'Bullfrog Bass', 'By the Fire', 'Cairn Wind', 'Canopy', 'Capture the Flag', 'Caravan at Noon',
+    'Charge', 'Cinder Bloom', 'Cold Stars', 'Cool of the Evening', 'Desert Nocturne', 'Dewfall', 'Driftwood Hearth',
+    'Dripstone', 'Drowned Halls', 'Drowned King', 'Dunes at Dawn', 'Embers under Stars', 'Fireflies', 'Fishmarket',
+    'Frozen Echoes', 'Gaslight', 'Ghostfire', 'Gilded Halls', 'Glade at Dusk', 'Glowworm Hollow', 'Guildhall Steps',
+    "Gull's Morning", 'Hammerfall', 'Harbour Lights', 'Hay Bale Sunset', 'Heat Haze', 'Hoarfrost', 'Hold the Line',
+    'Hollow Road', 'Hushed Parlour', 'Ice Bridge', 'Ice Fishing', 'Lanterns in the Fog', 'Lanterns on the Square',
+    'Larks over the Ridge', 'Last Candle', 'Last Stand', 'Lodestone', 'Long Road Home', 'Low Rafters', 'Market Day',
+    'Mended Nets', 'Mill Stream', 'Mint Tea', 'Mirage', 'Monsoon Drums', 'Moonlit Ebb', 'Moonwell', 'Morning on the Hill',
+    'Moth Wings', 'Night Prowl', 'Nomad Fire', 'Northern Lights', 'Oasis', 'Owl Light', 'Parrots', 'Peat Smoke',
+    'Rain on the Roofs', 'Red Rock', 'Reedlight', 'River Drums', 'Salt Caravan', 'Sandstone Hollow', 'Seaspray',
+    'Siege Bells', 'Snowglobe', 'Snowmelt', 'Squall', 'Stand Fast', 'Starfall', 'Stone and Sky', 'Sunken Grotto',
+    'Sunlit Fields', 'The Dark Hall', 'The Deep Road', 'The Forge at Rest', 'The High Moor', 'The Kind Ghost',
+    "The King's Road", 'The Leviathan', 'The Long Wait', 'The Long Watch', 'The Old Swamp', 'The Usurper', 'Throne of Ash',
+    'Thunderhead', 'Tide Camp', 'Tidepools', 'Under the Mountain', 'Whispering Boughs', "Will-o'-the-Wisp",
+    'Willow Lanterns', 'Wind over the Pass',
 )
 
 
@@ -188,9 +192,13 @@ def plan() -> list[tuple[Family, int]]:
     # character's own. Each family's first take is made and studied before its second (handbook 8.7). Their titles keep clear
     # of House's too (HOUSE_TITLES; a new marsh camp had drawn Peat Smoke, a House family's): House's are written by hand unlike
     # every title here (the test), so keeping clear of them changes no title drawn before.
+    # A style given more rounds than another has them after the other's last: each round is planned after every round before
+    # it, Knight Rock's before Warcraft's within it, so a round added changes nothing planned before it.
     titles.update(HOUSE_TITLES)
-    for _ in range(MORE_FAMILIES):
+    for round_ in range(max(MORE_FAMILIES.values(), default=0)):
         for style in ("knight", "warcraft"):
+            if round_ >= MORE_FAMILIES.get(style, 0):
+                continue
             for index, character in enumerate(CHARACTERS):
                 if character.style == style:
                     add(index, character, max(numbers.get(index, {-1})) + 1, 2)
@@ -236,7 +244,17 @@ def project_at(style: str, family: str, take: int) -> Path:
     return PROJECTS / style / family / str(take) / "track.rpp"
 
 
-def tamed_tone(name: str, instrument: str, band: bool = False, channel: str = "") -> str | None:
+# (2026-11-22, night: the light bands' bass thin in its middle, 3.7 to 13 dB under the liked stems at 450 to 900 Hz in the
+# studies of the day's new Knight families, the inns', camps' and nights' most.) dB more at 800 Hz on a light band's bass, over
+# the sound's own 3 (sounds.MUSE_TONE), as an equaliser of its own after it. Judged (bass1, the whole sound +4 at 800 Hz, on two
+# light songs, a heavy band and a Warcraft fretless): the octave at 894 Hz 3 dB nearer the liked stems in all four, the mix's
+# loudness unmoved; the judges near level, SongEval up in sixteen of the light songs' twenty scores, TuneJury with the brief up
+# in three of their four windows and with none down in three, while the heavy band's last drop came out down (TuneJury with no
+# brief -0.18) and the fretless level. So the light band's alone: the heavy band's and the orchestra's as they were. 0: as it was.
+LIGHT_BAND_BASS = 4.0
+
+
+def tamed_tone(name: str, instrument: str, band: bool = False, channel: str = "", light: bool = False) -> str | None:
     """The top of a voice that comes out bright against the liked stems, taken down (2026-11-17, midday, the morning's
     storms, inns, bosses and battles: the brass stabs and the tubular bells at the moments had the accompaniment 12 to
     16 dB over from 3.5 kHz up, and the harmonica that plays the accordion had the inns' texture 20 to 24 dB over)."""
@@ -271,6 +289,11 @@ def tamed_tone(name: str, instrument: str, band: bool = False, channel: str = ""
         # (The band's lead guitar, fiddle and whistles, 10 to 20 dB over: the liked band's lead is a guitar through a cabinet,
         # falling away above 5 kHz, where ours fizzed. Its bite at 1 to 3 kHz is kept.)
         return sounds.equalise(high_cut=6000.0, high_shelf=(3500.0, -6.0))
+    if band and light and instrument in ("picked bass", "fretless") and LIGHT_BAND_BASS:
+        # (2026-11-22, night: the light bands' bass, MuseScore's electric bass played softly in the walks, inns, camps and
+        # nights, 3.7 to 13 dB thin in its middle in the day's studies of the new families, where the heavy band's sits within
+        # 5. See LIGHT_BAND_BASS.)
+        return sounds.equalise(bands=((800.0, LIGHT_BAND_BASS, 1.2),))
     return None
 
 
@@ -501,7 +524,7 @@ def perform(sheet: Sheet) -> dict:
                 continue
             taste = INSTRUMENTS[voice.instrument].level if voice.instrument in INSTRUMENTS else 1.0
             made = sounds.lines(voice, name, bpm, taste=taste, room=room, seed=seed)
-            tamed = tamed_tone(name, voice.instrument, band=about["band"], channel=channel)
+            tamed = tamed_tone(name, voice.instrument, band=about["band"], channel=channel, light=about["light"])
             if tamed:
                 for line in made:
                     line.effects = list(line.effects) + [tamed]

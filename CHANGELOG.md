@@ -3,6 +3,25 @@
 Newest first. Words in quotation marks are what was said while listening or playing, as typed or
 dictated, where it drove the change.
 
+## 2026-11-22, night: a second inn, camp, cave and night
+
+"lets work on filling that drive with more music for every scenario, following everything weve learned"; and since the
+17th, "lots of options of inns camping, caves dungeons and just a not repetative experienxe".
+
+- **Knight Rock: a family more for every character, again** (`build.MORE_FAMILIES`, now by style: Knight Rock two,
+  Warcraft one; handbook 2.5): 36 families of two takes, planned after every family before them, so none of those
+  changes; each its own key, pace, changes and tunes. Warcraft has its 210 first takes still to make.
+- **House: twenty families more** (handbook 5.6), 109 in all: each group of places had one inn, one camp, one cave, one
+  night and one boss of House's own (three takes) against five to eight families for walking. Each now has a second, its
+  key, chord loop, kick and machine none of its sibling's, the caves and bosses heavy, the camps and nights light where
+  their sibling is heavy and heavy where it is light; and a second town for the green lands. A title Warcraft already
+  had (Sealed Vault) was changed before it was made.
+- **A light band's bass given presence** (`build.LIGHT_BAND_BASS`, handbook 3.6): 4 dB more at 800 Hz on a light Knight band's
+  bass, picked or fretless, 3.7 to 13 dB thin in its middle in the day's studies; judged on the whole sound (bass1): the
+  light songs a hair up with SongEval and TuneJury's brief, the heavy band's last drop down, so the light band's alone.
+- House's own FM bass held lighter, a switch (`patches.FM_LIGHT`: its first modulation, its feedback and the waveshaper's
+  drive), off until its demo is judged (fmlight1).
+
 ## 2026-11-22, day: more music for every scenario
 
 "The drive is still at 11 percent tonight we need new music following everything we learned"; "lets work on filling
@@ -19,6 +38,8 @@ that drive with more music for every scenario, following everything weve learned
   every moment in all three styles.
 - The plan keeps House's titles as a list of its own (`build.HOUSE_TITLES`, the test keeps it House's): for an afternoon it
   had imported the House synthesiser for them, which needs numba, and every study of a Knight or Warcraft take stopped there.
+- Tried and left off (`club.BELL_BODY`, handbook 5.3): House's own bell given a body and its top eased (SongEval up in five
+  windows of six, TuneJury down in four).
 - **House's own FM bass, its middle eased** (`club.FM_MIDDLE`, handbook 5.3): 3 to 8 dB heavy at 450 to 900 Hz in every take
   that drew it, it is cut 4 dB an octave wide at 600 Hz at the desk; TuneJury with the House brief up in all six windows,
   the rest level. Still heavy there: a broader easing is owed.

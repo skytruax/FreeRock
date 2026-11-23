@@ -209,8 +209,10 @@ FM_MIDDLE: float | None = -4.0
 # (2026-11-22, the day's House studies: the own bell, the chords in the snowfields' and the haunted palettes, 36.6 to 37.8 dB over
 # the liked stems at its top and 5.5 to 8.4 thin in its middle in all four takes that drew it, ten dB beyond any other House
 # sound: its FM partials at three and a half times the note ring over nothing.) BELL_BODY: the own bell given a body at 450 Hz
-# and its top eased from 4 kHz at the desk, (body dB, top dB). None: its top kept open as the own chords' are. (Off until the
-# judges have heard it: the demo bell1.)
+# and its top eased from 4 kHz at the desk, (body dB, top dB). None: its top kept open as the own chords' are. LEFT OFF
+# (2026-11-22, the demo bell1 at (4, -6), three songs: its body 3 to 4 dB up at 226 to 453 Hz, its top 4 dB down from 7 kHz;
+# SongEval up in five windows of six, to +0.14, but TuneJury down in four, to -0.20 with the House brief and -0.28 with none:
+# the judges did not agree, and the bell's bright clang may be some of what makes it House to the one that knows House.)
 BELL_BODY: tuple[float, float] | None = None
 HARSH = 0.55        # how far under the bass its harsh twin plays, once it is all the way in (`harsher`)
 OWN_KICK = True     # House's own kick (studio/kicks.py) for every machine's; False: the machine's recorded kick
