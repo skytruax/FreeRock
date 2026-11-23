@@ -600,6 +600,25 @@ PLAN: tuple[Family, ...] = (
     Family("night-07", "Desert Nocturne", ("desert", "highland", "infernal"), "night", S01, False, 9, "P3", (16, 16, 8, 24, 16), "broken3", 0.0, "707", "desert-dark"),
     Family("night-08", "Black Water", ("marsh", "coast", "frozen"), "night", S01, False, 6, "N4", (16, 24, 8, 24, 8), "broken2", 0.0, "909", "coast-deep"),
     Family("town-04", "Guildhall Steps", ("regal", "pastoral", "highland"), "town", S01, True, 0, "M3", (8, 16, 8, 16, 8), "broken2", 0.08, "909", "regal"),
+    # ("need some darker stuff", 2026-11-23: 65 of 100 of the walking music and every inn and town was light; minor and phrygian,
+    # the deep and dark palettes, one for each kind of place and for an inn, a camp, a night and a town.)
+    Family("pastoral-06", "Gallows Meadow", ("pastoral",), W, S01, False, 1, "N2", (16, 24, 8, 24, 8), "four", 0.0, "909", "pastoral-deep"),
+    Family("pastoral-07", "Scarecrow Road", ("pastoral", "highland"), W, S01, False, 10, "P1", T8, "broken3", 0.0, "808", "pastoral-deep"),
+    Family("regal-06", "The Headsman's Walk", ("regal",), W, S01, False, 9, "N2", E5, "four", 0.0, "909", "regal-deep"),
+    Family("regal-07", "Empty Throne", ("regal", "mystic"), W, S01, False, 3, "N6", (16, 24, 8, 24, 8), "broken2", 0.0, "808", "regal-deep"),
+    Family("coast-05", "Wreckers' Lantern", ("coast", "marsh"), W, S01, False, 7, "N3", (16, 16, 16, 24, 8), "four", 0.0, "808", "coast-deep"),
+    Family("coast-06", "Keelhaul", ("coast",), W, S01, False, 2, "P2", T8, "four", 0.0, "909", "coast-deep"),
+    Family("frozen-05", "White Grave", ("frozen", "highland"), W, S01, False, 8, "N4", E5, "broken", 0.0, "808", "frozen-deep"),
+    Family("highland-07", "Standing Dead", ("highland",), W, S01, False, 11, "N2", (16, 24, 8, 24, 8), "four", 0.0, "909", "highland-deep"),
+    Family("mystic-06", "Eclipse Gate", ("mystic",), W, S01, False, 4, "N2", T8, "broken3", 0.0, "909", "mystic-deep"),
+    Family("jungle-07", "Strangler Fig", ("jungle", "marsh"), W, S01, False, 8, "P1", (16, 16, 16, 24, 8), "four", 0.04, "909", "jungle-dark"),
+    Family("haunted-07", "Bone Procession", ("haunted",), W, S01, False, 9, "P1", E5, "four", 0.0, "808", "haunted-dark"),
+    Family("infernal-06", "Furnace Psalm", ("infernal", "haunted"), W, S01, False, 6, "P2", (16, 24, 8, 24, 8), "four", 0.0, "909", "infernal-dark"),
+    Family("desert-07", "Vulture Sky", ("desert",), W, S01, False, 2, "P1", T8, "broken", 0.0, "909", "desert-dark"),
+    Family("ember-09", "Undertaker's Table", ("haunted", "infernal", "marsh"), "ember", S01, False, 1, "N4", (8, 16, 8, 16, 8), "half", 0.06, "808", "night"),
+    Family("camp-09", "No Fire Tonight", ("pastoral", "regal", "highland", "frozen"), "camp", S01, False, 8, "N6", (8, 16, 8, 16, 8), "none", 0.0, "808", "night"),
+    Family("night-09", "Moonless", ("pastoral", "regal", "highland", "coast"), "night", S01, False, 10, "N2", (16, 24, 8, 24, 8), "broken3", 0.0, "909", "haunted-dark"),
+    Family("town-05", "Curfew Bell", ("regal", "pastoral", "highland"), "town", S01, False, 8, "N1", (8, 16, 8, 16, 8), "broken2", 0.04, "909", "regal-deep"),
 )
 TAKES = (1, 2, 3)
 NUMERALS = {1: "I", 2: "II", 3: "III", 4: "IV", 5: "V"}

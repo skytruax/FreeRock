@@ -456,7 +456,7 @@ second wave is a key higher); `titles` (two word lists); `style` and `band`.
 | every Knight Rock character a second time (`build.MORE_FAMILIES`, that night) | 2, planned after the round before |
 
 That gives 471 Warcraft families with 1,034 takes (about 8,200 minutes) and 144 Knight Rock families
-with 311 takes (about 2,500 minutes). House has 109 families of 3 takes (`house.TAKES`, about 1,600
+with 311 takes (about 2,500 minutes). House has 126 families of 3 takes (`house.TAKES`, about 1,850
 minutes).
 
 *More music for every scenario* (2026-11-22: "The drive is still at 11 percent tonight we need new
@@ -1345,7 +1345,9 @@ a loop from `house.LOOPS`: 26 loops of four chords, each chord one or two bars, 
 major, L1–L3 lydian, X1–X3 mixolydian, D1–D4 dorian, N1–N6 minor, P1–P2 phrygian, P3–P4 phrygian
 dominant). Chord colours (`COLOURS`): triad, 7, 9, sus2, sus4, 5 and 6. Every section starts at the
 top of the loop (`house.Changes.chord`). Swing delays the off sixteenths by up to 0.16 of one. 59 of
-the 109 families are light: *the house is meant to be mostly light* (the test).
+the 126 families are light. The walking, inn and night music is about as dark as it is light (49 of 87 are
+light; the test keeps it between four and six in ten), and every inn, camp, night and town has a dark
+one ("need some darker stuff", 2026-11-23; it was mostly light, six in ten, from the first night on).
 
 ### 5.2 The groove: kick, clap, hats
 
@@ -1598,6 +1600,11 @@ the storm, the fight and the boss; the marsh, the coast and the snowfields, whic
 from the kinds nearest them, have their own (Fishmarket, Driftwood Hearth, Tide Camp, Moonlit Ebb,
 Sunken Grotto, Squall, Breakers, The Leviathan), and the battleground a third (Siege Bells). Each new
 family has a key and chord loop (tonic and loop) no other family has.
+
+*Darker music* (2026-11-23: seventeen more, 126; "need some darker stuff"). Every inn and town, six camps of eight and
+65 in 100 of the walking music were light. Thirteen dark walking families, at least one for each kind of place, and an inn, a camp, a
+night and a town: minor and phrygian loops, the deep and dark palettes, no swing but a trace, each with a key and loop no
+other has.
 
 *A second of every calm moment* (2026-11-22, night: twenty more, 109; "lots of options of inns camping,
 caves dungeons and just a not repetative experienxe"). The inn, the camp, the cave, the night and the
@@ -2182,6 +2189,9 @@ first (`freerock pieces drop <style> <style>/<family>/<take>`).
 On the music machine `var/passes/rebuild.sh <style>` does all of this; it lives outside git.
 
 ### 8.7 Add a character or a family
+
+**New music is darker** ("just new music should be darker", 2026-11-23): a new character or family is heavy, in minor, dorian
+or phrygian, with the deep sounds, unless its place or moment has no light music left. What is already made stays as it is.
 
 **Warcraft or Knight Rock.**
 

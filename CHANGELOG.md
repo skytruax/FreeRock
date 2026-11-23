@@ -3,6 +3,14 @@
 Newest first. Words in quotation marks are what was said while listening or playing, as typed or
 dictated, where it drove the change.
 
+## 2026-11-23, afternoon: darker House
+
+- **"need some darker stuff"**: House's walking music was 65 in 100 light, its inns and towns all light and its camps mostly.
+  Seventeen dark families (126): a walk for the meadow, the road, the court, the coast, the snow, the hills, the grove, the
+  jungle, the graveyard, the forge and the desert, an inn, a camp, a night and a town (minor and phrygian, the deep and dark
+  palettes). The test that held House "mostly light" (its first night, 2026-11-15) holds it as dark as it is light now.
+- The dark, heavy takes already queued by day go first (92 of 201).
+
 ## 2026-11-23, day: a bucket is built beside the one that plays
 
 - **"songs without ends that abruptly cut off and some others the player was looking for that no longer existed, i think the

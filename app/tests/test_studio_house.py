@@ -276,8 +276,11 @@ def test_the_plan_covers_every_kind_of_place_and_moment():
         assert any(fam.light for fam in mine) and any(not fam.light for fam in mine), "%s has no light or no heavy music" % kind
     assert {fam.role for fam in house.PLAN} == set(studio.ROLES)
     about = [fam for fam in house.PLAN if fam.role in ("wander", "ember", "night")]
-    assert sum(fam.light for fam in about) > 0.6 * len(about), "the house is meant to be mostly light"
-    assert sum(fam.light for fam in house.PLAN) > len(house.PLAN) / 2
+    # ("need some darker stuff", 2026-11-23. It was "mostly light", six in ten of these, from the house's first night on, 2026-11-15.)
+    assert 0.4 * len(about) < sum(fam.light for fam in about) < 0.6 * len(about), "the house is meant to be as dark as it is light"
+    for role in ("ember", "camp", "night", "town"):
+        mine = [fam for fam in house.PLAN if fam.role == role]
+        assert any(not fam.light and fam.mode in ("minor", "phrygian", "phrygian dominant", "dorian") for fam in mine), "no dark %s" % role
     for fam in house.PLAN:
         assert fam.loop in house.LOOPS and fam.groove in house.KICKS and fam.palette in house.PALETTES
         assert all(mood in kinds.KINDS for mood in fam.moods)
