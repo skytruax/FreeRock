@@ -1405,6 +1405,12 @@ heavier. Where the sub is the bass with nothing over it but its twin (`club.TWIN
 three camps the bass 4.1 to 4.4 dB fuller from 226 Hz to 1.8 kHz, its lowest octaves unmoved; *the judges level in all
 six windows, SongEval a shade up in four*: in for its musical reason.
 
+*The own FM bass's middle eased* (`club.FM_MIDDLE`, 2026-11-22). The FM bass designed for House has a middle of its own,
+its sidebands: 3 to 8 dB heavy against the liked stems at 450 to 900 Hz in every take that drew it that day, sixteen.
+At the desk it is cut 4 dB an octave wide at 600 Hz, in the bass's own equaliser: the middle 1.5 to 2.4 dB lighter, *TuneJury
+with the House brief up in all six windows of three songs, the rest level*. It is still 4.6 to 7.9 over there, its weight
+spread from 226 Hz to 3.5 kHz: a broader easing, or a lighter modulation in the patch, is owed.
+
 **The bass grows harsher through a long drop** (`club.harsher`, on the sheet as the part `bass
 harsh`). Halfway through every drop of 32 bars or more, a second bass plays the bass's own notes and
 leaves with the drop. It is the detuned saws of the wide bass, or a sawtooth where the bass is already

@@ -201,6 +201,17 @@ def stop_time(piece: Piece) -> bool:
     return summit["first"] + summit["bars"] - ends >= orchestra.STOP_BARS + 4
 
 
+def fm_bass(piece: Piece) -> bool:
+    """A House take whose staged sheet plays the own FM bass: since club.FM_MIDDLE (2026-11-22) its middle is eased 4 dB at 600 Hz."""
+    if piece.style != "house":
+        return False
+    sheet = STUDIO / piece.style / piece.key / "sheet.json"
+    if not sheet.is_file():
+        return False
+    bass = json.loads(sheet.read_text(encoding="utf-8")).get("parts", {}).get("bass", {})
+    return bool(bass.get("bass fm", {}).get("notes"))
+
+
 def sub_alone(piece: Piece) -> bool:
     """A House take whose staged sheet's bass is the sub with nothing over it but its harsh twin: since club.SUB_ALONE_GROWL
     (2026-11-22) its growl is 0.8 of the bass, not 0.45."""
@@ -272,6 +283,9 @@ class Change:
 
 
 CHANGES = [
+    Change("House's own FM bass, its middle eased", datetime.datetime(2026, 11, 22, 20, 25), "",
+           "the own FM bass cut 4 dB an octave wide at 600 Hz at the desk (club.FM_MIDDLE)",
+           fm_bass),
     Change("House's sub heard", datetime.datetime(2026, 11, 22, 18, 20), "",
            "where the sub is the bass with nothing over it but its harsh twin, its growl (a saw closed above 900 Hz) at 0.8 of the "
            "bass, not 0.45 (club.SUB_ALONE_GROWL)",

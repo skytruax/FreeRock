@@ -19,6 +19,9 @@ that drive with more music for every scenario, following everything weve learned
   every moment in all three styles.
 - The plan keeps House's titles as a list of its own (`build.HOUSE_TITLES`, the test keeps it House's): for an afternoon it
   had imported the House synthesiser for them, which needs numba, and every study of a Knight or Warcraft take stopped there.
+- **House's own FM bass, its middle eased** (`club.FM_MIDDLE`, handbook 5.3): 3 to 8 dB heavy at 450 to 900 Hz in every take
+  that drew it, it is cut 4 dB an octave wide at 600 Hz at the desk; TuneJury with the House brief up in all six windows,
+  the rest level. Still heavy there: a broader easing is owed.
 - **House's sub heard** (`club.SUB_ALONE_GROWL`, handbook 5.3): where the sub plays the bass with nothing over it but its
   harsh twin (camps and inns alone 5.9 to 7.5 dB thin in its middle, walking music under its twin 3.4), its growl comes up
   from 0.45 to 0.8 of the bass: the bass 4 dB fuller in its middle, its bottom unmoved, the judges level.

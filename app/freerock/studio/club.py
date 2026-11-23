@@ -202,8 +202,10 @@ SUB_ALONE_GROWL: float | None = 0.8
 TWINS = ("harsh", "harsh saw")       # the writer's names of the bass's harsh twin (`harsher`), which come in late in a drop
 # (2026-11-22, the day's House studies: the own FM bass 3 to 8 dB heavy in its middle against the liked stems in every take that
 # drew it, eleven, at 450 to 900 Hz: its own sidebands, not the growl, which is off under it.) The own FM bass is cut FM_MIDDLE dB
-# an octave wide at 600 Hz at the desk. None: as it was. (Off until the judges have heard it: the demo fm1.)
-FM_MIDDLE: float | None = None
+# an octave wide at 600 Hz at the desk. None: as it was. (The demo fm1, three takes: the middle eased 1.5 to 2.4 dB at 450 to
+# 900 Hz; TuneJury with the House brief up in all six windows, +0.07 to +0.20, the rest level: in. The bass is still 4.6 to 7.9
+# over there, its weight spread from 226 Hz to 3.5 kHz: a broader easing, or the patch's own index, is owed.)
+FM_MIDDLE: float | None = -4.0
 # (2026-11-22, the day's House studies: the own bell, the chords in the snowfields' and the haunted palettes, 36.6 to 37.8 dB over
 # the liked stems at its top and 5.5 to 8.4 thin in its middle in all four takes that drew it, ten dB beyond any other House
 # sound: its FM partials at three and a half times the note ring over nothing.) BELL_BODY: the own bell given a body at 450 Hz

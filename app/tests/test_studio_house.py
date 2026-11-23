@@ -624,6 +624,7 @@ def test_the_own_fm_bass_middle_is_cut(monkeypatch, tmp_path):
     # (2026-11-22, the day's House studies: the own FM bass 3 to 8 dB heavy at 450 to 900 Hz in all eleven takes that drew it.)
     # FM_MIDDLE cuts it an octave wide at 600 Hz at the desk, in the bass's own equaliser; off, the band is flat.
     from freerock.studio import club, sounds
+    assert club.FM_MIDDLE == -4.0                      # (judged in, fm1)
     monkeypatch.setattr(club.muse, "available", lambda: False)
     heard = club.Heard()
     heard.notes[("bass", "bass", "fm")].append((0.0, house.BAR, 40.0, 0.5, 0.0, 1.0))
