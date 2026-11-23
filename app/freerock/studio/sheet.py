@@ -22,7 +22,7 @@ from .score import EFFECTS, Sheet
 VAR = Path(__file__).resolve().parents[3] / "var"
 NAMES = ("C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B")
 SHORT = {"wah": "w", "wah depth": "", "wah position": "", "phaser": "p", "flanger": "f", "flanger depth": "", "flanger position": "",
-         "echo": "e", "lowpass": "l", "highpass": "h"}
+         "echo": "e", "lowpass": "l", "highpass": "h", "bend": "b"}
 assert set(SHORT) == set(EFFECTS)
 
 
@@ -30,6 +30,17 @@ def path_of(key: str) -> Path:
     """The sheet of a staged take: "knight/infernal-forge-anthem-1/3"."""
     style, family, take = key.strip("/").split("/")
     return stage_root(VAR, style) / family / take / "sheet.json"
+
+
+def revised_of(style: str, family: str, take: int) -> Sheet | None:
+    """A song's sheet if a musician has revised it since the writer's first draft: that is what the song is, and whoever stages it
+    again performs it as it stands. None for a first draft (written again, so that a change in the writer reaches it) and for a
+    song with no sheet."""
+    path = path_of("%s/%s/%d" % (style, family, take))
+    if not path.is_file():
+        return None
+    sheet = Sheet.load(path)
+    return sheet if sheet.revision > 1 else None
 
 
 def note_name(pitch: int) -> str:
@@ -49,13 +60,15 @@ def _marked_in(points: list[tuple[float, float]], first: float, last: float, eff
         return min(probe) < 12000.0
     if effect == "highpass":
         return max(probe) > 40.0
+    if effect == "bend":
+        return max(abs(value) for value in probe) > 0.05
     return max(probe) > 0.05
 
 
 def show(sheet: Sheet) -> str:
     """The sheet as a musician reads it at a glance: the form across the top; for each part, how many notes it plays a
     bar in each section (blank where it rests) and which effects are marked there (w a wah, p a phaser, f a flanger, e an
-    echo thrown, l the low-pass closed, h the high-pass in); then the history."""
+    echo thrown, l the low-pass closed, h the high-pass in, b notes bent); then the history."""
     lines = ["%s (%s/%s/%d), revision %d: %g to the minute, %g beats a bar, %d bars" % (
         sheet.title, sheet.style, sheet.family, sheet.take, sheet.revision, sheet.tempo, sheet.beats, sheet.bars)]
     heads = ["%s %d" % (section.get("part") or section["story"], section["bars"]) for section in sheet.form]

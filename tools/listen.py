@@ -1,6 +1,9 @@
 """Every staged track as one file to listen to, and a page that lists them.
 
     cd app && uv run --no-sync python ../tools/listen.py [style ...]
+    ... listen.py --new 24          only the whole files of the songs staged in the last 24 hours, of every style, the newest first
+                                    (no channels for the mixer page: they take far longer to write, and the page of what is new
+                                    needs only the song), and no page. For the songs of the day, beside the pass over everything.
 
 The studio keeps a track as a recording for each channel, which is what the player wants and
 nobody can listen to. This puts the channels of each staged track together and writes the whole
@@ -19,6 +22,7 @@ import json
 import os
 import shutil
 import sys
+import time
 from urllib.parse import quote
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
@@ -70,6 +74,57 @@ def channels(desk: Path, meta: dict, parts: dict[str, np.ndarray], peak: float) 
             "channels": [channel for channel in ORDER if channel in parts], "rate": studio.RATE, "piece": PIECE, "pieces": count, "kind": "flac",
             "seconds": round(frames / studio.RATE, 3), "gain": round(0.89 / peak, 4), "sections": sections, "floor": meta.get("floor", {})}
     (desk / "track.json").write_text(json.dumps(told), encoding="utf-8")
+
+
+def new_whole(folder: Path) -> tuple[str, bool]:
+    """Writes one staged track's whole file, if it is missing or older than the track, and nothing else. Returns the file's name
+    and whether it was written."""
+    meta = studio.described(folder)
+    out = VAR / "listen" / meta["style"]
+    name, kept = names(meta)
+    staged = (folder / "track.json").stat().st_mtime
+    if (out / name).is_file() and (out / name).stat().st_mtime >= staged:
+        return name, False
+    meta, parts = studio.read_track(folder)
+    mix = sum(parts.values())
+    peak = float(np.abs(mix).max())
+    if peak <= 0.0:
+        raise ValueError("The track in %s is silent" % folder)
+    out.mkdir(parents=True, exist_ok=True)
+    scratch = out / (kept + ".%d.part.flac" % os.getpid())
+    soundfile.write(str(scratch), mix * (0.89 / peak), studio.RATE, format="FLAC", subtype="PCM_16")
+    scratch.replace(out / name)
+    return name, True
+
+
+def the_newest(hours: float) -> list[Path]:
+    """The staged songs of the last `hours`, of every style, the newest first."""
+    since = time.time() - hours * 3600.0
+    found = []
+    for style in STYLES:
+        for folder in studio.staged(VAR, style):
+            made = (folder / "track.json").stat().st_mtime
+            if made >= since:
+                found.append((made, folder))
+    return [folder for _, folder in sorted(found, reverse=True)]
+
+
+def write_new(hours: float) -> int:
+    wrong, written = [], 0
+    for folder in the_newest(hours):
+        try:
+            name, made = new_whole(folder)
+        except (ValueError, KeyError, OSError, soundfile.SoundFileError) as problem:
+            # (One being made again while this runs: named, and it is tried again at the next pass.)
+            wrong.append((folder, "%s: %s" % (type(problem).__name__, problem)))
+            continue
+        if made:
+            written += 1
+            print("%s" % name, flush=True)
+    for folder, problem in wrong:
+        print("NOT written: %s: %s" % (folder, problem))
+    print("%d new songs written to listen to" % written, flush=True)
+    return 1 if wrong else 0
 
 
 def mixed(folder: Path) -> tuple[str, dict]:
@@ -128,6 +183,8 @@ def page(style: str, rows: list[tuple[str, dict]]) -> str:
 
 
 def main(styles: list[str]) -> int:
+    if styles and styles[0] == "--new":
+        return write_new(float(styles[1]) if len(styles) > 1 else 24.0)
     # The mixer page first, so that every row's channels link works while the rest is still being written (2026-11-17,
     # morning: "the channels poages dont work": it was copied in only once every style was done).
     (VAR / "listen").mkdir(parents=True, exist_ok=True)

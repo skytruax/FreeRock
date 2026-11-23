@@ -747,8 +747,10 @@ def ridden(audio: np.ndarray, spans: list[tuple[int, int]], ceiling: float, ease
 
 
 def stage(name: str, take: int) -> dict:
-    """Writes one take of a house family as its sheet and performs it (`write`, `perform`)."""
-    return perform(write(name, take))
+    """Writes one take of a house family as its sheet and performs it (`write`, `perform`). A take whose sheet a musician has
+    revised is performed from its sheet (`sheet.revised_of`)."""
+    from .sheet import revised_of
+    return perform(revised_of("house", name, take) or write(name, take))
 
 
 def perform(sheet: Sheet) -> dict:

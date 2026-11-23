@@ -57,7 +57,13 @@ high-pass in). Then the history.
 A revision is a change to the music, made as a musician would: a part re-voiced, a passage varied, a
 line handed to another instrument, an effect marked where the music asks for one. It is written into
 the history with why (`Sheet.revised`), saved, and performed again. Changing the writers' code
-reaches only first drafts.
+reaches only first drafts. A revised sheet is what the song is: a list that comes to the song again performs the
+revised sheet, not a new first draft (`sheet.revised_of`, 2026-11-23; until then any re-render wrote a first draft over it).
+
+`tools/revise.py <style/family/take> --recipe <file>` does both: the recipe is a Python file with `revise(sheet) -> (what, why)`;
+`--dry` says which parts it would move and changes nothing; the take as it was is kept in `var/studio-demo/before-revise` (copied, not
+linked: the performance writes over it), to be heard and judged beside the new one at one loudness; `--back` puts it back. It stays only
+if the numbers and the judges agree it is better.
 
 ### 0.3 Effects are marked by the music
 
@@ -944,7 +950,11 @@ Leading a band's tune or solo, the harp read 4 to 11 dB thin in its middle and 1
 the studies of the night of 2026-11-22's 71 harp takes, where a fiddle's or a guitar's solo reads 7 to 11 over (the
 lantern walk's four takes, one song: the harp's solos +12.7 and +15.2, the fiddle's +9.3 and +10.8). A darker tone of its
 own for a band's harmonica lead, closed at 4.5 kHz, 6 dB down from 2.5 kHz, 3 dB of body at 700 Hz (`build.HARP_LEAD`), is
-a switch, off until its demo is judged (harplead1).
+a switch, left off (harplead1, 2026-11-23): its top came 1 to 6 dB nearer the liked stems at 7 and 14 kHz, its middle stayed as thin;
+SongEval 0.02 to 0.09 down in the three windows judged of six (the rest were stopped, the storm demo waiting), TuneJury with the
+brief down in two, with none up in two, enjoyment level. The liked stems have no harp in them, so the distance is not a fault
+for sure. The harmonica is wanted ("i better hear harmonica and banjo"): the thin middle is the writer's and the player's to
+mend, not a tone's.
 
 **The tune stands over the guitars wherever it sings** (`build.TUNE_LIFT`, `build.tune_lift`, 2026-11-19). The
 lead's place is set at the summit, where the twin guitars play the theme together; one guitar or a fiddle singing it

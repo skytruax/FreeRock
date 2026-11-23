@@ -3,6 +3,17 @@
 Newest first. Words in quotation marks are what was said while listening or playing, as typed or
 dictated, where it drove the change.
 
+## 2026-11-23, afternoon: old songs revised, and a revised sheet kept
+
+- **The cycle's old songs** ("test 10 old songs from each genre, iterate on those"): `tools/revise.py` changes a song's sheet with a
+  recipe, says what moved, performs it again and keeps the take before beside it. A revised sheet is now performed wherever the
+  song comes up again; until now any list that came to the song wrote a new first draft over it.
+- The sheet tool could not be loaded since the harmonica's bends became an effect mark (2026-11-22): its letters had none for it.
+- **The page of what is new was five hours old** ("now page is old"): the pass that writes every song to listen to takes the styles in
+  turn and reaches the day's songs last. `tools/listen.py --new 24` writes the whole files of the last day's songs, the newest first,
+  without the mixer's channels, every twenty minutes beside it, and the page is written after.
+- Knight Rock's old harmonica songs were tried with a darker harp lead and left as they are (`build.HARP_LEAD`, harplead1).
+
 ## 2026-11-23, afternoon: a song is followed by one led by another instrument
 
 - **"make sure to switch up the instruments from song to song so theres variety"**: the player knew a song's place, mood, shade and when it
@@ -65,7 +76,8 @@ dictated, where it drove the change.
   alone in a camp; TuneJury with the House brief down in every last drop, Audiobox up: off.
 - Tried and left off (banjo1, handbook 4.1): the banjo played by MuseScore's picked steel-string in place of the strumstick:
   SongEval's coherence up in five windows of six, TuneJury with no brief down in four, Audiobox split; the band would lose a colour.
-- A band's harmonica lead darker, a switch (`build.HARP_LEAD`, handbook 4.1), off until its demo is judged (harplead1): the
+- A band's harmonica lead darker, a switch (`build.HARP_LEAD`, handbook 4.1), left off (harplead1, 2026-11-23: its top nearer the
+  liked stems, no judge for it): the
   harp leading a band 12 to 16 dB over the liked stems at its top in the night's 71 harp takes, a fiddle's solo 7 to 11.
 - **A REAPER that writes nothing for fifteen minutes is stopped and tried once more** (`desk.RENDER_STALL`, `reaper.Stalled`,
   handbook 6.6): one met "Can't write to REAPER configuration file" at its start, three renders having begun together, and

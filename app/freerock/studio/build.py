@@ -263,7 +263,10 @@ LIGHT_BAND_BASS = 4.0
 # over: in the lantern walk's four takes, the same song, the harp's solos +12.7 and +15.2, the fiddle's +9.3 and +10.8. A
 # harp through a small amp's speaker is darker than that.) A band's harmonica lead: (where its top is closed, Hz; where its
 # top is shelved down from, Hz; by how much, dB; its body at 700 Hz, dB), in place of the band lead's own tone. None: the band
-# lead's tone, as the fiddle's and the guitar's. (Off until its demo is judged: harp1.)
+# lead's tone, as the fiddle's and the guitar's. (Left off, 2026-11-23, the demo harplead1 on three harp songs, at 4500, 2500, -6 and 3:
+# the lead's top 1 to 6 dB nearer the liked stems at 7 and 14 kHz, its middle as thin as it was; SongEval 0.02 to 0.09 down in the
+# three windows judged, TuneJury with the brief down in two and level in one, with none up in two of three, enjoyment level: a
+# darker harp is no better a harp, and the liked stems have no harp in them.)
 HARP_LEAD: tuple[float, float, float, float] | None = None
 
 
@@ -315,8 +318,10 @@ def tamed_tone(name: str, instrument: str, band: bool = False, channel: str = ""
 
 def stage(fam: Family, take: int) -> dict:
     """Writes one take of a family as its sheet and performs it (`write`, `perform`). Returns what it measured. The
-    REAPER project is kept (see `project_of`), and the sheet beside the staged track."""
-    return perform(write(fam, take))
+    REAPER project is kept (see `project_of`), and the sheet beside the staged track. A take whose sheet a musician has
+    revised is performed from its sheet (`sheet.revised_of`)."""
+    from .sheet import revised_of
+    return perform(revised_of(fam.character.style, fam.name, take) or write(fam, take))
 
 
 def write(fam: Family, take: int) -> Sheet:
