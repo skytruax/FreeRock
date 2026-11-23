@@ -9,14 +9,17 @@ What the player is doing in the game decides which channels are up and how hard 
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
+import re
 import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import asdict, dataclass
+from contextlib import contextmanager
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 
 import numpy as np
 import soundfile
@@ -210,6 +213,23 @@ class Clip:
     FORMER = ("variant", "words", "measured", "retired", "seed", "place")
 
 
+def identity(*said: Any) -> str:
+    """An id made from what it names: the same each time the same is put in. (2026-11-23: a bucket built again had given
+    every piece and part a new id, so a page left open across the build could not find a song's next piece, nor its close,
+    and asked for parts that were gone: "songs without ends that abruptly cut off and some others the player was looking for
+    that no longer existed".)"""
+    return hashlib.blake2b("\x1f".join(str(each) for each in said).encode("utf-8"), digest_size=8).hexdigest()
+
+
+def beside(root: Path, name: str) -> Path:
+    """A folder of that name next to the buckets, on the drive they are on (`var/buckets` may be a link to another one), so
+    that a recording can be linked and a whole bucket moved between the two."""
+    return Path(root).resolve().parent / name
+
+
+NEXT, BEFORE = "buckets-next", "buckets-before"     # a style's bucket being built again, and as it was before it was
+
+
 class Bucket:
     """One style's music on disk: its written pieces, each kept as the stretches of its parts.
     A style's bucket is named ALL, since its song goes wherever the player goes. One begun before
@@ -222,6 +242,7 @@ class Bucket:
         self.clips: list[Clip] = []
         self.pieces: dict[str, dict[str, Any]] = {}       # written music: what each piece is, by its id
         self.version = 0
+        self.linked: set[str] = set()                      # the pieces taken from another bucket with their recordings (take_piece)
         index = self.folder / "bucket.json"
         if index.is_file():
             kept = json.loads(index.read_text(encoding="utf-8"))
@@ -262,12 +283,24 @@ class Bucket:
         scratch.write_text(json.dumps(index, indent=1) + "\n", encoding="utf-8")
         scratch.replace(self.folder / "bucket.json")
 
+    @contextmanager
+    def saved_once(self) -> Iterator[None]:
+        """What is done to the bucket inside is written to disk once, at its end, and not at all if it fails: a whole build
+        puts in thousands of pieces, and writing the index after each was minutes of it."""
+        self._save = lambda: None                  # type: ignore[method-assign]
+        try:
+            yield
+        finally:
+            del self._save
+        self._save()
+
     def add_piece(self, parts: dict[tuple[str, int], np.ndarray], *, title: str, bar_frames: float, bars: int,
                   post: int = 0, tonic: str = "", story: str = "", moods: tuple[str, ...] | list[str] = (),
                   role: str = "wander", serves: tuple[int, ...] | list[int] = (0, 1),
                   follow: dict[str, list[str]] | None = None, floor: dict[str, float] | None = None,
                   track: str = "", after: str = "", gain_db: float | None = None, source: str = "",
-                  credit: str = "", family: str = "", light: bool = False, settings: tuple[str, ...] | list[str] = ()) -> str:
+                  credit: str = "", family: str = "", light: bool = False, settings: tuple[str, ...] | list[str] = (),
+                  stamp: str = "") -> str:
         """Puts a piece of written music in the bucket and returns its id.
 
         A piece is music that was written as a whole and is kept as its parts: `parts` holds one
@@ -298,6 +331,9 @@ class Bucket:
         The bucket notes how many pieces of its track come before each piece (its `place`): a
         long track uses a story word more than once (a theme, a second theme, the calm between
         two rises), so the word alone does not say where in the story a piece stands.
+
+        `stamp` says what the recordings are (`studio.stamp_of`): with one, the ids of the piece and of its parts are made
+        from the track, the place and the stamp, so that a song put in again unchanged is told by the ids it had.
         """
         if not parts:
             raise ValueError("A piece needs at least one part")
@@ -336,14 +372,14 @@ class Bucket:
         # so many bars is not given a stretch of one sample for it.)
         count = max(int(np.ceil((whole - 1.0) / window)), 1)
         edges = [min(int(round(index * window)), whole) for index in range(count)] + [whole]
-        piece_id = uuid.uuid4().hex[:10]
+        place, piece_id = self._seat(track, after, stamp, title)
         (self.folder / "clips").mkdir(parents=True, exist_ok=True)
         keep = int(POST_S * RATE)
         made: list[tuple[Clip, np.ndarray]] = []
         for (channel, tier), audio in sorted(parts.items()):
             for order, (first, last) in enumerate(zip(edges, edges[1:])):
                 stretch = audio[first:min(last + keep, len(audio))]
-                made.append((Clip(id=uuid.uuid4().hex[:10], channel=channel, tier=tier,
+                made.append((Clip(id=self._part_id(track, place, channel, tier, order, stamp), channel=channel, tier=tier,
                                   bars=max(int(round((last - first) / bar_frames)), 1), frames=last - first,
                                   gain_db=round(float(gain_db), 2), created=time.time(), source=source or "written",
                                   piece=piece_id, order=order, post=len(stretch) - (last - first)), stretch))
@@ -360,19 +396,62 @@ class Bucket:
         # works outside Python's lock, so threads share the cores. An encoding that fails stops the piece with its error.
         with ThreadPoolExecutor(max_workers=ENCODERS) as pool:
             list(pool.map(keep_clip, made))
-        self.clips += [clip for clip, _ in made]
-        self.pieces[piece_id] = {
-            "title": title, "track": track, "next": "", "story": story, "moods": list(moods), "role": role,
+        return self._put(piece_id, [clip for clip, _ in made], after, {
+            "title": title, "track": track, "story": story, "moods": list(moods), "role": role,
             "serves": sorted(set(int(tier) for tier in serves)), "bar_frames": float(bar_frames), "bars": int(bars),
             "frames": int(whole), "windows": count, "tonic": tonic, "follow": follow or {}, "floor": floor or {},
-            "source": source, "credit": credit, "family": family, "light": bool(light), "settings": list(settings), "created": time.time(),
-            "banned": False, "loved": False,
-            # (A piece put in before places were kept has none; it was the only one of its word.)
-            "place": int(self.pieces[after].get("place") or 0) + 1 if after else 0}
+            "source": source, "credit": credit, "family": family, "light": bool(light), "settings": list(settings),
+            "created": time.time(), "place": place, "stamp": stamp})
+
+    def _seat(self, track: str, after: str, stamp: str, title: str) -> tuple[int, str]:
+        """Where in its track a piece to be put in stands, and its id."""
+        # (A piece put in before places were kept has none; it was the only one of its word.)
+        place = int(self.pieces[after].get("place") or 0) + 1 if after else 0
+        piece_id = identity("piece", self.genre, track, place, stamp) if stamp else uuid.uuid4().hex[:10]
+        if piece_id in self.pieces:
+            raise ValueError("The piece %r is in the bucket for %s already" % (title, self.key))
+        return place, piece_id
+
+    def _part_id(self, track: str, place: int, channel: str, tier: int, order: int, stamp: str) -> str:
+        return identity("part", self.genre, track, place, channel, tier, order, stamp) if stamp else uuid.uuid4().hex[:10]
+
+    def _put(self, piece_id: str, clips: list[Clip], after: str, piece: dict[str, Any]) -> str:
+        self.clips += clips
+        self.pieces[piece_id] = dict(piece, next="", banned=False, loved=False)
         if after:
             self.pieces[after]["next"] = piece_id
         self._save()
         return piece_id
+
+    def take_piece(self, other: "Bucket", piece_id: str, parts: list[Clip], *, stamp: str, after: str = "", **told: Any) -> str:
+        """Puts in a piece another bucket has, with its recordings as they are (linked, not made again: the two are on one
+        drive), and returns its id here. `parts` is the piece's parts there, `stamp` what they are, and `told` whatever the
+        song says of the piece now (its title, its moods, its role and the rest, as `add_piece` takes them): a song may be
+        described anew without being rendered again. What was played, loved and banned is not taken here; a build carries
+        it over for every piece alike (`pieces.restore_marks`, the play book)."""
+        if after and after not in self.pieces:
+            raise KeyError("No piece %r for this one to follow" % after)
+        old = other.pieces[piece_id]
+        place, mine = self._seat(told["track"], after, stamp, told["title"])
+        (self.folder / "clips").mkdir(parents=True, exist_ok=True)
+        clips = []
+        for part in parts:
+            clip = replace(part, id=self._part_id(told["track"], place, part.channel, part.tier, part.order, stamp), piece=mine,
+                           source=told["source"], plays=0, banned=False, loved=False)
+            os.link(other._file(part.id), self._file(clip.id))
+            clips.append(clip)
+        self.linked.add(mine)
+        return self._put(mine, clips, after, {
+            **told, "moods": list(told["moods"]), "serves": sorted(set(int(tier) for tier in told["serves"])),
+            "settings": list(told["settings"]), "bar_frames": old["bar_frames"], "bars": old["bars"], "frames": old["frames"],
+            "windows": old["windows"], "created": old["created"], "place": place, "stamp": stamp})
+
+    def parts(self) -> dict[str, list[Clip]]:
+        """Every piece's parts, by the piece's id."""
+        out: dict[str, list[Clip]] = {}
+        for clip in self.clips:
+            out.setdefault(clip.piece, []).append(clip)
+        return out
 
     def drop_piece(self, piece_id: str) -> None:
         """Takes a piece out of the bucket for good, with the recordings of its parts."""
@@ -476,7 +555,12 @@ class Bucket:
     def samples(self, clip_id: str) -> bytes:
         """A stretch of a part, and what the music went on to, as 16-bit little-endian stereo."""
         if not any(clip.id == clip_id for clip in self.clips):
-            raise KeyError("No part %r in the bucket for %s" % (clip_id, self.key))
+            # (A page goes on playing a song it began before the bucket was built again: what is left of it is found in the
+            # bucket as it was before, kept until the next build.)
+            path = beside(self.root, BEFORE) / self.genre / self.zone / "clips" / (clip_id + ".flac")
+            if not re.fullmatch("[0-9a-f]{10,32}", clip_id) or not path.is_file():
+                raise KeyError("No part %r in the bucket for %s" % (clip_id, self.key))
+            return self._read(path).tobytes()
         return self.audio(clip_id).tobytes()
 
     def _file(self, clip_id: str) -> Path:
@@ -485,7 +569,10 @@ class Bucket:
 
     def audio(self, clip_id: str) -> np.ndarray:
         """A stretch of a part as 16-bit stereo samples, and then what the music went on to."""
-        path = self._file(clip_id)
+        return self._read(self._file(clip_id))
+
+    @staticmethod
+    def _read(path: Path) -> np.ndarray:
         samples, rate = soundfile.read(str(path), dtype="int16", always_2d=True)
         if rate != RATE:
             raise ValueError("%s is at %d Hz, not %d" % (path, rate, RATE))

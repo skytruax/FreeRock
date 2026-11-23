@@ -45,6 +45,7 @@ seconds in which the last notes die away.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 from typing import Any
@@ -126,24 +127,104 @@ def staged(var: Path, style: str) -> list[Path]:
     return sorted(path.parent for path in stage_root(var, style).glob("*/*/track.json"))
 
 
-def import_track(bucket: forever.Bucket, folder: Path) -> list[str]:
+CUT = 1                           # how a track is cut into pieces: raised when `import_track` comes to cut the same track otherwise
+SETTLED = 600.0                   # seconds: a song cut this long after it was last staged was cut from what is staged
+
+
+def _checksum(path: Path) -> str:
+    """What a recording is: the checksum of its audio a FLAC file carries in its head (so that nothing of it need be
+    decoded), or, for a file without one, of the file."""
+    with open(path, "rb") as handle:
+        head = handle.read(42)
+        if head[:4] == b"fLaC" and len(head) == 42 and head[4] & 0x7F == 0 and any(head[26:42]):
+            return head[18:42].hex()              # the rate, the channels, the depth and the length, then the audio's MD5
+        handle.seek(0)
+        return hashlib.file_digest(handle, "blake2b").hexdigest()
+
+
+def stamp_of(folder: Path, meta: dict[str, Any]) -> str:
+    """What a staged track's pieces are cut from, and how: its recordings, where they are cut and how loud they are put in.
+    The same track staged again with the same audio has the same stamp; what it is called and what it is for have no part
+    in it."""
+    said: list[Any] = [CUT, RATE, forever.POST_S, forever.WINDOW_S, forever.PIECE_LEVEL, LIFT, QUIET, float(meta["bar_frames"]),
+                       float(meta.get("level_db", 0.0)), [section["bars"] for section in meta["sections"]]]
+    for channel in forever.CHANNELS:
+        path = Path(folder) / (channel + ".flac")
+        if not path.is_file():
+            path = Path(folder) / (channel + ".mp3")
+        if path.is_file():
+            said.append([channel, _checksum(path)])
+    return hashlib.blake2b(json.dumps(said).encode("utf-8"), digest_size=8).hexdigest()
+
+
+class Before:
+    """A bucket as it stands, for a build to take from: its pieces by the song they were cut from. It is read, never written."""
+
+    def __init__(self, bucket: forever.Bucket):
+        self.bucket = bucket
+        self.parts = bucket.parts()
+        self.songs: dict[str, dict[int, str]] = {}
+        for piece_id, (track, place) in bucket.places().items():
+            self.songs.setdefault(track, {})[place] = piece_id
+
+    def unchanged(self, source: str, folder: Path, stamp: str, lengths: list[int]) -> list[str]:
+        """The song's pieces in their order, if they were cut from what is staged now; none if any of it is otherwise."""
+        places = self.songs.get(source, {})
+        ids = [places[place] for place in sorted(places)]
+        old = [self.bucket.pieces[piece_id] for piece_id in ids]
+        if not ids or [piece["frames"] for piece in old] != lengths:
+            return []
+        stamps = {piece.get("stamp") or "" for piece in old}
+        if stamps == {""}:
+            # Cut before a piece kept its stamp (2026-11-23): from what is staged, if that was written well before.
+            written = [path.stat().st_mtime for path in Path(folder).iterdir()
+                       if path.name == "track.json" or path.stem in forever.CHANNELS]
+            if min(piece["created"] for piece in old) - max(written) < SETTLED:
+                return []
+        elif stamps != {stamp}:
+            return []
+        if not all(self.bucket._file(clip.id).is_file() for piece_id in ids for clip in self.parts[piece_id]):
+            return []
+        return ids
+
+
+def import_track(bucket: forever.Bucket, folder: Path, before: Before | None = None) -> list[str]:
     """Cuts a staged track into the pieces of its story and puts them in a bucket, each going
     on into the next. Returns the ids of the pieces; none if the track is in the bucket already.
 
     The whole track gets one gain, which brings its loudest part (every channel playing) to a
     little over the bucket's usual level: so the story keeps its shape, quiet where it was
-    written quiet. A channel that is silent in a part of the story has no part in that piece."""
+    written quiet. A channel that is silent in a part of the story has no part in that piece.
+
+    A song that `before` (the bucket as it stands) has, cut from the recordings that are staged now, is taken from it: its
+    parts are linked, not read, cut and written again."""
     meta = described(folder)
     source = "%s/%s/%s" % (meta["style"], meta["family"], meta["take"])
     if any(piece.get("source") == source for piece in bucket.pieces.values()):
         return []                       # asked before its eight minutes of recordings are read: with a bucketful staged, that is minutes
-    meta, parts = read_track(folder)
     bar = float(meta["bar_frames"])
     edges, bars = [0], 0
     for section in meta["sections"]:
         bars += section["bars"]
         edges.append(int(round(bars * bar)))
     whole = edges[-1]
+    stamp = stamp_of(folder, meta)
+
+    def told(section: dict[str, Any]) -> dict[str, Any]:
+        return {"title": "%s (%s)" % (meta["title"], section["story"]), "tonic": section.get("tonic", meta["tonic"]),
+                "story": section["story"], "moods": meta["moods"], "role": meta["role"], "serves": meta["serves"],
+                "follow": meta.get("follow") or {}, "floor": (meta.get("floor") or {}).get(section["story"], {}),
+                "track": source, "source": source, "credit": meta.get("credit", ""), "family": "%s/%s" % (meta["style"], meta["family"]),
+                "light": bool(meta.get("light")), "settings": meta.get("settings") or []}
+
+    kept = before.unchanged(source, folder, stamp, [last - first for first, last in zip(edges, edges[1:])]) if before else []
+    if kept:
+        taken: list[str] = []
+        for section, piece_id in zip(meta["sections"], kept):
+            taken.append(bucket.take_piece(before.bucket, piece_id, before.parts[piece_id], stamp=stamp,
+                                           after=taken[-1] if taken else "", **told(section)))
+        return taken
+    meta, parts = read_track(folder)
     mix = sum(audio[:whole] for audio in parts.values())
     loudest = max(analysis.loudness_lufs(mix[first:last], RATE) for first, last in zip(edges, edges[1:]))
     peak = max(analysis.peak(mix), 1e-6)
@@ -158,11 +239,6 @@ def import_track(bucket: forever.Bucket, folder: Path) -> list[str]:
         seconds = (last - first) / RATE
         windows = max(int(np.ceil(seconds / forever.WINDOW_S)), 1)
         ids.append(bucket.add_piece(
-            cut, title="%s (%s)" % (meta["title"], section["story"]), bar_frames=bar,
-            bars=max(int(np.ceil(section["bars"] / windows)), 1), post=tail, tonic=section.get("tonic", meta["tonic"]),
-            story=section["story"],
-            moods=meta["moods"], role=meta["role"], serves=meta["serves"], follow=meta.get("follow") or {},
-            floor=(meta.get("floor") or {}).get(section["story"], {}), track=source, after=ids[-1] if ids else "",
-            gain_db=gain, source=source, credit=meta.get("credit", ""), family="%s/%s" % (meta["style"], meta["family"]),
-            light=bool(meta.get("light")), settings=meta.get("settings") or []))
+            cut, bar_frames=bar, bars=max(int(np.ceil(section["bars"] / windows)), 1), post=tail,
+            after=ids[-1] if ids else "", gain_db=gain, stamp=stamp, **told(section)))
     return ids

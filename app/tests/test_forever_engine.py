@@ -623,6 +623,22 @@ async def test_a_song_asked_for_by_name_plays_once_from_where_it_was_asked_with_
     assert cued["missingFirst"] and cued["missingSpent"]
 
 
+async def test_a_song_comes_to_its_close_though_the_bucket_was_built_again_while_it_played(results):
+    """("songs without ends that abruptly cut off", 2026-11-23.) A song made again has other ids in the bucket built again:
+    it is not taken for banned, what had been made ready of it is played, and it goes on by its track and place, each piece
+    where the last one ends. If it does not keep the same time now, another song follows what was ready; a song that is gone
+    is left for another at once, as a banned one is."""
+    rebuilt = of(results, "pieceRebuilt")
+    for name in ("again", "same"):
+        assert [each[1] for each in rebuilt[name]["order"]] == ["0", "1", "2", "3"], (name, rebuilt[name])
+        assert rebuilt[name]["at"] == pytest.approx([0.0, 8.0, 16.0, 24.0], abs=0.02), (name, rebuilt[name])
+    assert rebuilt["again"]["order"][0] == "a0" and rebuilt["again"]["order"][3] == "b3", rebuilt["again"]
+    assert set("".join(rebuilt["same"]["order"])) == set("a0123"), rebuilt["same"]
+    assert rebuilt["gone"]["order"][0] == "a0" and set(rebuilt["gone"]["order"][1:]) <= {"x", "y"} and rebuilt["gone"]["at"][1] < 7.0, rebuilt["gone"]
+    assert rebuilt["retimed"]["order"][0] == "a0" and not any(each[0] == "b" for each in rebuilt["retimed"]["order"]), rebuilt["retimed"]
+    assert all(each["late"] == 0 for each in rebuilt.values())
+
+
 async def test_one_track_is_crossfaded_into_the_next_under_its_last_bar(results):
     hand = of(results, "pieceHandover")
     assert len(hand["order"]) >= 2 and hand["order"][0] != hand["order"][1]

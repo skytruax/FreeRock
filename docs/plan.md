@@ -134,8 +134,8 @@ the game asks, always fading.
 
 ### The library
 
-Each style has one bucket of pieces, built from the staged takes by `tools/fresh_bucket.py` and played
-across every zone. Three styles: **Warcraft** (an orchestra, darker sometimes, war drums in fights and
+Each style has one bucket of pieces, built from the staged takes by `tools/fresh_bucket.py` (beside the one
+that plays, then swapped in) and played across every zone. Three styles: **Warcraft** (an orchestra, darker sometimes, war drums in fights and
 on the march), **Knight Rock** (a band: two guitars, bass, a rock kit, with lutes, fiddles and pipes for
 colour), and **Progressive House** (110 beats a minute, happy and chill). The player page switches
 between them.
@@ -208,7 +208,8 @@ Three things are read every morning, strongest first:
    where the library is thin.
 4. **Each morning** (the game off): every take made overnight gets its pass, the buckets are built
    again, and a short report says what changed, why, and where to hear it (`tools/new_songs.py` writes
-   the page of the new songs).
+   the page of the new songs; `tools/now_page.py`, run by each build, the page of what came into the
+   player, what waits for the next build, and the demos).
 
 ### When the drive is full: the last three takes, each better than the last
 

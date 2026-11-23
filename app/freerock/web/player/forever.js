@@ -196,6 +196,7 @@
       this.memory = options.memory || null;
       // A song asked for by name, played once (see _cued): {track, at}.
       this.cue = options.cue && options.cue.track ? { track: String(options.cue.track), at: options.cue.at } : null;
+      this.cueSpent = options.cueSpent || null;       // told once the cue is spent, so that the page can forget it
       this.begun = new Map();
       if (this.memory) {
         const offset = ctx.currentTime - Date.now() / 1000;
@@ -949,7 +950,7 @@
                                (left.began === undefined ? left.at : left.began) + RESUME_SPAN);
         if (piece.seconds - from > 2 * piece.bar) return { piece, from, laps: 1, cast: this._cast(piece, left.casting), entry: "resume", began: left.began, until, sited: left.sited, fit: left.fit, zone: left.zone, rain: left.rain };
         // It was all but over when the fight came: the track goes on from its next piece.
-        const onward = piece.meta.next ? index.get(piece.meta.next) : null;
+        const onward = this._onward(index, piece.meta);
         if (onward && serves(onward)) return { piece: onward, from: 0, laps: 1, cast: this._cast(onward, left.casting), entry: "resume", began: left.began, until, sited: left.sited, fit: left.fit, zone: left.zone, rain: left.rain };
       }
       const place = this.target.place, also = this.target.also || [];
@@ -965,7 +966,7 @@
         // for a place the player stood in (an inn, a cave, a town, a battleground, a camp) and has
         // left, for a storm that is over, or for a boss who is down. Not the light or the hour or
         // the ground underfoot, nor a calm moment or nightfall: what suits those comes when it has ended.
-        const next = after.piece.meta.next ? index.get(after.piece.meta.next) : null;
+        const next = this._onward(index, after.piece.meta);
         if (next && serves(next)) {
           // (Another zone, the player in it long enough to be sure: the track ends here rather than wait for the look.)
           const elsewhere = typeof this.target.zone === "string" && typeof after.zone === "string" && this.target.zone !== after.zone
@@ -1020,6 +1021,31 @@
                zone: typeof this.target.zone === "string" ? this.target.zone : null };
     }
 
+    // The piece that stands at a place of a track in the bucket as it is now, whatever its id: where the bucket has been built
+    // again since a piece that plays came from it, a song that was made again has new ids.
+    _standing(index, meta, place) {
+      if (!meta.track || !Number.isInteger(place)) return null;
+      for (const piece of index.values()) if (piece.meta.track === meta.track && piece.meta.place === place) return piece;
+      return null;
+    }
+
+    // Whether a piece that plays has been taken out of the bucket: it was banned, or pieces were switched off. One whose song
+    // was made again has not been: it is played to its end (2026-11-23: a bucket built again gave every piece a new id, and a
+    // page left open took the song it played for banned and cut it off at the next bar: "songs without ends that abruptly
+    // cut off").
+    _gone(index, piece) {
+      return !index.has(piece.id) && !this._standing(index, piece.meta, piece.meta.place);
+    }
+
+    // The piece a track goes on into, told by its id; or, its song made again, the one at the next place of it, if that keeps
+    // the same time.
+    _onward(index, meta) {
+      if (!meta.next) return null;
+      if (index.has(meta.next)) return index.get(meta.next);
+      const piece = this._standing(index, meta, Number.isInteger(meta.place) ? meta.place + 1 : null);
+      return piece && Math.abs(piece.meta.bar_frames - meta.bar_frames) < 1 ? piece : null;
+    }
+
     // A song asked for by name, once ("make sure it plays somehow this time as a one off", 2026-11-18: the first takes
     // with a guitar solo). The page's address names a track and where in it to begin (`?cue=knight/<family>/<take>&at=climb`;
     // `at` is "summit", its last moment, "climb", the piece before that, or a piece's place, the opening if none). It
@@ -1029,6 +1055,7 @@
     _cued(index) {
       const cue = this.cue;
       this.cue = null;
+      if (this.cueSpent) this.cueSpent();
       const mine = [...index.values()].filter((piece) => piece.meta.track === cue.track);
       const ids = new Set(mine.map((piece) => piece.id));
       const led = new Set(mine.map((piece) => piece.meta.next).filter((id) => ids.has(id)));
@@ -1242,7 +1269,7 @@
       if (!group || !index) return false;
       const ask = this._ask();
       // (A piece that is no longer in the bucket: it was banned, or pieces were switched off.)
-      const gone = Boolean(group.piece && !index.has(group.piece.id));
+      const gone = Boolean(group.piece && this._gone(index, group.piece));
       if (!index.size && !gone) return false;
       const here = group.piece ? group.piece.meta.serves : [0, 1, 2];
       if (!force && !gone) {
@@ -1292,7 +1319,7 @@
       const meta = group.piece.meta, index = this._index();
       if (!CALM_STORIES.includes(meta.story) || !meta.serves.includes(this._ask())) return false;
       if (group.until - this.ctx.currentTime <= HANDOVER) return false;
-      let next = meta.next ? index.get(meta.next) : null;
+      let next = this._onward(index, meta);
       for (let steps = 0; next && next.meta.story !== "rise" && steps < 6; steps++) next = next.meta.next ? index.get(next.meta.next) : null;
       if (!next || next.meta.story !== "rise" || next.meta.track !== meta.track) return false;
       const item = { piece: next, from: 0, laps: 1, cast: this._cast(next, group.casting), entry: "continue",
@@ -1334,7 +1361,7 @@
     async _follow() {
       const group = this.group;
       const index = this.bucket ? this._index() : null;
-      if (!group || !group.piece || !index || !index.has(group.piece.id) || this._quiet()) return false;
+      if (!group || !group.piece || !index || this._gone(index, group.piece) || this._quiet()) return false;
       const ask = this._ask();
       const place = this.target.place;
       const calm = place === "ember" && this.target.sited !== true;

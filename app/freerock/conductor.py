@@ -338,6 +338,8 @@ class Conductor:
                     note = "The player page reported a problem: %s" % report.get("message")
                     log.error(note)
                     self.notes.append(note)
+                    if link is not None:
+                        link.note(note, "problem")          # with its time, in the day's log
         finally:
             self.players.discard(socket)
             self.statuses.pop(id(socket), None)

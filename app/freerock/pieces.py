@@ -7,10 +7,13 @@ style has, and takes pieces out again.
 
 A bucket is written here while the server is stopped: the server keeps each bucket's list in
 memory and writes it back as pieces are played, so two programs writing one bucket would lose
-one another's work.
+one another's work. A whole bucket is built again beside the one that plays, with the server
+running, and put in its place in the seconds the server is stopped for (`build_beside`, `swap`).
 """
 from __future__ import annotations
 
+import json
+import shutil
 import socket
 from pathlib import Path
 from typing import Any
@@ -18,6 +21,7 @@ from typing import Any
 import soundfile
 
 from . import composer, forever, studio
+from .playbook import PlayBook
 
 
 def server_is_up(port: int, host: str = "127.0.0.1") -> bool:
@@ -41,14 +45,92 @@ def home_bucket(var_dir: Path, style: str, zone: str | None = None) -> forever.B
     return bucket
 
 
-def add_staged(bucket: forever.Bucket, var_dir: Path, style: str) -> list[tuple[Path, list[str], str]]:
+def standing(var_dir: Path, style: str) -> forever.Bucket:
+    """The bucket a style plays from as it is on disk (the one `Buckets.home` would choose), to be read and not written: the
+    server, if it runs, has it in memory and writes it."""
+    root, best = Path(var_dir) / "buckets", None
+    for index in sorted((root / style).glob("*/bucket.json")):
+        kept = json.loads(index.read_text(encoding="utf-8"))
+        bucket = forever.Bucket(root, index.parent.name, style, kept["bpm"], kept["tonic"])
+        if bucket.live() and (best is None or len(bucket.live()) > len(best.live())):
+            best = bucket
+    if best is None:
+        raise ValueError("The %s style has no bucket to build again" % style)
+    return best
+
+
+def build_beside(var_dir: Path, style: str) -> tuple[forever.Bucket, dict[str, Any]]:
+    """Builds a style's bucket again from what is staged, beside the one that plays (`swap` puts it in its place), so that the
+    server runs on meanwhile. Returns it, and what was done: how many songs are in (`put`), how many of those were taken
+    from the bucket as it stands (`taken`) and which could not be put in (`wrong`), how many parts kept their plays, loves
+    and bans (`carried`), and how many had any (`marks`).
+
+    (2026-11-23, "fix the builder": a build had the server down from its beginning to its end, half an hour to two hours
+    for a band's or the orchestra's bucket, and a player that cannot reach the server for a minute fades out.)"""
+    old = standing(var_dir, style)
+    root = forever.beside(old.root, forever.NEXT)
+    for left in (root / style, forever.beside(old.root, forever.BEFORE) / style):      # a build that did not end, and the bucket before last
+        if left.exists():
+            shutil.rmtree(left)
+    bucket = forever.Bucket(root, old.zone, style, old.bpm, old.tonic, book=PlayBook(Path(var_dir) / "plays.sqlite3"))
+    bucket.version = old.version
+    before, put, taken, wrong = studio.Before(old), 0, 0, []
+    with bucket.saved_once():
+        for folder, made, problem in add_staged(bucket, var_dir, style, before):
+            if problem:
+                wrong.append((folder, problem))
+            elif made:
+                put += 1
+                taken += made[0] in bucket.linked
+        marks = marks_of(old)
+    carried = restore_marks(bucket, marks)
+    carried += bucket.sync_book()                 # and what the play book has kept: what is played while this is built is there
+    return bucket, {"put": put, "taken": taken, "wrong": wrong, "carried": carried, "marks": len(marks)}
+
+
+def swap(var_dir: Path, style: str) -> Path:
+    """Puts the bucket `build_beside` made in the place of the one that plays, which is kept (`forever.BEFORE`) until the next
+    build: what is left of a song begun before is found there, and `swap_back` puts it back. The server must be stopped.
+    Returns where the old one is kept."""
+    here = standing(var_dir, style).folder.resolve()
+    ready = forever.beside(Path(var_dir) / "buckets", forever.NEXT) / style / here.name
+    if not (ready / "bucket.json").is_file() or not json.loads((ready / "bucket.json").read_text(encoding="utf-8"))["pieces"]:
+        raise ValueError("No bucket for %s has been built beside the one that plays (%s)" % (style, ready))
+    kept = forever.beside(Path(var_dir) / "buckets", forever.BEFORE) / style / here.name
+    if kept.exists():
+        shutil.rmtree(kept)
+    kept.parent.mkdir(parents=True, exist_ok=True)
+    here.rename(kept)
+    try:
+        ready.rename(here)
+    except OSError:
+        kept.rename(here)
+        raise
+    return kept
+
+
+def swap_back(var_dir: Path, style: str) -> Path:
+    """Puts the bucket as it was before the last `swap` back in its place, and the one that was swapped in back beside it
+    (`forever.NEXT`). The server must be stopped. Returns where that one is now."""
+    here = standing(var_dir, style).folder.resolve()
+    kept = forever.beside(Path(var_dir) / "buckets", forever.BEFORE) / style / here.name
+    ready = forever.beside(Path(var_dir) / "buckets", forever.NEXT) / style / here.name
+    if not (kept / "bucket.json").is_file():
+        raise ValueError("No bucket for %s is kept from before (%s)" % (style, kept))
+    ready.parent.mkdir(parents=True, exist_ok=True)
+    here.rename(ready)
+    kept.rename(here)
+    return ready
+
+
+def add_staged(bucket: forever.Bucket, var_dir: Path, style: str, before: studio.Before | None = None) -> list[tuple[Path, list[str], str]]:
     """Puts every staged track of a style in its bucket. For each track, in order: its folder,
     the ids of the pieces it became (none if it was in the bucket already), and what was wrong
     with it if it could not be put in (the others still are)."""
     done = []
     for folder in studio.staged(Path(var_dir), style):
         try:
-            done.append((folder, studio.import_track(bucket, folder), ""))
+            done.append((folder, studio.import_track(bucket, folder, before), ""))
         except (ValueError, KeyError, OSError, soundfile.SoundFileError) as problem:
             # A track that is not fit to be put in (a recording of the wrong length or rate, a
             # file that cannot be read, a description with something missing) is reported by

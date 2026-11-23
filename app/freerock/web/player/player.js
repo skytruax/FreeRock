@@ -16,15 +16,30 @@
   let version = null;           // the version of this page, as the server named it when it loaded
   let outdated = false;         // the server has been updated since
   const problems = [];
+  const unsent = [];            // problems met while the server could not be reached, sent once it can be
+  const UNSENT = 200;           // as many of them as are kept; how many more there were is said
+  let unkept = 0;
 
-  // Anything that goes wrong is shown on the page and sent to the server, never dropped.
+  // Anything that goes wrong is shown on the page and sent to the server, never dropped: what goes wrong while the server
+  // is away waits for it (2026-11-23: those had stayed on the page, and no log ever had them).
   function problem(text) {
-    problems.push(new Date().toLocaleTimeString() + "  " + text);
+    const at = new Date().toLocaleTimeString();
+    problems.push(at + "  " + text);
     $("problems").hidden = false;
     $("problems").textContent = problems.slice(-6).join("\n");
     if (socket && socket.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify({ type: "problem", message: text }));
+    } else if (unsent.length < UNSENT) {
+      unsent.push(text + " (at " + at + ", with the server out of reach)");
+    } else {
+      unkept += 1;
     }
+  }
+
+  function sendUnsent() {
+    for (const text of unsent.splice(0)) socket.send(JSON.stringify({ type: "problem", message: text }));
+    if (unkept) socket.send(JSON.stringify({ type: "problem", message: "...and " + unkept + " more problems with the server out of reach" }));
+    unkept = 0;
   }
   window.addEventListener("error", (event) => problem(event.message + " (" + event.filename + ":" + event.lineno + ")"));
   window.addEventListener("unhandledrejection", (event) => problem(describe(event.reason)));
@@ -80,12 +95,22 @@
     return asked.get("cue") ? { track: asked.get("cue"), at: asked.get("at") } : null;
   }
 
+  // Played or not found, it is asked for once: it leaves the page's address, or every reload would ask for it again
+  // (2026-11-22: one song was asked for, and not found, five times in a day).
+  function forgetCue() {
+    const asked = new URLSearchParams(window.location.search);
+    asked.delete("cue");
+    asked.delete("at");
+    const rest = asked.toString();
+    window.history.replaceState(null, "", window.location.pathname + (rest ? "?" + rest : "") + window.location.hash);
+  }
+
   // The server sends the bucket the style plays from, and the five decks play from it.
   async function useBucket(message) {
     const bucket = message.bucket;
     if (!ctx) ctx = new AudioContext({ sampleRate: bucket.rate, latencyHint: "interactive" });
     if (!engine) {
-      engine = new FreeRockForever(ctx, phraseLoader, { report: problem, memory: heard, cue: cueAsked() });
+      engine = new FreeRockForever(ctx, phraseLoader, { report: problem, memory: heard, cue: cueAsked(), cueSpent: forgetCue });
       engine.setVolume(volume());
       if (target) await engine.setTarget(target);
     }
@@ -161,7 +186,13 @@
   function connect() {
     const scheme = location.protocol === "https:" ? "wss://" : "ws://";
     socket = new WebSocket(scheme + location.host + "/ws/player");
-    socket.onopen = () => { retry = 500; lostAt = null; if (!outdated) banner(""); $("link").textContent = "Connected. Waiting for the game."; };
+    socket.onopen = () => {
+      retry = 500;
+      lostAt = null;
+      if (!outdated) banner("");
+      $("link").textContent = "Connected. Waiting for the game.";
+      sendUnsent();
+    };
     socket.onmessage = (event) => { receive(JSON.parse(event.data)).catch((error) => problem(describe(error))); };
     socket.onclose = () => {
       if (lostAt === null) lostAt = Date.now();

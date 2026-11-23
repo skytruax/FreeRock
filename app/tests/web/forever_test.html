@@ -990,6 +990,32 @@ tests.pieceCued = async () => {
            late: run.engine.late, said, missingFirst: slotsOf(missing).get(0) || [], missingSpent: missing.engine.cue === null };
 };
 
+// The bucket is built again while a song plays, and that song was made again: its pieces have other ids. It goes on into the
+// next piece of itself, by its track and place, and comes to its close; one that does not keep the same time does not, and
+// a song that did not change is told by the ids it had.
+tests.pieceRebuilt = async () => {
+  const song = (name, more) => ["open", "theme", "moment", "close"].map((story, place) => Object.assign(
+    { id: name + place, story, track: "song", place, then: place < 3 ? name + (place + 1) : "" }, more));
+  const others = ["x", "y"].map((id) => ({ id, track: id, story: "open", place: 0 }));
+  const order = (run) => {
+    const out = [];
+    for (const entry of [...run.engine.log].sort((a, b) => a.at - b.at)) if (out[out.length - 1] !== pieceOf(entry)) out.push(pieceOf(entry));
+    return out;
+  };
+  const played = async (key, after) => {
+    const run = await render(34, { bucket: makePieces(key, [...song("a"), ...others]), tickEvery: 1.0, random: seeded(5), cue: { track: "song" },
+                                   script: [[3, (engine) => engine.setBucket(after)]] });
+    const first = new Map();
+    for (const entry of [...run.engine.log].sort((a, b) => a.at - b.at)) if (!first.has(pieceOf(entry))) first.set(pieceOf(entry), entry.at - ORIGIN);
+    return { order: order(run).slice(0, 4), at: order(run).slice(0, 4).map((id) => first.get(id)), late: run.engine.late };
+  };
+  const retimed = makePieces("retimed", [...song("b"), ...others]);
+  for (const id of ["b0", "b1", "b2", "b3"]) retimed.pieces[id].bar_frames = BAR * 1.25;
+  return { again: await played("rebuilt", makePieces("rebuilt", [...song("b"), ...others])),
+           same: await played("unchanged", makePieces("unchanged", [...song("a"), ...others])),
+           gone: await played("taken", makePieces("taken", others)), retimed: await played("retimed", retimed) };
+};
+
 // A track goes on through a calm moment (the game says "ember" after a fight), even though the
 // bucket has a piece written for calm moments; and the calm after a fight is no place, so a track
 // that ends in it is followed by walking music ("fights shouldnt start new songs", 2026-11-17).

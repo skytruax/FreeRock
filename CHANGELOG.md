@@ -3,6 +3,34 @@
 Newest first. Words in quotation marks are what was said while listening or playing, as typed or
 dictated, where it drove the change.
 
+## 2026-11-23, day: a bucket is built beside the one that plays
+
+- **"songs without ends that abruptly cut off and some others the player was looking for that no longer existed, i think the
+  player has an old manifest"**, then "fix the builder". A bucket built again gave every piece and part a new id. A page left
+  open across the build took the song it played for banned, because its id was gone, and cut it off at the next bar; and it
+  asked for parts that were gone. The ids are made from what a song is now (`forever.identity`, `studio.stamp_of`: the track,
+  the place, the recordings' own checksums), so one that did not change keeps them, and the player goes on with one that was
+  made again by its track and place (`_gone`, `_onward` in `forever.js`). What is left of a song begun before a build is found
+  in the bucket as it was, kept until the next.
+- **A build no longer takes the server down.** It had, from its beginning to its end: 34 to 117 minutes for Knight Rock's
+  bucket and 22 to 126 for Warcraft's, while a player that cannot reach the server for a minute fades out. The new bucket is
+  made beside the one that plays, with the server running (`fresh_bucket.py --beside`), and takes its place in the seconds
+  the server is stopped for (`--swap`; `--swap-back` undoes it). Songs that did not change are taken as they are, their
+  recordings linked; the index is written once, not after each of three thousand pieces.
+- A song asked for in the player's address (`?cue=`) leaves it once it has been asked for: every reload had asked for it again.
+- What goes wrong in the player while the server is away is told when it is back, and is in the day's log with its time: those
+  had stayed on the page.
+
+## 2026-11-23, morning: the page of what is new writes itself
+
+- **The page of what is new is written at every build** (`tools/now_page.py`): `var/listen/now.html` was written by hand
+  and had fallen days behind ("now page is old"). It is written again at the end of each bucket build
+  (`var/passes/rebuild.sh`: "then make its regen part of the rebuild process for the server"): each style's bucket, when
+  it was built, the songs that came into the player with it (against the build before it, kept in
+  `var/listen/now-state.json`) and those made again, then what waits for the next build, then the demos and changes,
+  still written by hand (`var/listen/now-demos.html`), newest first. A test draws the page in a browser and measures its
+  play buttons: the first version gave a song for a long list of places one no pixels wide ("no play buttons on most").
+
 ## 2026-11-23, night: a render that waits is stopped sooner
 
 - Tried and left off (`sounds.FM_LIGHT`, the patch "house bass fm light", handbook 5.3): House's FM bass held lighter, its

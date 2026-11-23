@@ -350,7 +350,8 @@ the owner's ear decides. `--watch` judges each take as it is made.
 **6. Keep.** A finished track is written as a 24-bit FLAC stem for each channel that plays, with
 its sections, its kinds of place and moment, its key and its tempo (`track.json`). `freerock
 pieces add` cuts new tracks into pieces and puts them in its style's bucket as 16-bit FLAC
-(`tools/fresh_bucket.py` rebuilds a bucket from everything staged, takes made again included). What
+(`tools/fresh_bucket.py` rebuilds a bucket from everything staged, takes made again included: beside the
+one that plays, a song that did not change linked rather than made again, and put in its place in seconds). What
 has been played, loved and banned is kept apart from the buckets, in `var/plays.sqlite3`, part by
 part by where each sits in its track: a bucket built again takes it all back, so the player does not
 take heard music for new (`freerock/playbook.py`). `tools/listen.py` makes a listening
@@ -427,7 +428,8 @@ music, so the scores point the way rather than set the goal.
 | `uv run --no-sync python -m freerock.studio.build` | Writes and plays the orchestra's and the band's tracks (`--list` shows what there would be, `--style knight` the band only) |
 | `uv run --no-sync --with numba python -m freerock.studio.club <family/take> ...` | Writes and plays House tracks (`--list` shows the House plan) |
 | `uv run --no-sync python ../tools/render_some.py <family/take> ...` | Writes and plays a chosen list of tracks, several at a time |
-| `uv run --no-sync python ../tools/fresh_bucket.py <style>` | Rebuilds a style's bucket from everything staged now. Stop the server first |
+| `uv run --no-sync python ../tools/fresh_bucket.py <style> --beside` | Rebuilds a style's bucket from everything staged now, beside the one that plays, with the server running |
+| `uv run --no-sync python ../tools/fresh_bucket.py <style> --swap` | Puts that bucket in its place, or with `--swap-back` the one before it back. Stop the server first: it takes seconds |
 | `uv run --no-sync python ../tools/listen.py [style]` | A listening page and a mixer for every staged track, at `/listen/` |
 | `uv run --no-sync python ../tools/soak.py [style]` | A pretend evening played through the running server and a hidden browser, to see what was chosen and whether it played cleanly |
 

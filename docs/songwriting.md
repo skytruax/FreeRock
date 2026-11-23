@@ -2150,27 +2150,34 @@ one or two tracks are heard before a set is rendered in bulk.
 
 ### 8.6 Put tracks into a bucket safely
 
-The server keeps each bucket's list in memory and writes it back as it plays, so a bucket is written
-only while the server is stopped; `freerock pieces add|drop` and `fresh_bucket.py` refuse while
-anything answers on port 8765. A bucket is rebuilt only with the game off, and never left half-built.
+The server keeps each bucket's list in memory and writes it back as it plays, so the bucket that plays is
+written only while the server is stopped. A whole build does not touch it: the new bucket is made beside
+it with the server running, and takes its place in the seconds the server is stopped for. (Until
+2026-11-23 the server was down for the whole build, half an hour to two hours for a band's or the
+orchestra's bucket, and a player that cannot reach it for a minute fades out.)
 
-1. Check the game is off: `curl -s http://127.0.0.1:8765/api/snapshot`; `seconds_since_read` under
+1. Build beside: `uv run --no-sync python ../tools/fresh_bucket.py <style> --beside`. Every staged track goes in.
+   A song cut from the recordings that are staged now is taken from the bucket as it stands (its parts are
+   linked, not read and written again); the rest are cut. The bucket is in `buckets-next`, next to
+   `buckets`, on the same drive.
+2. Read the last lines: `tracks put in; the bucket now has ...`, how many were taken as they were, and any
+   `NOT put in`. A build that fails leaves the one that plays as it is.
+3. Check the game is off: `curl -s http://127.0.0.1:8765/api/snapshot`; `seconds_since_read` under
    120 means it is being played.
-2. Keep the bucket as it is: `cp -al var/buckets/<style>/<bucket> var/rejected/bucket-<style>-<date>`
-   (hard links: instant, no room taken). A style has one bucket, `all`: its song goes wherever the player
-   goes. (Until 2026-11-20 a bucket was named after the zone it was begun in, which said nothing true about it.)
-3. Stop the server by the PID that listens on the port: `ss -ltnpH "sport = :8765"`, then `kill
-   <pid>`; wait until `kill -0 <pid>` fails, and `kill -9` after 3 s. Never `pkill -f`: the pattern
-   matches the shell that types it.
-4. Build: `uv run --no-sync python ../tools/fresh_bucket.py <style> --keep-style`. It takes out every
-   piece whose source begins with `<style>/` and puts every staged track in. Without `--keep-style`
-   it also makes this style the one in force. `freerock pieces add <style>` only adds tracks not in
-   yet: a re-rendered take keeps its old pieces unless its source is dropped first (`freerock pieces
-   drop <style> <style>/<family>/<take>`).
-5. Read the last lines: `tracks put in; the bucket now has ...` and any `NOT put in`. If the build did
-   not finish, put the kept copy back.
-6. Write the pages (`tools/listen.py <style>`), start the server again detached (`setsid nohup uv run
-   --no-sync freerock serve ... &`) and reload the player page.
+4. Stop the server by the PID that listens on the port: `ss -ltnpH "sport = :8765"`, read its command line,
+   then `kill <pid>` and wait until `kill -0 <pid>` fails. Never `pkill -f`: the pattern matches the shell
+   that types it.
+5. Swap: `fresh_bucket.py <style> --swap`. The bucket as it was is kept in `buckets-before` until the next build:
+   a page goes on playing a song it had begun from there, and `--swap-back` puts it back.
+6. Start the server again, detached, and write the pages (`tools/listen.py <style>`, `tools/now_page.py`).
+
+A song is told by the same ids from build to build for as long as its recordings do not change: the id of a
+piece and of each part is made from the track, the place and the recordings' own checksums
+(`studio.stamp_of`, `forever.identity`). A page left open across a build goes on with its song; one that was
+made again goes on by its track and place. `fresh_bucket.py <style>` without `--beside` builds in place, with
+the server stopped (a style with no bucket yet is begun so, with `--zone`). `freerock pieces add
+<style>` only adds tracks not in yet: a re-rendered take keeps its old pieces unless its source is dropped
+first (`freerock pieces drop <style> <style>/<family>/<take>`).
 
 On the music machine `var/passes/rebuild.sh <style>` does all of this; it lives outside git.
 
