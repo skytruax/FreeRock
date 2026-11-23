@@ -175,6 +175,8 @@ class Character:
     titles: tuple[tuple[str, ...], tuple[str, ...]] = (("Old",), ("Road",))
     style: str = "warcraft"                                # the style whose bucket its tracks are for
     band: bool = False                                     # a band, not an orchestra: riffs, a kit, the bass in eighths
+    # (2026-11-23, evening: "make them gritty and darker": the first round's new songs no darker to the ear than those before them.)
+    dark: bool = False                                     # nothing sparkles over its summit (no piccolo, no glockenspiel)
 
 
 C = Character
@@ -1315,6 +1317,67 @@ CHARACTERS = (
       pad_ways=("drone",), plucks=("sitar", "dulcimer", "kalimba"), figures=("toll", "arp"), basses=("basses slow", "contrabassoon"),
       kit="orchestra", drums=("frame drums", "boom"), grooves=("dirge", "drip"), hall=(3.0, 0.32), lift=0.0,
       titles=(("Bone", "Smoke", "Ashen", "Scorpion", "Raider's", "Dry Grave"), ("Bivouac", "Tent", "Watch", "Circle", "Hollow", "Vigil"))),
+    # --- 2026-11-23, evening, the second round of the cycle: dark in sound and not only in key. The first round's six Knight Rock songs, every one in minor,
+    # --- dorian or phrygian (58 in 100 of those before them were), came out no darker to the ear: the brightness of the whole mix 2,080 Hz against
+    # --- 2,051, their tunes sung at a fiddle's and a whistle's height. These are led low: the cello, the trombone, the bass clarinet, the
+    # --- horns, the viola and the euphonium, over muted and riffing guitars, and in Warcraft the bass clarinet, the viola, the bassoon,
+    # --- the bass flute and the horns in the places with the least dark music (the coast, the mystic lands, the infernal ones, the nights).
+    C("black procession", ("haunted", "infernal", "regal"), style="knight", band=True, modes=("minor", "phrygian"), bpm=(88, 100), busy=0.45,
+      weight=0.95, leads=("cello",), strong=("lead guitar",), under=(), pads=("choir",), pad_ways=("drone", "pad"),
+      plucks=("muted guitar", "single guitar"), figures=("chug", "riff"), basses=("picked bass",), kit="rock", drums=("timpani",),
+      grooves=("half rock", "anvil rock"), hall=(2.0, 0.22), lift=0.2,
+      titles=(("Obsidian", "Requiem", "Vulture", "Basalt", "Sepulchre", "Cortege"), ("Procession", "Colossus", "Elegy", "Walk", "Crown", "Hymn"))),
+    C("wreckers reef", ("coast", "frozen"), style="knight", band=True, modes=("minor", "dorian"), bpm=(84, 96), metres=("4/4", "6/8"), busy=0.5,
+      weight=0.85, leads=("horns",), strong=("fiddle",), under=(), pads=("rock organ",), pad_ways=("drone",), plucks=("banjo", "muted guitar"),
+      figures=("riff", "hammer"), basses=("picked bass",), kit="rock", drums=("great drum",), grooves=("half rock", "shuffle"), hall=(2.2, 0.24),
+      lift=0.2, titles=(("Wreckers'", "Black Sand", "Salt-Rot", "Smugglers'", "Drowned Bell", "Low Tide"), ("Reef", "Cove", "Signal", "Haul", "Reckoning", "Shore"))),
+    C("leech mire", ("marsh", "jungle"), style="knight", band=True, modes=("dorian", "minor"), bpm=(76, 88), busy=0.5, weight=0.7,
+      leads=("bass clarinet",), strong=("lead guitar",), under=(), pads=("rock organ",), pad_ways=("drone",), plucks=("banjo", "steel guitar"),
+      figures=("strum", "riff"), basses=("fretless",), kit="rock", drums=(), grooves=("half rock", "shuffle"), hall=(1.3, 0.14), lift=0.1,
+      titles=(("Leech", "Gator", "Quagmire", "Mudfoot", "Gallows Tree", "Stagnant"), ("Mire", "Slide", "Hollow", "Crawl", "Bayou", "Sump"))),
+    C("usurpers hall", ("regal", "infernal"), style="knight", band=True, modes=("phrygian", "minor"), bpm=(70, 80), busy=0.4, weight=0.95,
+      leads=("trombone",), strong=("lead guitar",), under=(), pads=("choir",), pad_ways=("drone", "pad"), plucks=("single guitar", "muted guitar"),
+      figures=("riff", "hammer"), basses=("fretless",), kit="rock", drums=("timpani", "church bell"), grooves=("half rock", "anvil rock"),
+      hall=(2.4, 0.26), lift=0.25, titles=(("Usurper's", "Tyrant's", "Poisoned", "Crownless", "Gilded Rot", "Regicide"), ("Hall", "Court", "Decree", "Banquet", "Throne", "Levy"))),
+    C("bone wood", ("mystic", "haunted"), style="knight", band=True, modes=("minor", "dorian"), bpm=(86, 98), busy=0.45, weight=0.6,
+      leads=("viola",), strong=("fiddle",), under=(), pads=("strings slow",), pad_ways=("tremolo", "drone"), plucks=("twelve string", "mandolin"),
+      figures=("arp", "strum"), basses=("acoustic bass",), kit="room", drums=("frame drums",), grooves=("brushes", "half rock"), hall=(2.2, 0.24),
+      lift=0.1, titles=(("Bone", "Raven", "Moss-Grown", "Bramble", "Withered", "Blind"), ("Wood", "Grove", "Hex", "Briar", "Path", "Ring"))),
+    C("iron column", ("highland", "frozen", "pastoral"), style="knight", band=True, modes=("minor", "dorian"), bpm=(94, 106), busy=0.45,
+      weight=0.9, leads=("euphonium",), strong=("lead guitar",), under=(), pads=("choir",), pad_ways=("drone", "pad"),
+      plucks=("muted guitar", "rhythm guitar"), figures=("hammer", "riff"), basses=("picked bass",), kit="rock", drums=("great drum",),
+      grooves=("anvil rock", "half rock"), hall=(1.9, 0.2), lift=0.2,
+      titles=(("Iron", "Frostbit", "Conscript", "Ragged", "Grim", "Hard"), ("Column", "Drill", "Muster", "Trudge", "Levy", "Advance"))),
+    C("ashen pilgrim", ("infernal", "desert"), modes=("phrygian", "minor"), bpm=(58, 70), busy=0.35, weight=0.8, leads=("bass clarinet", "cello"),
+      strong=("cello", "choir"), under=("trombone", "bassoon"), pads=("strings slow", "choir"), pad_ways=("drone", "tremolo"),
+      plucks=("dulcimer", "harp"), figures=("toll", "pulse"), basses=("basses slow", "contrabassoon"), kit="orchestra", drums=("timpani",),
+      grooves=("dirge",), hall=(3.0, 0.32), dark=True, lift=0.15,
+      titles=(("Ashen", "Penitent", "Scorched", "Soot", "Unshriven", "Bitter"), ("Pilgrim", "Mile", "Psalm", "Desert", "Wander", "Shrine"))),
+    C("shadow council", ("mystic", "regal", "haunted"), modes=("phrygian", "minor"), bpm=(62, 74), busy=0.35, weight=0.9,
+      leads=("horns", "euphonium"), strong=("brass", "full choir"), under=("tuba", "bassoon"), pads=("choir", "strings slow"), pad_ways=("drone",),
+      plucks=("harp", "handbells"), figures=("pulse", "toll"), basses=("basses", "contrabassoon"), kit="orchestra", drums=("timpani",),
+      grooves=("dirge", "march"), hall=(3.4, 0.36), dark=True, lift=0.25,
+      titles=(("Shadow", "Veiled", "Whispering", "Unseen", "Ninth", "Masked"), ("Council", "Conclave", "Accord", "Circle", "Edict", "Vigil"))),
+    C("hungering wood", ("jungle", "marsh"), modes=("minor", "phrygian"), bpm=(76, 88), busy=0.45, weight=0.75, leads=("bassoon", "bass flute"),
+      strong=("bass clarinet", "horns"), under=("contrabassoon",), pads=("tremolo", "oohs"), pad_ways=("tremolo", "drone"),
+      plucks=("kalimba", "pizzicato"), figures=("pulse", "gallop"), basses=("contrabassoon", "basses pizz"), kit="hands", drums=("taiko", "frame drums"),
+      grooves=("canopy", "bones"), hall=(2.4, 0.26), dark=True, lift=0.1,
+      titles=(("Hungering", "Strangler", "Venom", "Serpent", "Rotting", "Overgrown"), ("Wood", "Vines", "Canopy", "Stalk", "Maw", "Trail"))),
+    C("black keel", ("coast", "frozen"), modes=("minor", "dorian"), bpm=(60, 72), metres=("6/8", "3/4"), busy=0.4, weight=0.8,
+      leads=("horns", "viola"), strong=("trombone", "choir"), under=("celli", "tuba"), pads=("strings slow", "choir"), pad_ways=("tremolo", "pad"),
+      plucks=("harp", "pizzicato"), figures=("rock", "toll"), basses=("basses", "celli"), kit="orchestra", drums=("great drum", "timpani"),
+      grooves=("dirge", "march"), hall=(3.0, 0.32), dark=True, lift=0.2,
+      titles=(("Black", "Salted", "Rime", "Grey", "Leviathan's", "Hull-Split"), ("Keel", "Swell", "Wake", "Anchor", "Deep", "Passage"))),
+    C("widows walk", ("pastoral", "haunted", "coast"), modes=("minor", "dorian"), bpm=(84, 96), metres=("3/4",), busy=0.45, weight=0.6,
+      leads=("viola", "bassoon"), strong=("viola", "english horn"), under=("celli",), pads=("strings slow", "accordion"), pad_ways=("pad", "drone"),
+      plucks=("harpsichord", "harp"), figures=("arp", "oompah"), basses=("celli", "acoustic bass"), kit="orchestra", drums=("timpani",),
+      grooves=("tick", "waltz"), hall=(2.4, 0.26), dark=True, lift=0.1,
+      titles=(("Widow's", "Lantern", "Last", "Fog", "Grey-Veil", "Unlit"), ("Walk", "Window", "Waltz", "Porch", "Tide", "Vigil"))),
+    C("grave hours", KINDS_ALL, role="night", modes=("minor", "phrygian"), bpm=(50, 62), busy=0.2, weight=0.5, leads=("bass flute", "cello"),
+      strong=("cello", "oohs"), under=("bass clarinet",), pads=("strings slow", "oohs"), pad_ways=("drone", "tremolo"), plucks=("harp", "kalimba"),
+      figures=("toll", "arp"), basses=("basses slow", "contrabassoon"), kit="orchestra", drums=("timpani",), grooves=("none", "drip"),
+      hall=(3.2, 0.34), dark=True, lift=0.0,
+      titles=(("Grave", "Third", "Owl", "Dead", "Moonless", "Silent"), ("Hours", "Watch", "Vigil", "Candle", "Hush", "Toll"))),
 )
 
 METRES = {"4/4": (4.0, (2.0, 2.0)), "3/4": (3.0, (3.0,)), "6/8": (3.0, (1.5, 1.5)), "5/4": (5.0, (3.0, 2.0)),
@@ -2259,6 +2322,11 @@ SETTINGS_OF: dict[str, tuple[str, ...]] = {
     "wolf watch": ("woods", "wastes"), "mercenary fire": ("road", "fields"), "ruined quarter": ("ruins", "settlement"),
     "occupied city": ("fort", "settlement"), "plague gale": ("water", "graves"), "cinder storm": ("wastes", "works"),
     "condemned inn": ("settlement", "graves"), "bivouac of bone": ("wastes", "graves"),
+    # The second round's, led low (the same evening).
+    "black procession": ("graves", "ruins"), "wreckers reef": ("water", "heights"), "leech mire": ("water", "woods"),
+    "usurpers hall": ("fort", "ruins"), "bone wood": ("woods", "graves"), "iron column": ("road", "fort"),
+    "ashen pilgrim": ("wastes", "sacred"), "shadow council": ("sacred", "ruins"), "hungering wood": ("woods", "water"),
+    "black keel": ("water", "wastes"), "widows walk": ("graves", "settlement"), "grave hours": ("graves", "fort"),
     "barroom blues": ("settlement",), "dwarf hall": ("settlement", "heights"), "road camp": ("road", "woods"),
     "midnight ride": ("road",), "downpour run": ("road",), "field storm": ("fields",), "monsoon": ("woods", "water"),
     "witch storm": ("graves", "woods"),
@@ -3546,7 +3614,7 @@ class Take:
                     if ch.band and INSTRUMENTS[strong[0]].wired:
                         # Twin guitars: the tune again a third above it.
                         sing(strong[0], use.moved(steps=2), bar, loud * 0.8, tag=" twin")
-                    if not ch.band and full and (index % 2 == 1 or not several):
+                    if not ch.band and not ch.dark and full and (index % 2 == 1 or not several):
                         top = "piccolo" if self.heavy else "glock"
                         sing(top, use, bar, loud * 0.6, octave=1 if self.heavy else 0)
             else:

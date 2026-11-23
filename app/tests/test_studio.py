@@ -374,6 +374,21 @@ def test_the_big_drums_are_where_they_should_be_and_nowhere_else():
                 assert not valley, "%s has drums in its valley" % character.name
 
 
+def test_nothing_sparkles_over_a_dark_characters_summit():
+    """(2026-11-23, "make them gritty and darker": the first round's new songs were no darker to the ear than those before them; an
+    orchestra's summit had a piccolo or a glockenspiel an octave over the tune.)"""
+    dark = [(index, character) for index, character in enumerate(orchestra.CHARACTERS) if character.dark]
+    assert len(dark) >= 6
+    for index, character in dark:
+        take = orchestra.Take(orchestra.family(character, 80 + index, "f", "F"), 1)
+        assert not set(take.voices["lead"]) & {"piccolo", "glock"}, "%s: %s" % (character.name, sorted(take.voices["lead"]))
+        assert set(character.modes) <= {"minor", "phrygian", "dorian"}, character.name
+    # ...and the ones that are not dark keep theirs: a summit of the light kind still has its glockenspiel somewhere in the library.
+    bright = next((index, character) for index, character in enumerate(orchestra.CHARACTERS) if not character.band and not character.dark and character.weight < 0.7)
+    found = [orchestra.Take(orchestra.family(bright[1], seed, "f", "F"), 1).voices["lead"] for seed in range(1, 12)]
+    assert any("glock" in voices for voices in found)
+
+
 def test_a_fight_has_war_drums_all_the_way_and_heavy_walking_music_from_each_rise_to_its_moment():
     def strokes(take, part):
         first, last = spans_of(take)[part]

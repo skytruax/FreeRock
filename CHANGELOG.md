@@ -3,6 +3,15 @@
 Newest first. Words in quotation marks are what was said while listening or playing, as typed or
 dictated, where it drove the change.
 
+## 2026-11-23, evening: twelve dark characters led low
+
+- **"make them gritty and darker"**: the first round's new Knight Rock songs, every one in minor, dorian or phrygian, measured no darker to
+  the ear than those before them (2,080 Hz against 2,051, the brightness of the whole mix). Twelve characters, forty-two families (six for Knight
+  Rock, six for Warcraft, none made before changed): led by the cello, the trombone, the bass clarinet, the horns, the viola
+  and the euphonium, in the infernal, coastal, mystic and haunted places with the fewest dark songs. A dark orchestral summit is not
+  doubled an octave up by a piccolo or a glockenspiel (`Character.dark`).
+- House's mix is bright (6,100 Hz) by its drums alone: at 7 and 14 kHz every other channel is 20 dB and more under them.
+
 ## 2026-11-23, afternoon: old songs revised, and a revised sheet kept
 
 - **The cycle's old songs** ("test 10 old songs from each genre, iterate on those"): `tools/revise.py` changes a song's sheet with a

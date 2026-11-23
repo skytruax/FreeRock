@@ -2218,6 +2218,15 @@ tune of the eight dark band characters it started a last note at the very end of
 does not lead those until the writer's harmonica tune is mended (owed), nor does the accordion in slow ones. Songs go where they
 are heard most often per song (`tools/cycle.py gaps`).
 
+*Dark in sound, not only in key* (2026-11-23, evening, `how_dark.py` in the round's notes). The first round's six Knight Rock songs are
+all in minor, dorian or phrygian (58 in 100 of 24 sampled before them were), and the ear hears nothing darker: the brightness of
+the whole mix stands at 2,080 Hz against 2,051, the top over 4 kHz at −22.5 dB against −23.1, and the middle only a little denser.
+Their tunes are sung at a fiddle's, a whistle's and a mandolin's height, over the same cymbals. So a dark character is led *low*
+(the cello, the trombone, the bass clarinet, the horns, the viola, the euphonium), and nothing sparkles over its summit: an
+orchestra's summit doubles its tune an octave up with a piccolo or a glockenspiel, and `Character.dark` leaves it out.
+Twelve characters of the second round are written so, and the desk's tone for them is a separate, owed question (`how_dark.py`
+measures it): the bass driven, the guitars' top eased.
+
 **Warcraft or Knight Rock.**
 
 1. Add a `C(...)` at the end of `orchestra.CHARACTERS`. A family's seed comes from its character's
