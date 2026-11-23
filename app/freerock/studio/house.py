@@ -619,6 +619,17 @@ PLAN: tuple[Family, ...] = (
     Family("camp-09", "No Fire Tonight", ("pastoral", "regal", "highland", "frozen"), "camp", S01, False, 8, "N6", (8, 16, 8, 16, 8), "none", 0.0, "808", "night"),
     Family("night-09", "Moonless", ("pastoral", "regal", "highland", "coast"), "night", S01, False, 10, "N2", (16, 24, 8, 24, 8), "broken3", 0.0, "909", "haunted-dark"),
     Family("town-05", "Curfew Bell", ("regal", "pastoral", "highland"), "town", S01, False, 8, "N1", (8, 16, 8, 16, 8), "broken2", 0.04, "909", "regal-deep"),
+    # (Round one of the standing cycle, 2026-11-23: House's storms and towns had seven songs each, its camps, nights, caves and inns ten.)
+    Family("storm-04", "Cannonade", ("pastoral", "regal", "highland", "coast"), "storm", S01, False, 7, "N5", (8, 24, 8, 24, 8), "broken3", 0.0, "909", "infernal-dark"),
+    Family("storm-05", "Black Rain", ("haunted", "marsh", "jungle"), "storm", S01, False, 3, "N4", (8, 16, 16, 24, 8), "four", 0.0, "808", "haunted-dark"),
+    Family("storm-06", "Sandblast", ("desert", "infernal", "jungle"), "storm", S01, False, 8, "P3", (8, 24, 8, 24, 8), "broken2", 0.0, "909", "desert-dark"),
+    Family("storm-07", "Ice Fang", ("frozen", "coast", "highland"), "storm", S01, False, 6, "N3", (8, 16, 16, 24, 8), "four", 0.0, "808", "frozen-deep"),
+    Family("town-06", "Smog Quarter", ("infernal", "haunted", "marsh", "jungle"), "town", S01, False, 3, "N2", (8, 16, 8, 16, 8), "broken2", 0.08, "909", "infernal-dark"),
+    Family("town-07", "Customs Wall", ("coast", "marsh", "frozen"), "town", S01, False, 11, "P1", (8, 16, 8, 16, 8), "four", 0.06, "808", "coast-deep"),
+    Family("camp-10", "Dead Radio", ("haunted", "mystic", "infernal", "jungle"), "camp", S01, False, 5, "P2", (8, 16, 8, 16, 8), "none", 0.0, "909", "haunted-dark"),
+    Family("night-10", "Sleepless Shift", ("coast", "marsh", "regal"), "night", S01, False, 7, "N6", (16, 24, 8, 24, 8), "broken", 0.04, "606", "coast-deep"),
+    Family("ember-10", "Cellar Door", ("pastoral", "regal", "highland"), "ember", S01, False, 9, "N5", (8, 16, 8, 16, 8), "half", 0.1, "808", "regal-deep"),
+    Family("depths-09", "Ossuary", ("haunted", "mystic", "infernal"), "depths", S01, False, 9, "N4", E5, "broken3", 0.0, "909", "haunted-dark"),
 )
 TAKES = (1, 2, 3)
 NUMERALS = {1: "I", 2: "II", 3: "III", 4: "IV", 5: "V"}

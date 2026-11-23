@@ -429,8 +429,8 @@ every kind of place.
 
 | | Warcraft and Knight Rock | House |
 |---|---|---|
-| Character: a kind of track | `orchestra.Character` in `orchestra.CHARACTERS`: 149, of which 131 Warcraft and 18 Knight Rock | none; palettes by kind of place (`house.PALETTES`) |
-| Family: the changes | `orchestra.Family`, from `orchestra.family(character, seed, name, title)`: key, tempo, metre, lift, the chord under every bar, part lengths and levels | `house.Family` in `house.PLAN` (89): tonic, loop, five lengths, kick pattern, swing, drum machine, palette |
+| Character: a kind of track | `orchestra.Character` in `orchestra.CHARACTERS`: 207, of which 163 Warcraft and 44 Knight Rock | none; palettes by kind of place (`house.PALETTES`) |
+| Family: the changes | `orchestra.Family`, from `orchestra.family(character, seed, name, title)`: key, tempo, metre, lift, the chord under every bar, part lengths and levels | `house.Family` in `house.PLAN` (126): tonic, loop, five lengths, kick pattern, swing, drum machine, palette |
 | Take: one band playing it | `orchestra.Take(fam, take)`: tunes, figures, bass, drums and players, from its own seed | `house.Take(fam, take)`: sounds and ways chosen in turn (`Take.pick`) |
 
 A character's fields: `kinds`, `role`, `light`, `serves` (what it is for, 2.6); `modes`, `bpm`,
@@ -2190,8 +2190,16 @@ On the music machine `var/passes/rebuild.sh <style>` does all of this; it lives 
 
 ### 8.7 Add a character or a family
 
-**New music is darker** ("just new music should be darker", 2026-11-23): a new character or family is heavy, in minor, dorian
-or phrygian, with the deep sounds, unless its place or moment has no light music left. What is already made stays as it is.
+**New music is darker, gritty, and varied in its instruments** ("just new music should be darker", "make them gritty and darker",
+"make sure to switch up the instruments from song to song so theres variety", 2026-11-23). A new character or family is heavy, in
+minor, dorian or phrygian, with the deep sounds, unless its place or moment has no light music left; what is already made stays as
+it is. It leads and strums with instruments its neighbours do not: 71 of 100 Knight Rock songs had a lead guitar, 70 a rhythm
+guitar and 69 a rock organ, and two thirds of House's leads were one of two synths. A band's lead that stays in its range in every
+key is the fiddle, the whistle, the mandolin, the steel guitar (and the lead guitar in most). The harmonica is wanted ("i better
+hear harmonica and banjo", "Look up John Popper") and stays in its solos, its pads and the light songs that lead with it; as the
+tune of the eight dark band characters it started a last note at the very end of the song or left its range in every key, so it
+does not lead those until the writer's harmonica tune is mended (owed), nor does the accordion in slow ones. Songs go where they
+are heard most often per song (`tools/cycle.py gaps`).
 
 **Warcraft or Knight Rock.**
 

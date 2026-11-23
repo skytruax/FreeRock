@@ -206,8 +206,8 @@ up after about four. Everything from the game to the speakers is written down, k
 | **Knight Rock** | A riff-driven rock band. The riff carries the walking music, and the whole band comes in for the fights | Muse Sounds' electric guitars, bass and Hammond organ; a 1970s rock kit with a 26-inch bass drum |
 | **Progressive House** | Builds, drops and long breakdowns, with the pads ducking under every kick | Surge XT's synths; Muse Sounds' piano, electric pianos, marimba, harp, flute, strings and brass; a TR-8 drum machine |
 
-As of the morning of 2026-11-17 the buckets hold **90 tracks, over 11 hours**: 50 Warcraft (6.6
-hours), 20 Knight Rock (2.6) and 20 House (2.0). More are rendered every night.
+As of 2026-11-23 the buckets hold **973 songs**: 428 Warcraft, 362 Knight Rock and 183 House. More are made every
+day and night.
 
 ### A track is a story
 
@@ -358,9 +358,9 @@ take heard music for new (`freerock/playbook.py`). `tools/listen.py` makes a lis
 page for every track: the whole mix to play, and a mixer with a fader for each channel.
 
 **7. Overnight.** Rendering is heavy (REAPER, MuseScore and the sampler for every channel of
-every section), so tracks are queued in lists and rendered in lanes: a quarter of the machine
-by day, all of it at night, and half while the game is being played. Buckets are rebuilt only
-while the game is off.
+every section), so tracks are queued in lists and rendered in lanes, on the efficient processors only: under a
+quarter of the whole machine by day, six processors by night.
+A bucket is built again beside the one that plays and put in its place in seconds, with the game off.
 
 ## How the songs are judged
 
@@ -383,7 +383,7 @@ part of a song (a band's close, where the riff dies away, scored lowest).
 
 **Each score has its own levers, and every pass works on one.** The loop reads the scores after each
 night, finds the score and the part of the story that fall lowest for a style, or that fell after
-the latest change by more than the judge's noise (TuneJury 0.05, SongEval 0.08, Audiobox 0.15), and
+the latest change by more than the judge's noise (TuneJury 0.15, SongEval 0.08, Audiobox 0.15), and
 tries the lever that answers it on one or two takes before and after:
 
 | Score | What it hears | The levers |

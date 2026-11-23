@@ -3,6 +3,16 @@
 Newest first. Words in quotation marks are what was said while listening or playing, as typed or
 dictated, where it drove the change.
 
+## 2026-11-23, afternoon: fourteen gritty, dark characters, and the standing cycle
+
+- **"we want to not hear the same music much, thats why 8tb make more options in all genres, make them gritty and darker"**,
+  **"make sure to switch up the instruments from song to song"**: fourteen characters, fifty families (thirty-two for Knight Rock, eighteen
+  for Warcraft), for the storms, the towns, the inns and the camps, where the same songs came round most (3.5 times each in
+  Knight Rock's storms and towns, 4.8 in Warcraft's towns, from four songs). Each leads with instruments its neighbours seldom
+  do (handbook 8.7). No family made before is changed.
+- **The standing cycle** (docs/plan.md, `tools/cycle.py`): in every round, ten new songs and ten old ones in each style ("there should be
+  a standard process, like 10 new songs from each genre, test 10 old songs from each genre, iterate on those", "loop").
+
 ## 2026-11-23, afternoon: darker House
 
 - **"need some darker stuff"**: House's walking music was 65 in 100 light, its inns and towns all light and its camps mostly.

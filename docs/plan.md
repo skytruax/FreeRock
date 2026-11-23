@@ -48,12 +48,12 @@ These come from Sky, mostly while playing, and every part of FreeRock answers to
 - **Real instruments, mixed like a record.** Real recordings and an orchestra's samples, played and mixed
   in REAPER with real effects; every instrument crafted and measured; everything kept as FLAC.
 - **The numbers find what to listen to; the ear decides.** Each piece is measured against stems Sky
-  liked, but what Sky hears wins: a new instrument or sound is heard as a demo before it is used, and a
-  choice between two sounds is Sky's.
+  liked, but what Sky hears wins: a new instrument or sound is heard as a demo before it is used. Between two
+  sounds the numbers and the judges choose, and Sky steps in with what they do not like.
 - **One thing at a time, proven small before it is made big.** A new character, family or change is
   written, tested, rendered once and studied; only then is the rest made with it.
 - **Playing comes first.** While Sky plays, the music never waits on the studio: the library is built
-  again only with the game off, and the studio keeps to its share of the processors.
+  again beside the one that plays and swapped in with the game off, and the studio keeps to its share of the processors.
 - **Within the game's rules.** The addon uses only functions Blizzard documents and values the game never
   seals; the program outside only looks at a patch of the screen.
 - **Nothing is bought.** Every recording and synth FreeRock plays is free and openly licensed, and its
@@ -137,7 +137,7 @@ the game asks, always fading.
 Each style has one bucket of pieces, built from the staged takes by `tools/fresh_bucket.py` (beside the one
 that plays, then swapped in) and played across every zone. Three styles: **Warcraft** (an orchestra, darker sometimes, war drums in fights and
 on the march), **Knight Rock** (a band: two guitars, bass, a rock kit, with lutes, fiddles and pipes for
-colour), and **Progressive House** (110 beats a minute, happy and chill). The player page switches
+colour), and **Progressive House** (110 beats a minute; darker since 2026-11-23, it was happy and chill). The player page switches
 between them.
 
 ## How the music follows the game
@@ -159,12 +159,12 @@ Every signal, its timing and what it does to each channel is in `docs/signals-an
 ## How the work runs
 
 - **The lanes.** Lists of takes to render wait in queue folders; a lane renders one list at a time,
-  each take in its own process. A scheduler gives the day lane a third of the processors (two takes
-  at a time) and the night lane half of them while Sky plays, all of them once Sky is done. A render
-  is never stopped: a lane ends only after the takes it has begun.
+  each take in its own process. The scheduler keeps FreeRock on the efficient processors and the whole
+  machine under a quarter busy by day (the day lane on two of them, three takes at a time); by night the
+  lane has six. A render is never stopped: a lane ends only after the takes it has begun.
 - **One pass at each take.** Every finished take is studied; what is found goes into the writer or the
   desk for the pieces still to come, and a fault that recurs becomes a change.
-- **The library is built again only with the game off**, so the server is never down while Sky plays.
+- **The library is built again beside the server that plays**, and put in its place in seconds, with the game off.
 - **Clean as it goes.** Old assets go; the tools, the Muse sounds and every performance a kept project
   uses stay; a performance nothing uses goes.
 - **Every change proven before it is kept.** The full test suite passes before each commit, and the
@@ -194,22 +194,31 @@ Three things are read every morning, strongest first:
 3. **The study passes**: a fault that recurs across a style or a kind of place is a target; one take's
    quirk is noted and watched.
 
-### The nightly cycle
+### The standing cycle
 
-1. **By day**: one or two targets per style. Each is one change in the writer or the desk, so a result
-   can be traced to it; it is tried on one or two takes against the same takes before (octave by
-   octave, the whine of what is left when standing, the swing, bar by bar where a shape is in question)
-   and kept only if it moves towards the liked stems and nothing else moves; then the suite, a commit,
-   a push, and its line in the ledger.
-2. **The ear decides.** When the numbers and the ear might disagree (an instrument's character: the
-   bagpipe was set aside by its numbers and then chosen by ear), the two go to Sky as clips at one
-   loudness.
-3. **By night**: the ledger's takes are rendered again, the places Sky plays most first; then new takes
-   where the library is thin.
-4. **Each morning** (the game off): every take made overnight gets its pass, the buckets are built
-   again, and a short report says what changed, why, and where to hear it (`tools/new_songs.py` writes
-   the page of the new songs; `tools/now_page.py`, run by each build, the page of what came into the
-   player, what waits for the next build, and the demos).
+Every round is the same in every style, one after another, with no stop between them ("update the plans and recursive loop to
+make this process more iterative and recursive", "focus on expanding the options of music in every area type, on all the
+genres", "there should be a standard process, like 10 new songs from each genre, test 10 old songs from each genre, iterate
+on those", "loop", 2026-11-23). `tools/cycle.py` picks and remembers; `docs/songwriting.md` says how.
+
+1. **Where it is thin.** `cycle.py gaps`: for each style, the kinds of place and the moments with no song, then those heard most
+   often per song. A round goes to those. What Sky says while playing outranks the list.
+2. **Ten new songs in each style.** Dark and gritty (handbook 8.7), and led and strummed by other instruments than the songs
+   around them. Each is written, tested, and given ONE take, which is rendered and judged (the study, the boredom meter, the
+   judges that listen); the family's other takes follow only a pass. One that fails goes back to the writer with what was found,
+   twice at most; then it is left, and why is written down.
+3. **Ten old songs in each style.** `cycle.py old`: tested the fewest times, then heard the most, then judged the lowest. Each
+   has the same test, and is marked `pass`, or `revise` with what is wrong. A `revise` is a revision of its sheet (a part
+   re-voiced, a passage varied, an effect marked), performed again at night, set beside the take before it at one loudness,
+   and kept only if the numbers and the judges agree it is better; the old take stays if they do not (`revised`).
+4. **What it taught.** A fault that comes twice becomes a change in the writer or the desk, for what is written after it, and
+   a line in the handbook. A change to the code has its tests, the whole suite, a commit and a push.
+5. **The round is closed** (`cycle.py round end`) with what was made, what was tested, what was learnt and what was heard, the
+   library is built again with the game off, and the next begins.
+
+The bars for a round: no kind of place or moment in any style with fewer songs than ten; no song heard more often than three
+times while another for the same place has not been heard once; and a song's neighbours in an evening not led by the same
+instrument.
 
 ### When the drive is full: the last three takes, each better than the last
 
@@ -355,9 +364,8 @@ FreeRock/
 
 ## Still to do
 
-- **A sheet for every take.** Takes made before 2026-11-18 have none. Each gets its sheet when it is
-  performed again (the re-render ledger lists them), so that every track in the library can be
-  revised.
+- **A sheet for every take.** Every staged Knight Rock and House song has one; 130 of Warcraft's 492 do not (2026-11-23).
+  Each gets its sheet when it is performed again, so that every track in the library can be revised.
 - **The loop's revisions of sheets**: the musical edits it makes (re-voice a part, vary a passage,
   hand a line to another instrument, mark an effect), each written into the sheet's history, heard
   against the revision before, and kept only if it is better.
@@ -369,7 +377,6 @@ FreeRock/
   - the player's love, skip and ban, and its play log, sent to the server;
   - a blind A/B page;
   - the loudness, true-peak and 31-subset checks;
-  - the boredom meter;
   - new reference audio for every style.
 - **Better performances of the same sheets**, one family at a time, demo first:
   - phrasing that breathes (phrase arches, a final slowing, timing that drifts as a player's does);

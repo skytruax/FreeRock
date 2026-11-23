@@ -134,13 +134,12 @@ mountains round it; the harbours, bays and islands as plain country by the water
   sea grotto: water; lava tube: wastes; bandit hideout: ruins and road; frozen cavern: heights;
   harbour saloon: water; caravanserai: road and wastes).
 - **Night in regal places** has no piece of its own; it borrows pastoral and highland night music.
-- **Knight Rock has no town or battleground music** (a decision of 2026-11-16): there its walking
-  music plays. House has two families of each since the night of 2026-11-17.
+- **Knight Rock has towns and a battleground** since 2026-11-18 (market square, royal march, banner war; it had none by a
+  decision of 2026-11-16, and its walking music played there). House has two families of each since the night of 2026-11-17.
 - **Battle music is heard only around dungeon bosses** (a decision of 2026-11-16: no separate fight
   piece except bosses; fights in the open bring up the drums and bass of what is playing).
 - **Raids** use the dungeon rule (walking and cave music, boss music at encounters). No raid music
   of its own.
 - **Under water and stealth** are tints, not pieces; swimming on the surface and flying change nothing yet.
-- **Rendered so far tonight**: see `var/passes/` for each pass's list and log; the coverage queue
-  (`var/passes/coverage-warcraft.txt`) renders one take of every night, cave, inn, town and
-  battleground family, then walking pieces that fill the grids above.
+- **What is being rendered** is in the lists and logs of `var/passes/lane-*`; what each place and moment has, and where it is
+  thin or heard most, is `tools/cycle.py gaps`.
