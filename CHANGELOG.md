@@ -24,6 +24,8 @@ dictated, where it drove the change.
 - **Other metres**: 95 of 100 were in four. The riff that is a line moves in 3/4, 6/8, 5/4 and 7/8 too.
 - **The fifth round's ten** Knight Rock characters (forty families) have them: a waltz on amplified cellos, a jig, a seven, a five on a church organ, a stranger's
   trumpet over tremolo guitars, a hearse's shuffle on a saloon piano, two slow burns, and for the fights (two battles and two bosses before) a gallop and a five.
+- **Warcraft's fifth round** (thirty families): three dark inns, three towns, a night and three walks, in fives, sevens, six-eight and waltzes, verse and chorus or
+  slow burns.
 - **Openings**: a heavy song opened on one guitar's riff, always. A new one can open on its drums or on its bass (`Character.opening`).
 - **The player keeps songs of the same instruments apart** (`sounds` on a piece, `SOUNDS_ALIKE`), as it keeps songs of the same lead.
 - **A band's instrument plays within its range** (`orchestra.given`): the horns that stand for an organ had its top chords, past their highest note.

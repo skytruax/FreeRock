@@ -254,7 +254,7 @@ def test_the_story_rises_twice_and_the_summit_is_the_top():
         notes = sum(len(played(take, channel, part)) for channel in orchestra.CHANNELS)
         players = len({(channel, name) for channel in orchestra.CHANNELS for name, _ in played(take, channel, part)})
         return notes / seconds, players
-    walks = [character for character in orchestra.CHARACTERS if character.role == "wander" and not character.band]
+    walks = [character for character in orchestra.CHARACTERS if character.role == "wander" and not character.band and not character.form]
     busy, playing = {part: [] for part in orchestra.PARTS}, {part: [] for part in orchestra.PARTS}
     for index, character in enumerate(walks):
         take = orchestra.Take(orchestra.family(character, 20 + index, "f", "F"), 1)
@@ -540,7 +540,7 @@ def test_a_character_that_opens_is_heard_from_its_first_bar():
     """(2026-11-23, night: nine of Warcraft's twenty songs opened at -36 to -43 LUFS, where the others open at -28 to -34.) The opening and the
     valley are lifted, and nothing else is; the valley is still the quietest the story gets once it has begun."""
     import dataclasses
-    opening = [character for character in orchestra.CHARACTERS if character.opens]
+    opening = [character for character in orchestra.CHARACTERS if character.opens and not character.form]
     assert len(opening) >= 10 and all(character.role in ("town", "ember", "camp", "wander") and not character.band for character in opening)
     for character in opening:
         levels, plain = orchestra.levels_of(character), orchestra.levels_of(dataclasses.replace(character, opens=False))

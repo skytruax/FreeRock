@@ -1438,6 +1438,11 @@ are the same names in any metre.
 cairn (a burn, a trumpet over tremolo guitars), hearse shuffle (6/8, a jam on a saloon's piano), engine of ruin (riff), glass tide (a burn), and for the fights, which had
 two battles and two bosses, blood gallop (6/8, riff) and colossal tread (5/4).
 
+*Warcraft's fifth round* (thirty families): three inns, where one song of fifty-one was heavy (cardsharps den in five, wake house a waltz that only rises, mutineers hold
+in seven), three towns (quarantine gate, five, a burn; wreckage quay, six-eight; ash ward, seven), a night (hour of wolves, five) and three walks (last redoubt, a
+burn; tide of teeth, five; burnt orchard, a waltz, a burn). An orchestra's verse-and-chorus has the second theme from its strong players each time it comes, the
+slower line of that theme under it, and the first theme made to fit its changes at the last.
+
 *The player* knows what plays a song: a piece carries the instrument with the most notes of each channel (`studio.sounds_of`, its `sounds`), and a song with the
 last one's instruments counts up to `SOUNDS_ALIKE` (0.6) against itself, the one before that half as much and the one before that a quarter
 (`forever.js` `_soundsAlike`), beside what leads it (`LED_ALIKE`). It takes each channel of a song from any take of its family, as it always has, but from takes
