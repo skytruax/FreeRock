@@ -10,6 +10,15 @@ dictated, where it drove the change.
   towns, inns, camps and storms where the same songs come round most. Knight Rock's are led by the clarinet, the english horn, the church
   organ, the viola, the bass clarinet, the trombone, the cello, the bass flute and the horns (250 of its 383 songs are led by a lead
   guitar), over four new drum patterns; Warcraft's by the low winds and brass.
+- **"all the knight rock songs sound like the same song"**, **"too much of the same instrument sounds"**: the same two distorted guitars were on two songs of
+  three, one bass recording on all but a few, one kit on four in five. Seven bands beside the house's (doom, stoner, tweed, chop, shanty, twang, lounge):
+  Muse's clean guitars and its bass through an amplifier of the studio's own (`studio/jsfx/amp`, five valves, an octave under, tremolo, spring), the
+  Big Rusty Drums with sticks, brushes and mallets, four saxophones, electric pianos and an upright. Every new band character has one
+  (`Character.sounds`); from take 7 on a song of any other is played by another band than the house's. What is made stays as it is.
+- **The fourth round's ten** Knight Rock characters (forty families): three nights, three caves and the walks of the coast, the desert, the mystic lands
+  and the marsh, each in a band of its own, led by a baritone saxophone, the cello, the horns, the bassoon, the english horn, the trombone, the
+  mandolin, the viola, the bass flute and the clarinet.
+- **A solo for whoever leads**: in a song sung low the viola, the cello, the clarinet, the trombone, the horns and the saxophones take one too.
 - **A riff that is a line** (`low riff`): every band song's riff was one of six rhythms of the bar's one chord. The new one is four bars on the
   scale over the chord's root, drawn afresh for each take and theme, with the heavy band's bass on it; its long notes keep off the tune's,
   whoever sings (the standing riff's check listens to the lead guitar alone).
@@ -19,8 +28,9 @@ dictated, where it drove the change.
   the third round's are the basses' and the celli's.
 - `tools/revise.py --later`: a song's sheet is revised now and the next list that comes to the song performs it, so a night's revisions are
   performed with the renders' processors.
-- **Heard from the first bar**: nine of Warcraft's twenty songs of the first round opened at -36 to -43 LUFS. The new towns, camps and inns play
-  their openings and their valleys louder (`Character.opens`).
+- **Heard from the first bar**: nine of Warcraft's twenty songs of the first round opened at -36 to -43 LUFS. The new songs play
+  their openings and their valleys louder (`Character.opens`): across the 770 songs studied Warcraft's walks open at -35 to -39, its towns at -35, where
+  Knight Rock's open at -27 to -32.
 - The riff listens to whoever sings: in songs led by another voice than the lead guitar a quarter of its moved chords sounded an eighth note's length
   or more a semitone from the tune (6 in 100 a beat or more).
 - **"we want to not hear the same music much"**: a song heard in the last two hours came back with one song between (Glowworm Cave), where every

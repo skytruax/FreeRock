@@ -25,7 +25,7 @@ import numpy as np
 
 from .. import analysis, forever
 from . import RATE, desk, muse, reaper, sounds, stage_root, write_track
-from .orchestra import CHANNELS, CHARACTERS, INSTRUMENTS, Family, Take, family, settings_of
+from .orchestra import CHANNELS, CHARACTERS, INSTRUMENTS, Family, Take, band_of, family, settings_of, sounded
 from .score import Sheet, humanise
 
 VAR = Path(__file__).resolve().parents[3] / "var"
@@ -425,6 +425,12 @@ def write(fam: Family, take: int) -> Sheet:
             for voice in written.voices[channel].values():
                 if voice.instrument == "guitar":
                     voice.instrument = "clean guitar"
+    band = band_of(fam, take)
+    if band:
+        # The band's own instruments play what the writer names (orchestra.BANDS): the notes are the writer's, the sound the band's.
+        for channel in CHANNELS:
+            for voice in written.voices[channel].values():
+                voice.instrument = sounded(band, voice.instrument)
     form, first_bar = [], 0
     for section in fam.sections:
         written_as = {"story": section.story, "part": section.part, "first": first_bar, "bars": section.bars,
@@ -437,7 +443,7 @@ def write(fam: Family, take: int) -> Sheet:
     about = {"character": character.name, "role": character.role, "kinds": list(character.kinds), "serves": list(character.serves),
              "light": character.light, "weight": character.weight, "band": character.band, "hall": list(character.hall),
              "metre": fam.metre, "seed": fam.seed, "tonic": fam.key.name, "settings": list(settings_of(character)),
-             "soft war": written.soft_war, "ducks under": [list(stroke) for stroke in strokes]}
+             "sounds": band, "soft war": written.soft_war, "ducks under": [list(stroke) for stroke in strokes]}
     sheet = Sheet(style=character.style, family=fam.name, take=take, title=fam.title, tempo=fam.bpm, beats=fam.beats, form=form,
                   parts=written.voices, about=about)
     sheet.revised("the first draft", "written by the studio's writer as %s (%s), and stacked on by its desk" % (character.name, fam.metre),

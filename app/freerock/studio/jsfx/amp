@@ -1,0 +1,134 @@
+desc: FreeRock amp (a guitar or a bass through an amplifier and its loudspeaker)
+// Part of FreeRock's studio (2026-11-23: "all the knight rock songs sound like the same song", "too much of the same instrument
+// sounds": two thirds of the band's songs were the same two distorted guitars, recorded so, and all but a few the same bass). Muse's
+// clean guitars and its bass are played through this: a preamp that drives one of five valves, four times oversampled, an octave
+// under (a flip-flop that follows the string, as an octave fuzz has), the tone stack, the loudspeaker, a tremolo and a spring.
+// Copied into REAPER's Effects folder by freerock.studio.reaper.configure.
+
+slider1:0<0,4,1{Clean,Crunch,Drive,Fuzz,Torn}>Valve
+slider2:12<-12,60,0.1>Gain (dB)
+slider3:0<-15,15,0.1>Bass (dB)
+slider4:0<-15,15,0.1>Middle (dB)
+slider5:0<-15,15,0.1>Treble (dB)
+slider6:650<200,2000,1>Middle (Hz)
+slider7:5200<1200,12000,1>Loudspeaker's top (Hz)
+slider8:0<0,1,0.01>Octave under
+slider9:0<0,1,0.01>Tremolo depth
+slider10:5.2<0.5,12,0.01>Tremolo rate (Hz)
+slider11:0<0,1,0.01>Spring
+slider12:0<-40,24,0.1>Level (dB)
+slider13:80<20,600,1>Low cut before the valve (Hz)
+slider14:0<0,24,0.1>Bright before the valve (dB)
+slider15:0<0,12,0.1>Presence (dB)
+
+in_pin:left input
+in_pin:right input
+out_pin:left output
+out_pin:right output
+
+@init
+ext_tail_size = 3 * srate;
+OVER = 4;
+lineL = 0; lineR = 100000;
+gainNow = 10 ^ (slider2 / 20);
+levelNow = 10 ^ (slider12 / 20);
+
+function peak(f, db, q) instance(a0 a1 a2 b1 b2) local(w c s al a)
+(
+  a = 10 ^ (db / 40); w = 2 * $pi * f / srate; c = cos(w); s = sin(w); al = s / (2 * q);
+  b1 = 1 + al / a;
+  a0 = (1 + al * a) / b1; a1 = (-2 * c) / b1; a2 = (1 - al * a) / b1;
+  b2 = (1 - al / a) / b1; b1 = (-2 * c) / b1;
+);
+function shelf(f, db, high) instance(a0 a1 a2 b1 b2) local(w c s al a t r)
+(
+  a = 10 ^ (db / 40); w = 2 * $pi * f / srate; c = cos(w); s = sin(w); al = s / 2 * sqrt(2); t = 2 * sqrt(a) * al; r = high ? -1 : 1;
+  b1 = (a + 1) + r * (a - 1) * c + t;
+  a0 = a * ((a + 1) - r * (a - 1) * c + t) / b1; a1 = r * 2 * a * ((a - 1) - r * (a + 1) * c) / b1; a2 = a * ((a + 1) - r * (a - 1) * c - t) / b1;
+  b2 = ((a + 1) + r * (a - 1) * c - t) / b1; b1 = r * -2 * ((a - 1) + r * (a + 1) * c) / b1;
+);
+function low(f, q) instance(a0 a1 a2 b1 b2) local(w c s al n)
+(
+  w = 2 * $pi * min(f, srate * 0.45) / srate; c = cos(w); s = sin(w); al = s / (2 * q); n = 1 + al;
+  a0 = (1 - c) / 2 / n; a1 = (1 - c) / n; a2 = a0; b1 = -2 * c / n; b2 = (1 - al) / n;
+);
+function high(f, q) instance(a0 a1 a2 b1 b2) local(w c s al n)
+(
+  w = 2 * $pi * f / srate; c = cos(w); s = sin(w); al = s / (2 * q); n = 1 + al;
+  a0 = (1 + c) / 2 / n; a1 = -(1 + c) / n; a2 = a0; b1 = -2 * c / n; b2 = (1 - al) / n;
+);
+function run(x) instance(a0 a1 a2 b1 b2 x1 x2 y1 y2) local(y)
+(
+  y = a0 * x + a1 * x1 + a2 * x2 - b1 * y1 - b2 * y2 + 0.000000000001;
+  x2 = x1; x1 = x; y2 = y1; y1 = y; y;
+);
+// One valve. Each is given what it is driven with, and gives no more than about one.
+function tanh_(x) local(e) ( e = exp(2 * max(min(x, 9), -9)); (e - 1) / (e + 1); );
+function valve(x, kind) local(y)
+(
+  kind == 0 ? ( y = tanh_(x * 0.5) * 2; y = min(max(y, -1.6), 1.6) * 0.62; )
+  : kind == 1 ? ( y = x > 0 ? 1 - exp(-x * 1.1) : -(1 - exp(x * 0.8)) * 0.9; )
+  : kind == 2 ? ( y = tanh_(x * 0.9 + 0.12) - tanh_(0.12); y = tanh_(y * 2.2); )
+  : kind == 3 ? ( y = x + 0.08; y = min(max(y * 1.6, -0.85), 1); y = y * 0.8 + 0.2 * tanh_(y * 3); )
+  : ( y = min(max(x, -1), 1); y = abs(x) < 0.06 ? y * 0.3 : y > 0 ? 0.5 + 0.5 * y : -0.6 + 0.4 * y; );
+  y;
+);
+
+@slider
+tightL.high(slider13, 0.71); tightR.high(slider13, 0.71);
+briL.shelf(1100, slider14, 1); briR.shelf(1100, slider14, 1);
+bassL.shelf(130, slider3, 0); bassR.shelf(130, slider3, 0);
+midL.peak(slider6, slider4, 0.9); midR.peak(slider6, slider4, 0.9);
+trebL.shelf(2400, slider5, 1); trebR.shelf(2400, slider5, 1);
+capL.low(slider7, 0.75); capR.low(slider7, 0.75);
+cap2L.low(slider7 * 1.12, 0.6); cap2R.low(slider7 * 1.12, 0.6);
+thumpL.peak(110, 2.5, 1.1); thumpR.peak(110, 2.5, 1.1);
+floorL.high(68, 0.8); floorR.high(68, 0.8);
+biteL.peak(2800, 2.0 + slider15, 1.0); biteR.peak(2800, 2.0 + slider15, 1.0);
+followL.low(320, 0.71); followR.low(320, 0.71);
+subL.low(210, 0.71); subR.low(210, 0.71); sub2L.low(210, 0.71); sub2R.low(210, 0.71);
+gainTo = 10 ^ (slider2 / 20);
+levelTo = 10 ^ (slider12 / 20);
+kind = slider1;
+
+@sample
+gainNow += (gainTo - gainNow) * 0.001; levelNow += (levelTo - levelNow) * 0.001;
+xl = briL.run(tightL.run(spl0)); xr = briR.run(tightR.run(spl1));
+// (The octave under: the string's own low note, counted every other time it crosses, with the string's own loudness.)
+slider8 > 0 ? (
+  fl = followL.run(spl0); fr = followR.run(spl1);
+  (fl > 0) != (lastL > 0) && fl > 0 ? flipL = !flipL; lastL = fl;
+  (fr > 0) != (lastR > 0) && fr > 0 ? flipR = !flipR; lastR = fr;
+  envL = max(abs(fl), envL * 0.9995); envR = max(abs(fr), envR * 0.9995);
+  octL = sub2L.run(subL.run((flipL ? 1 : -1) * envL)); octR = sub2R.run(subR.run((flipR ? 1 : -1) * envR));
+) : ( octL = octR = 0; );
+// The valve, four steps to a sample, each a straight line from the sample before.
+sl = sr = 0; k = 0;
+loop(OVER,
+  k += 1;
+  sl += valve((pl + (xl - pl) * k / OVER) * gainNow, kind);
+  sr += valve((pr + (xr - pr) * k / OVER) * gainNow, kind);
+);
+pl = xl; pr = xr;
+yl = sl / OVER; yr = sr / OVER;
+// (What a valve bent off centre holds steady is let go.)
+dcL += (yl - dcL) * 0.0008; dcR += (yr - dcR) * 0.0008; yl -= dcL; yr -= dcR;
+yl += octL * slider8 * 2.4 * min(gainNow, 4); yr += octR * slider8 * 2.4 * min(gainNow, 4);
+yl = trebL.run(midL.run(bassL.run(yl))); yr = trebR.run(midR.run(bassR.run(yr)));
+yl = floorL.run(thumpL.run(biteL.run(cap2L.run(capL.run(yl))))); yr = floorR.run(thumpR.run(biteR.run(cap2R.run(capR.run(yr)))));
+// The tremolo, and the spring: three short lines that answer each other, dark.
+slider9 > 0 ? (
+  trem += 2 * $pi * slider10 / srate; trem > 2 * $pi ? trem -= 2 * $pi;
+  t = 1 - slider9 * (0.5 + 0.5 * sin(trem)); yl *= t; yr *= t;
+);
+slider11 > 0 ? (
+  at += 1; at >= 48000 ? at = 0;
+  a = at - (srate * 0.0371) | 0; a < 0 ? a += 48000; b = at - (srate * 0.0431) | 0; b < 0 ? b += 48000; c = at - (srate * 0.0293) | 0; c < 0 ? c += 48000;
+  w1 = lineL[a]; w2 = lineR[b]; w3 = lineL[48000 + c];
+  dark1 += (w1 - dark1) * 0.28; dark2 += (w2 - dark2) * 0.24; dark3 += (w3 - dark3) * 0.3;
+  lineL[at] = yl * 0.5 + dark2 * 0.62 - dark3 * 0.22;
+  lineR[at] = yr * 0.5 + dark1 * 0.6 + dark3 * 0.24;
+  lineL[48000 + at] = (yl + yr) * 0.25 + (dark1 - dark2) * 0.5;
+  yl += slider11 * (dark1 + dark3); yr += slider11 * (dark2 - dark3);
+);
+spl0 = yl * levelNow; spl1 = yr * levelNow;

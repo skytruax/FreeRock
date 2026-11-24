@@ -186,6 +186,7 @@ STROKES: dict[str, str] = {
     "tom high": _MEMB + "Tom 1/Mallet/TomH_HitM_*.wav",
     "cowbell": _IDIO + "Cowbells/Cowbell1_Hit_*.wav",
 }
+_RUST = "big-rusty-drums/Samples/"
 # Where a kit's stroke is something else than the usual.
 KIT_STROKES: dict[str, dict[str, str]] = {
     "march": {"snare": _MEMB + "Snare Drum, Rope Tension/Low/RopeSnare_low_sn_Main_*.wav",
@@ -196,6 +197,20 @@ KIT_STROKES: dict[str, dict[str, str]] = {
               "clack": _MEMB + "Conga/Conga_HitFM_*.wav", "ting": _IDIO + "Agogo Bells/Agogo_High_*.wav",
               "shake": _IDIO + "Cabasa/*.wav", "jingle": _IDIO + "Shaker, Small/Mid_ShakerHighFaster_Down_*.wav",
               "crash": _IDIO + "Suspended Cymbal 1/susCymb1_hit_[pmf]*.wav"},
+    # Big Rusty Drums, whole (2026-11-23: "too much of the same instrument sounds": four songs in five had one kit): heard over the kit, the kick and the
+    # snare close. With sticks, with brushes, and with mallets (a funeral's drums).
+    "rusty": {"boom": _RUST + "kick_24/kick/kick/k_vl*_rr*.flac", "snare": _RUST + "snare_14/center/oh/sn_*_rr*.flac", "clack": _RUST + "snare_14/sidestick/oh/sn_*_rr*.flac",
+              "hat": _RUST + "hihat_14/tc/oh/ht_*_rr*.flac", "hat open": _RUST + "hihat_14/ho/oh/ht_*_rr*.flac", "ride": _RUST + "ride_22/rd/oh/rd_*_rr*.flac",
+              "bell": _RUST + "ride_22/bl/oh/rd_*_rr*.flac", "crash": _RUST + "crash_17/cr/oh/cr_*_rr*.flac", "crash2": _RUST + "china_18/cn/oh/cn_*_rr*.flac",
+              "tom": _RUST + "tom_15/center/oh/t15_*_rr*.flac", "tom low": _RUST + "tom_18/center/oh/t18_*_rr*.flac", "tom high": _RUST + "tom_14/center/oh/t14_*_rr*.flac"},
+    "brushed": {"boom": _RUST + "kick_24/kick/oh/k_vl*_rr*.flac", "snare": _RUST + "snare_14/brush/oh/sn_*_rr*.flac", "clack": _RUST + "snare_14/sidestick/oh/sn_*_rr*.flac",
+                "hat": _RUST + "hihat_14/tc_brush/oh/ht_*_rr*.flac", "hat open": _RUST + "hihat_14/ho_brush/oh/ht_*_rr*.flac", "ride": _RUST + "ride_22/brush/oh/rd_*_rr*.flac",
+                "bell": _RUST + "ride_22/brush/oh/rd_*_rr*.flac", "crash": _RUST + "crash_17/brush/oh/cr_*_rr*.flac", "crash2": _RUST + "china_18/brush/oh/cn_*_rr*.flac",
+                "tom": _RUST + "tom_15/brush/oh/t15_*_rr*.flac", "tom low": _RUST + "tom_18/brush/oh/t18_*_rr*.flac", "tom high": _RUST + "tom_14/brush/oh/t14_*_rr*.flac"},
+    "mallets": {"boom": _RUST + "kick_24_nodamp/kick/oh/k_nodamp_vl*_rr*.flac", "snare": _RUST + "snare_14/mallet/oh/sn_*_rr*.flac", "clack": _RUST + "snare_14/sidestick/oh/sn_*_rr*.flac",
+                "hat": _RUST + "hihat_14/chik/oh/ht_*_rr*.flac", "hat open": _RUST + "hihat_14/ho_brush/oh/ht_*_rr*.flac", "ride": _RUST + "ride_22/mallet/oh/rd_*_rr*.flac",
+                "bell": _RUST + "ride_22/mallet/oh/rd_*_rr*.flac", "crash": _RUST + "crash_17/mallet/oh/cr_*_rr*.flac", "crash2": _RUST + "china_18/mallet/oh/cn_*_rr*.flac",
+                "tom": _RUST + "tom_15/mallet/oh/t15_*_rr*.flac", "tom low": _RUST + "tom_18/mallet/oh/t18_*_rr*.flac", "tom high": _RUST + "tom_14/mallet/oh/t14_*_rr*.flac"},
     "wood": {"boom": _IDIO + "Slit Drum/LogDrumLo_*.wav", "snare": _IDIO + "Slit Drum/LogDrumHi_*.wav",
              "tamb": _IDIO + "Cabasa/*.wav", "ting": _IDIO + "Woodblock/wood_click_[pmf]*.wav",
              "clack": _IDIO + "Claves/Claves1_Hit_*.wav", "crash": _IDIO + "Suspended Cymbal 1/susCymb1_hit_[pmf]*.wav"},
@@ -355,7 +370,7 @@ KIT_PLUGS: dict[str, tuple[str, dict[str, int]]] = {
 # The kits whose bass-drum stroke ("boom") has the kick with it, beside the kit's own drum. A band's kits have a
 # bass drum that is meant to be heard (Red Zeppelin's is 26 inches across and booms): the kick goes with it at half
 # the strength, for the stroke and the bottom that drum does not have.
-KICKED = ("orchestra", "march", "folk", "wood", "rock", "room")
+KICKED = ("orchestra", "march", "folk", "wood", "rock", "room", "rusty", "brushed", "mallets")
 SOUNDS: dict[str, Sound] = {
     "violins": _bowed("violins", -0.4), "violins slow": _bowed("violins", -0.4, "slow"),
     "violas": _bowed("violas", 0.12), "celli": _bowed("celli", 0.3), "celli slow": _bowed("celli", 0.3, "slow"),
@@ -1332,7 +1347,9 @@ MUSE_CUT = {"Violins 1": 170.0, "Violin": 170.0, "Violas": 115.0, "Viola": 115.0
             # A sound given to a part of another size: its own cut, not the part's (a bass flute is not a flute's 230 Hz).
             "Muse Woodwinds/Bass Flute": 90.0, "Muse Woodwinds/Bass Clarinet": 45.0, "Muse Brass/Euphonium": 40.0, "Muse Handbells/Handbells": 180.0,
             "Muse Woodwinds/Contrabassoon": 22.0, "Muse Woodwinds/Contrabass Flute": 40.0, "Muse Choir/Full Choir": 70.0,
-            "Muse Handbells/Handchimes": 180.0, "Muse Keys/Dream Piano": 35.0}
+            "Muse Handbells/Handchimes": 180.0, "Muse Keys/Dream Piano": 35.0,
+            "Muse Woodwinds/Baritone Saxophone": 55.0, "Muse Woodwinds/Tenor Saxophone": 80.0, "Muse Woodwinds/Alto Saxophone": 110.0,
+            "Muse Woodwinds/Soprano Saxophone": 170.0, "Muse Keys/Suitcase Piano": 60.0, "Muse Keys/Wurly 200A": 80.0, "Muse Keys/Upright Piano": 60.0}
 MUTED_TOP = 3200.0             # Hz: a muted string has nothing above this
 # Where the two rhythm guitars sit (one each side, as a record is made), and how far the second is behind the
 # first: two takes are never together to the sample, and that is what makes two guitars sound like two.
@@ -1344,7 +1361,10 @@ MUSE_LATE = {"Muse Guitars Vol 1/Electric SC - Heavy": 0.011}
 # Paul has 6 dB more than the liked guitars from 1.2 to 5 kHz and 24 dB more fizz over 10 kHz; the Stratocaster has
 # 9 dB more at 320 to 640 Hz (a honk); the lead is 9 dB hotter at 2.5 to 5 kHz than the liked leads are; the bass is
 # close, with less of the pick; the Hammond is brighter, and so wide that its two sides nearly cancel in the bass.
-MUSE_TRIM = {"Muse Guitars Vol 1/Electric LP - Heavy": 4.0, "Muse Guitars Vol 1/Electric SC - Heavy": -5.0}
+MUSE_TRIM = {"Muse Guitars Vol 1/Electric LP - Heavy": 4.0, "Muse Guitars Vol 1/Electric SC - Heavy": -5.0,
+             # (the same tune on the band's lead guitar stands at -20.5 LUFS, on the tenor saxophone at -13: 2026-11-23, audition_bands)
+             "Muse Woodwinds/Tenor Saxophone": -6.0, "Muse Woodwinds/Alto Saxophone": -6.0, "Muse Woodwinds/Baritone Saxophone": 0.0,
+             "Muse Woodwinds/Soprano Saxophone": -1.0}
 # (The first whole piece, "Lance Cry", measured the same evening: the two guitars together stood where the liked ones
 # do from 160 Hz to 10 kHz, 6 dB short under 160 Hz; the lead still had 5 dB too much from 640 Hz to 5 kHz and 8 to
 # 20 dB too little under 320 Hz: a thin, bright lead. So: more of the bottom string on the Les Paul, and the lead
@@ -1355,6 +1375,59 @@ MUSE_TONE = {"Muse Guitars Vol 1/Electric LP - Heavy": dict(low_shelf=(170.0, 3.
              "Muse Guitars Vol 1/Electric Bass": dict(bands=((800.0, 3.0, 1.2),)),
              "Muse Keys/Hammond Organ": dict(bands=((1500.0, -3.0, 2.0),))}
 MUSE_NARROW = {"Muse Guitars Vol 1/Electric Bass": 0.35, "Muse Keys/Hammond Organ": 0.4}       # how much of what differs between left and right is kept
+
+
+# The band's other guitars and basses (2026-11-23: "all the knight rock songs sound like the same song", "too much of the same instrument sounds"): Muse's
+# clean guitars and its bass, each through an amplifier of the studio's own (studio/jsfx/amp). `seats` is where its parts sit, in the order muse.PARTS
+# names them; `level` brings each to where the house band's two guitars stand together (the same riff, -20 LUFS), the basses to the house band's bass.
+@dataclass(frozen=True)
+class Amp:
+    valve: int                 # 0 clean, 1 crunch, 2 drive, 3 fuzz, 4 torn
+    gain: float                # dB into it
+    bass: float = 0.0          # dB, the tone stack
+    middle: float = 0.0
+    treble: float = 0.0
+    at: float = 650.0          # Hz: where the middle is
+    top: float = 5200.0        # Hz: the loudspeaker's top
+    octave: float = 0.0        # the octave under
+    tremolo: float = 0.0
+    rate: float = 5.2          # Hz
+    spring: float = 0.0
+    level: float = 0.0         # dB
+    tight: float = 80.0        # Hz: what the valve is not given
+    bright: float = 0.0        # dB: its top before the valve
+    presence: float = 0.0      # dB: 2.8 kHz after it
+    seats: tuple[float, ...] = (0.0,)
+    chorus: float = 0.0        # an ensemble after it
+    echo: float = 0.0          # a dotted eighth after it
+
+    def effects(self, bpm: float) -> list[str]:
+        out = [desk.js("freerock/amp", self.valve, self.gain, self.bass, self.middle, self.treble, self.at, self.top, self.octave, self.tremolo, self.rate,
+                       self.spring, self.level, self.tight, self.bright, self.presence)]
+        if self.chorus:
+            out.append(ensemble(self.chorus, voices=4, rate=0.6, depth=3.0))
+        if self.echo:
+            out.append(echo(bpm, self.echo))
+        return out
+
+
+_SIDES = (-0.6, 0.6)
+AMPS: dict[str, Amp] = {
+    "crunch guitar": Amp(1, 18.0, bass=0.0, middle=3.0, treble=3.0, at=900.0, top=6000.0, seats=_SIDES, tight=260.0, bright=9.0, presence=3.0, level=-21.9),
+    "crunch muted": Amp(1, 15.0, bass=2.0, middle=2.0, treble=0.0, at=800.0, top=4200.0, seats=_SIDES, tight=160.0, bright=6.0, level=-17.2),
+    "fuzz guitar": Amp(3, 24.0, bass=2.0, middle=-3.0, treble=2.0, at=700.0, top=4800.0, octave=0.1, seats=_SIDES, tight=200.0, bright=9.0, presence=2.0, level=-26.2),
+    "fuzz muted": Amp(3, 18.0, bass=3.0, middle=-1.0, treble=-3.0, top=3400.0, tight=140.0, bright=5.0, level=-22.1),
+    "doom guitar": Amp(2, 28.0, bass=4.0, middle=-2.0, treble=-1.0, at=900.0, top=3800.0, octave=0.3, seats=_SIDES, tight=130.0, bright=9.0, presence=1.0, level=-27.5),
+    "doom muted": Amp(2, 22.0, bass=4.0, middle=-1.0, treble=-4.0, top=3000.0, octave=0.2, tight=110.0, bright=5.0, level=-23.9),
+    "chop guitar": Amp(2, 16.0, bass=-2.0, middle=5.0, treble=3.0, at=1300.0, top=5200.0, seats=(-0.35,), tight=320.0, bright=8.0, presence=3.0, level=-20.8),
+    "chop muted": Amp(2, 14.0, bass=0.0, middle=3.0, treble=-1.0, at=1100.0, top=3800.0, seats=(0.35,), tight=220.0, bright=5.0, level=-19.0),
+    "twang guitar": Amp(0, 6.0, bass=-3.0, middle=-1.0, treble=6.0, at=500.0, top=7500.0, tremolo=0.5, rate=5.6, spring=0.5, seats=(-0.25,), tight=150.0, bright=6.0, presence=4.0, level=-7.6),
+    "chime guitar": Amp(0, 5.0, bass=-3.0, middle=-1.0, treble=6.0, top=8000.0, spring=0.2, seats=(0.3,), chorus=0.5, echo=0.28, tight=150.0, bright=6.0, presence=3.0, level=-13.5),
+    "sweet lead": Amp(1, 24.0, bass=1.0, middle=4.0, treble=-2.0, at=900.0, top=4600.0, spring=0.15, echo=0.2, tight=110.0, level=-23.5),
+    "fuzz lead": Amp(3, 30.0, bass=1.0, middle=1.0, treble=-4.0, at=850.0, top=3800.0, echo=0.22, tight=100.0, level=-26.9),
+    "fuzz bass": Amp(3, 14.0, bass=3.0, middle=4.0, treble=0.0, at=800.0, top=3600.0, tight=25.0, bright=8.0, level=-18.8),
+    "round bass": Amp(0, 4.0, bass=3.0, middle=-1.0, treble=-12.0, at=400.0, top=1800.0, tight=25.0, level=-3.0),
+}
 
 
 def firm_loudness(audio: np.ndarray, rate: int, notes: list[Note], bpm: float) -> float:
@@ -1385,7 +1458,8 @@ def _muse(voice: Voice, title: str, bpm: float, taste: float, room: float, seed:
     measured to (LEVEL); without, Muse Sounds keep their balance among themselves."""
     import soundfile
     out = []
-    for part, way, notes, sound in muse.shared(voice.instrument, voice.notes, seed):
+    own = AMPS.get(voice.instrument)
+    for index, (part, way, notes, sound) in enumerate(muse.shared(voice.instrument, voice.notes, seed)):
         made = muse.perform(part, notes, bpm=bpm, way=way, sound=sound, swells=voice.swells or None)
         if level is None:
             volume = _db(MUSE_LEVEL + MUSE_TRIM.get(sound or "", 0.0))
@@ -1395,17 +1469,19 @@ def _muse(voice: Voice, title: str, bpm: float, taste: float, room: float, seed:
         effects = [equalise(low_cut=MUSE_CUT.get(sound or "", MUSE_CUT.get(part, 28.0)), high_cut=MUTED_TOP if part == "Muted Guitar" else 0.0, **MUSE_TONE.get(sound or "", {}))]
         if sound in MUSE_NARROW:
             effects.append(wide(MUSE_NARROW[sound]))
-        if part in ECHOED or way == "pizz":
+        if own is not None:
+            effects += own.effects(bpm)                        # through an amplifier of its own; its echo is its own too
+        elif part in ECHOED or way == "pizz":
             effects.append(echo(bpm, 0.16))                    # plucked and struck things answer themselves, a dotted eighth later
         if part in ("Horn in F", "Trumpet in B♭", "Trombone", "Tuba"):
             effects.append(warm(0.25))                         # brass through tape: rounder at the top of a swell
-        if part == "Electric Guitar":
+        if part == "Electric Guitar" and own is None:
             effects += [echo(bpm, 0.22), warm(0.2)]            # a lead guitar's echo, and tape on its top
         if part in ("Rhythm Guitar", "Muted Guitar", "Bass Guitar"):
             effects.append(warm(0.2))
-        late = MUSE_LATE.get(sound or "", 0.0)
+        late = MUSE_LATE.get(sound or "", 0.011 if own is not None and index else 0.0)
         out.append(desk.Line("%s: %s" % (title, part), desk.bare(part, []), volume=volume * taste,
-                             pan=MUSE_SEATS.get(sound or "", 0.0),
+                             pan=own.seats[min(index, len(own.seats) - 1)] if own is not None else MUSE_SEATS.get(sound or "", 0.0),
                              clips=[(late, soundfile.info(str(made)).duration, str(made))], send=_db(MUSE_SENDS.get(part, MUSE_SEND)) * room,
                              effects=effects))
     if voice.instrument in ("basses", "basses slow"):

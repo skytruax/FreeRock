@@ -114,6 +114,14 @@ INSTRUMENTS = {
     "contrabassoon": I(22, 50, 34, level=1.6), "contrabass flute": I(36, 62, 48, level=1.6),
     "eb clarinet": I(62, 91, 76), "full choir": I(43, 81, 62, early=0.05),
     "handchimes": I(60, 96, 74, held=False), "dream piano": I(36, 96, 64, held=False),
+    # The bands' other sounds (2026-11-23: "all the knight rock songs sound like the same song", "too much of the same instrument sounds"):
+    # Muse's saxophones, electric pianos and saloon piano, and its clean guitars through the studio's own amplifier (sounds.AMPS).
+    "soprano sax": I(56, 87, 72), "alto sax": I(49, 80, 65), "tenor sax": I(44, 76, 60), "bari sax": I(36, 69, 52),
+    "rhodes": I(36, 92, 62, held=False), "wurly": I(40, 88, 62, held=False), "upright piano": I(33, 100, 60, held=False),
+    "twang guitar": I(40, 84, 60, held=False, level=0.9), "chime guitar": I(40, 84, 62, held=False, level=0.9),
+    "crunch guitar": I(40, 76, 50, held=False, wired=True), "fuzz guitar": I(40, 76, 50, held=False, wired=True),
+    "sweet lead": I(52, 86, 67, wired=True), "fuzz lead": I(52, 86, 64, wired=True),
+    "fuzz bass": I(28, 55, 38, held=False), "round bass": I(28, 55, 38, held=False),
     # The big drums and what marks an arrival, found by name alone. A war drum's or a frame
     # drum's pitch is its size: 36 is the
     # biggest war drum, 45 the lowest frame drum. The others have one note each.
@@ -140,6 +148,10 @@ KITS = {
     "hands": dict(_STROKES, boom=64, snare=63, crash=55, crash2=49, tamb=54, ting=80, clack=62, shake=70, jingle=69),
     "wood": dict(_STROKES, boom=87, snare=77, crash=55, crash2=49, tamb=69, ting=76, clack=75),
     "rock": dict(_STROKES, boom=36, snare=38, crash=49, crash2=57, tamb=54, ting=81, clack=37),
+    # (Big Rusty Drums, with sticks, with brushes and with mallets: the same strokes on the same notes as the rock kit's.)
+    "rusty": dict(_STROKES, boom=36, snare=38, crash=49, crash2=57, tamb=54, ting=81, clack=37),
+    "brushed": dict(_STROKES, boom=36, snare=38, crash=49, crash2=57, tamb=54, ting=81, clack=37),
+    "mallets": dict(_STROKES, boom=36, snare=38, crash=49, crash2=57, tamb=54, ting=81, clack=37),
     "room": dict(_STROKES, boom=36, snare=38, crash=49, crash2=57, tamb=54, ting=81, clack=37),
 }
 
@@ -183,6 +195,8 @@ class Character:
     # (2026-11-23, night: the third round's first writing, dark in its key and its instruments, sang its tunes at the top of them: a clarinet's
     # middle A5, a viola's and a bass flute's D5, a fiddle's D6.)
     low: bool = False                                      # whoever sings its tunes over A4 sings them an octave down (LOW_TOP)
+    # (2026-11-23, evening, played: "all the knight rock songs sound like the same song", "too much of the same instrument sounds".)
+    sounds: str = ""                                       # whose instruments its band has (BANDS); "": the house band's
 
 
 C = Character
@@ -1387,57 +1401,57 @@ CHARACTERS = (
     # --- 2026-11-23, night, the third round: the towns, the inns, the camps and the storms, where the same songs come round most (Knight
     # --- Rock's towns 3.1 times a song, its storms 2.8, its inns 2.5, its camps 2.2; Warcraft's towns 1.9, from ten songs). Led by what
     # --- no song of the band's led with (the clarinet low, the english horn, the church organ, the bass flute, the trombone and the
-    # --- cello in a tavern or by a fire; of 383 songs 250 were led by a lead guitar), over drums of their own (the stomp, the
+    # --- cello in a tavern or by a fire; of 383 songs 250 were led by a lead guitar), each in a band's own sounds (BANDS), over drums of their own (the stomp, the
     # --- train, the march to the gallows, the low toms). A light one's tune has a body and its bass is the fretless (handbook 8.7).
     C("rogues quarter", KINDS_ALL, role="town", serves=(0, 1), style="knight", band=True, modes=("minor", "dorian"), bpm=(92, 104), busy=0.55,
-      weight=0.7, leads=("clarinet",), strong=("fiddle",), under=(), pads=("accordion",), pad_ways=("drone", "pad"),
+      weight=0.7, leads=("clarinet",), strong=("fiddle",), under=(), pads=("pipe drone",), pad_ways=("drone", "pad"),
       plucks=("banjo", "muted guitar"), figures=("strum", "low riff"), basses=("fretless",), kit="rock", drums=(),
-      grooves=("swamp stomp", "shuffle"), hall=(1.2, 0.13), lift=0.1, low=True,
+      grooves=("swamp stomp", "shuffle"), hall=(1.2, 0.13), lift=0.1, low=True, sounds="tweed",
       titles=(("Rogue's", "Blackjack", "Lockpick", "Footpad", "Stiletto", "Loaded Dice"), ("Quarter", "Bargain", "Errand", "Corner", "Debt", "Swagger"))),
     C("headsmans square", KINDS_ALL, role="town", serves=(0, 1), style="knight", band=True, modes=("minor", "phrygian"), bpm=(78, 90), busy=0.4,
       weight=0.9, leads=("english horn",), strong=("lead guitar",), under=(), pads=("choir",), pad_ways=("drone", "pad"),
       plucks=("single guitar", "muted guitar"), figures=("low riff", "hammer"), basses=("picked bass",), kit="rock", drums=("church bell",),
-      grooves=("gallows march", "anvil rock"), hall=(2.1, 0.23), lift=0.15, low=True,
+      grooves=("gallows march", "anvil rock"), hall=(2.1, 0.23), lift=0.15, low=True, sounds="doom",
       titles=(("Headsman's", "Gibbet", "Pillory", "Axe-Day", "Hooded", "Sentence"), ("Square", "Crowd", "March", "Morning", "Drum", "Block"))),
     C("cathedral ward", KINDS_ALL, role="town", serves=(0, 1), style="knight", band=True, modes=("minor", "phrygian"), bpm=(84, 96), busy=0.45,
-      weight=0.95, leads=("organ",), strong=("lead guitar",), under=(), pads=("strings slow",), pad_ways=("tremolo", "drone"),
+      weight=0.95, leads=("organ",), strong=("lead guitar",), under=(), pads=("choir",), pad_ways=("drone", "pad"),
       plucks=("rhythm guitar", "single guitar"), figures=("hammer", "low riff"), basses=("picked bass",), kit="rock", drums=("timpani", "church bell"),
-      grooves=("black toms", "half rock"), hall=(2.6, 0.28), lift=0.2, low=True,
+      grooves=("black toms", "half rock"), hall=(2.6, 0.28), lift=0.2, low=True, sounds="stoner",
       titles=(("Basilica", "Black Spire", "Crypt", "Censer", "Reliquary", "Gargoyle"), ("Ward", "Steps", "Vespers", "Toll", "Nave", "Buttress"))),
     C("last orders", KINDS_ALL, role="ember", style="knight", band=True, modes=("minor", "dorian"), bpm=(64, 76), busy=0.35,
-      weight=0.5, leads=("viola",), strong=("viola", "fiddle"), under=(), pads=("rock organ",), pad_ways=("drone", "pad"),
-      plucks=("guitar", "twelve string"), figures=("arp", "strum"), basses=("fretless",), kit="room", drums=(), grooves=("brushes", "shuffle"),
-      hall=(1.4, 0.16), lift=0.0, low=True,
+      weight=0.5, leads=("viola",), strong=("viola", "fiddle"), under=(), pads=("oohs",), pad_ways=("drone",),
+      plucks=("upright piano", "guitar"), figures=("pulse", "arp"), basses=("fretless",), kit="room", drums=(), grooves=("brushes", "shuffle"),
+      hall=(1.4, 0.16), lift=0.0, low=True, sounds="lounge",
       titles=(("Closing", "Low-Lamp", "Tallow", "Guttering", "Unpaid", "Drained"), ("Orders", "Hour", "Ledger", "Cup", "Settle", "Candle"))),
     C("smoke den", KINDS_ALL, role="ember", style="knight", band=True, modes=("dorian", "minor"), bpm=(72, 84), busy=0.45,
-      weight=0.55, leads=("bass clarinet",), strong=("clarinet",), under=(), pads=("rock organ",), pad_ways=("drone",),
-      plucks=("piano",), figures=("pulse", "strum"), basses=("fretless",), kit="room", drums=(), grooves=("brushes", "shuffle"),
-      hall=(1.1, 0.12), lift=0.0, low=True,
+      weight=0.55, leads=("tenor sax",), strong=("tenor sax",), under=(), pads=("oohs",), pad_ways=("drone",),
+      plucks=("rhodes",), figures=("pulse", "arp"), basses=("fretless",), kit="room", drums=(), grooves=("brushes", "shuffle"),
+      hall=(1.1, 0.12), lift=0.0, low=True, sounds="lounge",
       titles=(("Smoke", "Back-Stair", "Resin", "Velvet", "Dim", "Moth-Eaten"), ("Den", "Blues", "Curtain", "Parlour", "Hand", "Whisper"))),
     C("pit fighters", KINDS_ALL, role="ember", style="knight", band=True, modes=("minor", "dorian"), bpm=(94, 106), busy=0.55,
-      weight=0.75, leads=("trombone",), strong=("trombone", "fiddle"), under=(), pads=("accordion",), pad_ways=("drone",),
-      plucks=("rhythm guitar", "banjo"), figures=("low riff", "strum"), basses=("fretless",), kit="rock", drums=("great drum",),
-      grooves=("swamp stomp", "half rock"), hall=(1.0, 0.11), lift=0.1, low=True,
+      weight=0.75, leads=("trombone",), strong=("trombone", "fiddle"), under=(), pads=("choir",), pad_ways=("drone",),
+      plucks=("upright piano", "banjo"), figures=("low riff", "strum"), basses=("fretless",), kit="rock", drums=("great drum",),
+      grooves=("swamp stomp", "half rock"), hall=(1.0, 0.11), lift=0.1, low=True, sounds="chop",
       titles=(("Pit", "Bare-Knuckle", "Bruiser's", "Blood-Wager", "Broken-Nose", "Cellar"), ("Purse", "Bout", "Stomp", "Odds", "Ring", "Wager"))),
     C("whetstone fire", KINDS_ALL, role="camp", style="knight", band=True, modes=("dorian", "minor"), bpm=(70, 82), busy=0.35,
-      weight=0.55, leads=("cello",), strong=("cello", "fiddle"), under=(), pads=("strings slow",), pad_ways=("drone",),
-      plucks=("steel guitar", "twelve string"), figures=("arp", "strum"), basses=("fretless",), kit="room", drums=("frame drums",),
-      grooves=("brushes", "train"), hall=(1.7, 0.18), lift=0.0, low=True,
+      weight=0.55, leads=("cello",), strong=("cello", "fiddle"), under=(), pads=("oohs",), pad_ways=("drone",),
+      plucks=("twang guitar", "steel guitar"), figures=("arp", "strum"), basses=("fretless",), kit="room", drums=("frame drums",),
+      grooves=("brushes", "train"), hall=(1.7, 0.18), lift=0.0, low=True, sounds="twang",
       titles=(("Whetstone", "Notched-Blade", "Bandaged", "Picket-Line", "Forager's", "Cold Iron"), ("Embers", "Rest", "Story", "Rations", "Dusk", "Muster"))),
     C("deserters camp", KINDS_ALL, role="camp", style="knight", band=True, modes=("minor", "phrygian"), bpm=(56, 68), busy=0.3,
       weight=0.45, leads=("bass flute",), strong=("viola",), under=(), pads=("pipe drone",), pad_ways=("drone",),
-      plucks=("banjo", "guitar"), figures=("arp", "strum"), basses=("fretless",), kit="room", drums=("frame drums",), grooves=("none", "brushes"),
-      hall=(2.2, 0.24), lift=0.0, low=True,
+      plucks=("twang guitar", "banjo"), figures=("arp", "strum"), basses=("fretless",), kit="room", drums=("frame drums",), grooves=("none", "brushes"),
+      hall=(2.2, 0.24), lift=0.0, low=True, sounds="twang",
       titles=(("Deserter's", "Cold", "Hidden", "Traitor's", "No-Flag", "Thicket"), ("Camp", "Ditch", "Hush", "Fog", "Bedroll", "Shiver"))),
     C("leaden sky", KINDS_ALL, role="storm", serves=(1, 2), style="knight", band=True, modes=("minor", "phrygian"), bpm=(118, 132), busy=0.5,
       weight=1.0, leads=("horns",), strong=("horns", "lead guitar"), under=(), pads=("choir",), pad_ways=("drone", "pad"),
       plucks=("single guitar", "muted guitar"), figures=("chug", "low riff"), basses=("picked bass",), kit="rock", drums=("taiko", "timpani"),
-      grooves=("black toms", "rock ride"), hall=(2.0, 0.22), lift=0.2, low=True,
+      grooves=("black toms", "rock ride"), hall=(2.0, 0.22), lift=0.2, low=True, sounds="doom",
       titles=(("Leaden", "Blackwater", "Sky-Split", "Ravening", "Grinding", "Towering"), ("Sky", "Fury", "Onslaught", "Havoc", "Flood", "Roar"))),
     C("drowning ride", KINDS_ALL, role="storm", serves=(1, 2), style="knight", band=True, modes=("minor", "dorian"), bpm=(140, 152), busy=0.55,
       weight=1.0, leads=("cello",), strong=("fiddle",), under=(), pads=("rock organ",), pad_ways=("tremolo", "pad"),
       plucks=("muted guitar",), figures=("low riff", "chug"), basses=("fretless",), kit="rock", drums=("great drum",), grooves=("train", "rock ride"),
-      hall=(1.7, 0.18), lift=0.1, low=True,
+      hall=(1.7, 0.18), lift=0.1, low=True, sounds="chop",
       titles=(("Drowning", "Hoofbeat", "Lashing", "Headlong", "Rain-Black", "Night-Rain"), ("Ride", "Gallop", "Chase", "Flight", "Road", "Pursuit"))),
     # (Warcraft's third round: three towns, two camps and two inns, and the walks with the least dark music, led by the low winds and brass.)
     C("beggars court", ("regal", "haunted", "pastoral", "highland"), role="town", modes=("minor", "dorian"), bpm=(66, 78), metres=("3/4", "4/4"),
@@ -1478,18 +1492,67 @@ CHARACTERS = (
     C("marrow road", ("haunted", "infernal"), modes=("minor", "phrygian"), bpm=(72, 84), busy=0.4, weight=0.9, leads=("trombone", "cello"),
       strong=("trombone", "full choir"), under=("tuba", "bassoon"), pads=("choir", "strings slow"), pad_ways=("drone", "tremolo"),
       plucks=("pizzicato", "harp"), figures=("pulse", "toll"), basses=("basses", "celli"), kit="march", drums=("timpani", "great drum"),
-      grooves=("dirge", "march"), hall=(3.0, 0.32), dark=True, lift=0.2, low=True,
+      grooves=("dirge", "march"), hall=(3.0, 0.32), dark=True, opens=True, lift=0.2, low=True,
       titles=(("Marrow", "Charnel", "Catacomb", "Skull", "Rattlebone", "Dust"), ("Road", "Mile", "Gate", "Column", "Way", "Vault"))),
     C("kelp chapel", ("coast", "marsh", "frozen"), modes=("minor", "dorian"), bpm=(60, 72), metres=("6/8", "4/4"), busy=0.35, weight=0.75,
       leads=("viola", "bass clarinet"), strong=("full choir", "horns"), under=("celli", "tuba"), pads=("strings slow", "tremolo"),
       pad_ways=("tremolo", "drone"), plucks=("harp", "pizzicato"), figures=("rock", "toll"), basses=("basses slow", "celli"), kit="orchestra",
-      drums=("timpani",), grooves=("dirge", "tick"), hall=(3.2, 0.34), dark=True, lift=0.15, low=True,
+      drums=("timpani",), grooves=("dirge", "tick"), hall=(3.2, 0.34), dark=True, opens=True, lift=0.15, low=True,
       titles=(("Kelp", "Siren-Grey", "Undertow", "Brine", "Barnacle", "Ebb-Tide"), ("Chapel", "Choir", "Strand", "Hymn", "Shallows", "Cloister"))),
     C("hoarfrost host", ("frozen", "highland"), modes=("minor", "phrygian"), bpm=(70, 82), busy=0.4, weight=0.85, leads=("horns", "bass clarinet"),
       strong=("brass", "horns"), under=("tuba", "contrabassoon"), pads=("tremolo", "choir"), pad_ways=("tremolo", "drone"),
       plucks=("pizzicato", "strings"), figures=("pulse", "gallop"), basses=("basses", "celli"), kit="orchestra",
-      drums=("timpani", "taiko"), grooves=("dirge", "march"), hall=(3.0, 0.32), dark=True, lift=0.2, low=True,
+      drums=("timpani", "taiko"), grooves=("dirge", "march"), hall=(3.0, 0.32), dark=True, opens=True, lift=0.2, low=True,
       titles=(("Revenant", "Ice-Locked", "Barrow", "Winter-Dead", "Glacial", "Rimebound"), ("Host", "Trail", "Crown", "Wind", "Cairn", "Vanguard"))),
+    # --- 2026-11-23, night, the fourth round: Knight Rock's nights (two characters behind them all), its caves (three) and the country with the
+    # --- fewest heavy walks (the coast, the desert and the mystic lands one each, the marsh two): what comes round is one sound in other keys. Led by
+    # --- the bass clarinet, the cello, the horns, the bassoon, the english horn, the trombone, the mandolin, the viola, the bass flute and the clarinet.
+    C("graveyard shift", KINDS_ALL, role="night", style="knight", band=True, modes=("minor", "dorian"), bpm=(66, 78), busy=0.4, weight=0.5,
+      leads=("bari sax",), strong=("alto sax",), under=(), pads=("oohs",), pad_ways=("drone",), plucks=("vibes", "rhodes"),
+      figures=("arp", "toll"), basses=("fretless",), kit="room", drums=(), grooves=("brushes", "shuffle"), hall=(1.8, 0.2), lift=0.0, low=True, sounds="lounge",
+      titles=(("Graveyard", "Lamplight", "Watchman's", "Ragged", "Blackout", "Last Bell"), ("Shift", "Beat", "Prowl", "Corner", "Smoke", "Mile"))),
+    C("black heath", KINDS_ALL, role="night", style="knight", band=True, modes=("minor", "phrygian"), bpm=(58, 70), busy=0.3, weight=0.6,
+      leads=("cello",), strong=("viola",), under=(), pads=("oohs",), pad_ways=("drone",), plucks=("chime guitar", "steel guitar"),
+      figures=("arp", "strum"), basses=("fretless",), kit="room", drums=("frame drums",), grooves=("none", "brushes"), hall=(2.4, 0.26), lift=0.0, low=True, sounds="lounge",
+      titles=(("Heath", "Moorland", "Gibbous", "Ember-Eyed", "Barrow-Lit", "Hunted"), ("Moon", "Hour", "Silence", "Wind", "Trail", "Howl"))),
+    C("watch on the wall", KINDS_ALL, role="night", style="knight", band=True, modes=("minor", "dorian"), bpm=(76, 88), busy=0.4, weight=0.85,
+      leads=("horns",), strong=("horns", "lead guitar"), under=(), pads=("choir",), pad_ways=("drone", "pad"), plucks=("muted guitar", "single guitar"),
+      figures=("low riff", "toll"), basses=("picked bass",), kit="rock", drums=("timpani",), grooves=("gallows march", "half rock"), hall=(2.2, 0.24),
+      lift=0.1, low=True, sounds="tweed",
+      titles=(("Rampart", "Torchless", "Siege-Night", "Sentinel", "Wakeful", "Battlement"), ("Watch", "Cold", "Relief", "Oath", "Fire", "Stand"))),
+    C("drowned shaft", KINDS_ALL, role="depths", serves=(0, 1), style="knight", band=True, modes=("minor", "phrygian"), bpm=(78, 90), busy=0.4, weight=0.85,
+      leads=("bassoon",), strong=("lead guitar",), under=(), pads=("choir",), pad_ways=("drone",), plucks=("muted guitar", "single guitar"),
+      figures=("chug", "low riff"), basses=("picked bass",), kit="rock", drums=("great drum",), grooves=("black toms", "half rock"), hall=(2.8, 0.3),
+      lift=0.0, low=True, sounds="doom",
+      titles=(("Drowned", "Collapsed", "Flooded", "Choked", "Sunless", "Bottomless"), ("Shaft", "Gallery", "Adit", "Winze", "Seam", "Level"))),
+    C("spider vault", KINDS_ALL, role="depths", serves=(0, 1), style="knight", band=True, modes=("minor", "dorian"), bpm=(64, 76), busy=0.35, weight=0.5,
+      leads=("english horn",), strong=("viola",), under=(), pads=("choir",), pad_ways=("drone",), plucks=("harpsichord", "chime guitar"),
+      figures=("arp", "pulse"), basses=("fretless",), kit="room", drums=("frame drums",), grooves=("none", "brushes"), hall=(2.8, 0.3), lift=0.0, low=True, sounds="lounge",
+      titles=(("Spider", "Cobweb", "Silk-Hung", "Pale-Eyed", "Crawling", "Cocoon"), ("Vault", "Niche", "Thread", "Larder", "Stair", "Brood"))),
+    C("echo forge", KINDS_ALL, role="depths", serves=(0, 1), style="knight", band=True, modes=("minor", "dorian"), bpm=(90, 102), busy=0.45, weight=0.9,
+      leads=("trombone",), strong=("trombone", "lead guitar"), under=(), pads=("rock organ",), pad_ways=("drone",), plucks=("single guitar", "rhythm guitar"),
+      figures=("hammer", "low riff"), basses=("picked bass",), kit="rock", drums=("timpani",), grooves=("anvil rock", "gallows march"), hall=(2.4, 0.26),
+      lift=0.1, low=True, sounds="chop",
+      titles=(("Echo", "Cold-Anvil", "Deep-Fire", "Slag-Pit", "Iron-Lung", "Undermined"), ("Forge", "Hammer", "Furnace", "Bellows", "Ingot", "Crucible"))),
+    C("press gang", ("coast", "marsh"), style="knight", band=True, modes=("minor", "dorian"), bpm=(96, 108), busy=0.55, weight=0.85,
+      leads=("mandolin",), strong=("fiddle", "mandolin"), under=(), pads=("choir",), pad_ways=("drone",), plucks=("rhythm guitar", "banjo"),
+      figures=("low riff", "strum"), basses=("picked bass",), kit="rock", drums=("great drum",), grooves=("swamp stomp", "half rock"), hall=(1.6, 0.17),
+      lift=0.15, low=True, sounds="shanty",
+      titles=(("Press-Gang", "Cutlass", "Bilge", "Mutineer's", "Keel-Scarred", "Rum-Soaked"), ("Haul", "Shove", "Stomp", "Ballast", "Cudgel", "Muster"))),
+    C("bone caravan", ("desert", "infernal"), style="knight", band=True, modes=("phrygian dominant", "phrygian"), bpm=(84, 96), busy=0.45, weight=0.9,
+      leads=("viola",), strong=("lead guitar",), under=(), pads=("pipe drone",), pad_ways=("drone",), plucks=("muted guitar", "twelve string"),
+      figures=("low riff", "strum"), basses=("fretless",), kit="rock", drums=("taiko",), grooves=("desert rock", "black toms"), hall=(1.9, 0.2), lift=0.2,
+      low=True, sounds="twang",
+      titles=(("Bone", "Vulture-Fed", "Sunstruck", "Dry-Throat", "Salt-Cracked", "Mirage-Mad"), ("Caravan", "Crossing", "Waterless", "March", "Waste", "Mile"))),
+    C("hollow moon", ("mystic", "haunted"), style="knight", band=True, modes=("minor", "phrygian"), bpm=(68, 78), busy=0.35, weight=0.85,
+      leads=("bass flute",), strong=("viola", "lead guitar"), under=(), pads=("choir",), pad_ways=("drone", "pad"), plucks=("single guitar", "muted guitar"),
+      figures=("low riff", "toll"), basses=("fretless",), kit="rock", drums=("timpani",), grooves=("half rock", "black toms"), hall=(2.6, 0.28), lift=0.2,
+      low=True, sounds="stoner",
+      titles=(("Hollow", "Waning", "Runeless", "Veil-Torn", "Sleepwalker's", "Blind Seer's"), ("Moon", "Covenant", "Scrying", "Ritual", "Omen", "Well"))),
+    C("fever swamp", ("marsh", "jungle"), style="knight", band=True, modes=("dorian", "minor"), bpm=(80, 92), busy=0.5, weight=0.85,
+      leads=("clarinet",), strong=("lead guitar", "clarinet"), under=(), pads=("rock organ",), pad_ways=("drone",), plucks=("banjo", "rhythm guitar"),
+      figures=("low riff", "strum"), basses=("fretless",), kit="rock", drums=(), grooves=("swamp stomp", "shuffle"), hall=(1.4, 0.15), lift=0.1, low=True, sounds="tweed",
+      titles=(("Fever", "Croc-Tooth", "Witch-Doctor", "Sinking", "Mosquito", "Rot-Root"), ("Swamp", "Boil", "Cure", "Crossing", "Stomp", "Delta"))),
 )
 
 METRES = {"4/4": (4.0, (2.0, 2.0)), "3/4": (3.0, (3.0,)), "6/8": (3.0, (1.5, 1.5)), "5/4": (5.0, (3.0, 2.0)),
@@ -1586,6 +1649,11 @@ SOLO_COMP = True         # under a solo the rhythm guitar comps: the chord on th
 TURNS_TO_HAT = True      # a band's groove on the ride turns to the hat for its second sixteen bars (Take.cymbal); False: it stays
 # Who may take a band's solo, and whether they can sound two notes at once (double stops, octaves, a held note doubled):
 SOLOISTS = {"lead guitar": True, "fiddle": True, "mandolin": True, "harmonica": False, "whistle": False}
+# ...and in a song sung low (Character.low) whoever else leads its summit ("most songs should have solos"; 2026-11-23, night: of the third and the fourth
+# rounds' songs, led by what no band song led with, three in ten had none): two notes at once from the strings, the accordion and the steel
+# guitar, one from the winds.
+SOLOISTS_LOW = {**SOLOISTS, "viola": True, "cello": True, "accordion": True, "steel guitar": True, "clarinet": False, "trombone": False, "horns": False,
+                "soprano sax": False, "alto sax": False, "tenor sax": False, "bari sax": False}
 # (2026-11-21, evening: "You gotta work on your fucking harmonica. Look up John Popper".) A harmonica's solo is a harp player's:
 # single notes, as John Popper plays them (it had taken the guitar's double stops: Campfire Ballad's solo two notes a third
 # apart on every eighth), its trill the warble between two holes a third apart, and its quick figures flurries of
@@ -1604,7 +1672,8 @@ HARP_BENDS = True
 # harmonica's C6 are their written tops already. Empty: the written range, as before. (2026-11-21, the study: the whistle's
 # solos sang up to its very top, all in its shrill second octave: Silver Glade II A5 to D7, Dreaming Ballad II C#6 to C#7,
 # Sunny Wheels I and III E5 to C#7, eight takes.) A whistle's A6: a player keeps the top of a whistle for a note or two.
-SOLO_TOP = {"fiddle": 88, "mandolin": 86, "whistle": 93}
+SOLO_TOP = {"fiddle": 88, "mandolin": 86, "whistle": 93, "viola": 81, "cello": 71, "accordion": 84, "steel guitar": 79, "clarinet": 82,
+            "trombone": 67, "horns": 70, "soprano sax": 84, "alto sax": 78, "tenor sax": 74, "bari sax": 67}
 # The figures a solo's middle is made of, three drawn for each solo: Angus Young's and Chuck Berry's (the repeated note, the
 # run in threes or fours, the trill, the double stops, the cascade, the pedal lick), the octaves Wes Montgomery and Hendrix
 # play a tune in, a figure echoed a step lower each beat, one note picked in threes against the beat, and notes slid into.
@@ -1882,6 +1951,47 @@ def _levels(role: str, heavy: float, busy: float = 0.5) -> dict[str, tuple[float
     return {"open": (0.18, 0.34), "first": (0.42, 0.6), "second": (0.38, 0.56), "build": (0.46, 0.5 + 0.38 * heavy),
             "arrival": (under, under), "valley": (0.24, 0.2), "climb": (0.32, 0.55 + 0.42 * heavy), "summit": (top, top),
             "close": (0.48, 0.12)}
+
+
+# Whose instruments a band has (Character.sounds; 2026-11-23, evening: of 402 Knight Rock songs two thirds had the same two distorted guitars, all the
+# same bass recording, four in five the same kit, over half the same organ). What the band's writer names is played by what stands beside it: the music
+# is the writer's, the sound the set's. The house band's, the sound of every song until now, is "".
+BANDS: dict[str, dict[str, str]] = {
+    "doom": {"rhythm guitar": "doom guitar", "single guitar": "doom guitar", "muted guitar": "doom muted", "picked bass": "fuzz bass", "fretless": "fuzz bass",
+             "lead guitar": "fuzz lead", "kit rock": "kit mallets", "kit room": "kit mallets", "rock organ": "horns", "clean guitar": "chime guitar"},
+    "stoner": {"rhythm guitar": "fuzz guitar", "single guitar": "fuzz guitar", "muted guitar": "fuzz muted", "picked bass": "fuzz bass", "fretless": "fuzz bass",
+               "lead guitar": "fuzz lead", "kit rock": "kit rusty", "kit room": "kit rusty", "rock organ": "choir", "clean guitar": "chime guitar"},
+    "tweed": {"rhythm guitar": "crunch guitar", "single guitar": "crunch guitar", "muted guitar": "crunch muted", "picked bass": "round bass",
+              "fretless": "round bass", "lead guitar": "sweet lead", "kit rock": "kit rusty", "kit room": "kit brushed"},
+    "chop": {"rhythm guitar": "chop guitar", "single guitar": "chop guitar", "muted guitar": "chop muted", "picked bass": "fuzz bass", "fretless": "fuzz bass",
+             "lead guitar": "sweet lead", "kit rock": "kit rusty", "kit room": "kit rusty", "rock organ": "horns", "clean guitar": "wurly"},
+    "shanty": {"rhythm guitar": "crunch guitar", "single guitar": "crunch guitar", "muted guitar": "crunch muted", "picked bass": "tuba", "fretless": "tuba",
+               "lead guitar": "sweet lead", "kit rock": "kit rusty", "kit room": "kit rusty"},
+    "twang": {"rhythm guitar": "twang guitar", "single guitar": "twang guitar", "muted guitar": "crunch muted", "picked bass": "round bass",
+              "fretless": "round bass", "lead guitar": "sweet lead", "kit rock": "kit rusty", "kit room": "kit brushed", "rock organ": "oohs",
+              "clean guitar": "twang guitar"},
+    "lounge": {"rhythm guitar": "chime guitar", "single guitar": "chime guitar", "muted guitar": "crunch muted", "picked bass": "round bass",
+               "fretless": "round bass", "lead guitar": "sweet lead", "kit rock": "kit brushed", "kit room": "kit brushed", "clean guitar": "rhodes",
+               "twelve string": "chime guitar"},
+}
+# The library's first takes stay as they are; from this take on, a band song of any other character is played by another band than the house's, drawn for
+# the take: the same changes, its own tunes, and not the sound of every song before it.
+COVERS_FROM = 7
+COVER_BANDS = {"heavy": ("doom", "stoner", "tweed", "chop", "twang", "shanty"), "light": ("lounge", "twang", "tweed")}
+
+
+def band_of(fam: "Family", take: int) -> str:
+    """Whose instruments a take of a family has (BANDS): its character's own band's; another's than the house's from take COVERS_FROM on; or ""."""
+    character = fam.character
+    if character.sounds or not character.band or take < COVERS_FROM:
+        return character.sounds
+    kinds = COVER_BANDS["light" if character.light or character.weight < 0.7 else "heavy"]
+    return random.Random("band/%d/%d" % (fam.seed, take)).choice(kinds)
+
+
+def sounded(band: str, instrument: str) -> str:
+    """What plays an instrument the writer names, in a band's own sounds (BANDS)."""
+    return BANDS[band].get(instrument, instrument) if band else instrument
 
 
 # A low character's singers are brought down an octave where the middle of their notes is here or over it (A4).
@@ -2493,6 +2603,10 @@ SETTINGS_OF: dict[str, tuple[str, ...]] = {
     "sunken harbour": ("water", "settlement"), "warband halt": ("wastes", "heights"), "gravediggers rest": ("graves", "fields"),
     "black tap": ("settlement",), "confessors table": ("sacred", "settlement"), "marrow road": ("graves", "road"),
     "kelp chapel": ("water", "sacred"), "hoarfrost host": ("heights", "ruins"),
+    # The fourth round's (the same night).
+    "graveyard shift": ("graves", "settlement"), "black heath": ("wastes", "woods"), "watch on the wall": ("fort", "heights"),
+    "drowned shaft": ("works", "water"), "spider vault": ("woods", "graves"), "echo forge": ("works", "heights"),
+    "press gang": ("water", "settlement"), "bone caravan": ("wastes", "road"), "hollow moon": ("sacred", "woods"), "fever swamp": ("water", "woods"),
     "barroom blues": ("settlement",), "dwarf hall": ("settlement", "heights"), "road camp": ("road", "woods"),
     "midnight ride": ("road",), "downpour run": ("road",), "field storm": ("fields",), "monsoon": ("woods", "water"),
     "witch storm": ("graves", "woods"),
@@ -3766,7 +3880,8 @@ class Take:
                     # the mandolin, the harmonica or the whistle as well as the lead guitar; and a summit of the theme and half
                     # of it again has room for one, the half after it. Where the theme is eight bars and the summit states it
                     # three times or more, the solo takes two of them: sixteen bars, as a solo wants.
-                    soloist = ch.band and strong[0] in SOLOISTS and whole_turns >= 1 and len(stated) > 1 and SOLOS
+                    soloists = SOLOISTS_LOW if ch.low else SOLOISTS
+                    soloist = ch.band and strong[0] in soloists and whole_turns >= 1 and len(stated) > 1 and SOLOS
                     if period <= 8 and whole_turns >= 3 and stated[1][1]:
                         solo_turns = 2
                 for index, (bar, full) in enumerate(stated):
@@ -3785,7 +3900,7 @@ class Take:
                         length = period * solo_turns
                         mine = [chords[min(bar + each, len(chords) - 1)] for each in range(length)]
                         sing(strong[0], guitar_solo(own, tune, length, beats, self.pulse, fam.bpm, mine, key.mode, min(reach), max(reach),
-                                                    two=SOLOISTS.get(strong[0], True), harp=strong[0] == "harmonica"),
+                                                    two=SOLOISTS_LOW.get(strong[0], True), harp=strong[0] == "harmonica"),
                              bar, loud, tag=" solo")
                         self.soloed = True
                         self.solo_bars = bar + length

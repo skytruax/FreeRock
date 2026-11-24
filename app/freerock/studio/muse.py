@@ -128,6 +128,26 @@ PARTS: dict[str, tuple[tuple, ...]] = {
     "clean guitar": (("Clean Guitar", 0, 127, "", "Muse Guitars Vol 1/Electric SC - Clean"),),
     "picked bass": (("Bass Guitar", 0, 127, "", "Muse Guitars Vol 1/Electric Bass"),),
     "rock organ": (("Hammond Organ", 0, 127, "", "Muse Keys/Hammond Organ"),),
+    # The bands' other sounds (2026-11-23: "too much of the same instrument sounds"). The guitars are Muse's clean ones, each through an amplifier of
+    # the studio's own (sounds.AMPS); a pair of them, where a riff is played twice, one on each side.
+    "soprano sax": (("Clarinet in B♭", 0, 127, "", "Muse Woodwinds/Soprano Saxophone"),),
+    "alto sax": (("Clarinet in B♭", 0, 127, "", "Muse Woodwinds/Alto Saxophone"),),
+    "tenor sax": (("Clarinet in B♭", 0, 127, "", "Muse Woodwinds/Tenor Saxophone"),),
+    "bari sax": (("Bassoon", 0, 127, "", "Muse Woodwinds/Baritone Saxophone"),),
+    "rhodes": (("Piano", 0, 127, "", "Muse Keys/Suitcase Piano"),), "upright piano": (("Piano", 0, 127, "", "Muse Keys/Upright Piano"),),
+    "crunch guitar": (("Rhythm Guitar", 0, 127, "", "Muse Guitars Vol 1/Electric LP - Clean"), ("Rhythm Guitar", 0, 127, "", "Muse Guitars Vol 1/Electric SC - Clean")),
+    "crunch muted": (("Muted Guitar", 0, 127, "", "Muse Guitars Vol 1/Electric LP - Clean"), ("Muted Guitar", 0, 127, "", "Muse Guitars Vol 1/Electric SC - Clean")),
+    "fuzz guitar": (("Rhythm Guitar", 0, 127, "", "Muse Guitars Vol 1/Electric LP - Clean"), ("Rhythm Guitar", 0, 127, "", "Muse Guitars Vol 1/Electric SC - Clean")),
+    "fuzz muted": (("Muted Guitar", 0, 127, "", "Muse Guitars Vol 1/Electric LP - Clean"),),
+    "doom guitar": (("Rhythm Guitar", 0, 127, "", "Muse Guitars Vol 1/Electric LP - Clean"), ("Rhythm Guitar", 0, 127, "", "Muse Guitars Vol 1/Electric SC - Clean")),
+    "doom muted": (("Muted Guitar", 0, 127, "", "Muse Guitars Vol 1/Electric LP - Clean"),),
+    "chop guitar": (("Rhythm Guitar", 0, 127, "", "Muse Guitars Vol 1/Electric SC - Clean"),),
+    "chop muted": (("Muted Guitar", 0, 127, "", "Muse Guitars Vol 1/Electric SC - Clean"),),
+    "twang guitar": (("Clean Guitar", 0, 127, "", "Muse Guitars Vol 1/Electric SC - Clean"),),
+    "chime guitar": (("Clean Guitar", 0, 127, "", "Muse Guitars Vol 1/Electric LP - Clean"),),
+    "sweet lead": (("Electric Guitar", 0, 127, "", "Muse Guitars Vol 1/Electric SC - Clean"),),
+    "fuzz lead": (("Electric Guitar", 0, 127, "", "Muse Guitars Vol 1/Electric LP - Clean"),),
+    "fuzz bass": (("Bass Guitar", 0, 127, "", "Muse Guitars Vol 1/Electric Bass"),), "round bass": (("Bass Guitar", 0, 127, "", "Muse Guitars Vol 1/Electric Bass"),),
     # The orchestra's percussion that Muse Percussion plays (2026-11-17, night: "get everything out of muse"). Written
     # on a drum staff: each note's pitch is the drum it strikes (see PERCUSSION). A "trem" part is a roll.
     "taikos": (("Taiko", 0, 127, ""),), "tam-tam": (("Tam-tam", 0, 127, ""),), "mark tree": (("Mark Tree", 0, 127, ""),),

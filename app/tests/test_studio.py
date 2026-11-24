@@ -535,7 +535,7 @@ def test_a_character_that_opens_is_heard_from_its_first_bar():
     valley are lifted, and nothing else is; the valley is still the quietest the story gets once it has begun."""
     import dataclasses
     opening = [character for character in orchestra.CHARACTERS if character.opens]
-    assert len(opening) >= 7 and all(character.role in ("town", "ember", "camp") and not character.band for character in opening)
+    assert len(opening) >= 10 and all(character.role in ("town", "ember", "camp", "wander") and not character.band for character in opening)
     for character in opening:
         levels, plain = orchestra.levels_of(character), orchestra.levels_of(dataclasses.replace(character, opens=False))
         assert plain == orchestra._levels(character.role, character.weight, character.busy)
@@ -547,17 +547,19 @@ def test_a_character_that_opens_is_heard_from_its_first_bar():
     assert next(section.level for section in fam.sections if section.part == "open") == orchestra.levels_of(opening[0])["open"]
 
 
-def test_a_low_characters_singers_stand_low():
+def test_a_low_characters_singers_stand_low(monkeypatch):
     """(2026-11-23, night: dark in key and in instruments, and sung at the top of them: a clarinet's middle A5, a viola's D5.) The singers of a
     low character are an octave down wherever the middle of their notes was A4 or over and they can be; the same notes otherwise."""
-    import dataclasses
     import statistics
     low = [character for character in orchestra.CHARACTERS if character.low]
     assert len(low) >= 20
     lowered = 0
     for index, character in enumerate(low):
-        plain = orchestra.Take(orchestra.family(dataclasses.replace(character, low=False), 700 + index, "f", "F"), 1)
-        take = orchestra.Take(orchestra.family(character, 700 + index, "f", "F"), 1)
+        fam = orchestra.family(character, 700 + index, "f", "F")
+        with monkeypatch.context() as as_written:
+            as_written.setattr(orchestra.Take, "sing_low", lambda self: None)
+            plain = orchestra.Take(fam, 1)
+        take = orchestra.Take(fam, 1)
         for name, voice in take.voices["lead"].items():
             was = plain.voices["lead"][name]
             inst = orchestra.INSTRUMENTS[voice.instrument]
@@ -1517,7 +1519,11 @@ def test_most_band_songs_have_a_solo_each_its_own_and_moving():
                 name, voice = solos[0]
                 who[name] += 1
                 player = name[:-len(" solo")]
-                assert player in orchestra.SOLOISTS and player in tuple(made.ch.strong) + tuple(made.ch.leads)
+                soloists = orchestra.SOLOISTS_LOW if made.ch.low else orchestra.SOLOISTS
+                assert player in soloists and player in tuple(made.ch.strong) + tuple(made.ch.leads)
+                if not soloists[player]:                     # a wind never sounds two notes at once
+                    ordered = sorted(voice.notes, key=lambda note: note.start)
+                    assert all(one.start + one.length <= other.start + 1e-6 or one.start != other.start for one, other in zip(ordered, ordered[1:])), (fam.name, name)
                 flanger = dict(voice.effects).get("flanger")
                 assert flanger and max(value for _, value in flanger) > 0, "%s: no flanger under its solo" % fam.name
                 assert "wah" not in voice.effects and "echo" in voice.effects

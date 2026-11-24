@@ -266,3 +266,78 @@ def test_a_render_that_keeps_writing_is_left_to_finish(tmp_path, monkeypatch):
     script.write_text("#!/bin/sh\nfor i in 1 2 3 4 5 6 7 8 9 10; do echo x >> '%s'; sleep 0.3; done\n" % out)
     desk.render(rpp, display=":0", timeout=60.0)
     assert out.read_text().count("x") == 10
+
+
+# --- the bands' own sounds (2026-11-23: "all the knight rock songs sound like the same song", "too much of the same instrument sounds") -----------
+
+def test_every_sound_a_band_has_is_one_the_desk_can_play():
+    from freerock.studio import muse, orchestra, sounds
+    assert len(orchestra.BANDS) >= 7
+    for name, band in orchestra.BANDS.items():
+        for written, plays in band.items():
+            if written.startswith("kit "):
+                # (The same strokes on the same notes, so that a song's drums are struck as they were written.)
+                assert orchestra.KITS[plays[4:]] == orchestra.KITS[written[4:]], (name, written, plays)
+            else:
+                assert plays in muse.PARTS and (plays in orchestra.INSTRUMENTS or plays in sounds.AMPS), (name, written, plays)
+        guitars = {band[each] for each in ("rhythm guitar", "single guitar")}
+        assert guitars and "rhythm guitar" not in guitars, "%s still has the house band's guitars" % name
+        assert band["picked bass"] not in ("picked bass", "fretless") and band["kit rock"] != "kit rock", name
+    # No two sets have the same guitar, bass and kit; and the characters of the third and fourth rounds have one each, and not all the same.
+    kinds = {(band["rhythm guitar"], band["picked bass"], band["kit rock"]) for band in orchestra.BANDS.values()}
+    assert len(kinds) == len(orchestra.BANDS)
+    sets = [character.sounds for character in orchestra.CHARACTERS if character.sounds]
+    assert len(sets) >= 20 and len(set(sets)) >= 7 and max(sets.count(each) for each in set(sets)) <= 6, sets
+    assert all(each in orchestra.BANDS for each in sets)
+
+
+def test_an_amplifier_is_on_every_track_of_a_sound_that_has_one(monkeypatch, tmp_path):
+    from freerock.studio import muse, sounds
+    from freerock.studio.score import Note, Voice
+    import soundfile
+    import numpy as np
+    silent = tmp_path / "silent.flac"
+    soundfile.write(str(silent), np.zeros((4800, 2), dtype=np.float32), 48000)
+    monkeypatch.setattr(muse, "available", lambda: True)
+    monkeypatch.setattr(muse, "sounds", lambda: True)
+    monkeypatch.setattr(muse, "perform", lambda *args, **kwargs: silent)
+    for name in sounds.AMPS:
+        made = sounds.lines(Voice(notes=[Note(0.0, 1.0, 45, 0.7)], instrument=name), name, 100.0)
+        assert made and all(any("freerock/amp" in effect for effect in line.effects) for line in made), name
+        assert len(made) == len(muse.PARTS[name]) and len({line.pan for line in made}) == len(made), (name, [line.pan for line in made])
+    plain = sounds.lines(Voice(notes=[Note(0.0, 1.0, 45, 0.7)], instrument="rhythm guitar"), "rhythm guitar", 100.0)
+    assert not any("freerock/amp" in effect for line in plain for effect in line.effects)
+
+
+def test_a_song_in_a_bands_own_sounds_is_the_same_music_played_by_them(monkeypatch):
+    import dataclasses
+    from freerock.studio import build, orchestra
+    character = next(each for each in orchestra.CHARACTERS if each.name == "headsmans square")
+    assert character.sounds == "doom"
+    fam = orchestra.family(character, 77, "f", "F")
+    plain = build.write(dataclasses.replace(fam, character=dataclasses.replace(character, sounds="")), 1)
+    own = build.write(fam, 1)
+    heard = {voice.instrument for parts in own.parts.values() for voice in parts.values() if voice.notes}
+    assert "doom guitar" in heard and "fuzz bass" in heard and "kit mallets" in heard
+    assert not heard & {"rhythm guitar", "single guitar", "muted guitar", "picked bass", "lead guitar", "kit rock"}
+    assert own.about["sounds"] == "doom" and plain.about["sounds"] == ""
+    for channel, parts in plain.parts.items():
+        assert set(parts) == set(own.parts[channel])
+        for name, voice in parts.items():
+            assert [(note.start, note.length, note.pitch) for note in voice.notes] == [(note.start, note.length, note.pitch) for note in own.parts[channel][name].notes]
+
+
+def test_a_later_take_of_an_old_song_is_played_by_another_band_and_its_first_takes_stay():
+    from freerock.studio import build, orchestra
+    fam = next(fam for fam, _ in build.plan() if fam.name == "pastoral-banner-ride-1")
+    assert not fam.character.sounds and [orchestra.band_of(fam, take) for take in range(1, orchestra.COVERS_FROM)] == [""] * (orchestra.COVERS_FROM - 1)
+    later = {orchestra.band_of(fam, take) for take in range(orchestra.COVERS_FROM, orchestra.COVERS_FROM + 12)}
+    assert "" not in later and len(later) >= 3 and later <= set(orchestra.COVER_BANDS["heavy"])
+    orchestral = next(fam for fam, _ in build.plan() if fam.character.style == "warcraft")
+    assert orchestra.band_of(orchestral, 9) == "", "an orchestra is not a band"
+    light = next(fam for fam, _ in build.plan() if fam.character.band and fam.character.light)
+    assert orchestra.band_of(light, 8) in orchestra.COVER_BANDS["light"]
+    first, cover = build.write(fam, 1), build.write(fam, orchestra.COVERS_FROM)
+    assert any(voice.instrument == "rhythm guitar" for voice in first.parts["rhythm"].values())
+    assert not any(voice.instrument in ("rhythm guitar", "single guitar", "muted guitar", "picked bass", "kit rock")
+                   for parts in cover.parts.values() for voice in parts.values() if voice.notes), cover.about["sounds"]

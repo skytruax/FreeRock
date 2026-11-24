@@ -907,6 +907,8 @@ parts and their levels. This is what differs.
 
 ### 4.1 The band
 
+These are the house band's instruments; there are seven bands beside it, with their own (4.11).
+
 | Written name | Played by | Seat and tone |
 |---|---|---|
 | rhythm guitar | two Muse parts: `Electric LP - Heavy` and `Electric SC - Heavy` | LP left (−0.6, 4 dB up), SC right (+0.65, 5 dB down, 11 ms late): *two takes are never together to the sample* |
@@ -1356,6 +1358,49 @@ Wing") and the way a singer phrases:
 - `orchestra.SOLOS = False` takes it away and gives the summit back to the twins.
 
 ---
+
+### 4.11 Eight bands
+
+"all the knight rock songs sound like the same song", "too much of the same instrument sounds" (2026-11-23, evening, played). Counted over the 402
+Knight Rock sheets staged: the same two distorted guitars, recorded distorted, in two songs of three; one bass recording in 96 of 100 (the fretless is the same
+Muse part as the picked bass); the rock kit in 80; the organ's pad in 55; a lead guitar's tune in 62; 4/4 in 95; one form of nine parts in all of them. The
+bands answer for the first five of those.
+
+A character has the instruments of a band (`Character.sounds`, a key of `orchestra.BANDS`; "" is the house band, the sound of every song before that
+night). The writer writes for the instruments of 4.1 and its notes are its own; `build.write` gives each to what stands for it in the band
+(`orchestra.band_of`, `sounded`), and the sheet says which (`about["sounds"]`). What a band does not name is played as written.
+
+| Band | Guitars | Bass | Lead guitar | Kit | Organ, clean guitar | Whose |
+|---|---|---|---|---|---|---|
+| doom | driven hard, an octave under, closed at 3.8 kHz | fuzz | fuzz | mallets | horns; chime guitar | headsman's square, leaden sky, drowned shaft |
+| stoner | fuzz | fuzz | fuzz | rusty | choir; chime guitar | cathedral ward, hollow moon |
+| tweed | crunch | round | sweet | rusty, brushed where it was the room kit | as written | rogues' quarter, watch on the wall, fever swamp |
+| chop | one, driven, short, its middle forward | fuzz | sweet | rusty | horns; wurly | pit fighters, drowning ride, echo forge |
+| shanty | crunch | a tuba | sweet | rusty | as written | press gang |
+| twang | clean, a tremolo and a spring | round | sweet | rusty, brushed | oohs; twang guitar | whetstone fire, deserters' camp, bone caravan |
+| lounge | chime (a clean guitar, an ensemble, an echo) | round | sweet | brushed | as written; rhodes | last orders, smoke den, graveyard shift, black heath, spider vault |
+
+**The guitars and the basses** are Muse's clean guitars and its electric bass through an amplifier of the studio's own (`studio/jsfx/amp`, `sounds.AMPS`):
+a cut and a lift before the valve, one of five valves four times oversampled (clean, crunch, drive, fuzz, torn), an octave under (a
+flip-flop that follows the string, as an octave fuzz has), the tone stack, the loudspeaker's top, a tremolo and a spring. Each was set to stand where the house
+band's own does, the same riff and the same tune rendered by both: the two guitars together at −16 LUFS, muted −17, the lead −20.5, the bass −12.3.
+Two guitars sit at ∓0.6, the second 11 ms behind, as the house's do; the chop's and the twang's are one guitar each, off the middle.
+
+**The kits** are the Big Rusty Drums, with sticks (`kit rusty`), with brushes (`kit brushed`) and with mallets (`kit mallets`), the same strokes on
+the same notes as the rock kit's, their levels measured as every kit's are (`levels.json`); the kick goes under their bass drum too (`KICKED`).
+
+**The other instruments**: Muse's four saxophones (level against the lead guitar's tune: the tenor and the alto 6 dB down), its suitcase piano (`rhodes`), its
+Wurlitzer (`wurly`) and its upright piano. A saxophone leads smoke den and graveyard shift; the keys strum where a guitar would.
+
+**Covers.** A family's first seven takes (0 to 6) stay as they are. From take 7 on (`COVERS_FROM`) a band song of any other character is played by a
+band drawn for the take (`COVER_BANDS`: a heavy song by doom, stoner, tweed, chop, twang or shanty, a light one by lounge, twang or tweed): the family's
+changes and form, its own tunes, and not the sound of the song before it.
+
+**Who solos.** A solo was the lead guitar's, the fiddle's and the like; a song sung low solos whoever leads its summit (`SOLOISTS_LOW`: the viola, the cello, the
+clarinet, the trombone, the horns and the saxophones too), to the top each has (`SOLO_TOP`). Three in ten of the two new rounds' songs had no solo before it.
+
+Owed, for the same sentence: the form (nine parts at 455 to 492 s in every song), the metre (95 of 100 in 4/4), and the player's choice between two songs (it
+does not know the band yet).
 
 ## 5. House
 
@@ -2254,6 +2299,14 @@ trombone, the cello, the bass flute and the horns, over four drum patterns of th
 toms`) and, in six of them, the riff that is a line (4.2); Warcraft's by the low winds and brass, in three towns, two camps, two
 inns and the walks with the least dark music. Seventy families, none before them changed (a hash of every note of 163 of them).
 
+*The fourth round's ten* (the same night; Knight Rock only). Its nights had two characters behind them all, its caves three, the coast, the desert and the
+mystic lands one heavy walk each, the marsh two: what comes round there is one sound in other keys. Three nights (a baritone saxophone's, a cello's, the horns'), three
+caves (the bassoon, the english horn, the trombone) and four walks (a mandolin's on the coast, a viola's in the desert, a bass flute's in the mystic lands, a
+clarinet's in the marsh), forty families, none before them changed, each in a band of its own (4.11).
+
+*A band character names its band* (the same night). `Character.sounds`, a key of `BANDS`, and not the one its neighbours have: a place's
+characters, and the two a song can follow in the rotation, are heard one after the other.
+
 *Sung low, not only led low* (the same night). Where the tunes of the library stand, the middle of every song's lead notes, solos aside
 (395 Knight Rock and 372 Warcraft sheets): Knight Rock's heavy songs C5, its light ones F♯5, Warcraft's light ones F♯5, its heavy ones B4. The
 third round's first writing named the clarinet, the viola and the bass flute and sang them at A5, D5 and D5, their tops: an instrument's `home`
@@ -2268,10 +2321,29 @@ enjoyment and 2.94 and 3.09 for musicality, the tuba's 6.65 and 2.62, the bassoo
 the celli's, and the contrabassoon and the tuba double it at the moments, as they did. Five of the first round's songs have their line given to the
 basses in their sheets, to be judged beside what they were.
 
+*What is bright and what is thin* (the same night: the studies of 399 Knight Rock songs, each channel by who has most of it, in dB against the liked stems,
+its middle and its top). Pads: the accordion's top stands 20 over, the strings' 16, the organ's 13, the pipe drone's 9, the choir's and the oohs' 5
+(the harmonica's 33); all their middles 7 or 8 over. Leads: the whistle's middle 12.5 thin, the accordion's 9, the harmonica's 4.5, the fiddle's 2.5 and
+its top 11 over; the lead guitar's middle level and its top 8 over, the mandolin's 2 thin and 5 over. Strummed: the rhythm guitars' top 7 over, the twelve
+string's 4, the banjo's 5, the steel guitar's level, the clean guitar's 2 under. The picked bass is 3 thin in its middle. So a dark band song has the choir,
+the oohs or the pipe drone for its pad and not the accordion or the strings, the steel or the clean guitar where it is soft, and a lead with a body; the
+third and the fourth rounds' do. The guitars' and the leads' tops are the desk's to ease (the dark desk, owed).
+House, 193 songs: the saw's and the supersaw's leads (134 of them) stand 14 over at the top, the sine's and the electric piano's 2 to 5 under; its
+keys' tops 37 (the bell), 27 (the glass), 22 (the pluck) and 15 (the stab) over, the harp's, the piano's, the marimba's and the electric piano's level or under;
+its pads 14 to 21 over, the strings most; its hats are the mix's own top all the same (6.1 kHz). Warcraft, 372 songs: the oohs' pad is 9 under at the top, the
+strings' 2 over, the organ's 7; the choir's lead 6 under, the trombone's 3, the violins' 3 over, the accordion's 6; plucked, the vibes 10 under, the celesta 5,
+the glockenspiel 10 over, the mandolin and the banjo 8; its bass lines are thin in their middles when plucked or fretless (the fretless 11, the basses plucked
+6.5, the acoustic 5, the celli plucked 3) and level when bowed.
+
 *Heard from the first bar* (the same night). Nine of Warcraft's twenty songs of the first round, ten new and ten old, opened at −36 to −43 LUFS
 (Gutted Parish −39, Ramparts City −37, Iron Bridge −36, Gatehouse Square −38), where the others open at −28 to −34 and a town or an inn is
 heard over. A character that `opens` plays its opening louder by 0.13 to 0.11 of full strength and its valley by 0.07 (`OPENS`), and nothing else:
-the third round's Warcraft towns, camps and inns do. Five old songs have the same done to their sheets, to be judged beside what they were.
+the third round's Warcraft characters do, all ten. Five old songs have the same done to their sheets, to be judged beside what they were. Where the parts
+stand in 770 studied songs (LUFS, the middle of each kind; the summit is at -17 to -21 everywhere): Warcraft's walks open at -39 (heavy) and -35 (light),
+its towns at -35, its inns, camps, nights and caves at -30 to -34; Knight Rock's heavy walks open at -27 and fall to -37 in the valley, its
+light ones at -32 and -34, its inns, camps and nights at -28 to -32; its fights and storms at -24, their valleys at -22 and their swing 5 dB, where Warcraft's are at
+-28 and swing 11. The second round's first light walk (Bramble Wood, a viola over a twelve-string) opened at -42: a walk for a few players opens
+on one plucked instrument at a quarter of its strength, and needs the same.
 
 **Warcraft or Knight Rock.**
 
