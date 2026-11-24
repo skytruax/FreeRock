@@ -50,7 +50,9 @@ BAND_BALANCE = {"doom": {"rhythm": 1.0, "bass": 1.0, "drums": -1.0, "lead": -0.5
                 "tweed": {"rhythm": -0.5, "lead": 0.5}, "chop": {"drums": 1.0, "rhythm": -1.5, "bass": 0.5},
                 "shanty": {"rhythm": -1.0, "lead": 0.5, "texture": 0.5}, "twang": {"rhythm": -1.0, "drums": -0.5, "lead": 0.5, "texture": 1.0},
                 "lounge": {"rhythm": -1.5, "drums": -1.0, "bass": 0.5, "lead": 0.5}, "cellos": {"rhythm": 0.5, "drums": -1.0},
-                "cathedral": {"rhythm": 0.5, "texture": 1.0, "drums": -0.5}, "saloon": {"rhythm": 0.5, "drums": -1.0, "bass": -0.5}}
+                "cathedral": {"rhythm": 0.5, "texture": 1.0, "drums": -0.5}, "saloon": {"rhythm": 0.5, "drums": -1.0, "bass": -0.5},
+                "hammond": {"rhythm": 0.5, "drums": 0.5}, "grit": {"rhythm": -0.5, "bass": 0.5}, "baroque": {"rhythm": -0.5, "texture": 0.5, "drums": -1.0},
+                "bones": {"rhythm": 1.0, "drums": -0.5}}
 RIDE = 0.15                    # how far each part of the story is brought up towards the loudest part (it was 0.42, which
                                # took most of the written dynamics away: "rewrite all music to be more dynamic", 2026-11-16)
 # The least each channel is played at in each part of the story, so that the story is whole
@@ -467,6 +469,10 @@ SOLO_MOST = 8.0          # ...and the most it is brought up
 TUNE_LIFT = True         # a band's tune stands TUNE_OVER dB over its rhythm guitars wherever it sings (`tune_lift`)
 TUNE_OVER = 2.0
 TUNE_MOST = 5.0
+# ...and in a band of other sounds (orchestra.BANDS) up to this much (2026-11-23, 23:30, the first of them, Casket Roll: a tenor saxophone, the choir's oohs and
+# a sweet lead played softly read 10 to 12 dB under what they are at the summit, where the house's distorted lead reads 3; in its head, its bridge and its
+# close the lift stood at its 5 and the tune was still 4 dB under the piano).
+TUNE_MOST_BANDS = 11.0
 
 
 def solo_lift(parts: dict[str, np.ndarray], span: tuple[int, int], ramp: int) -> tuple[float, np.ndarray | None]:
@@ -494,10 +500,26 @@ def solo_lift(parts: dict[str, np.ndarray], span: tuple[int, int], ramp: int) ->
     return round(float(lift), 2), curve
 
 
-def tune_lift(parts: dict[str, np.ndarray], spans: list[tuple[int, int]], ramp: int) -> tuple[list[float], np.ndarray | None]:
+def sung_spans(form: list[dict], edges: list[int], solo_spans: list[tuple[int, int]]) -> list[tuple[int, int]]:
+    """Where a band's tune sings, in samples: every part of the story but the open, where the riff is alone, and the solos, which are lifted by
+    their own measure (the part after a solo, where it has one)."""
+    sung = []
+    for section, first, last in zip(form, edges, edges[1:]):
+        if section.get("story") == "open":
+            continue
+        for span in solo_spans:
+            if first < span[1] and last > span[0]:
+                first = max(first, span[1])
+        if last - first > int(2 * RATE):
+            sung.append((first, last))
+    return sung
+
+
+def tune_lift(parts: dict[str, np.ndarray], spans: list[tuple[int, int]], ramp: int, most: float | None = None) -> tuple[list[float], np.ndarray | None]:
     """How far the lead channel is brought up in each part of a band's story where its tune sings (TUNE_LIFT), so that it
-    stands TUNE_OVER dB over the rhythm guitars there, and at most TUNE_MOST; nothing where it stands over them already, or
+    stands TUNE_OVER dB over the rhythm guitars there, and at most `most` (TUNE_MOST); nothing where it stands over them already, or
     where the lead or the guitars play little. The gain for each sample, eased from part to part over `ramp` samples."""
+    most = TUNE_MOST if most is None else most
     if "lead" not in parts or "rhythm" not in parts:
         return [], None
     frames = len(parts["lead"])
@@ -505,10 +527,13 @@ def tune_lift(parts: dict[str, np.ndarray], spans: list[tuple[int, int]], ramp: 
     lifts = []
     for first, last in spans:
         lead = analysis.loudness_lufs(parts["lead"][first:last], RATE)
-        band = analysis.loudness_lufs(parts["rhythm"][first:last], RATE)
+        # (Further than the house band's most only against what the rhythm plays in the part, not what rings into it: Sentence March's valley has no guitars
+        # and read -31 of the chord before it.)
+        since = first + min(int(4.0 * RATE), (last - first) // 4) if most > TUNE_MOST else first
+        band = analysis.loudness_lufs(parts["rhythm"][since:last], RATE)
         lift = 0.0
         if lead > -50.0 and band > -50.0:
-            lift = max(min(band + TUNE_OVER - lead, TUNE_MOST), 0.0)
+            lift = max(min(band + TUNE_OVER - lead, most), 0.0)
         db[first:last] = lift
         lifts.append(round(float(lift), 2))
     if max(lifts, default=0.0) <= 0.1:
@@ -659,16 +684,8 @@ def perform(sheet: Sheet) -> dict:
     if about["band"] and TUNE_LIFT and "lead" in parts:
         # A band's tune stands over its rhythm guitars wherever it sings: every part of the story but the open, where the
         # riff is alone, and the solo, which is lifted by its own measure.
-        sung = []
-        for section, first, last in zip(sheet.form, edges, edges[1:]):
-            if section.get("story") == "open":
-                continue
-            for span in solo_spans:
-                if first < span[1] and last > span[0]:
-                    first = max(first, span[1])
-            if last - first > int(2 * RATE):
-                sung.append((first, last))
-        tune_dbs, tune_curve = tune_lift(parts, sung, int(60.0 / bpm * RATE))
+        tune_dbs, tune_curve = tune_lift(parts, sung_spans(sheet.form, edges, solo_spans), int(60.0 / bpm * RATE),
+                                         most=TUNE_MOST_BANDS if about.get("sounds") else TUNE_MOST)
         if tune_curve is not None:
             parts["lead"] = parts["lead"] * tune_curve[:, None]
             lead_curve = tune_curve if lead_curve is None else lead_curve * tune_curve

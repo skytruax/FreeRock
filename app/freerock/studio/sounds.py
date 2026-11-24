@@ -1379,7 +1379,8 @@ MUSE_NARROW = {"Muse Guitars Vol 1/Electric Bass": 0.35, "Muse Keys/Hammond Orga
 
 # The band's other guitars and basses (2026-11-23: "all the knight rock songs sound like the same song", "too much of the same instrument sounds"): Muse's
 # clean guitars and its bass, each through an amplifier of the studio's own (studio/jsfx/amp). `seats` is where its parts sit, in the order muse.PARTS
-# names them; `level` brings each to where the house band's two guitars stand together (the same riff, -20 LUFS), the basses to the house band's bass.
+# names them; `level` brings each to where the house band's two guitars stand together (the same riff, three quarters of full strength), the basses to the
+# house band's bass, with what it is held by (muse.SQUEEZE) counted in.
 @dataclass(frozen=True)
 class Amp:
     valve: int                 # 0 clean, 1 crunch, 2 drive, 3 fuzz, 4 torn
@@ -1413,24 +1414,26 @@ class Amp:
 
 _SIDES = (-0.6, 0.6)
 AMPS: dict[str, Amp] = {
-    "crunch guitar": Amp(1, 18.0, bass=0.0, middle=3.0, treble=3.0, at=900.0, top=6000.0, seats=_SIDES, tight=260.0, bright=9.0, presence=3.0, level=-21.9),
-    "crunch muted": Amp(1, 15.0, bass=2.0, middle=2.0, treble=0.0, at=800.0, top=4200.0, seats=_SIDES, tight=160.0, bright=6.0, level=-17.2),
-    "fuzz guitar": Amp(3, 24.0, bass=2.0, middle=-3.0, treble=2.0, at=700.0, top=4800.0, octave=0.1, seats=_SIDES, tight=200.0, bright=9.0, presence=2.0, level=-26.2),
-    "fuzz muted": Amp(3, 18.0, bass=3.0, middle=-1.0, treble=-3.0, top=3400.0, tight=140.0, bright=5.0, level=-22.1),
-    "doom guitar": Amp(2, 28.0, bass=4.0, middle=-2.0, treble=-1.0, at=900.0, top=3800.0, octave=0.3, seats=_SIDES, tight=130.0, bright=9.0, presence=1.0, level=-27.5),
-    "doom muted": Amp(2, 22.0, bass=4.0, middle=-1.0, treble=-4.0, top=3000.0, octave=0.2, tight=110.0, bright=5.0, level=-23.9),
-    "chop guitar": Amp(2, 16.0, bass=-2.0, middle=5.0, treble=3.0, at=1300.0, top=5200.0, seats=(-0.35,), tight=320.0, bright=8.0, presence=3.0, level=-20.8),
-    "chop muted": Amp(2, 14.0, bass=0.0, middle=3.0, treble=-1.0, at=1100.0, top=3800.0, seats=(0.35,), tight=220.0, bright=5.0, level=-19.0),
-    "twang guitar": Amp(0, 6.0, bass=-3.0, middle=-1.0, treble=6.0, at=500.0, top=7500.0, tremolo=0.5, rate=5.6, spring=0.5, seats=(-0.25,), tight=150.0, bright=6.0, presence=4.0, level=-7.6),
-    "chime guitar": Amp(0, 5.0, bass=-3.0, middle=-1.0, treble=6.0, top=8000.0, spring=0.2, seats=(0.3,), chorus=0.5, echo=0.28, tight=150.0, bright=6.0, presence=3.0, level=-13.5),
-    "sweet lead": Amp(1, 24.0, bass=1.0, middle=4.0, treble=-2.0, at=900.0, top=4600.0, spring=0.15, echo=0.2, tight=110.0, level=-23.5),
-    "fuzz lead": Amp(3, 30.0, bass=1.0, middle=1.0, treble=-4.0, at=850.0, top=3800.0, echo=0.22, tight=100.0, level=-26.9),
+    "crunch guitar": Amp(1, 18.0, bass=0.0, middle=3.0, treble=3.0, at=900.0, top=6000.0, seats=_SIDES, tight=260.0, bright=9.0, presence=3.0, level=-26.9),
+    "crunch muted": Amp(1, 15.0, bass=2.0, middle=2.0, treble=0.0, at=800.0, top=4200.0, seats=_SIDES, tight=160.0, bright=6.0, level=-22.2),
+    "fuzz guitar": Amp(3, 24.0, bass=2.0, middle=-3.0, treble=2.0, at=700.0, top=4800.0, octave=0.1, seats=_SIDES, tight=200.0, bright=9.0, presence=2.0, level=-28.7),
+    "fuzz muted": Amp(3, 18.0, bass=3.0, middle=-1.0, treble=-3.0, top=3400.0, tight=140.0, bright=5.0, level=-24.6),
+    "doom guitar": Amp(2, 28.0, bass=4.0, middle=-2.0, treble=-1.0, at=900.0, top=3800.0, octave=0.3, seats=_SIDES, tight=130.0, bright=9.0, presence=1.0, level=-29.4),
+    "doom muted": Amp(2, 22.0, bass=4.0, middle=-1.0, treble=-4.0, top=3000.0, octave=0.2, tight=110.0, bright=5.0, level=-25.8),
+    "chop guitar": Amp(2, 16.0, bass=-2.0, middle=5.0, treble=3.0, at=1300.0, top=5200.0, seats=(-0.35,), tight=320.0, bright=8.0, presence=3.0, level=-23.6),
+    "chop muted": Amp(2, 14.0, bass=0.0, middle=3.0, treble=-1.0, at=1100.0, top=3800.0, seats=(0.35,), tight=220.0, bright=5.0, level=-21.8),
+    "twang guitar": Amp(0, 6.0, bass=-3.0, middle=-1.0, treble=6.0, at=500.0, top=7500.0, tremolo=0.5, rate=5.6, spring=0.5, seats=(-0.25,), tight=150.0, bright=6.0, presence=4.0, level=-12.6),
+    "chime guitar": Amp(0, 5.0, bass=-3.0, middle=-1.0, treble=6.0, top=8000.0, spring=0.2, seats=(0.3,), chorus=0.5, echo=0.28, tight=150.0, bright=6.0, presence=3.0, level=-18.2),
+    "sweet lead": Amp(1, 24.0, bass=1.0, middle=4.0, treble=-2.0, at=900.0, top=4600.0, spring=0.15, echo=0.2, tight=110.0, level=-29.0),
+    "fuzz lead": Amp(3, 30.0, bass=1.0, middle=1.0, treble=-4.0, at=850.0, top=3800.0, echo=0.22, tight=100.0, level=-30.2),
     # (the amplified cellos and viola: the same riff at -16 LUFS, the same muted string at -17, the same tune at -20.5, as the house band's)
-    "riff celli": Amp(2, 14.0, bass=1.0, middle=1.0, treble=1.0, at=900.0, top=5200.0, seats=_SIDES, tight=70.0, bright=4.0, presence=2.0, level=-23.0),
-    "muted celli": Amp(2, 12.0, bass=2.0, middle=0.0, treble=-2.0, top=3600.0, seats=_SIDES, tight=70.0, bright=3.0, level=-21.0),
-    "fuzz viola": Amp(2, 18.0, bass=1.0, middle=2.0, treble=-2.0, at=900.0, top=4600.0, spring=0.15, echo=0.2, tight=110.0, level=-24.6),
-    "fuzz bass": Amp(3, 14.0, bass=3.0, middle=4.0, treble=0.0, at=800.0, top=3600.0, tight=25.0, bright=8.0, level=-18.8),
-    "round bass": Amp(0, 4.0, bass=3.0, middle=-1.0, treble=-12.0, at=400.0, top=1800.0, tight=25.0, level=-3.0),
+    "riff celli": Amp(2, 14.0, bass=1.0, middle=1.0, treble=1.0, at=900.0, top=5200.0, seats=_SIDES, tight=70.0, bright=4.0, presence=2.0, level=-26.4),
+    "muted celli": Amp(2, 12.0, bass=2.0, middle=0.0, treble=-2.0, top=3600.0, seats=_SIDES, tight=70.0, bright=3.0, level=-24.4),
+    "fuzz viola": Amp(2, 18.0, bass=1.0, middle=2.0, treble=-2.0, at=900.0, top=4600.0, spring=0.15, echo=0.2, tight=110.0, level=-28.0),
+    "torn organ": Amp(2, 14.0, bass=1.0, middle=2.0, treble=-1.0, at=1000.0, top=4800.0, seats=(0.0,), tight=90.0, bright=2.0, presence=1.0, level=-10.6),
+    "fuzz wurly": Amp(1, 18.0, bass=1.0, middle=3.0, treble=1.0, at=900.0, top=4800.0, tremolo=0.2, rate=5.0, seats=(0.2,), tight=110.0, bright=4.0, presence=2.0, level=-20.2),
+    "fuzz bass": Amp(3, 14.0, bass=3.0, middle=4.0, treble=0.0, at=800.0, top=3600.0, tight=25.0, bright=8.0, level=-21.3),
+    "round bass": Amp(0, 4.0, bass=3.0, middle=-1.0, treble=-12.0, at=400.0, top=1800.0, tight=25.0, level=-8.0),
 }
 
 

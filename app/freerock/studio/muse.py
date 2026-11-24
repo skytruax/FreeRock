@@ -31,6 +31,7 @@ import threading
 import uuid
 import zipfile
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import replace
 from pathlib import Path
 from urllib.parse import quote
 from xml.sax.saxutils import escape
@@ -135,6 +136,10 @@ PARTS: dict[str, tuple[tuple, ...]] = {
     "tenor sax": (("Clarinet in B♭", 0, 127, "", "Muse Woodwinds/Tenor Saxophone"),),
     "bari sax": (("Bassoon", 0, 127, "", "Muse Woodwinds/Baritone Saxophone"),),
     "rhodes": (("Piano", 0, 127, "", "Muse Keys/Suitcase Piano"),), "upright piano": (("Piano", 0, 127, "", "Muse Keys/Upright Piano"),),
+    # (a tuba that plays a band's bass line, held together as a bass is: SQUEEZE)
+    "stomp tuba": (("Tuba", 0, 127, ""),),
+    # (an organ and an electric piano torn by their amplifiers)
+    "torn organ": (("Hammond Organ", 0, 127, "", "Muse Keys/Hammond Organ"),), "fuzz wurly": (("Piano", 0, 127, "", "Muse Keys/Wurly 200A"),),
     # (two cellos and a viola, each through an amplifier)
     "riff celli": (("Violoncello", 0, 127, ""), ("Violoncello", 0, 127, "")), "muted celli": (("Violoncello", 0, 127, "pizz"), ("Violoncello", 0, 127, "pizz")),
     "fuzz viola": (("Viola", 0, 127, ""),),
@@ -681,11 +686,27 @@ def _plain(recording: Path) -> bool:
     return 10 * np.log10(power[hz > 16000].sum() / power.sum() + 1e-30) < -88.0
 
 
+# How far an instrument played through an amplifier of the studio's own (sounds.AMPS) is held together, 0 to 1: a note's strength goes this far of the way to
+# full. A guitar's amplifier does this to a soft hand; the house band's guitars are recorded distorted and fall 3 dB where Muse's clean ones fall 20
+# (2026-11-23, 23:30: Sentence March's valley tune, a chime guitar's, read -48 LUFS, and Keel-Scarred Shove's opening riff -40, under its choir). Measured, the same
+# phrase at 0.25, 0.5 and 0.8 of full strength (LUFS): the house's rhythm guitar -16.9, -16.3, -16.2 and its lead -20.9, -20.6, -20.6; the crunch guitar -34.2,
+# -23.5, -15.7; the doom -23.8, -18.4, -15.5; the chime -46.6, -34.6, -23.2 (Muse's clean guitar as it is -39.4, -27.4, -16.2); the sweet lead -39.6, -28.6,
+# -19.6; the fuzz lead -34.3, -24.7, -20.0. Held so far, a crunch falls 7 dB, a doom 4, a lead 8, a clean one 12. (What is not amplified keeps its whole range.)
+SQUEEZE: dict[str, float] = {
+    "crunch guitar": 0.6, "crunch muted": 0.6, "fuzz guitar": 0.5, "fuzz muted": 0.5, "doom guitar": 0.5, "doom muted": 0.5, "chop guitar": 0.5, "chop muted": 0.5,
+    "twang guitar": 0.5, "chime guitar": 0.45, "sweet lead": 0.6, "fuzz lead": 0.5, "fuzz bass": 0.5, "round bass": 0.5, "riff celli": 0.5, "muted celli": 0.5,
+    "fuzz viola": 0.55, "fuzz wurly": 0.5, "stomp tuba": 0.5,
+}
+
+
 def shared(written: str, notes: list[Note], seed: int = 0) -> list[tuple[str, str, list[Note], str | None]]:
     """A written instrument's notes shared out among the parts that play it: (part, way,
     notes, the Muse Sound that plays it: the one set down for the part, or the piece's own
     choice by its `seed`, or None for the one MuseScore picks)."""
     out = []
+    squeeze = SQUEEZE.get(written, 0.0)
+    if squeeze:
+        notes = [replace(note, loud=min(note.loud + (1.0 - note.loud) * squeeze, 1.0)) for note in notes]
     for each in PARTS[written]:
         part, low, high, way = each[:4]
         mine = [note for note in notes if low <= note.pitch <= high]

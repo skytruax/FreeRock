@@ -2458,8 +2458,8 @@ def test_a_heavy_bands_long_moment_rings_its_guitars_as_it_digs_in(monkeypatch):
     import statistics
     import types
     assert orchestra.HEAVY_DIG_TURNS and not orchestra.DIG_UP
-    ways = [orchestra.Take.dig_way.fget(types.SimpleNamespace(fam=fam, take=take))
-            for fam, _ in build.plan() if fam.character.style == "knight" and fam.character.band for take in (1, 2, 3, 4)]
+    ways = [orchestra.Take.dig_way.fget(types.SimpleNamespace(fam=fam, take=take, ch=fam.character))
+            for fam, _ in build.plan() if fam.character.style == "knight" and fam.character.band and not fam.character.turns for take in (1, 2, 3, 4)]
     assert all(ways.count(way) >= len(ways) // 5 for way in ("up", "ring", "plain")), {way: ways.count(way) for way in set(ways)}
 
     def phrases(take, part, name="rhythm guitar"):

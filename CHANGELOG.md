@@ -11,7 +11,7 @@ dictated, where it drove the change.
   organ, the viola, the bass clarinet, the trombone, the cello, the bass flute and the horns (250 of its 383 songs are led by a lead
   guitar), over four new drum patterns; Warcraft's by the low winds and brass.
 - **"all the knight rock songs sound like the same song"**, **"too much of the same instrument sounds"**: the same two distorted guitars were on two songs of
-  three, one bass recording on all but a few, one kit on four in five. Ten bands beside the house's (doom, stoner, tweed, chop, shanty, twang, lounge, and the fifth round's cellos, cathedral and saloon):
+  three, one bass recording on all but a few, one kit on four in five. Fourteen bands beside the house's (doom, stoner, tweed, chop, shanty, twang, lounge; the fifth round's cellos, cathedral and saloon; the sixth's hammond, grit, baroque and bones):
   Muse's clean guitars and its bass through an amplifier of the studio's own (`studio/jsfx/amp`, five valves, an octave under, tremolo, spring), the
   Big Rusty Drums with sticks, brushes and mallets, four saxophones, electric pianos and an upright. Every new band character has one
   (`Character.sounds`); from take 7 on a song of any other is played by another band than the house's. What is made stays as it is.
@@ -24,6 +24,10 @@ dictated, where it drove the change.
 - **Other metres**: 95 of 100 were in four. The riff that is a line moves in 3/4, 6/8, 5/4 and 7/8 too.
 - **The fifth round's ten** Knight Rock characters (forty families) have them: a waltz on amplified cellos, a jig, a seven, a five on a church organ, a stranger's
   trumpet over tremolo guitars, a hearse's shuffle on a saloon piano, two slow burns, and for the fights (two battles and two bosses before) a gallop and a five.
+- **The bands' amplified instruments are held together** (`muse.SQUEEZE`) and a soft lead is lifted further (`TUNE_MOST_BANDS`, `tools/lift_tunes.py`): in the first songs of
+  the new bands a valley's tune read -48 LUFS and an opening riff -40, where the house's recorded distortion never falls.
+- **The sixth round's ten** Knight Rock characters: towns, storms, inns, camps and a night, where its songs come round most, with four bands more (a driven organ, a driven
+  Wurlitzer, a harpsichord, a marimba) and moments that turn (`Character.turns`: a summit's guitars had been one colour 27 and 29 bars).
 - **Warcraft's fifth round** (thirty families): three dark inns, three towns, a night and three walks, in fives, sevens, six-eight and waltzes, verse and chorus or
   slow burns.
 - **Openings**: a heavy song opened on one guitar's riff, always. A new one can open on its drums or on its bass (`Character.opening`).

@@ -128,8 +128,12 @@ def test_a_chorus_is_the_same_song_each_time_it_comes_round():
     assert fam.section("second").level[0] > fam.section("build").level[1]      # the second verse comes down from the chorus
 
 
-def test_a_jam_has_a_solo_before_its_last_one_by_someone_else():
-    take = Take(made(shaped("jam")), 0)
+@pytest.mark.parametrize("character", [each for each in SHAPED if each.form == "jam"], ids=lambda each: each.name)
+def test_a_jam_has_a_solo_before_its_last_one_by_someone_else(character):
+    for number in range(4):
+        fam = made(character, number)
+        Take(fam, number)                                                     # (every take of it can be written, whoever leads)
+    take = Take(made(character), 0)
     _, first, last = span(take, "second")
     _, summit, end = span(take, "summit")
     early = {name for name, voice in take.voices["lead"].items() if name.endswith(" solo") and any(first <= note.start < last for note in voice.notes)}
@@ -185,6 +189,28 @@ def test_no_drum_is_struck_faster_than_a_drummer_can():
             assert len(quick) <= 0.02 * max(len(gaps), 1), (character.name, pitch, len(quick), len(gaps))
 
 
+def test_a_long_moment_turns_where_a_character_turns():
+    """(The second round's studies: a summit's guitars one colour 27 and 29 bars.) The guitars' figure in the stretch is not the moment's."""
+    turning = [character for character in CHARACTERS if character.turns and character.weight >= 0.8]
+    assert len(turning) >= 5
+    ways = set()
+    for character in turning:
+        for number in range(3):
+            fam = made(character, number)
+            take = Take(fam, number)
+            for section, first, _, _ in take.spans:
+                turned = [bar for bar in range(section.bars) if take.dig_turn(section.like, section.bars, bar)]
+                if section.like in ("arrival", "summit") and section.bars >= 16:
+                    assert turned and turned[0] >= 8 and turned[-1] < section.bars - 1, (character.name, section.part)
+                    assert len(turned) >= section.bars // 6
+                    ways.add(take.dig_way)
+                else:
+                    assert not turned
+    assert ways == {"ring", "swap"}
+    plain = [character for character in CHARACTERS if character.band and not character.turns][:20]
+    assert all(Take(made(character), 0).dig_way in ("up", "ring", "plain") for character in plain)
+
+
 def test_a_band_s_instruments_play_within_their_ranges():
     for character in [each for each in CHARACTERS if each.sounds]:
         take = Take(made(character), 0)
@@ -234,3 +260,62 @@ def test_every_band_is_played_by_something_the_desk_knows():
                 assert played[4:] in sounds.KIT_STROKES, (name, played)
             else:
                 assert played in muse.PARTS or played in sounds.SOUNDS, (name, written, played)
+
+
+def test_a_soft_lead_of_a_band_of_other_sounds_is_brought_up_further(tmp_path):
+    """(Casket Roll, the first of them: a saxophone's head 4 dB under the piano with the house band's most, 5 dB, given.)"""
+    import importlib.util
+    from pathlib import Path
+
+    import numpy as np
+    import soundfile
+    rate = build.RATE
+    t = np.arange(rate * 16) / rate
+    tone = lambda hz, db: ((np.sin(2 * np.pi * hz * t) * 10 ** (db / 20)).astype(np.float32))[:, None].repeat(2, axis=1)      # noqa: E731
+    spans = [(0, 8 * rate), (8 * rate, 16 * rate)]
+    parts = {"lead": tone(880.0, -34.0), "rhythm": tone(220.0, -22.0)}
+    house, _ = build.tune_lift(parts, spans, rate // 4)
+    bands, curve = build.tune_lift(parts, spans, rate // 4, most=build.TUNE_MOST_BANDS)
+    assert house == [build.TUNE_MOST] * 2 and bands[0] > build.TUNE_MOST + 3.0 and max(bands) <= build.TUNE_MOST_BANDS
+    form = [{"story": "open", "bars": 2}, {"story": "theme", "bars": 2}, {"story": "moment", "bars": 2}]
+    edges = [0, 4 * rate, 8 * rate, 12 * rate]
+    assert build.sung_spans(form, edges, [(8 * rate, 9 * rate)]) == [(4 * rate, 8 * rate), (9 * rate, 12 * rate)]
+
+    # ...and a take staged with the house band's most is mended in its stem, once.
+    path = Path(__file__).resolve().parents[2] / "tools" / "lift_tunes.py"
+    spec = importlib.util.spec_from_file_location("lift_tunes", path)
+    tool = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(tool)
+    folder = tmp_path / "song" / "1"
+    folder.mkdir(parents=True)
+    sheet = {"tempo": 60.0, "beats": 4.0, "about": {"sounds": "saloon"}, "parts": {"lead": {"tenor sax": {"notes": [[0.0, 4.0, 60, 0.5]]}}},
+             "form": [{"story": "open", "part": "open", "first": 0, "bars": 2}, {"story": "theme", "part": "first", "first": 2, "bars": 2}]}
+    meta = {"bar_frames": 4.0 * rate, "sections": [{"story": "open", "bars": 2}, {"story": "theme", "bars": 2}], "measured": {"tune lift": [5.0]}}
+    (folder / "sheet.json").write_text(json.dumps(sheet), encoding="utf-8")
+    (folder / "track.json").write_text(json.dumps(meta), encoding="utf-8")
+    for channel, audio in (("lead", tone(880.0, -29.0)), ("rhythm", tone(220.0, -22.0))):
+        soundfile.write(str(folder / (channel + ".flac")), audio, rate, subtype="PCM_24")
+    assert tool.lift(folder).startswith("brought up by part")
+    after, _ = soundfile.read(str(folder / "lead.flac"), dtype="float32", always_2d=True)
+    assert 20 * np.log10(np.abs(after[12 * rate:15 * rate]).max()) > -27.5 and abs(20 * np.log10(np.abs(after[rate:6 * rate]).max()) + 29.0) < 0.2
+    kept = json.loads((folder / "track.json").read_text(encoding="utf-8"))["measured"]
+    assert kept["tune lift"][0] > 5.5
+    assert tool.lift(folder).startswith("already")
+
+
+def test_an_amplified_instrument_is_held_together_and_the_others_keep_their_range():
+    """(Sentence March's valley tune, a chime guitar's, read -48 LUFS; Keel-Scarred Shove's opening riff -40, under its choir.)"""
+    from freerock.studio import muse, sounds
+    assert set(muse.SQUEEZE) <= set(muse.PARTS) and all(0.0 < hold <= 0.7 for hold in muse.SQUEEZE.values())
+    assert set(sounds.AMPS) - {"torn organ"} <= set(muse.SQUEEZE)                  # (an organ has no soft hand)
+    notes = [Note(0.0, 1.0, 45, 0.25), Note(1.0, 1.0, 45, 1.0)]
+    held = muse.shared("crunch guitar", notes)
+    assert all([round(note.loud, 3) for note in mine] == [0.7, 1.0] for _, _, mine, _ in held) and [note.loud for note in notes] == [0.25, 1.0]
+    for written in ("rhythm guitar", "cello", "tenor sax", "tuba"):
+        assert all([note.loud for note in mine] == [0.25, 1.0] for _, _, mine, _ in muse.shared(written, notes))
+    # ...and no band's written guitars, basses or lead guitar are left to fall away: each is held, or never falls (an organ, a harpsichord), or is
+    # an acoustic instrument played by itself.
+    loose = {"organ", "harpsichord", "celli pizz", "torn organ", "upright piano", "marimba", "clarinet"}
+    for name, band in BANDS.items():
+        for written in ("rhythm guitar", "single guitar", "muted guitar", "picked bass", "fretless", "lead guitar"):
+            assert band[written] in muse.SQUEEZE or band[written] in loose, (name, written, band[written])

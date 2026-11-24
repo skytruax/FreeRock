@@ -907,7 +907,7 @@ parts and their levels. This is what differs.
 
 ### 4.1 The band
 
-These are the house band's instruments; there are ten bands beside it, with their own (4.11).
+These are the house band's instruments; there are fourteen bands beside it, with their own (4.11).
 
 | Written name | Played by | Seat and tone |
 |---|---|---|
@@ -1382,12 +1382,25 @@ night). The writer writes for the instruments of 4.1 and its notes are its own; 
 | cellos | two cellos, each driven, one each side; muted, plucked | fuzz | a viola, fuzzed | mallets | choir; a cello | blackwater waltz |
 | cathedral | a church organ; its muted string the celli plucked | fuzz | fuzz | mallets | choir; harpsichord | five black kings |
 | saloon | an upright piano | round | sweet | rusty, brushed | oohs; wurly | hearse shuffle |
+| hammond | a drawbar organ, its amplifier driven | fuzz | sweet | rusty | choir; rhodes | iron market, thunderhead |
+| grit | a Wurlitzer, its amplifier driven, a little tremolo | round | fuzz | rusty, brushed | oohs; wurly | alchemists' row, gin alley |
+| baroque | a harpsichord; its muted string the celli plucked | round | a viola, fuzzed | mallets, brushed | choir; harpsichord | jesters' cellar, warden's lantern |
+| bones | a marimba | round | a clarinet | mallets | oohs; marimba | bonemongers, bone fire |
 
 **The guitars and the basses** are Muse's clean guitars and its electric bass through an amplifier of the studio's own (`studio/jsfx/amp`, `sounds.AMPS`):
 a cut and a lift before the valve, one of five valves four times oversampled (clean, crunch, drive, fuzz, torn), an octave under (a
 flip-flop that follows the string, as an octave fuzz has), the tone stack, the loudspeaker's top, a tremolo and a spring. Each was set to stand where the house
 band's own does, the same riff and the same tune rendered by both: the two guitars together at −16 LUFS, muted −17, the lead −20.5, the bass −12.3.
 Two guitars sit at ∓0.6, the second 11 ms behind, as the house's do; the chop's and the twang's are one guitar each, off the middle.
+
+*Held together* (`muse.SQUEEZE`, 2026-11-23, 23:40, the first six songs). The house's guitars are recorded distorted: the same phrase at a quarter, half and four fifths of
+full strength reads −16.9, −16.3 and −16.2 LUFS, and its lead −20.9, −20.6 and −20.6. A clean guitar through an amplifier falls: the crunch −34.2, −23.5, −15.7; the sweet
+lead −39.6, −28.6, −19.6; the chime −46.6, −34.6, −23.2. Sentence March's valley, a chime guitar's tune, read −48 and Keel-Scarred Shove opened on a riff at −40, under
+its choir. So each amplified instrument's notes go part of the way to full strength before they are played (0.6 for the crunch and the sweet lead, 0.5 for the others,
+0.45 for the chime), as an amplifier does to a soft hand: a crunch falls 7 dB, a doom 4, a lead 8. What is not amplified keeps its range.
+
+*The tune's lift* (4.1) goes to 11 dB in a band of other sounds (`build.TUNE_MOST_BANDS`; the house band's stays 5): a saxophone, the oohs or a viola played softly read 10
+to 12 under what they are at the summit. `tools/lift_tunes.py` gives it to a take staged before.
 
 **The kits** are the Big Rusty Drums, with sticks (`kit rusty`), with brushes (`kit brushed`) and with mallets (`kit mallets`), the same strokes on
 the same notes as the rock kit's, their levels measured as every kit's are (`levels.json`); the kick goes under their bass drum too (`KICKED`).
@@ -1437,6 +1450,14 @@ are the same names in any metre.
 *The fifth round's ten* (forty families): blackwater waltz (3/4, verses), gallows jig (6/8, riff), crooked mile (7/8, riff), five black kings (5/4, verses), high noon
 cairn (a burn, a trumpet over tremolo guitars), hearse shuffle (6/8, a jam on a saloon's piano), engine of ruin (riff), glass tide (a burn), and for the fights, which had
 two battles and two bosses, blood gallop (6/8, riff) and colossal tread (5/4).
+
+*The sixth round's ten for Knight Rock* (the same night): three towns (alchemists' row, five; bonemongers, a waltz over a marimba; iron market, a riff song on an organ),
+two storms (thunderhead, six-eight; black hail, seven, on cellos), two inns (jesters' cellar, a jam in three on a harpsichord; gin alley, a jam in five), two camps
+(outrider's fire, a waltz that only rises; bone fire, six-eight) and a night (warden's lantern, the same), where its songs still come round most.
+
+*A long moment turns* (`Character.turns`). Two of the second round's songs (Ragged Levy, Regicide Levy) kept one guitar colour through a summit of 27 and 29 bars: the
+dig-in (4.5 and after) draws one of three ways, two of which play on as written, and needs 24 bars. A character that turns has the stretch from the moment's half rung or
+given the other theme's figure, in every moment of sixteen bars or more.
 
 *Warcraft's fifth round* (thirty families): three inns, where one song of fifty-one was heavy (cardsharps den in five, wake house a waltz that only rises, mutineers hold
 in seven), three towns (quarantine gate, five, a burn; wreckage quay, six-eight; ash ward, seven), a night (hour of wolves, five) and three walks (last redoubt, a
