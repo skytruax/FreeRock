@@ -110,7 +110,7 @@ The first match wins (`director.py:465-526`). Ordinary fights do not change the 
 | 9 | in a town (resting, out of doors) | town | wander |
 | 10 | a rain storm for 4 s, out of doors (it ends once the rain has been under 0.4, or turned to other weather, for 20 s together) | storm | wander |
 | 11 | full tilt | storm | wander |
-| 11a | camping: still for 45 s out of doors, not on a flight path, in a dungeon or a fight (added 2026-11-17) | camp | wander, ember; night at night |
+| 11a | camping: still for 45 s out of doors, not in a town (a settlement by its own name, 2026-11-23), on a flight path, in a dungeon or a fight (added 2026-11-17) | camp | wander, ember; night at night |
 | 12 | night, out of doors and not in a dungeon | night | wander; ember when lingering |
 | 13 | anything else | wander | depths in a dungeon; ember when lingering |
 

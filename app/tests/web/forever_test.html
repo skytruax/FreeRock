@@ -1138,6 +1138,25 @@ tests.pieceFamilies = async () => {
   return { order };
 };
 
+// The walking song a camp cut into is gone back to when the player moves on, though another suits the country better: it was chosen over that one, heard
+// three times just now, and the player has gone nowhere. Gone into another kind of country meanwhile, it is not.
+tests.pieceCampBack = async () => {
+  const pieces = [{ id: "near", windows: 40, moods: ["highland"] }, { id: "own", windows: 40, moods: ["pastoral"], family: "own-1" },
+                  { id: "dread", windows: 40, moods: ["haunted"] }, { id: "fire", windows: 10, role: "camp" }];
+  const go = async (key, kinds) => {
+    const wall = Date.now() / 1000;
+    const run = await render(60, { bucket: makePieces(key, pieces), memory: { load: () => ({ "own-1": [wall - 180, wall - 120, wall - 60] }), save: () => {} },
+                                   target: Object.assign(mix(1), { place: "wander", also: [], kinds: ["pastoral"], zone: "Elwynn" }),
+                                   script: [[5, (engine) => engine.setTarget({ place: "camp", also: ["wander", "ember"], sited: true })],
+                                            [30.5, (engine) => engine.setTarget({ place: "wander", also: [], sited: false, kinds })]] });
+    const log = [...run.engine.log].sort((a, b) => a.at - b.at);
+    const fire = log.find((entry) => pieceOf(entry) === "fire"), back = log.find((entry) => pieceOf(entry) !== "fire" && entry.at > 31);
+    return { first: pieceOf(log[0]), fireAt: fire ? fire.at : null, back: back ? pieceOf(back) : null, clip: back ? back.clip : null,
+             offset: back ? back.offset : null, at: back ? back.at : null };
+  };
+  return { stayed: await go("campback", ["pastoral"]), moved: await go("campaway", ["haunted"]) };
+};
+
 // A moment with two characters, each with three families: one of each is for the ground underfoot and has never been heard; the other four were
 // heard some nights ago, and are sisters of those. Tonight the two come first, then the four, and neither again before them.
 tests.pieceSisters = async () => {

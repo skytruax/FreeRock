@@ -532,6 +532,17 @@ async def test_the_takes_of_one_family_count_as_one_song_and_its_sister_families
     assert heard[3] == "dance-2", "the sister family did not come before a second hearing of the others: %s" % heard
 
 
+async def test_the_walking_song_a_camp_cut_into_is_gone_back_to_though_another_suits_the_country_better(results):
+    """(2026-11-23, played: stood and stepped about in Menethil Harbor, five songs began in three minutes: a song for a neighbouring kind of place, chosen
+    because the place's own had been heard, was never gone back to.)"""
+    camp = of(results, "pieceCampBack")
+    stayed, moved = camp["stayed"], camp["moved"]
+    assert stayed["first"] == "near" and stayed["fireAt"] is not None, camp
+    assert stayed["back"] == "near" and not (stayed["clip"].endswith("-w0") and stayed["offset"] == 0), \
+        "the song the camp cut into was not picked up where it was left: %s" % camp
+    assert moved["back"] != "near", "a song was gone back to in another kind of country: %s" % camp
+
+
 async def test_a_song_heard_tonight_comes_after_its_sisters_of_other_nights(results):
     """("we want to not hear the same music much", 2026-11-23; played that evening: indoors in Menethil Harbor Glowworm Cave came back with one
     song between, every other cave song a sister of one heard tonight and the one just heard not counted as its own.)"""

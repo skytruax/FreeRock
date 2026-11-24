@@ -26,6 +26,9 @@ dictated, where it drove the change.
 - **"we want to not hear the same music much"**: a song heard in the last two hours came back with one song between (Glowworm Cave), where every
   other song for the moment was a sister of one heard tonight: the song itself was not counted as its own sister. It is, so it comes
   after them. It takes effect when the player page is loaded again.
+- **Standing about in a town is not camping**: at the mailbox in Menethil Harbor a camp's song came every forty-five seconds and another walking song at
+  each step, five songs in three minutes. A camp is out in the country; and a walking song that a camp, an inn or a cave cut into is gone back
+  to wherever it suits the place as well as it did when it began (a neighbouring kind's, chosen when the place's own had been heard, never was).
 - **A town's roof is not a cave's**: the game says "indoors" of both, and Menethil Keep and two town halls played a cave's music, a third of the week's
   time indoors outside dungeons. Where the place's name says a building (a hall, a keep, a tower, a harbor, a shire...) the music outside goes
   on, muffled (`atlas.building_of`, `Rules.buildings`). It takes effect when the server is next started.

@@ -456,6 +456,9 @@ class Director:
         # are for stepping into a mine or a building out in the world.
         cave = state.indoors and not dungeon
         building = cave and rules.buildings and atlas.building_of(state.zone_name, state.subzone_name)
+        # (2026-11-23, played: stood at the mailbox in Menethil Harbor, a camp's song every forty-five seconds and another walking song at each
+        # step: five songs in three minutes. A camp is a wait on a spawn, a rare or a friend, out in the country.)
+        in_town = rules.buildings and atlas.setting_of(state.subzone_name) == "settlement"
         if cave and not building and not state.resting:
             m.outdoors_since = None
             m.indoors_since = m.indoors_since if m.indoors_since is not None else now
@@ -541,7 +544,7 @@ class Director:
             place = "storm"
             also.append("wander")
             why.append("at full tilt")
-        elif camping and not dungeon and not state.indoors and not state.in_combat and m.combat_since is None:
+        elif camping and not in_town and not dungeon and not state.indoors and not state.in_combat and m.combat_since is None:
             # Camping ("camping should get its own tunes", 2026-11-17): stood a long while out of doors, waiting on a
             # spawn, a rare or a friend, with no fight (the spawn has come) and no storm. A place of its own, followed into at once; the
             # walking music and an inn's calm take turns with it, and the night's at night.

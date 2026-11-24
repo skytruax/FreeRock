@@ -937,11 +937,14 @@
       // The walking music that was left is gone back to only where it still belongs: not if the
       // player has since gone into another kind of place that has music of its own, nor into a
       // cave or an inn that has.
+      // (2026-11-23, played: a song for a neighbouring kind of place, chosen because the place's own had all been heard, was never gone back to after
+      // a camp or an inn: five songs in three minutes. A song that suits where the player is as well as it suited where it began, belongs.)
       const belongs = (piece) => {
         if (slot !== "walk") return true;
+        const asItWas = typeof left.fit === "number" && this._mood(piece.meta) <= left.fit + 1e-6;
         for (const other of index.values()) {
           if (!serves(other)) continue;
-          if (other.meta.role === piece.meta.role && this._mood(other.meta) < this._mood(piece.meta)) return false;
+          if (!asItWas && other.meta.role === piece.meta.role && this._mood(other.meta) < this._mood(piece.meta)) return false;
           if (this.target.sited === true && other.meta.role === this.target.place && piece.meta.role !== this.target.place) return false;
         }
         return true;

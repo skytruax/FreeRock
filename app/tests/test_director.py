@@ -396,6 +396,19 @@ def test_a_building_in_a_town_is_not_a_cave():
     assert as_it_was.place == "depths"
 
 
+def test_standing_about_in_a_town_is_not_a_camp():
+    """(2026-11-23, played: a camp's song every forty-five seconds at the mailbox in Menethil Harbor, and another walking song at each step.)"""
+    def stood(place, **rules):
+        start = dataclasses.replace(STANDING, zone_name="Wetlands", subzone_name=place, has_subzone=place is not None)
+        return play([], 60, rules=Rules(**rules) if rules else None, start=start)(55)
+
+    for town in ("Menethil Harbor", "Darkshire", "Moonglade Village"):
+        assert stood(town).place == "wander", town
+    for country in ("Black Channel Marsh", "Bluegill Marsh", None):
+        assert stood(country).place == "camp", country
+    assert stood("Menethil Harbor", buildings=False).place == "camp", "as it was"
+
+
 def test_ducking_into_a_doorway_does_not_change_the_section():
     at = play([(5, {"indoors": True}), (5.75, {"indoors": False})], 12)
     assert all(at(moment).place == "wander" for moment in (5, 5.5, 6, 7, 9, 12))
