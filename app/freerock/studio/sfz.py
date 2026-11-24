@@ -207,19 +207,33 @@ def struck(patch: Patch, *, dull: float = 3500.0, opens: float = 3600.0, players
     return "\n".join(rows) + "\n"
 
 
-def kit(strokes: list[tuple[int, Patch]], *, chokes: dict[int, int] | None = None) -> str:
+# One sweep of a brush, cut from a recording of it going round and round: in over six hundredths of a second, away over half a second.
+SWEEP = "ampeg_attack=0.06 ampeg_hold=0.04 ampeg_decay=0.55 ampeg_sustain=0"
+SWEPT_RATE = 44100             # the rate those recordings were made at (a place in them is counted in frames)
+
+
+def kit(strokes: list[tuple[int, Patch]], *, chokes: dict[int, int] | None = None, cuts: dict[int, tuple[float, ...]] | None = None) -> str:
     """A drum kit: each stroke's patch on its own note. `chokes` puts notes into groups that
-    silence each other (an open hi-hat is stopped by a closed one): note -> group number."""
+    silence each other (an open hi-hat is stopped by a closed one): note -> group number.
+    `cuts` are the notes whose recordings go on (a brush stirred round a snare) and where in
+    them, in seconds, a stroke is cut from: it comes in, swells and dies away (SWEEP), each
+    time from another place in another of them."""
     rows = _head()
     rows += ["<global>", "loop_mode=one_shot", "amp_veltrack=85", "pitch_random=9 amp_random=1.0 delay_random=0.004",
              "fil_type=lpf_1p cutoff=5000 fil_veltrack=3000 resonance=0", "ampeg_release=0.6"]
     for note, patch in strokes:
         own = sorted(patch.zones, key=lambda zone: zone.soft)
         for zone in own:
-            for turn, file in enumerate(zone.files):
+            starts = (cuts or {}).get(note, ())
+            strokes_of = [(start, file) for start in starts or (0.0,) for file in zone.files]
+            for turn, (start, file) in enumerate(strokes_of):
                 words = ["<region>", "sample=%s" % file, "key=%d pitch_keytrack=0" % note, "lovel=%d hivel=%d" % (zone.soft, zone.hard)]
-                if len(zone.files) > 1:
-                    words.append("seq_length=%d seq_position=%d" % (len(zone.files), turn + 1))
+                if len(strokes_of) > 1:
+                    words.append("seq_length=%d seq_position=%d" % (len(strokes_of), turn + 1))
+                if zone.gain:
+                    words.append("volume=%.1f" % zone.gain)
+                if starts:
+                    words.append("offset=%d %s" % (round(start * SWEPT_RATE), SWEEP))
                 if chokes and note in chokes:
                     words.append("group=%d off_by=%d off_mode=fast" % (chokes[note], chokes[note]))
                 rows.append(" ".join(words))

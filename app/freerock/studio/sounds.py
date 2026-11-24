@@ -28,6 +28,7 @@ AVL drum kits (Glen MacArthur, CC BY-SA 3.0). See tools/stems/README.md.
 from __future__ import annotations
 
 import json
+import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -211,10 +212,31 @@ KIT_STROKES: dict[str, dict[str, str]] = {
                 "hat": _RUST + "hihat_14/chik/oh/ht_*_rr*.flac", "hat open": _RUST + "hihat_14/ho_brush/oh/ht_*_rr*.flac", "ride": _RUST + "ride_22/mallet/oh/rd_*_rr*.flac",
                 "bell": _RUST + "ride_22/mallet/oh/rd_*_rr*.flac", "crash": _RUST + "crash_17/mallet/oh/cr_*_rr*.flac", "crash2": _RUST + "china_18/mallet/oh/cn_*_rr*.flac",
                 "tom": _RUST + "tom_15/mallet/oh/t15_*_rr*.flac", "tom low": _RUST + "tom_18/mallet/oh/t18_*_rr*.flac", "tom high": _RUST + "tom_14/mallet/oh/t14_*_rr*.flac"},
+    # (and "sticks", "felt" and "swept", under this table: the same three, balanced)
     "wood": {"boom": _IDIO + "Slit Drum/LogDrumLo_*.wav", "snare": _IDIO + "Slit Drum/LogDrumHi_*.wav",
              "tamb": _IDIO + "Cabasa/*.wav", "ting": _IDIO + "Woodblock/wood_click_[pmf]*.wav",
              "clack": _IDIO + "Claves/Claves1_Hit_*.wav", "crash": _IDIO + "Suspended Cymbal 1/susCymb1_hit_[pmf]*.wav"},
 }
+
+
+# The Big Rusty Drums held to the house's kit (2026-11-24, 01:30, every stroke of every kit played at four strengths through the band's drums' bus). At the
+# strength of a groove the bass drum stood where the house's does and everything else six to nine dB under it, the snare, the hats, the toms and the
+# crashes: twenty songs whose drums were a kick and little else, and in their valleys, where time is kept softly, the kick alone, over the tune. The kick
+# that goes with them is the half of it the house's is (OWN_BOOM: these kits have a bass drum of their own), and each stroke is brought to where the house's
+# rock kit has it against its bass drum (KIT_GAINS, dB). The sets as they were stay for the sheets that name them (rusty, mallets, brushed).
+# With brushes ("swept"; Ragged Beat's second theme: its brushed groove at -45 LUFS under a mix of -30) a cymbal is ten to twenty dB under the stick on it,
+# and what brushes are for, a snare stirred round and round, nothing played: a stroke given as more than one set of recordings has one for each strength,
+# softest first, and KIT_CUTS says where in them a sweep is cut from, in seconds.
+KIT_STROKES["sticks"], KIT_STROKES["felt"] = KIT_STROKES["rusty"], KIT_STROKES["mallets"]
+KIT_STROKES["swept"] = dict(KIT_STROKES["brushed"], swish=tuple(_RUST + "snare_14/bstir/oh/sn_stir_dl%d_rr*.wav" % strength for strength in (2, 3, 4)))
+KIT_LEVEL = {"sticks": 5.0, "felt": 1.0, "swept": 1.0}          # dB for the whole set beside the kick that goes with it
+KIT_GAINS: dict[str, dict[str, float]] = {
+    "sticks": {"snare": 1.5, "hat": 1.5, "hat open": -5.0, "ride": -1.0, "bell": -0.5, "tom": -0.5, "tom low": 1.0, "tom high": -4.0, "crash": 1.5, "crash2": -2.0},
+    "felt": {"snare": -2.0, "clack": -3.0, "hat": -3.0, "hat open": -8.0, "ride": -6.0, "bell": -5.5, "tom high": -4.5, "crash": 1.5, "crash2": -1.5},
+    "swept": {"snare": 1.5, "clack": -5.0, "hat open": -9.0, "ride": 7.5, "bell": 8.0, "tom": 9.0, "tom low": 8.5, "tom high": 1.5, "crash": 15.0, "crash2": 7.0,
+              "swish": 13.0}}
+KIT_CUTS = {"swept": {"swish": (0.5, 1.35, 2.2, 3.05, 3.9)}}
+OWN_BOOM = ("sticks", "felt", "swept")
 
 
 # Big drums made of several drums struck by several players (studio.sfz.layered): name -> (the
@@ -370,7 +392,7 @@ KIT_PLUGS: dict[str, tuple[str, dict[str, int]]] = {
 # The kits whose bass-drum stroke ("boom") has the kick with it, beside the kit's own drum. A band's kits have a
 # bass drum that is meant to be heard (Red Zeppelin's is 26 inches across and booms): the kick goes with it at half
 # the strength, for the stroke and the bottom that drum does not have.
-KICKED = ("orchestra", "march", "folk", "wood", "rock", "room", "rusty", "brushed", "mallets")
+KICKED = ("orchestra", "march", "folk", "wood", "rock", "room", "rusty", "brushed", "mallets", "sticks", "felt", "swept")
 SOUNDS: dict[str, Sound] = {
     "violins": _bowed("violins", -0.4), "violins slow": _bowed("violins", -0.4, "slow"),
     "violas": _bowed("violas", 0.12), "celli": _bowed("celli", 0.3), "celli slow": _bowed("celli", 0.3, "slow"),
@@ -637,10 +659,24 @@ def kit_patches(name: str, strokes: dict[str, int]) -> list[tuple[int, Patch]]:
         pattern = special.get(stroke, STROKES.get(stroke))
         if pattern is None:
             raise KeyError("Nothing is set down to be hit for the stroke %r" % stroke)
-        files = sorted(SAMPLES.glob(pattern))
-        if not files:
-            raise FileNotFoundError("No recordings match %s (for %s of the %s kit)" % (pattern, stroke, name))
-        out.append((note, samples.struck(files, "%s %s" % (name, stroke), note, release=1500.0)))
+        made = None
+        patterns = pattern if isinstance(pattern, tuple) else (pattern,)
+        for place, each in enumerate(patterns):
+            files = sorted(SAMPLES.glob(each))
+            if not files:
+                raise FileNotFoundError("No recordings match %s (for %s of the %s kit)" % (each, stroke, name))
+            part = samples.struck(files, "%s %s" % (name, stroke), note, release=1500.0)
+            if len(patterns) > 1:
+                soft, hard = int(round(127 * place / len(patterns))) + 1, int(round(127 * (place + 1) / len(patterns)))
+                part.zones = [samples.Zone(**dict(zone.__dict__, soft=soft, hard=hard)) for zone in part.zones]
+            if made is None:
+                made = part
+            else:
+                made.zones += part.zones
+        gain = KIT_GAINS.get(name, {}).get(stroke, 0.0)
+        if gain:
+            made.zones = [samples.Zone(**dict(zone.__dict__, gain=gain)) for zone in made.zones]
+        out.append((note, made))
     return out
 
 
@@ -674,7 +710,7 @@ def instrument(name: str, slurs: bool = False) -> Path:
         from .orchestra import KITS
         strokes = KITS[name[4:]]
         hats = {strokes[each]: 1 for each in ("hat", "hat open") if each in strokes}
-        text = sfz.kit(kit_patches(name[4:], strokes), chokes=hats)
+        text = sfz.kit(kit_patches(name[4:], strokes), chokes=hats, cuts={strokes[each]: where for each, where in KIT_CUTS.get(name[4:], {}).items()})
     elif name in DRUMS:
         parts, players = DRUMS[name]
         made_parts = []
@@ -1124,6 +1160,13 @@ def _heard_as(name: str) -> tuple[str, str, float, float] | None:
     return HEARD_AS.get(name.split(" ")[0])
 
 
+def _whole(path: Path, what: dict) -> None:
+    """Keeps a table in its file, put in place whole: a song that is being made beside this reads it as well."""
+    fresh = path.with_name("%s.%d.part" % (path.name, os.getpid()))
+    fresh.write_text(json.dumps(what, indent=1, sort_keys=True), encoding="utf-8")
+    os.replace(fresh, path)
+
+
 def levels(names: list[str], *, display: str, bpm: float = 120.0) -> dict[str, dict[str, float]]:
     """Plays each player alone, twice, and writes down three things for it. From its bare
     sound: how many dB it has to be turned to come out at LEVEL ("before" in levels.json: this
@@ -1166,9 +1209,9 @@ def levels(names: list[str], *, display: str, bpm: float = 120.0) -> dict[str, d
                     continue
                 mine = ear.profile(heard[template_of(name)], desk.RATE)
                 tones[template_of(name)] = ear.top(mine, ear.reference(against[0], strength=against[1]), lift=against[2], cut=against[3])
-            VOICING.write_text(json.dumps(tones, indent=1, sort_keys=True), encoding="utf-8")
+            _whole(VOICING, tones)
             _voicing = tones
-    LEVELS.write_text(json.dumps(had, indent=1, sort_keys=True), encoding="utf-8")
+    _whole(LEVELS, had)
     global _levels
     _levels = had
     return had
@@ -1601,7 +1644,7 @@ def _lines(voice: Voice, title: str, bpm: float, *, taste: float = 1.0, room: fl
         if left:
             name = _file(voice.instrument)
             send, placed = _placed(name, room)
-            out.append(desk.Line(title, track_of(name), left, volume=_db(level(name)["after"]) * taste, pan=0.0, send=send,
+            out.append(desk.Line(title, track_of(name), left, volume=_db(level(name)["after"] + KIT_LEVEL.get(kit, 0.0)) * taste, pan=0.0, send=send,
                                  effects=[turned(level(name)["before"])] + chain(name, bpm) + placed))
         if kit in KICKED:
             # An orchestra's bass drum is a soft, deep stroke that small loudspeakers do not carry: the kick goes with it.
@@ -1609,7 +1652,7 @@ def _lines(voice: Voice, title: str, bpm: float, *, taste: float = 1.0, room: fl
             boom = KITS[kit]["boom"]
             struck = [Note(note.start, note.length, 36, note.loud) for note in voice.notes if note.pitch == boom]
             if struck:
-                own = "boom" in KIT_PLUGS.get(kit, ("", {}))[1]          # the kit's plug-in has a bass drum of its own
+                own = kit in OWN_BOOM or "boom" in KIT_PLUGS.get(kit, ("", {}))[1]          # the kit has a bass drum of its own
                 out += lines(Voice(notes=struck, instrument="kick"), title + " kick", bpm, taste=taste * (_db(-6.0) if own else 1.0), room=room, seed=seed)
         return out
     if voice.instrument == "swell":

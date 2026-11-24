@@ -27,6 +27,9 @@ dictated, where it drove the change.
 - **The bands' amplified instruments are held together** (`muse.SQUEEZE`) and a soft lead is lifted further (`TUNE_MOST_BANDS`, `tools/lift_tunes.py`): in the first songs of
   the new bands a valley's tune read -48 LUFS and an opening riff -40, where the house's recorded distortion never falls. The tune is measured against the bass too,
   and a church organ plays a band's songs on its full stops.
+- **The bands' kits are held to the house's** (2026-11-24; `sounds.KIT_GAINS`): their bass drum stood where the house's does and the snare, the hats, the toms and the crashes six to
+  nine dB too far under it, so the first twenty songs of the new bands were a kick and little else, and it stood over the tune in their valleys. The kits with sticks and
+  with mallets are balanced, the one with brushes as well, and it sweeps the snare on the beat (`swish`) where "brushes" was nearly silent.
 - **A tune that is not a distorted guitar's is lifted as far as it needs** (`build.tune_caps`): the desk stopped at 5 dB, which a lead guitar's tune wanted in 9 songs of 259 and a
   fiddle's in half, a steel guitar's in 13 of 17 and an accordion's in all: songs led by somebody else were heard as their guitars. `tools/lift_tunes.py` gives it to the
   songs made before.

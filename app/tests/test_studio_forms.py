@@ -189,6 +189,29 @@ def test_no_drum_is_struck_faster_than_a_drummer_can():
             assert len(quick) <= 0.02 * max(len(gaps), 1), (character.name, pitch, len(quick), len(gaps))
 
 
+def test_a_drummer_with_brushes_sweeps_the_snare():
+    """(Ragged Beat's second theme: its brushed groove, a side stick and a hat written for the house's kit, stood at -45 LUFS.)"""
+    sweep = orchestra.KITS["swept"]["swish"]
+    assert all(sweep not in strokes.values() for name, strokes in orchestra.KITS.items() if name != "swept")
+    swept = set()
+    for character in [each for each in CHARACTERS if each.band and "brushes" in each.grooves]:
+        for number in (0, 1):
+            take = Take(made(character, number), number)
+            kit = take.voices["drums"].get("kit")
+            starts = [note.start for note in kit.notes if note.pitch == sweep] if kit else []
+            if orchestra.sounded(character.sounds, "kit " + character.kit) != "kit swept":
+                assert not starts, "%s has no brushes" % character.name
+                continue
+            if orchestra.GROOVES["swept"] in (take.groove, take.groove_b):
+                swept.add(character.name)
+                assert starts and orchestra.GROOVES["brushes"] not in (take.groove, take.groove_b)
+                # Swept on the beat: every one falls on a pulse of the song.
+                assert all(abs(start / take.pulse - round(start / take.pulse)) < 1e-6 for start in starts), character.name
+    assert len(swept) >= 8, swept
+    night = next(fam for fam, _ in build.plan() if fam.name == "anywhere-graveyard-shift-1")
+    assert build.write(night, 1).parts["drums"]["kit"].instrument == "kit swept"
+
+
 def test_a_long_moment_turns_where_a_character_turns():
     """(The second round's studies: a summit's guitars one colour 27 and 29 bars.) The guitars' figure in the stretch is not the moment's."""
     turning = [character for character in CHARACTERS if character.turns and character.weight >= 0.8]

@@ -1411,8 +1411,21 @@ against the bass as well (`TUNE_UNDER_BASS`): in a valley with no guitars the tu
 (Deposed Interdict's stood at −46 over a bass at −29). `tools/lift_tunes.py` gives both to a take staged before, in its lead's
 stem alone.
 
-**The kits** are the Big Rusty Drums, with sticks (`kit rusty`), with brushes (`kit brushed`) and with mallets (`kit mallets`), the same strokes on
-the same notes as the rock kit's, their levels measured as every kit's are (`levels.json`); the kick goes under their bass drum too (`KICKED`).
+**The kits** are the Big Rusty Drums, with sticks (`kit sticks`), with brushes (`kit swept`) and with mallets (`kit felt`), the same strokes on
+the same notes as the rock kit's, their levels measured as every kit's are (`levels.json`).
+
+*Held to the house's kit* (2026-11-24). Every stroke of every kit, struck alone at four strengths through the band's drums' bus. As they first were (`kit rusty`,
+`kit brushed`, `kit mallets`, kept for the sheets that name them) their bass drum stood where the house's does at the strength of a groove (−24 LUFS) and the rest
+far under it: the snare 12 dB under the bass drum where the house's is 5 under, the hats 14 where they are 7, a crash 12 where it is 4, the low tom 12 where it is 4. The
+first twenty songs of the bands were heard as a kick, and in their valleys, where time is kept softly, the kick alone stood over the tune (Closing Cup's
+tune at −43 LUFS, its drums at −35). Now the kick that goes with them is the half the house's is (`sounds.OWN_BOOM`: these kits have a bass drum of their own), the
+set stands 1 to 5 dB nearer beside it (`KIT_LEVEL`) and each stroke is brought to where the house's has it against its bass drum (`KIT_GAINS`): within 2 dB
+for nearly all of them at the strength of a groove.
+
+*Brushes.* A brush on a cymbal or a tom is ten to twenty dB under the stick on it, at every strength, so what turned to the ride or crashed was gone. The groove
+"brushes" (a side stick and a hat) was written for the house's kit; a drummer with brushes plays "swept" for it (`Take.brushes`): the snare stirred on every beat (`swish`, cut
+from Big Rusty's recordings of a brush going round and round, each stroke from another place in another of them: `sounds.KIT_CUTS`, `sfz.SWEEP`) and tapped on the
+backbeat. Ragged Beat's second theme, at −45 LUFS under a mix of −30, has its drums.
 
 **The other instruments**: Muse's four saxophones (level against the lead guitar's tune: the tenor and the alto 6 dB down), its suitcase piano (`rhodes`), its
 Wurlitzer (`wurly`) and its upright piano. A saxophone leads smoke den and graveyard shift; the keys strum where a guitar would.

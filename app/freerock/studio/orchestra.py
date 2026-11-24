@@ -154,6 +154,10 @@ KITS = {
     "rusty": dict(_STROKES, boom=36, snare=38, crash=49, crash2=57, tamb=54, ting=81, clack=37),
     "brushed": dict(_STROKES, boom=36, snare=38, crash=49, crash2=57, tamb=54, ting=81, clack=37),
     "mallets": dict(_STROKES, boom=36, snare=38, crash=49, crash2=57, tamb=54, ting=81, clack=37),
+    # (the same three held to the house's kit, 2026-11-24: sounds.KIT_GAINS; and with the brushes a snare is swept)
+    "sticks": dict(_STROKES, boom=36, snare=38, crash=49, crash2=57, tamb=54, ting=81, clack=37),
+    "felt": dict(_STROKES, boom=36, snare=38, crash=49, crash2=57, tamb=54, ting=81, clack=37),
+    "swept": dict(_STROKES, boom=36, snare=38, crash=49, crash2=57, tamb=54, ting=81, clack=37, swish=84),
     "room": dict(_STROKES, boom=36, snare=38, crash=49, crash2=57, tamb=54, ting=81, clack=37),
 }
 
@@ -2198,38 +2202,38 @@ def _levels(role: str, heavy: float, busy: float = 0.5) -> dict[str, tuple[float
 # is the writer's, the sound the set's. The house band's, the sound of every song until now, is "".
 BANDS: dict[str, dict[str, str]] = {
     "doom": {"rhythm guitar": "doom guitar", "single guitar": "doom guitar", "muted guitar": "doom muted", "picked bass": "fuzz bass", "fretless": "fuzz bass",
-             "lead guitar": "fuzz lead", "kit rock": "kit mallets", "kit room": "kit mallets", "rock organ": "horns", "clean guitar": "chime guitar"},
+             "lead guitar": "fuzz lead", "kit rock": "kit felt", "kit room": "kit felt", "rock organ": "horns", "clean guitar": "chime guitar"},
     "stoner": {"rhythm guitar": "fuzz guitar", "single guitar": "fuzz guitar", "muted guitar": "fuzz muted", "picked bass": "fuzz bass", "fretless": "fuzz bass",
-               "lead guitar": "fuzz lead", "kit rock": "kit rusty", "kit room": "kit rusty", "rock organ": "choir", "clean guitar": "chime guitar"},
+               "lead guitar": "fuzz lead", "kit rock": "kit sticks", "kit room": "kit sticks", "rock organ": "choir", "clean guitar": "chime guitar"},
     "tweed": {"rhythm guitar": "crunch guitar", "single guitar": "crunch guitar", "muted guitar": "crunch muted", "picked bass": "round bass",
-              "fretless": "round bass", "lead guitar": "sweet lead", "kit rock": "kit rusty", "kit room": "kit brushed"},
+              "fretless": "round bass", "lead guitar": "sweet lead", "kit rock": "kit sticks", "kit room": "kit swept"},
     "chop": {"rhythm guitar": "chop guitar", "single guitar": "chop guitar", "muted guitar": "chop muted", "picked bass": "fuzz bass", "fretless": "fuzz bass",
-             "lead guitar": "sweet lead", "kit rock": "kit rusty", "kit room": "kit rusty", "rock organ": "horns", "clean guitar": "wurly"},
+             "lead guitar": "sweet lead", "kit rock": "kit sticks", "kit room": "kit sticks", "rock organ": "horns", "clean guitar": "wurly"},
     "shanty": {"rhythm guitar": "crunch guitar", "single guitar": "crunch guitar", "muted guitar": "crunch muted", "picked bass": "stomp tuba", "fretless": "stomp tuba",
-               "lead guitar": "sweet lead", "kit rock": "kit rusty", "kit room": "kit rusty"},
+               "lead guitar": "sweet lead", "kit rock": "kit sticks", "kit room": "kit sticks"},
     "twang": {"rhythm guitar": "twang guitar", "single guitar": "twang guitar", "muted guitar": "crunch muted", "picked bass": "round bass",
-              "fretless": "round bass", "lead guitar": "sweet lead", "kit rock": "kit rusty", "kit room": "kit brushed", "rock organ": "oohs",
+              "fretless": "round bass", "lead guitar": "sweet lead", "kit rock": "kit sticks", "kit room": "kit swept", "rock organ": "oohs",
               "clean guitar": "twang guitar"},
     "lounge": {"rhythm guitar": "chime guitar", "single guitar": "chime guitar", "muted guitar": "crunch muted", "picked bass": "round bass",
-               "fretless": "round bass", "lead guitar": "sweet lead", "kit rock": "kit brushed", "kit room": "kit brushed", "clean guitar": "rhodes",
+               "fretless": "round bass", "lead guitar": "sweet lead", "kit rock": "kit swept", "kit room": "kit swept", "clean guitar": "rhodes",
                "twelve string": "chime guitar"},
     # (the fifth round's: riffs on two cellos through amplifiers, on a church organ and on a saloon's piano)
     "cellos": {"rhythm guitar": "riff celli", "single guitar": "riff celli", "muted guitar": "muted celli", "picked bass": "fuzz bass", "fretless": "fuzz bass",
-               "lead guitar": "fuzz viola", "kit rock": "kit mallets", "kit room": "kit mallets", "rock organ": "choir", "clean guitar": "cello"},
+               "lead guitar": "fuzz viola", "kit rock": "kit felt", "kit room": "kit felt", "rock organ": "choir", "clean guitar": "cello"},
     "cathedral": {"rhythm guitar": "organ", "single guitar": "organ", "muted guitar": "celli pizz", "picked bass": "fuzz bass", "fretless": "fuzz bass",
-                  "lead guitar": "fuzz lead", "kit rock": "kit mallets", "kit room": "kit mallets", "rock organ": "choir", "clean guitar": "harpsichord"},
+                  "lead guitar": "fuzz lead", "kit rock": "kit felt", "kit room": "kit felt", "rock organ": "choir", "clean guitar": "harpsichord"},
     "saloon": {"rhythm guitar": "upright piano", "single guitar": "upright piano", "muted guitar": "upright piano", "picked bass": "round bass",
-               "fretless": "round bass", "lead guitar": "sweet lead", "kit rock": "kit rusty", "kit room": "kit brushed", "rock organ": "oohs",
+               "fretless": "round bass", "lead guitar": "sweet lead", "kit rock": "kit sticks", "kit room": "kit swept", "rock organ": "oohs",
                "clean guitar": "wurly"},
     # (the sixth round's: riffs on an organ and on an electric piano torn by their amplifiers, on a harpsichord, and on a marimba over mallets)
     "hammond": {"rhythm guitar": "torn organ", "single guitar": "torn organ", "muted guitar": "torn organ", "picked bass": "fuzz bass", "fretless": "fuzz bass",
-                "lead guitar": "sweet lead", "kit rock": "kit rusty", "kit room": "kit rusty", "rock organ": "choir", "clean guitar": "rhodes"},
+                "lead guitar": "sweet lead", "kit rock": "kit sticks", "kit room": "kit sticks", "rock organ": "choir", "clean guitar": "rhodes"},
     "grit": {"rhythm guitar": "fuzz wurly", "single guitar": "fuzz wurly", "muted guitar": "fuzz wurly", "picked bass": "round bass", "fretless": "round bass",
-             "lead guitar": "fuzz lead", "kit rock": "kit rusty", "kit room": "kit brushed", "rock organ": "oohs", "clean guitar": "wurly"},
+             "lead guitar": "fuzz lead", "kit rock": "kit sticks", "kit room": "kit swept", "rock organ": "oohs", "clean guitar": "wurly"},
     "baroque": {"rhythm guitar": "harpsichord", "single guitar": "harpsichord", "muted guitar": "celli pizz", "picked bass": "round bass", "fretless": "round bass",
-                "lead guitar": "fuzz viola", "kit rock": "kit mallets", "kit room": "kit brushed", "rock organ": "choir", "clean guitar": "harpsichord"},
+                "lead guitar": "fuzz viola", "kit rock": "kit felt", "kit room": "kit swept", "rock organ": "choir", "clean guitar": "harpsichord"},
     "bones": {"rhythm guitar": "marimba", "single guitar": "marimba", "muted guitar": "marimba", "picked bass": "round bass", "fretless": "round bass",
-              "lead guitar": "clarinet", "kit rock": "kit mallets", "kit room": "kit mallets", "rock organ": "oohs", "clean guitar": "marimba"},
+              "lead guitar": "clarinet", "kit rock": "kit felt", "kit room": "kit felt", "rock organ": "oohs", "clean guitar": "marimba"},
 }
 # The library's first takes stay as they are; from this take on, a band song of any other character is played by another band than the house's, drawn for
 # the take: the same changes, its own tunes, and not the sound of every song before it.
@@ -2849,6 +2853,9 @@ GROOVES = {
                                 ("crash", "down", .8, 4)], roll="high", hit="crash"),
     "brushes": dict(theme=[("clack", "back", .35), ("hat", "pulses", .25)], moment=[("clack", "back", .5), ("hat", "halves", .3),
                     ("boom", "down", .5)], roll=None, hit="ting"),
+    # (what a drummer with brushes in hand plays for "brushes": the snare swept on every beat and tapped on the backbeat, 2026-11-24)
+    "swept": dict(theme=[("swish", "pulses", .75), ("snare", "back", .6), ("hat", "pulses", .35)],
+                  moment=[("swish", "pulses", .85), ("snare", "back", .75), ("hat", "halves", .4), ("boom", "kick", .6)], roll="snare", hit="ting"),
     "shuffle": dict(theme=[("boom", "kick", .7), ("clack", "back", .6), ("hat", "pulses", .4)],
                     moment=[("boom", "kick busy", .8), ("snare", "back", .8), ("hat open", "groups", .45), ("hat", "pulses", .4),
                             ("crash", "down", .7, 4)], roll="snare", hit="crash"),
@@ -3661,6 +3668,10 @@ class Take:
         spin = rng.randrange(2)
         self.groove = GROOVES[ch.grooves[(take + spin) % len(ch.grooves)]]
         self.groove_b = GROOVES[ch.grooves[(take + spin + 1) % len(ch.grooves)]]
+        # (2026-11-24: with brushes in hand "brushes" is the snare swept; the side stick and the hat of it, written for the house's kit, were not heard.)
+        self.brushes = sounded(band_of(self.fam, take), "kit " + ch.kit) == "kit swept"
+        if self.brushes:
+            self.groove, self.groove_b = (GROOVES["swept"] if each is GROOVES["brushes"] else each for each in (self.groove, self.groove_b))
         # Music for wandering is often left unresolved, so that its mood carries into the quiet
         # after it: half the takes end on the fifth of the key, not on the key note. A fight
         # and the music of a great city come home.
@@ -5015,10 +5026,10 @@ class Take:
     def strike(self, sound: str, at: float, loud: float, chord: Chord, key: Key) -> None:
         if sound == "ting" and self.forge:
             self.put("drums", "anvil", at, 0.5, 60, loud)        # in a forge the bright stroke is an anvil
-        elif sound in KITS[self.ch.kit]:
+        elif sound in (strokes := KITS["swept"] if self.brushes else KITS[self.ch.kit]):
             # A stroke of the kit. (The kit's "boom" is its bass drum; the deep stroke that marks
             # an arrival is an instrument of the same name, and is written by `marks`.)
-            self.kit().add(at, 0.25, KITS[self.ch.kit][sound], loud)
+            self.kit().add(at, 0.25, strokes[sound], loud)
         elif sound == "timpani":
             # A pair of kettledrums is tuned to the key note and the fourth below it. They play
             # whichever of the two is in the chord, and the chord's own root only where neither is.

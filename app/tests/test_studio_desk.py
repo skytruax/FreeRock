@@ -158,6 +158,18 @@ def test_a_kit_has_each_stroke_on_its_note_and_the_hats_stop_each_other(section)
     assert sum("key=42" in row and "seq_length=2" in row for row in regions) == 2
 
 
+def test_a_sweep_is_cut_from_a_recording_that_goes_on_and_a_stroke_can_stand_nearer(section):
+    stirred = Patch(name="swish", held=False, zones=[Zone(files=("s_55_v1.wav", "s_55_v2.wav"), low=84, high=84, root=84, gain=12.0)])
+    struck = Patch(name="snare", held=False, zones=[Zone(files=("s_58_v1.wav",), low=38, high=38, root=38)])
+    regions = [row for row in sfz.kit([(84, stirred), (38, struck)], cuts={84: (0.5, 1.5, 2.5)}).split("\n") if row.startswith("<region>")]
+    sweeps = [row for row in regions if "key=84" in row]
+    assert len(sweeps) == 6 and {row.split("seq_position=")[1].split()[0] for row in sweeps} == {str(each) for each in range(1, 7)}
+    assert all("seq_length=6" in row and "volume=12.0" in row and "ampeg_sustain=0" in row for row in sweeps)       # it comes in and dies away
+    assert {row.split("offset=")[1].split()[0] for row in sweeps} == {"22050", "66150", "110250"}                  # each from another place
+    plain = [row for row in regions if "key=38" in row]
+    assert len(plain) == 1 and not any(word in plain[0] for word in ("offset", "volume", "ampeg", "seq_"))
+
+
 def test_a_war_drum_is_several_drums_struck_together_by_several_players(section):
     one = Patch(name="big", held=False, zones=[Zone(files=("s_55_v1.wav",), low=43, high=43, root=43, soft=1, hard=127)])
     two = Patch(name="deep", held=False, zones=[Zone(files=("s_58_v1.wav",), low=41, high=41, root=41, soft=1, hard=127)])
@@ -277,7 +289,7 @@ def test_every_sound_a_band_has_is_one_the_desk_can_play():
         for written, plays in band.items():
             if written.startswith("kit "):
                 # (The same strokes on the same notes, so that a song's drums are struck as they were written.)
-                assert orchestra.KITS[plays[4:]] == orchestra.KITS[written[4:]], (name, written, plays)
+                assert orchestra.KITS[written[4:]].items() <= orchestra.KITS[plays[4:]].items(), (name, written, plays)
             else:
                 assert (plays in muse.PARTS or plays in sounds.SOUNDS) and (plays in orchestra.INSTRUMENTS or plays in sounds.AMPS), (name, written, plays)
         guitars = {band[each] for each in ("rhythm guitar", "single guitar")}
@@ -289,6 +301,30 @@ def test_every_sound_a_band_has_is_one_the_desk_can_play():
     sets = [character.sounds for character in orchestra.CHARACTERS if character.sounds]
     assert len(sets) >= 20 and len(set(sets)) >= 7 and max(sets.count(each) for each in set(sets)) <= 6, sets
     assert all(each in orchestra.BANDS for each in sets)
+
+
+def test_a_band_s_kit_is_held_to_the_house_s(monkeypatch):
+    """(The first twenty songs of the new bands had the bass drum where the house's is and all else six to nine dB under it.)"""
+    from freerock.studio import orchestra, sounds
+    from freerock.studio.score import Note, Voice
+    used = {plays[4:] for band in orchestra.BANDS.values() for written, plays in band.items() if written.startswith("kit ")}
+    assert used == set(sounds.OWN_BOOM) and used <= set(sounds.KIT_GAINS) & set(sounds.KIT_LEVEL) & set(sounds.KICKED)
+    for kit in used:
+        assert set(sounds.KIT_GAINS[kit]) <= set(orchestra.KITS[kit]) and all(abs(each) <= 15.0 for each in sounds.KIT_GAINS[kit].values())
+        assert "boom" not in sounds.KIT_GAINS[kit], "the bass drum is what the others are held to"
+        by_note = {note: patch for note, patch in sounds.kit_patches(kit, orchestra.KITS[kit])}
+        for stroke, gain in sounds.KIT_GAINS[kit].items():
+            assert {zone.gain for zone in by_note[orchestra.KITS[kit][stroke]].zones} == {gain}, (kit, stroke)
+    # The kits as they were play the sheets that name them as they were.
+    for kit in ("rusty", "mallets", "brushed"):
+        assert all(zone.gain == 0.0 for _, patch in sounds.kit_patches(kit, orchestra.KITS[kit]) for zone in patch.zones)
+    # Their kick is the half of it the house's kit has beside a bass drum of its own.
+    monkeypatch.setattr(sounds, "level", lambda name: {"before": 0.0, "after": 0.0})
+    monkeypatch.setattr(sounds, "track_of", lambda name, slurs=False: name)
+    def kicks(kit):
+        made = sounds.lines(Voice(notes=[Note(0.0, 1.0, orchestra.KITS[kit]["boom"], 0.8)], instrument="kit " + kit, drums=True), "kit", 100.0)
+        return sum(line.volume for line in made if "kick" in line.name)
+    assert kicks("sticks") < 0.55 * kicks("rusty") and abs(kicks("sticks") - kicks("rock")) < 1e-6
 
 
 def test_an_amplifier_is_on_every_track_of_a_sound_that_has_one(monkeypatch, tmp_path):
@@ -318,7 +354,7 @@ def test_a_song_in_a_bands_own_sounds_is_the_same_music_played_by_them(monkeypat
     plain = build.write(dataclasses.replace(fam, character=dataclasses.replace(character, sounds="")), 1)
     own = build.write(fam, 1)
     heard = {voice.instrument for parts in own.parts.values() for voice in parts.values() if voice.notes}
-    assert "doom guitar" in heard and "fuzz bass" in heard and "kit mallets" in heard
+    assert "doom guitar" in heard and "fuzz bass" in heard and "kit felt" in heard
     assert not heard & {"rhythm guitar", "single guitar", "muted guitar", "picked bass", "lead guitar", "kit rock"}
     assert own.about["sounds"] == "doom" and plain.about["sounds"] == ""
     for channel, parts in plain.parts.items():
