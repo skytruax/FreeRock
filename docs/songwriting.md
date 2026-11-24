@@ -1011,6 +1011,16 @@ many knight songs", "cant you study acdc and do different licks".* The old walk-
 Every note of the lead guitar is moved onto the key's minor pentatonic (`orchestra.BLUES`,
 `orchestra.blues`), *as the riff bands of the late seventies did*.
 
+**A riff that is a line** (the figure `low riff`, `Take._moving_riff`, 2026-11-23, night: "make them gritty and darker", "make sure to switch
+up the instruments from song to song so theres variety"). `riff` and `chug` strike one chord in one of six rhythms; the low riff is four
+bars of two-note chords and single notes on steps of the scale over the chord's root, from the seventh under it to the fifth over it
+(`RIFF_STEPS`; the second only in a phrygian key, where it is the half step), the shape carried over every chord. Each take draws one for
+each theme: every bar begins with the same half (`RIFF_HEADS`), the first and third bars end one way, the second another, the
+fourth turns round by step into the next (`RIFF_TAILS`); in four of ten it has holes in it, in under half the fourth on its way to the
+third or the fifth is the blues note. The muted string fills the eighths where the band is full, and a heavy band's bass goes with it
+in eighths (`Take.riffed`). A long note of it keeps off a singer's held note a semitone away, whoever sings (`Take._tune_rubs`; the
+standing riff's `_rubs` listens to the lead guitar alone). Six of the third round's characters play it; no song made before does.
+
 ### 4.4 The lone opening guitar
 
 *A riff band opens on one guitar alone, and the second guitar, the chugs and the band come in
@@ -2234,6 +2244,13 @@ Round +1.8) or a mandolin (Ashen Street −2.4) stands where the liked leads do,
 +0.3). Its bass reads thin with an acoustic bass (−10.8) and a picked one (−5.5), and not with a fretless (−0.9 to +0.9). So a light
 band character leads with the steel guitar, the mandolin or a low string (the viola, the cello), not with a whistle or a fiddle alone,
 and its bass is the fretless. The two that failed stay as they are; round three has new ones in their places.
+
+*The third round's twenty* (2026-11-23, night): the towns, the inns, the camps and the storms, where the same songs come round most (Knight
+Rock's towns 3.1 times a song, its storms 2.8, its inns 2.5, its camps 2.2; Warcraft's towns 1.9, from ten songs). Of 383 Knight Rock
+songs the lead guitar leads 250; these are led by the clarinet low, the english horn, the church organ, the viola, the bass clarinet, the
+trombone, the cello, the bass flute and the horns, over four drum patterns of their own (`swamp stomp`, `train`, `gallows march`, `black
+toms`) and, in six of them, the riff that is a line (4.2); Warcraft's by the low winds and brass, in three towns, two camps, two
+inns and the walks with the least dark music. Seventy families, none before them changed (a hash of every note of 163 of them).
 
 **Warcraft or Knight Rock.**
 

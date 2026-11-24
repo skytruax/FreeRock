@@ -1378,6 +1378,112 @@ CHARACTERS = (
       figures=("toll", "arp"), basses=("basses slow", "contrabassoon"), kit="orchestra", drums=("timpani",), grooves=("none", "drip"),
       hall=(3.2, 0.34), dark=True, lift=0.0,
       titles=(("Grave", "Third", "Owl", "Dead", "Moonless", "Silent"), ("Hours", "Watch", "Vigil", "Candle", "Hush", "Toll"))),
+    # --- 2026-11-23, night, the third round: the towns, the inns, the camps and the storms, where the same songs come round most (Knight
+    # --- Rock's towns 3.1 times a song, its storms 2.8, its inns 2.5, its camps 2.2; Warcraft's towns 1.9, from ten songs). Led by what
+    # --- no song of the band's led with (the clarinet low, the english horn, the church organ, the bass flute, the trombone and the
+    # --- cello in a tavern or by a fire; of 383 songs 250 were led by a lead guitar), over drums of their own (the stomp, the
+    # --- train, the march to the gallows, the low toms). A light one's tune has a body and its bass is the fretless (handbook 8.7).
+    C("rogues quarter", KINDS_ALL, role="town", serves=(0, 1), style="knight", band=True, modes=("minor", "dorian"), bpm=(92, 104), busy=0.55,
+      weight=0.7, leads=("clarinet",), strong=("fiddle",), under=(), pads=("accordion",), pad_ways=("drone", "pad"),
+      plucks=("banjo", "muted guitar"), figures=("strum", "low riff"), basses=("fretless",), kit="rock", drums=(),
+      grooves=("swamp stomp", "shuffle"), hall=(1.2, 0.13), lift=0.1,
+      titles=(("Rogue's", "Blackjack", "Lockpick", "Footpad", "Stiletto", "Loaded Dice"), ("Quarter", "Bargain", "Errand", "Corner", "Debt", "Swagger"))),
+    C("headsmans square", KINDS_ALL, role="town", serves=(0, 1), style="knight", band=True, modes=("minor", "phrygian"), bpm=(78, 90), busy=0.4,
+      weight=0.9, leads=("english horn",), strong=("lead guitar",), under=(), pads=("choir",), pad_ways=("drone", "pad"),
+      plucks=("single guitar", "muted guitar"), figures=("low riff", "hammer"), basses=("picked bass",), kit="rock", drums=("church bell",),
+      grooves=("gallows march", "anvil rock"), hall=(2.1, 0.23), lift=0.15,
+      titles=(("Headsman's", "Gibbet", "Pillory", "Axe-Day", "Hooded", "Sentence"), ("Square", "Crowd", "March", "Morning", "Drum", "Block"))),
+    C("cathedral ward", KINDS_ALL, role="town", serves=(0, 1), style="knight", band=True, modes=("minor", "phrygian"), bpm=(84, 96), busy=0.45,
+      weight=0.95, leads=("organ",), strong=("lead guitar",), under=(), pads=("strings slow",), pad_ways=("tremolo", "drone"),
+      plucks=("rhythm guitar", "single guitar"), figures=("hammer", "low riff"), basses=("picked bass",), kit="rock", drums=("timpani", "church bell"),
+      grooves=("black toms", "half rock"), hall=(2.6, 0.28), lift=0.2,
+      titles=(("Basilica", "Black Spire", "Crypt", "Censer", "Reliquary", "Gargoyle"), ("Ward", "Steps", "Vespers", "Toll", "Nave", "Buttress"))),
+    C("last orders", KINDS_ALL, role="ember", style="knight", band=True, modes=("minor", "dorian"), bpm=(64, 76), busy=0.35,
+      weight=0.5, leads=("viola",), strong=("viola", "fiddle"), under=(), pads=("rock organ",), pad_ways=("drone", "pad"),
+      plucks=("guitar", "twelve string"), figures=("arp", "strum"), basses=("fretless",), kit="room", drums=(), grooves=("brushes", "shuffle"),
+      hall=(1.4, 0.16), lift=0.0,
+      titles=(("Closing", "Low-Lamp", "Tallow", "Guttering", "Unpaid", "Drained"), ("Orders", "Hour", "Ledger", "Cup", "Settle", "Candle"))),
+    C("smoke den", KINDS_ALL, role="ember", style="knight", band=True, modes=("dorian", "minor"), bpm=(72, 84), busy=0.45,
+      weight=0.55, leads=("bass clarinet",), strong=("clarinet",), under=(), pads=("rock organ",), pad_ways=("drone",),
+      plucks=("piano",), figures=("pulse", "strum"), basses=("fretless",), kit="room", drums=(), grooves=("brushes", "shuffle"),
+      hall=(1.1, 0.12), lift=0.0,
+      titles=(("Smoke", "Back-Stair", "Resin", "Velvet", "Dim", "Moth-Eaten"), ("Den", "Blues", "Curtain", "Parlour", "Hand", "Whisper"))),
+    C("pit fighters", KINDS_ALL, role="ember", style="knight", band=True, modes=("minor", "dorian"), bpm=(94, 106), busy=0.55,
+      weight=0.75, leads=("trombone",), strong=("trombone", "fiddle"), under=(), pads=("accordion",), pad_ways=("drone",),
+      plucks=("rhythm guitar", "banjo"), figures=("low riff", "strum"), basses=("fretless",), kit="rock", drums=("great drum",),
+      grooves=("swamp stomp", "half rock"), hall=(1.0, 0.11), lift=0.1,
+      titles=(("Pit", "Bare-Knuckle", "Bruiser's", "Blood-Wager", "Broken-Nose", "Cellar"), ("Purse", "Bout", "Stomp", "Odds", "Ring", "Wager"))),
+    C("whetstone fire", KINDS_ALL, role="camp", style="knight", band=True, modes=("dorian", "minor"), bpm=(70, 82), busy=0.35,
+      weight=0.55, leads=("cello",), strong=("cello", "fiddle"), under=(), pads=("strings slow",), pad_ways=("drone",),
+      plucks=("steel guitar", "twelve string"), figures=("arp", "strum"), basses=("fretless",), kit="room", drums=("frame drums",),
+      grooves=("brushes", "train"), hall=(1.7, 0.18), lift=0.0,
+      titles=(("Whetstone", "Notched-Blade", "Bandaged", "Picket-Line", "Forager's", "Cold Iron"), ("Embers", "Rest", "Story", "Rations", "Dusk", "Muster"))),
+    C("deserters camp", KINDS_ALL, role="camp", style="knight", band=True, modes=("minor", "phrygian"), bpm=(56, 68), busy=0.3,
+      weight=0.45, leads=("bass flute",), strong=("viola",), under=(), pads=("pipe drone",), pad_ways=("drone",),
+      plucks=("banjo", "guitar"), figures=("arp", "strum"), basses=("fretless",), kit="room", drums=("frame drums",), grooves=("none", "brushes"),
+      hall=(2.2, 0.24), lift=0.0,
+      titles=(("Deserter's", "Cold", "Hidden", "Traitor's", "No-Flag", "Thicket"), ("Camp", "Ditch", "Hush", "Fog", "Bedroll", "Shiver"))),
+    C("leaden sky", KINDS_ALL, role="storm", serves=(1, 2), style="knight", band=True, modes=("minor", "phrygian"), bpm=(118, 132), busy=0.5,
+      weight=1.0, leads=("horns",), strong=("horns", "lead guitar"), under=(), pads=("choir",), pad_ways=("drone", "pad"),
+      plucks=("single guitar", "muted guitar"), figures=("chug", "low riff"), basses=("picked bass",), kit="rock", drums=("taiko", "timpani"),
+      grooves=("black toms", "rock ride"), hall=(2.0, 0.22), lift=0.2,
+      titles=(("Leaden", "Blackwater", "Sky-Split", "Ravening", "Grinding", "Towering"), ("Sky", "Fury", "Onslaught", "Havoc", "Flood", "Roar"))),
+    C("drowning ride", KINDS_ALL, role="storm", serves=(1, 2), style="knight", band=True, modes=("minor", "dorian"), bpm=(140, 152), busy=0.55,
+      weight=1.0, leads=("cello",), strong=("fiddle",), under=(), pads=("rock organ",), pad_ways=("tremolo", "pad"),
+      plucks=("muted guitar",), figures=("low riff", "chug"), basses=("fretless",), kit="rock", drums=("great drum",), grooves=("train", "rock ride"),
+      hall=(1.7, 0.18), lift=0.1,
+      titles=(("Drowning", "Hoofbeat", "Lashing", "Headlong", "Rain-Black", "Night-Rain"), ("Ride", "Gallop", "Chase", "Flight", "Road", "Pursuit"))),
+    # (Warcraft's third round: three towns, two camps and two inns, and the walks with the least dark music, led by the low winds and brass.)
+    C("beggars court", ("regal", "haunted", "pastoral", "highland"), role="town", modes=("minor", "dorian"), bpm=(66, 78), metres=("3/4", "4/4"),
+      busy=0.4, weight=0.6, leads=("bassoon", "viola"), strong=("viola", "horns"), under=("celli", "bass clarinet"),
+      pads=("strings slow", "accordion"), pad_ways=("drone", "pad"), plucks=("harpsichord", "pizzicato"), figures=("oompah", "toll"),
+      basses=("celli", "basses pizz"), kit="orchestra", drums=("timpani",), grooves=("tick", "dirge"), hall=(2.2, 0.26), dark=True, lift=0.1,
+      titles=(("Beggar's", "Threadbare", "Rat-Catcher's", "Hungry", "Pauper's", "Lame"), ("Court", "Steps", "Alms", "Arcade", "Bell", "Supper"))),
+    C("smelter ward", ("highland", "infernal", "desert"), role="town", modes=("phrygian", "minor"), bpm=(84, 96), busy=0.45, weight=0.95,
+      leads=("trombone", "horns"), strong=("brass", "trombone"), under=("tuba", "contrabassoon"), pads=("brass", "tremolo"),
+      pad_ways=("drone", "pad"), plucks=("strings", "pizzicato"), figures=("hammer", "pulse"), basses=("basses", "tuba"), kit="march",
+      drums=("timpani", "great drum"), grooves=("anvil", "march"), hall=(2.6, 0.28), dark=True, lift=0.2,
+      titles=(("Smelter", "Slag", "Chimney", "Bellows", "Pig-Iron", "Sootfall"), ("Ward", "Shift", "Gate", "Row", "Stacks", "Toll"))),
+    C("sunken harbour", ("coast", "marsh", "frozen"), role="town", modes=("minor", "dorian"), bpm=(62, 74), metres=("6/8", "3/4"), busy=0.4,
+      weight=0.75, leads=("bass clarinet", "cello"), strong=("horns", "cello"), under=("tuba", "celli"), pads=("strings slow", "choir"),
+      pad_ways=("tremolo", "drone"), plucks=("dulcimer", "harp"), figures=("rock", "toll"), basses=("basses slow", "celli"), kit="orchestra",
+      drums=("timpani", "great drum"), grooves=("dirge", "tick"), hall=(2.8, 0.3), dark=True, lift=0.15,
+      titles=(("Sunken", "Rope-Burnt", "Tar", "Wharf", "Salt-Eaten", "Fogbound"), ("Harbour", "Quay", "Mooring", "Tally", "Pier", "Customs"))),
+    C("warband halt", ("infernal", "highland", "desert", "jungle"), role="camp", modes=("minor", "phrygian"), bpm=(60, 72), busy=0.3, weight=0.6,
+      leads=("horns", "bass flute"), strong=("horns", "cello"), under=("bass clarinet",), pads=("oohs", "celli slow"), pad_ways=("drone",),
+      plucks=("dulcimer", "pizzicato"), figures=("toll", "pulse"), basses=("basses slow", "contrabassoon"), kit="orchestra",
+      drums=("frame drums", "boom"), grooves=("dirge", "drip"), hall=(2.6, 0.28), dark=True, lift=0.0,
+      titles=(("Warband", "Spear-Circle", "Reaver's", "Tusk", "Blooded", "Standard-Bearer's"), ("Halt", "Smoke", "Count", "Oath", "Rest", "Stones"))),
+    C("gravediggers rest", ("haunted", "pastoral", "marsh", "mystic"), role="camp", modes=("minor", "dorian"), bpm=(54, 66), metres=("3/4", "4/4"),
+      busy=0.3, weight=0.5, leads=("cello", "bassoon"), strong=("viola", "cello"), under=("bass clarinet",), pads=("celli slow", "oohs"),
+      pad_ways=("drone", "tremolo"), plucks=("harp", "pizzicato"), figures=("arp", "toll"), basses=("celli slow", "basses pizz"), kit="folk",
+      drums=("timpani",), grooves=("tick", "drip"), hall=(2.4, 0.26), dark=True, lift=0.0,
+      titles=(("Gravedigger's", "Shovel", "Spade", "Loam", "Headstone", "Yew"), ("Rest", "Lantern", "Pause", "Hollow", "Hearth", "Supper"))),
+    C("black tap", KINDS_ALL, role="ember", modes=("dorian", "minor"), bpm=(70, 84), metres=("3/4", "4/4"), busy=0.45, weight=0.55,
+      leads=("viola", "bass clarinet"), strong=("viola", "clarinet"), under=("celli",), pads=("accordion", "strings slow"),
+      pad_ways=("drone", "pad"), plucks=("piano", "guitar"), figures=("oompah", "strum"), basses=("acoustic bass", "celli pizz"), kit="folk",
+      drums=(), grooves=("tick", "waltz"), hall=(1.6, 0.18), dark=True, lift=0.0,
+      titles=(("Dregs", "Bitter-Root", "Blind-Cask", "Sawdust", "Nine-Penny", "Stale"), ("Measure", "Tap", "Barrel", "Round", "Reckoning", "Keg"))),
+    C("confessors table", ("regal", "haunted", "mystic", "infernal"), role="ember", modes=("minor", "phrygian"), bpm=(52, 64), busy=0.3, weight=0.5,
+      leads=("cello", "bassoon"), strong=("choir", "cello"), under=("bass clarinet",), pads=("organ", "oohs"), pad_ways=("drone", "pad"),
+      plucks=("harp", "harpsichord"), figures=("toll", "arp"), basses=("basses slow", "celli slow"), kit="orchestra", drums=("timpani",),
+      grooves=("none", "dirge"), hall=(3.2, 0.34), dark=True, lift=0.0,
+      titles=(("Confessor's", "Wax-Sealed", "Hushed", "Kneeling", "Tithe", "Ash-Cross"), ("Table", "Cup", "Bench", "Silence", "Alcove", "Grace"))),
+    C("marrow road", ("haunted", "infernal"), modes=("minor", "phrygian"), bpm=(72, 84), busy=0.4, weight=0.9, leads=("trombone", "cello"),
+      strong=("trombone", "full choir"), under=("tuba", "bassoon"), pads=("choir", "strings slow"), pad_ways=("drone", "tremolo"),
+      plucks=("pizzicato", "harp"), figures=("pulse", "toll"), basses=("basses", "contrabassoon"), kit="march", drums=("timpani", "great drum"),
+      grooves=("dirge", "march"), hall=(3.0, 0.32), dark=True, lift=0.2,
+      titles=(("Marrow", "Charnel", "Catacomb", "Skull", "Rattlebone", "Dust"), ("Road", "Mile", "Gate", "Column", "Way", "Vault"))),
+    C("kelp chapel", ("coast", "marsh", "frozen"), modes=("minor", "dorian"), bpm=(60, 72), metres=("6/8", "4/4"), busy=0.35, weight=0.75,
+      leads=("viola", "bass clarinet"), strong=("full choir", "horns"), under=("celli", "tuba"), pads=("strings slow", "tremolo"),
+      pad_ways=("tremolo", "drone"), plucks=("harp", "pizzicato"), figures=("rock", "toll"), basses=("basses slow", "celli"), kit="orchestra",
+      drums=("timpani",), grooves=("dirge", "tick"), hall=(3.2, 0.34), dark=True, lift=0.15,
+      titles=(("Kelp", "Siren-Grey", "Undertow", "Brine", "Barnacle", "Ebb-Tide"), ("Chapel", "Choir", "Strand", "Hymn", "Shallows", "Cloister"))),
+    C("hoarfrost host", ("frozen", "highland"), modes=("minor", "phrygian"), bpm=(70, 82), busy=0.4, weight=0.85, leads=("horns", "bass clarinet"),
+      strong=("brass", "horns"), under=("tuba", "contrabassoon"), pads=("tremolo", "choir"), pad_ways=("tremolo", "drone"),
+      plucks=("pizzicato", "strings"), figures=("pulse", "gallop"), basses=("basses", "contrabassoon"), kit="orchestra",
+      drums=("timpani", "taiko"), grooves=("dirge", "march"), hall=(3.0, 0.32), dark=True, lift=0.2,
+      titles=(("Revenant", "Ice-Locked", "Barrow", "Winter-Dead", "Glacial", "Rimebound"), ("Host", "Trail", "Crown", "Wind", "Cairn", "Vanguard"))),
 )
 
 METRES = {"4/4": (4.0, (2.0, 2.0)), "3/4": (3.0, (3.0,)), "6/8": (3.0, (1.5, 1.5)), "5/4": (5.0, (3.0, 2.0)),
@@ -1611,6 +1717,19 @@ BRIGHT_RUNS = ((9, 7, 4, 2), (12, 9, 7, 4), (4, 2, 0, -3), (7, 9, 7, 4), (9, 12,
 CURLS = ((3, 4, 0), (3, 4, 7), (10, 3, 4, 0))                                    # the minor third hammered to the major
 DOUBLE_STOPS = (((7, 12), (5, 10)), ((3, 7), (5, 9)), ((5, 9), (3, 7)), ((10, 15), (7, 12)), ((7, 12), (7, 12)), ((5, 10), (3, 7)))
 MAJORISH = ("major", "mixolydian", "lydian")
+# The figures that are a band's riff on its wired guitars: the bar's chord struck in a rhythm of its own ("riff"), the same with the
+# muted string chugging between its chords ("chug"), and one that moves ("low riff").
+RIFFS = ("riff", "chug", "low riff")
+# A riff that moves (2026-11-23, night: "make them gritty and darker", "make sure to switch up the instruments from song to song so theres
+# variety"; every band song's riff was one of six rhythms of one chord, its root, fifth and octave). Four bars of it for each take and
+# theme, drawn (Take._moving_riff): every bar's first half the same, the first and third bars ending one way, the second another, the
+# fourth turning round into the next. Beats and lengths, the first half's and the second's; steps of the scale over the chord's root, and
+# how likely each is (the second only in a phrygian key, where it is the half step).
+RIFF_HEADS = (((0.0, 1.0), (1.0, 0.5), (1.5, 0.5)), ((0.0, 1.5), (1.5, 0.5)), ((0.0, 0.5), (0.5, 1.0), (1.5, 0.5)), ((0.0, 1.0), (1.5, 0.5)),
+              ((0.0, 0.5), (0.5, 0.5), (1.0, 0.5), (1.5, 0.5)), ((0.0, 2.0),), ((0.0, 0.5), (1.0, 0.5), (1.5, 0.5)))
+RIFF_TAILS = (((2.0, 1.0), (3.0, 0.5), (3.5, 0.5)), ((2.0, 0.5), (2.5, 0.5), (3.0, 1.0)), ((2.0, 1.5), (3.5, 0.5)), ((2.0, 1.0), (3.0, 1.0)),
+              ((2.5, 0.5), (3.0, 0.5), (3.5, 0.5)), ((2.0, 0.5), (3.0, 0.5), (3.5, 0.5)), ((2.0, 2.0),))
+RIFF_STEPS = {0: 3.0, 2: 2.2, 3: 1.6, 4: 1.2, -1: 1.6, 1: 0.3}
 
 
 def held_runs(symbols: list[str]) -> list[tuple[int, int]]:
@@ -2295,6 +2414,21 @@ GROOVES = {
     "shuffle": dict(theme=[("boom", "kick", .7), ("clack", "back", .6), ("hat", "pulses", .4)],
                     moment=[("boom", "kick busy", .8), ("snare", "back", .8), ("hat open", "groups", .45), ("hat", "pulses", .4),
                             ("crash", "down", .7, 4)], roll="snare", hit="crash"),
+    # (2026-11-23, night, for the third round's dark songs: of the band's 383 songs all but a handful keep time on the same four figures. The
+    # stomp: every beat on the kick with claps on two and four; the train: a snare galloping under the side stick; the march to the
+    # gallows: a slow drum corps, the snare's figure under a low tom; the toms low: the low tom's gallop where the hat would be.)
+    "swamp stomp": dict(theme=[("boom", "pulses", .75), ("clack", "back", .6), ("shake", "halves", .3)],
+                        moment=[("boom", "pulses", .9), ("snare", "back", .9), ("tamb", "pulses", .4), ("hat open", "groups", .45),
+                                ("crash", "down", .75, 4)], roll="snare", hit="crash"),
+    "train": dict(theme=[("boom", "pulses", .65), ("clack", "gallop", .4), ("tamb", "back", .4)],
+                  moment=[("boom", "pulses", .85), ("snare", "gallop", .6), ("hat open", "pulses", .4), ("crash", "down", .75, 4)],
+                  roll="snare", hit="crash"),
+    "gallows march": dict(theme=[("boom", "groups", .8), ("snare", "gallop", .4), ("tom low", "last", .55)],
+                          moment=[("boom", "groups", .95), ("snare", "gallop", .65), ("tom low", "pulses", .55), ("crash", "down", .85, 2)],
+                          roll="snare", hit="crash"),
+    "black toms": dict(theme=[("boom", "down", .85), ("tom low", "gallop", .5), ("snare", "mid", .75)],
+                       moment=[("boom", "kick busy", .95), ("tom low", "gallop", .6), ("tom", "offs", .5), ("snare", "mid", .95),
+                               ("crash", "down", .85, 2)], roll="tom low", hit="crash", fill="snare"),
     "drip": dict(theme=[("block", "down", .3, 3), ("great drum", "down", .4, 4)],
                  moment=[("block", "mid", .3, 2), ("great drum", "down", .55, 2), ("tick", "back", .2)], roll=None, hit=None),
 }
@@ -2327,6 +2461,14 @@ SETTINGS_OF: dict[str, tuple[str, ...]] = {
     "usurpers hall": ("fort", "ruins"), "bone wood": ("woods", "graves"), "iron column": ("road", "fort"),
     "ashen pilgrim": ("wastes", "sacred"), "shadow council": ("sacred", "ruins"), "hungering wood": ("woods", "water"),
     "black keel": ("water", "wastes"), "widows walk": ("graves", "settlement"), "grave hours": ("graves", "fort"),
+    # The third round's (the night of the same day).
+    "rogues quarter": ("settlement",), "headsmans square": ("settlement", "fort"), "cathedral ward": ("settlement", "sacred"),
+    "last orders": ("settlement",), "smoke den": ("settlement",), "pit fighters": ("settlement", "works"),
+    "whetstone fire": ("road", "fort"), "deserters camp": ("woods", "wastes"), "leaden sky": ("heights", "wastes"),
+    "drowning ride": ("road", "water"), "beggars court": ("settlement",), "smelter ward": ("works", "settlement"),
+    "sunken harbour": ("water", "settlement"), "warband halt": ("wastes", "heights"), "gravediggers rest": ("graves", "fields"),
+    "black tap": ("settlement",), "confessors table": ("sacred", "settlement"), "marrow road": ("graves", "road"),
+    "kelp chapel": ("water", "sacred"), "hoarfrost host": ("heights", "ruins"),
     "barroom blues": ("settlement",), "dwarf hall": ("settlement", "heights"), "road camp": ("road", "woods"),
     "midnight ride": ("road",), "downpour run": ("road",), "field storm": ("fields",), "monsoon": ("woods", "water"),
     "witch storm": ("graves", "woods"),
@@ -3187,7 +3329,9 @@ class Take:
             # to mezzo-forte between its accents).
             weight = weight + (1.0 - weight) * even
             if self.ch.band and name == "lead guitar" and tag != " solo":
-                pitch = blues(pitch, key.tonic)
+                bent = blues(pitch, key.tonic)
+                # (2026-11-23: the bend is made after the line is put in the guitar's range, and could take its top note out of it.)
+                pitch = bent if inst.low <= bent <= inst.high else pitch
             placed.append([at + start, length * (0.96 if inst.held else 1.0), pitch, min(weight * loud, 1.0)])
         for start, length, pitch, weight in placed:
             self.voice(channel, name, tag).add(start, length, pitch, weight)
@@ -3794,6 +3938,10 @@ class Take:
                 break
             riff_b = riff()
         pattern_a, pattern_b = pattern(), pattern()
+        # The riff that moves, one for each theme, and what it played in each bar (the bar's beat: where each note begins, and how many
+        # semitones over the chord's root it is), for a heavy band's bass to go with.
+        self.moving = [self._moving_riff(0), self._moving_riff(1)] if ch.band and beats == 4.0 and "low riff" in ch.figures else []
+        self.riffed: dict[float, list[tuple[float, int]]] = {}
 
         def pluck(name: str, rank: int, at: float, length: float, pitch: int, loud: float, short: bool = False) -> None:
             """One note of the figure: `rank` is which note of the chord it is, from the bottom.
@@ -3884,7 +4032,35 @@ class Take:
                     low = "basses" if name in DESKS else name
                     for on, weight in self.spots("halves"):
                         pluck(low, 0, bar_at + on, half * 0.4, notes[0] - 12, loud * 0.5 * weight, short=True)
-            elif figure in ("riff", "chug"):
+            elif figure == "low riff" and self.moving and not rings and not comp:
+                # A riff that moves: two-note chords and single notes on steps of the scale over the chord's root, one shape over every
+                # chord, the muted string on the eighths between where the band is full. Its long notes keep off the tune's.
+                low = INSTRUMENTS["rhythm guitar"].low
+                root = key.pitch(chord.root, 45)
+                root += 12 if root < low else -12 if root > 52 else 0
+                alone = ch.band and self.heavy and bar_at < self.band_in
+                guitar = "single guitar" if alone else "rhythm guitar"
+                struck = []
+                for on, length, step, blue in self.moving[1 if second else 0][bar % 4]:
+                    if self.breathing(bar_at + on):
+                        continue
+                    pitch = root + key.pitch(chord.root + step, 60, chord) - key.pitch(chord.root, 60, chord) + (1 if blue else 0)
+                    pitch += 12 if pitch < low else 0
+                    if pitch != root and length >= 1.0 and self._tune_rubs(bar_at + on, length, pitch):
+                        pitch = root
+                    shape = (pitch, pitch + 7, pitch + 12) if pitch == root else (pitch, pitch + 12) if blue else (pitch, pitch + 7)
+                    for each in shape:
+                        self.put("rhythm", guitar, bar_at + on, length * 0.92, each + up, loud * (1.0 if on in starts else 0.9))
+                    struck.append(on)
+                    self.riffed.setdefault(round(bar_at, 4), []).append((on, pitch - root))
+                if density > 0.85 and not thin and not alone:
+                    for slot in range(slots):
+                        on = slot * half
+                        if any(abs(on - at) < 1e-6 for at in struck) or self.breathing(bar_at + on):
+                            continue
+                        self.put("rhythm", "muted guitar", bar_at + on, 0.2, root, loud * (0.75 if on in starts else 0.6))
+                        self.put("rhythm", "muted guitar", bar_at + on, 0.2, root + 7, loud * 0.5)
+            elif figure in RIFFS:
                 # A riff: power chords with room between them, and the muted string chugging
                 # where the chords are not. Root, fifth and octave: the third is left to the tune.
                 root = key.pitch(chord.root, 45)
@@ -4041,14 +4217,14 @@ class Take:
                 # a riff's register is its own, so the raise above does not reach it. `band_geared`.)
                 geared_band = self.band_geared(part, bars, bar)
                 played = "riff" if rings else "chug" if climbing and self.rise_way == "drive" and figure == "riff" else figure
-                comping = SOLO_COMP and ch.band and solo_from is not None and played in ("riff", "chug") and not rings \
+                comping = SOLO_COMP and ch.band and solo_from is not None and played in RIFFS and not rings \
                     and solo_from - 1e-6 <= bar_at < solo_to - beats / 2
                 # (A heavy band's long moment turns its guitars at its dig-in, out of the solo's way: `dig_turn`.)
                 turn = None if comping else self.dig_turn(part, bars, bar)
-                if turn == "ring" and played in ("riff", "chug"):
+                if turn == "ring" and played in RIFFS:
                     rings, played = True, "riff"
                 layer(name, played, second, raised, 0.85 if comping else 1.0, key, chord, bar, bar_at, level, density, rings=rings,
-                      up=12 if ((climbing and self.rise_way == "climb") or geared_band or turn == "up") and figure in ("riff", "chug")
+                      up=12 if ((climbing and self.rise_way == "climb") or geared_band or turn == "up") and figure in RIFFS
                       and not rings else 0,
                       ending=end in ("stop", "ring", "last"), comp=comping)
                 # (A band's riff guitars are the band's whole accompaniment; the unplugged band takes the second figure too.)
@@ -4064,7 +4240,7 @@ class Take:
                         # (A riff keeps its own register and goes up the neck only by `up`: in a geared phrase a riff that
                         # is the second figure goes up too, 2026-11-19, Kinsman's Ballad VI's rhythm guitar 53 all through.)
                         layer(with_name, with_figure, not second, up, 0.72, key, chord, bar, bar_at, level, max(density, 0.5),
-                              up=12 if geared_band and with_figure in ("riff", "chug") else 0)
+                              up=12 if geared_band and with_figure in RIFFS else 0)
                 if part in ("arrival", "summit") and self.heavy and not ch.band:
                     # The brass marks the chord: on the bar at the first arrival, on every strong beat
                     # at the summit. A line each for the trombones, the horns and the trumpets;
@@ -4255,6 +4431,7 @@ class Take:
                     # (The octave pumped: the root and the octave over it, or where that is past the bass's top, the octave
                     # under it and the root.)
                     pumped = root if root + 12 <= inst.high else root - 12 if root - 12 >= inst.low else None
+                    bar_at_riff = self.riffed.get(round(bar_at, 4), [])
                     for index in range(count):
                         on = index * step
                         pitch = root
@@ -4262,6 +4439,10 @@ class Take:
                             pitch = stair[index]
                         elif pumps and pumped is not None:
                             pitch = pumped + (12 if index % 2 == 1 else 0)
+                        elif bar_at_riff:
+                            # The riff that moves has the bass with it, in eighths: the note of it that sounds on each.
+                            pitch = root + next((move for begins, move in reversed(bar_at_riff) if begins <= on + 1e-6), 0)
+                            pitch += -12 if pitch > inst.high else 12 if pitch < inst.low else 0
                         elif index == count - 1 and toward != root and bar + 1 < bars:
                             # Into a new chord the last eighth is a step away from its root (2026-11-17, night: the band's bass
                             # played one note 85% of the time; the riff bands' bass players lead into each change like this).
@@ -4313,6 +4494,60 @@ class Take:
         else:
             inst = INSTRUMENTS[sound]
             self.put("drums", sound, at, 0.5, key.pitch(chord.root, inst.home), loud)
+
+    def _moving_riff(self, which: int) -> list[list[tuple[float, float, int, bool]]]:
+        """Four bars of a riff that moves (the figure "low riff"), each bar's notes (the beat, the length, the step of the scale over the
+        chord's root, whether it is the blues note a semitone over that step). Every bar begins alike; the first and third end one
+        way, the second another, and the fourth turns round by step. Drawn on a generator of its own."""
+        own = random.Random("low riff/%d/%d/%d" % (self.fam.seed, self.take, which))
+        phrygian = self.fam.key.mode.startswith("phrygian")
+        pool = {**RIFF_STEPS, 1: 1.6} if phrygian else RIFF_STEPS
+
+        def walked(rhythm, last: int, lands: int | None = None) -> tuple[list, int]:
+            out = []
+            for index, (on, length) in enumerate(rhythm):
+                if on == 0.0:
+                    step = 0
+                elif lands is not None and index == len(rhythm) - 1:
+                    step = lands
+                else:
+                    near = {each: weight for each, weight in pool.items() if abs(each - last) <= 3 and (each != last or each == 0)}
+                    step = own.choices(list(near), weights=list(near.values()))[0]
+                out.append((on, length, step))
+                last = step
+            return out, last
+
+        head, last = walked(own.choice(RIFF_HEADS), 0)
+        tails = own.sample(RIFF_TAILS, 2)
+        one, _ = walked(tails[0], last, lands=own.choice((-1, 2, 1 if phrygian else -1)))
+        two, _ = walked(tails[1], last, lands=own.choice((3, 4, 2)))
+        run = (4, 3, 2, 1 if phrygian else -1) if own.random() < 0.7 else (-1, 0, 2, 3)
+        turn = [(2.0 + 0.5 * index, 0.5, step) for index, step in enumerate(run)]
+        blue, hole = own.random() < 0.45, own.random() < 0.4
+
+        def marked(notes: list) -> list[tuple[float, float, int, bool]]:
+            """The half bar as it is played: the fourth on its way to the third or the fifth the blues note, the long notes cut short
+            where the riff has holes in it."""
+            return [(on, length * 0.5 if hole and length >= 1.0 else length, step,
+                     blue and step == 3 and length <= 0.5 and index + 1 < len(notes) and notes[index + 1][2] in (2, 4))
+                    for index, (on, length, step) in enumerate(notes)]
+
+        head, one, two, turn = marked(head), marked(one), marked(two), marked(turn)
+        return [head + one, head + two, head + one, head + turn]
+
+    def _tune_rubs(self, at: float, length: float, pitch: int) -> bool:
+        """Whether a singer holds a note a semitone from a riff's note struck at `at` for `length` beats, half a beat or more of it
+        together (a song led by a voice that is not the lead guitar: see `_rubs`)."""
+        import bisect
+        if getattr(self, "_sung", None) is None:
+            notes = sorted((note.start, note.start + note.length, note.pitch) for name, voice in self.voices["lead"].items()
+                           if not name.endswith(" under") for note in voice.notes)
+            self._sung = (notes, [each[0] for each in notes], max((each[1] - each[0] for each in notes), default=0.0))
+        notes, starts, longest = self._sung
+        for start, end, other in notes[bisect.bisect_left(starts, at - longest):bisect.bisect_left(starts, at + length)]:
+            if min(end, at + length) - max(start, at) >= 0.5 - 1e-6 and (other - pitch) % 12 in (1, 11):
+                return True
+        return False
 
     def _fills(self) -> tuple:
         """A band take's own fills (OWN_LICKS): what answers the riff at the end of the second bar of each four, and two turns

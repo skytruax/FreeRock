@@ -389,6 +389,115 @@ def test_nothing_sparkles_over_a_dark_characters_summit():
     assert any("glock" in voices for voices in found)
 
 
+def test_a_light_bands_tune_has_a_voice_with_a_body():
+    """(2026-11-23, evening, the first round's studies: a light band led by a whistle or a fiddle alone read 10 to 14 dB thin in its middle
+    and a picked or an acoustic bass 5 to 11, where a steel guitar, a mandolin or a low string stood where the liked leads do and a
+    fretless bass within 1.) From the third round's characters on, a light band is led by a voice with a body, over a fretless bass."""
+    names = [character.name for character in orchestra.CHARACTERS]
+    since = orchestra.CHARACTERS[names.index("rogues quarter"):]
+    light = [character for character in since if character.band and character.weight <= 0.6]
+    assert len(light) >= 4
+    for character in light:
+        assert not set(character.leads) & {"whistle", "fiddle", "harmonica", "flute"}, "%s: led by %s" % (character.name, character.leads)
+        assert character.basses == ("fretless",), "%s: %s" % (character.name, character.basses)
+
+
+def test_a_bands_dark_grooves_keep_time_on_their_own_drums():
+    """(2026-11-23, night: of the band's songs all but a handful keep time on the same four figures.) The stomp, the train, the march to
+    the gallows and the low toms: each struck on what it is named for, and its moment louder than its theme."""
+    stomp, train, march, toms = (orchestra.GROOVES[name] for name in ("swamp stomp", "train", "gallows march", "black toms"))
+    strokes = lambda layers: {(sound, where) for sound, where, *_ in layers}
+    assert ("boom", "pulses") in strokes(stomp["theme"]) and ("clack", "back") in strokes(stomp["theme"])
+    assert ("snare", "gallop") in strokes(train["moment"]) and ("clack", "gallop") in strokes(train["theme"])
+    assert ("snare", "gallop") in strokes(march["theme"]) and ("tom low", "last") in strokes(march["theme"])
+    assert ("tom low", "gallop") in strokes(toms["theme"]) and toms["fill"] == "snare"
+    for groove in (stomp, train, march, toms):
+        for layers in (groove["theme"], groove["moment"]):
+            assert all(sound in orchestra.KITS["rock"] and sound in orchestra.KITS["room"] for sound, *_ in layers)
+        loud = lambda layers: max(layer[2] for layer in layers)
+        assert loud(groove["moment"]) > loud(groove["theme"]) and groove["hit"] == "crash"
+    # ...and the takes that keep time on them differ from a take on a common figure in what the drummer strikes in the theme.
+    character = character_called("rogues quarter")
+    assert set(character.grooves) == {"swamp stomp", "shuffle"}
+
+
+def test_a_low_riff_moves_over_its_chord_and_a_heavy_bands_bass_goes_with_it():
+    """(2026-11-23, night: "make them gritty and darker", "make sure to switch up the instruments from song to song so theres variety". Every
+    band song's riff was one of six rhythms of one chord.) The low riff is four bars on steps of the scale over the chord's root: its
+    first half the same in all four, the first and third bars alike, the others ending their own ways; the bass in eighths on it."""
+    character = character_called("headsmans square")
+    assert "low riff" in character.figures and character.weight >= 0.8
+    seen, riffs = 0, set()
+    for seed in range(41, 49):
+        for number in (1, 2):
+            take = orchestra.Take(orchestra.family(character, seed, "f", "F"), number)
+            for line in take.moving:
+                assert len(line) == 4
+                heads = [[note for note in bar if note[0] < 2.0] for bar in line]
+                assert all(bar[0][0] == 0.0 and bar[0][2] == 0 for bar in line), "every bar begins on the chord's root"
+                assert heads[0] == heads[1] == heads[2] == heads[3] and line[0] == line[2] and line[1] != line[0] != line[3]
+                assert all(note[1] > 0 and note[0] + note[1] <= 4.0 + 1e-6 for bar in line for note in bar)
+                riffs.add(tuple(note[:3] for bar in line for note in bar))
+            if take.figure != "low riff":
+                continue
+            seen += 1
+            first, last = spans_of(take)["arrival"]
+            section = next(span[0] for span in take.spans if span[0].part == "arrival")
+            chords = next(span[3] for span in take.spans if span[0].part == "arrival")
+            key = next(span[2] for span in take.spans if span[0].part == "arrival")
+            guitar = take.voices["rhythm"]["rhythm guitar"].notes
+            wide, right, all_of = 0, 0, 0
+            for bar in range(1, min(8, section.bars)):
+                at = first + bar * take.beats
+                lows = {}
+                for note in guitar:
+                    if at - 1e-6 <= note.start < at + take.beats - 1e-6:
+                        lows[round(note.start - at, 2)] = min(note.pitch, lows.get(round(note.start - at, 2), 999))
+                wide += len(set(lows.values())) >= 2
+                moves = take.riffed[round(at, 4)]
+                bass = sorted((round(note.start - at, 2), note.pitch) for voice in take.voices["bass"].values() for note in voice.notes
+                              if voice.instrument == "picked bass" and at - 1e-6 <= note.start < at + take.beats - 1e-6)
+                root = key.pitch(chords[bar].root, 60)
+                for on, pitch in bass:
+                    move = next(step for begins, step in reversed(moves) if begins <= on + 1e-6)
+                    all_of += 1
+                    right += (pitch - root - move) % 12 == 0
+            assert wide >= 6, "the riff moves in nearly every bar of the arrival (%d)" % wide
+            assert right >= 0.9 * all_of, "the bass is on the riff's note (%d of %d eighths)" % (right, all_of)
+    assert seen >= 4 and len(riffs) >= 20, (seen, len(riffs))
+    # A song whose figure is the standing riff still strikes one chord in its bar.
+    standing = orchestra.Take(orchestra.family(character_called("banner ride"), 5, "f", "F"), 1)
+    assert standing.moving == [] and standing.riffed == {}
+
+
+def test_a_low_riffs_long_note_keeps_off_the_tunes():
+    """The riff is written after the tune, so it can listen: where a singer holds a note a semitone from it, a long note of the riff is the
+    chord's root. (A band led by another voice than the lead guitar was not listened to at all: Take._rubs.)"""
+    take = orchestra.Take(orchestra.family(character_called("drowning ride"), 43, "f", "F"), 1)
+    held = max((note for name, voice in take.voices["lead"].items() if not name.endswith(" under") for note in voice.notes),
+               key=lambda note: note.length)
+    assert held.length >= 1.0
+    assert take._tune_rubs(held.start, 1.0, held.pitch - 11) and take._tune_rubs(held.start, 1.0, held.pitch - 13)
+    assert not take._tune_rubs(take.total + 20.0, 1.0, held.pitch)
+    # ...so a song's long riff notes over the tune are few that rub: none holds half a beat against a singer's a semitone away.
+    rubs = 0
+    for at, moves in take.riffed.items():
+        for on, move in moves:
+            length = next((each[1] for line in take.moving for bar in line for each in bar if each[0] == on), 0.5)
+            rubs += length >= 1.0 and move != 0 and take._tune_rubs(at + on, length, 45 + move)
+    assert rubs <= len(take.riffed) * 0.2
+
+
+def test_a_lead_guitars_bent_note_stays_in_its_range():
+    """(2026-11-23: the blues bend is made after the line is put in the guitar's range, and took Grinding Sky's top note a semitone out of it.)"""
+    inst = orchestra.INSTRUMENTS["lead guitar"]
+    for number in (1, 3):
+        take = orchestra.Take(orchestra.family(character_called("leaden sky"), 267, "f", "F"), number)
+        for name, voice in take.voices["lead"].items():
+            if voice.instrument == "lead guitar":
+                assert all(inst.low <= note.pitch <= inst.high for note in voice.notes), name
+
+
 def test_a_fight_has_war_drums_all_the_way_and_heavy_walking_music_from_each_rise_to_its_moment():
     def strokes(take, part):
         first, last = spans_of(take)[part]

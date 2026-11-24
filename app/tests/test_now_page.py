@@ -47,6 +47,15 @@ def _build(var: Path, style: str, tracks: list[str], at: float) -> None:
     os.utime(folder / "bucket.json", (at, at))
 
 
+def _built(var: Path, style: str, made: dict[str, float]) -> None:
+    """A bucket whose pieces say when they were put in (as a real one's do), by song."""
+    folder = var / "buckets" / style / "all"
+    folder.mkdir(parents=True, exist_ok=True)
+    pieces = {"p%d%s" % (n, story): {"track": track, "story": story, "created": at}
+              for n, (track, at) in enumerate(made.items()) for story in ("open", "close")}
+    (folder / "bucket.json").write_text(json.dumps({"pieces": pieces, "clips": []}), encoding="utf-8")
+
+
 def _section(page: str, heading: str, until: str) -> str:
     start = page.index(heading)
     return page[start:page.index(until, start)]
@@ -134,6 +143,32 @@ def test_the_page_written_twice_on_one_build_keeps_what_came_in_with_it(tmp_path
     page = (var / "listen" / "now.html").read_text(encoding="utf-8")
     assert "Second Hearth" in _section(page, "<h2>In the player</h2>", "</body>")
     assert "no bucket" in page                  # the styles with no bucket say so
+
+
+def test_a_bucket_the_server_writes_again_as_it_plays_is_the_same_build(tmp_path):
+    """(2026-11-23: the server keeps what is heard in the bucket's file, and the page took the file's time for the build's: 104 new songs
+    stood as none an hour after they came in.)"""
+    now_page = _tool()
+    var = tmp_path / "var"
+    _stage(var, "knight/old-road-1/1", "Old Road", BUILT - 3 * 24 * HOUR)
+    _built(var, "knight", {"knight/old-road-1/1": BUILT})
+    now_page.main(["--var", str(var)])
+    _stage(var, "knight/later-hill-1/1", "Later Hill", BUILT + HOUR)
+    _built(var, "knight", {"knight/old-road-1/1": BUILT, "knight/later-hill-1/1": BUILT + 2 * HOUR})
+    now_page.main(["--var", str(var)])
+    path = var / "buckets" / "knight" / "all" / "bucket.json"
+    os.utime(path, (BUILT + 5 * HOUR, BUILT + 5 * HOUR))         # ...the player plays, and the file is written again
+    now_page.main(["--var", str(var)])
+    state = json.loads((var / "listen" / "now-state.json").read_text(encoding="utf-8"))["knight"]
+    assert state["came"] == ["knight/later-hill-1/1"] and state["built"] == BUILT + 2 * HOUR and state["since"] == BUILT
+
+    # A state kept by the old rule (the file's time for the build's) is kept too, until a piece newer than it comes in.
+    path = var / "listen" / "now-state.json"
+    old = json.loads(path.read_text(encoding="utf-8"))
+    old["knight"]["built"] = BUILT + 4 * HOUR
+    path.write_text(json.dumps(old), encoding="utf-8")
+    now_page.main(["--var", str(var)])
+    assert json.loads(path.read_text(encoding="utf-8"))["knight"]["came"] == ["knight/later-hill-1/1"]
 
 
 def _drawn(page: Path, width: int, tmp_path: Path) -> list[int]:

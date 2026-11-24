@@ -60,6 +60,15 @@ def tracks_in(bucket: Path) -> list[str]:
     return sorted({piece["track"] for piece in pieces.values()})
 
 
+def built_at(bucket: Path) -> float:
+    """When a bucket was built: its newest piece's time. (2026-11-23: the file's own time was taken, and the server writes the file again as
+    it plays, so each evening's page was read against the build itself: 104 new songs became none.) A bucket whose pieces say no time
+    is as old as its file."""
+    pieces = json.loads(bucket.read_text(encoding="utf-8")).get("pieces") or {}
+    times = [piece["created"] for piece in pieces.values() if piece.get("created")]
+    return max(times) if times else bucket.stat().st_mtime
+
+
 def staged(var: Path, track: str) -> tuple[float, dict] | None:
     """When a song was staged and what it is (its track.json), or None if it is not staged."""
     style, family, take = track.split("/")
@@ -110,12 +119,14 @@ def builds(var: Path, state: dict) -> dict:
         bucket = bucket_of(var, style)
         if bucket is None:
             continue
-        built = bucket.stat().st_mtime
-        kept = state.get(style)
+        built, kept = built_at(bucket), state.get(style)
         if kept and kept.get("built") == built:
             out[style] = kept                      # the same build as last time: what came in with it is known already
             continue
         tracks = tracks_in(bucket)
+        if kept and kept["tracks"] == tracks and built <= kept["built"]:
+            out[style] = kept                      # ...and so it is where the file's time was kept for the build's, before
+            continue
         if kept:
             before = set(kept["tracks"])
             came = [track for track in tracks if track not in before]

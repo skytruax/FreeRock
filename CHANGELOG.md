@@ -3,6 +3,20 @@
 Newest first. Words in quotation marks are what was said while listening or playing, as typed or
 dictated, where it drove the change.
 
+## 2026-11-23, night: twenty dark characters for where songs come round most, and a riff that is a line
+
+- **"we want to not hear the same music much ... make more options in all genres, make them gritty and darker"**, **"make sure to switch up the
+  instruments from song to song so theres variety"**: the third round's twenty characters (seventy families, none made before changed), in the
+  towns, inns, camps and storms where the same songs come round most. Knight Rock's are led by the clarinet, the english horn, the church
+  organ, the viola, the bass clarinet, the trombone, the cello, the bass flute and the horns (250 of its 383 songs are led by a lead
+  guitar), over four new drum patterns; Warcraft's by the low winds and brass.
+- **A riff that is a line** (`low riff`): every band song's riff was one of six rhythms of the bar's one chord. The new one is four bars on the
+  scale over the chord's root, drawn afresh for each take and theme, with the heavy band's bass on it; its long notes keep off the tune's,
+  whoever sings (the standing riff's check listens to the lead guitar alone).
+- A bend on the blues scale no longer takes the lead guitar's top note out of its range.
+- **The page of what is new lost an evening's new songs**: it took the bucket file's time for the build's, and the server writes that file again as
+  it plays, so 104 new songs stood as none. The build's time is its newest piece's.
+
 ## 2026-11-23, evening: the page of what is new, and what a light band is led by
 
 - The page of what is new begins with what waits for the next build and the demos, and a list of more than thirty songs is closed until it is
