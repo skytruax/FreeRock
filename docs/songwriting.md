@@ -1002,7 +1002,9 @@ round, the turn chord answered by stabs. *SongEval's coherence had fallen on Kin
 unrelated turns.* **The riff listens to the lead** (`orchestra.MOVES_LISTEN`, `Take._rubs`, 2026-11-19,
 13:20): the rhythm guitar is written after the lead, and where the lead sounds a note a semitone or a
 tritone from the chord the move would strike (its major third under the IV's chord), the riff stays on
-its own chord there; on King's Oath 12 of its 80 moves.
+its own chord there; on King's Oath 12 of its 80 moves. Since 2026-11-23 it listens to whoever sings (`MOVES_LISTEN_ALL`): it heard the
+lead guitar alone, and in the 16 songs led by another voice 24 in 100 of the moved chords sounded an eighth note's length or more against a
+note of the tune a semitone away (6 in 100 a beat or more; 10 and 2 in the 55 led by the guitar, the second singer's); now none does.
 
 *Until 19 November every band song answered its riff with the same two runs, a walk up to the fifth
 (3, 5, 6, 7 semitones over the root) at the end of every fourth bar and a run down the blues scale
@@ -1019,7 +1021,7 @@ each theme: every bar begins with the same half (`RIFF_HEADS`), the first and th
 fourth turns round by step into the next (`RIFF_TAILS`); in four of ten it has holes in it, in under half the fourth on its way to the
 third or the fifth is the blues note. The muted string fills the eighths where the band is full, and a heavy band's bass goes with it
 in eighths (`Take.riffed`). A long note of it keeps off a singer's held note a semitone away, whoever sings (`Take._tune_rubs`; the
-standing riff's `_rubs` listens to the lead guitar alone). Six of the third round's characters play it; no song made before does.
+standing riff listens the same way, below). Six of the third round's characters play it; no song made before does.
 
 ### 4.4 The lone opening guitar
 
@@ -2251,6 +2253,18 @@ songs the lead guitar leads 250; these are led by the clarinet low, the english 
 trombone, the cello, the bass flute and the horns, over four drum patterns of their own (`swamp stomp`, `train`, `gallows march`, `black
 toms`) and, in six of them, the riff that is a line (4.2); Warcraft's by the low winds and brass, in three towns, two camps, two
 inns and the walks with the least dark music. Seventy families, none before them changed (a hash of every note of 163 of them).
+
+*Sung low, not only led low* (the same night). Where the tunes of the library stand, the middle of every song's lead notes, solos aside
+(395 Knight Rock and 372 Warcraft sheets): Knight Rock's heavy songs C5, its light ones F♯5, Warcraft's light ones F♯5, its heavy ones B4. The
+third round's first writing named the clarinet, the viola and the bass flute and sang them at A5, D5 and D5, their tops: an instrument's `home`
+is where its key note is put, and a tune climbs a fifth to an octave over its key note. A character that is `low` has whoever sings with
+the middle of their notes at A4 or over (`LOW_TOP`) an octave down, where all but a few of the notes can be: the clarinet to A4, the viola
+and the bass flute to D4, a fiddle at the moment from D6 to D5 (`Take.sing_low`; solos and the wired guitars stay). All twenty are.
+
+*Heard from the first bar* (the same night). Nine of Warcraft's twenty songs of the first round, ten new and ten old, opened at −36 to −43 LUFS
+(Gutted Parish −39, Ramparts City −37, Iron Bridge −36, Gatehouse Square −38), where the others open at −28 to −34 and a town or an inn is
+heard over. A character that `opens` plays its opening louder by 0.13 to 0.11 of full strength and its valley by 0.07 (`OPENS`), and nothing else:
+the third round's Warcraft towns, camps and inns do. Five old songs have the same done to their sheets, to be judged beside what they were.
 
 **Warcraft or Knight Rock.**
 

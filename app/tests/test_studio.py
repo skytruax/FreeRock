@@ -471,7 +471,7 @@ def test_a_low_riff_moves_over_its_chord_and_a_heavy_bands_bass_goes_with_it():
 
 
 def test_a_low_riffs_long_note_keeps_off_the_tunes():
-    """The riff is written after the tune, so it can listen: where a singer holds a note a semitone from it, a long note of the riff is the
+    """The riff is written after the tune, so it can listen: where a singer sounds a note a semitone from it, a long note of the riff is the
     chord's root. (A band led by another voice than the lead guitar was not listened to at all: Take._rubs.)"""
     take = orchestra.Take(orchestra.family(character_called("drowning ride"), 43, "f", "F"), 1)
     held = max((note for name, voice in take.voices["lead"].items() if not name.endswith(" under") for note in voice.notes),
@@ -486,6 +486,92 @@ def test_a_low_riffs_long_note_keeps_off_the_tunes():
             length = next((each[1] for line in take.moving for bar in line for each in bar if each[0] == on), 0.5)
             rubs += length >= 1.0 and move != 0 and take._tune_rubs(at + on, length, 45 + move)
     assert rubs <= len(take.riffed) * 0.2
+
+
+def test_a_riffs_move_listens_to_whoever_sings(monkeypatch):
+    """(2026-11-23, night: the riff's moved chords listened to the lead guitar alone; in songs led by anyone else 24 in 100 sounded an eighth
+    note's length or more against a note of the tune a semitone away.) Cutpurse Alley is led by a fiddle and a whistle."""
+    import bisect
+
+    def rubbing(take) -> tuple[int, int]:
+        notes = sorted((note.start, note.start + note.length, note.pitch) for name, voice in take.voices["lead"].items()
+                       if not name.endswith(" under") for note in voice.notes)
+        starts, longest = [each[0] for each in notes], max(each[1] - each[0] for each in notes)
+        chords: dict[tuple[float, str], list] = {}
+        for name in ("rhythm guitar", "single guitar"):
+            for note in take.voices["rhythm"][name].notes if name in take.voices["rhythm"] else []:
+                chords.setdefault((round(note.start, 3), name), []).append(note)
+        moved = hit = 0
+        for (at, _), struck in chords.items():
+            section, first, key, harmony = next(span for span in reversed(take.spans) if span[1] <= at + 1e-6)
+            root = key.pitch(harmony[min(int((at - first) / take.beats + 1e-6), len(harmony) - 1)].root, 45)
+            root += 12 if root < 40 else -12 if root > 52 else 0
+            if len(struck) < 3 or (min(note.pitch for note in struck) - root) % 12 not in (5, 10):
+                continue
+            moved += 1
+            length = max(note.length for note in struck)
+            hit += any(min(end, at + length) - max(start, at) >= 0.4 and any((pitch - note.pitch) % 12 in (1, 11) for note in struck)
+                       for start, end, pitch in notes[bisect.bisect_left(starts, at - longest):bisect.bisect_left(starts, at + length)])
+        return moved, hit
+
+    def over(listens: bool) -> tuple[int, int]:
+        monkeypatch.setattr(orchestra, "MOVES_LISTEN_ALL", listens)
+        moved = hit = 0
+        for number in (1, 2, 3):
+            for name in ("anywhere-cutpurse-alley-1", "anywhere-cutpurse-alley-2"):
+                take = orchestra.Take(_family(name), number)
+                if take.riff_move in ("rock", "drop"):
+                    moved, hit = moved + rubbing(take)[0], hit + rubbing(take)[1]
+        return moved, hit
+
+    moved, hit = over(False)
+    assert moved >= 100 and hit >= moved * 0.15, (moved, hit)
+    moved, hit = over(True)
+    assert moved >= 50 and hit <= moved * 0.02, (moved, hit)
+
+
+def test_a_character_that_opens_is_heard_from_its_first_bar():
+    """(2026-11-23, night: nine of Warcraft's twenty songs opened at -36 to -43 LUFS, where the others open at -28 to -34.) The opening and the
+    valley are lifted, and nothing else is; the valley is still the quietest the story gets once it has begun."""
+    import dataclasses
+    opening = [character for character in orchestra.CHARACTERS if character.opens]
+    assert len(opening) >= 7 and all(character.role in ("town", "ember", "camp") and not character.band for character in opening)
+    for character in opening:
+        levels, plain = orchestra.levels_of(character), orchestra.levels_of(dataclasses.replace(character, opens=False))
+        assert plain == orchestra._levels(character.role, character.weight, character.busy)
+        assert levels["open"][0] - plain["open"][0] == pytest.approx(0.13) and levels["open"][1] - plain["open"][1] == pytest.approx(0.11)
+        assert levels["valley"][0] - plain["valley"][0] == pytest.approx(0.07)
+        assert {part for part in levels if levels[part] != plain[part]} == {"open", "valley"}
+        assert max(levels["valley"]) < min(levels["first"]) and levels["open"][0] < levels["first"][0]
+    fam = orchestra.family(opening[0], 12, "f", "F")
+    assert next(section.level for section in fam.sections if section.part == "open") == orchestra.levels_of(opening[0])["open"]
+
+
+def test_a_low_characters_singers_stand_low():
+    """(2026-11-23, night: dark in key and in instruments, and sung at the top of them: a clarinet's middle A5, a viola's D5.) The singers of a
+    low character are an octave down wherever the middle of their notes was A4 or over and they can be; the same notes otherwise."""
+    import dataclasses
+    import statistics
+    low = [character for character in orchestra.CHARACTERS if character.low]
+    assert len(low) >= 20
+    lowered = 0
+    for index, character in enumerate(low):
+        plain = orchestra.Take(orchestra.family(dataclasses.replace(character, low=False), 700 + index, "f", "F"), 1)
+        take = orchestra.Take(orchestra.family(character, 700 + index, "f", "F"), 1)
+        for name, voice in take.voices["lead"].items():
+            was = plain.voices["lead"][name]
+            inst = orchestra.INSTRUMENTS[voice.instrument]
+            moved = [old.pitch - new.pitch for old, new in zip(was.notes, voice.notes)]
+            assert len(was.notes) == len(voice.notes) and set(moved) <= {0, 12}, (character.name, name)
+            assert all(inst.low <= note.pitch <= inst.high for note in voice.notes)
+            if name.endswith((" solo", " twin")) or inst.wired:
+                assert set(moved) <= {0}, (character.name, name)
+                continue
+            if 12 in moved:
+                lowered += 1
+                assert statistics.median(note.pitch for note in was.notes) >= orchestra.LOW_TOP - 1
+                assert moved.count(12) >= 0.97 * len(moved), (character.name, name)
+    assert lowered >= 10, lowered
 
 
 def test_a_lead_guitars_bent_note_stays_in_its_range():

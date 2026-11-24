@@ -13,6 +13,12 @@ dictated, where it drove the change.
 - **A riff that is a line** (`low riff`): every band song's riff was one of six rhythms of the bar's one chord. The new one is four bars on the
   scale over the chord's root, drawn afresh for each take and theme, with the heavy band's bass on it; its long notes keep off the tune's,
   whoever sings (the standing riff's check listens to the lead guitar alone).
+- **Sung low**: the library's tunes stand at C5 in Knight Rock's heavy songs and F♯5 in its light ones, and the new dark songs' were no lower, whatever
+  led them. The twenty's singers stand an octave down wherever the middle of their notes was A4 or over (`Character.low`).
+- **Heard from the first bar**: nine of Warcraft's twenty songs of the first round opened at -36 to -43 LUFS. The new towns, camps and inns play
+  their openings and their valleys louder (`Character.opens`).
+- The riff listens to whoever sings: in songs led by another voice than the lead guitar a quarter of its moved chords sounded an eighth note's length
+  or more a semitone from the tune (6 in 100 a beat or more).
 - A bend on the blues scale no longer takes the lead guitar's top note out of its range.
 - **The page of what is new lost an evening's new songs**: it took the bucket file's time for the build's, and the server writes that file again as
   it plays, so 104 new songs stood as none. The build's time is its newest piece's.
