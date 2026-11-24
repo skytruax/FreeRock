@@ -503,18 +503,31 @@ def solo_lift(parts: dict[str, np.ndarray], span: tuple[int, int], ramp: int) ->
     return round(float(lift), 2), curve
 
 
+def solos_of(notes: list[tuple[float, float]], bar: float, beat_frames: float) -> list[tuple[int, int]]:
+    """Where a song's solos are, in samples, from their notes (the beat each begins on and its length in beats): one solo to the next, a rest of more than
+    two bars between them."""
+    spans: list[list[float]] = []
+    for start, length in sorted(notes):
+        if spans and start - spans[-1][1] <= 2 * bar:
+            spans[-1][1] = max(spans[-1][1], start + length)
+        else:
+            spans.append([start, start + length])
+    return [(int(first * beat_frames), int(last * beat_frames)) for first, last in spans]
+
+
 def sung_spans(form: list[dict], edges: list[int], solo_spans: list[tuple[int, int]]) -> list[tuple[int, int]]:
     """Where a band's tune sings, in samples: every part of the story but the open, where the riff is alone, and the solos, which are lifted by
-    their own measure (the part after a solo, where it has one)."""
+    their own measure: what a part has before its solo and after it. (2026-11-24, Keel-Scarred Shove: a solo picked up in the climb's last bar had its climb taken
+    for the solo, and left unlifted.)"""
     sung = []
     for section, first, last in zip(form, edges, edges[1:]):
         if section.get("story") == "open":
             continue
+        left = [(first, last)]
         for span in solo_spans:
-            if first < span[1] and last > span[0]:
-                first = max(first, span[1])
-        if last - first > int(2 * RATE):
-            sung.append((first, last))
+            left = [each for a, b in left for each in ((a, min(b, span[0])), (max(a, span[1]), b)) if each[1] > each[0]] \
+                if first < span[1] and last > span[0] else left
+        sung += [(a, b) for a, b in left if b - a > int(2 * RATE)]
     return sung
 
 
@@ -594,13 +607,8 @@ def perform(sheet: Sheet) -> dict:
     solo_span, solo_spans = None, []                     # the summit's, and every one (a jam has one before it: orchestra.FORMS)
     if soloed:
         beat_frames = 60.0 / bpm * RATE
-        for index, (first, last) in enumerate(zip(edges, edges[1:])):
-            mine = [note for note in soloed if first - 0.1 * beat_frames <= note.start * beat_frames < last - 0.1 * beat_frames]
-            if mine:
-                solo_spans.append((int(min(note.start for note in mine) * beat_frames),
-                                   int(max(note.start + note.length for note in mine) * beat_frames)))
-                if index == moment:
-                    solo_span = solo_spans[-1]
+        solo_spans = solos_of([(note.start, note.length) for note in soloed], sheet.beats, beat_frames)
+        solo_span = next((span for span in solo_spans if edges[moment] <= (span[0] + span[1]) // 2 < edges[moment + 1]), None)
     room = about["hall"][1] / 0.24
     strokes = [(float(at), float(loud)) for at, loud in about["ducks under"]]
     seed = about["seed"] * 31 + take

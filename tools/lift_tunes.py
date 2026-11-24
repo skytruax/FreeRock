@@ -38,11 +38,7 @@ def lift(folder: Path, out: Path | None = None) -> str:
         edges.append(int(round(bars * bar)))
     beat = 60.0 / float(sheet["tempo"]) * RATE
     solo = [note for name, part in sheet["parts"].get("lead", {}).items() if name.endswith(" solo") for note in part["notes"]]
-    solos = []
-    for first, last in zip(edges, edges[1:]):
-        mine = [note for note in solo if first - 0.1 * beat <= note[0] * beat < last - 0.1 * beat]
-        if mine:
-            solos.append((int(min(note[0] for note in mine) * beat), int(max(note[0] + note[1] for note in mine) * beat)))
+    solos = build.solos_of([(note[0], note[1]) for note in solo], float(sheet["beats"]), beat)
     parts = {}
     for channel in ("lead", "rhythm", "bass"):
         if not (folder / (channel + ".flac")).is_file():

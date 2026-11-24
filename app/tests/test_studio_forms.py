@@ -353,3 +353,14 @@ def test_a_tune_that_is_not_a_distorted_guitar_s_is_lifted_further_in_any_band()
     assert build.tune_caps("", lead, spans, 10.0) == [build.TUNE_MOST, build.TUNE_MOST_BANDS, build.TUNE_MOST_BANDS]
     assert build.tune_caps("doom", lead, spans, 10.0) == [build.TUNE_MOST_BANDS] * 3
     assert build.tune_caps("", {}, spans, 10.0) == [build.TUNE_MOST] * 3
+
+
+def test_a_solo_picked_up_in_the_bar_before_leaves_its_part_to_be_lifted():
+    """(Keel-Scarred Shove: the climb taken for the solo, and left unlifted.)"""
+    rate = build.RATE
+    notes = [(47.0, 0.5), (47.5, 0.5), (48.0, 4.0), (56.0, 8.0), (120.0, 2.0)]                     # a pickup, the solo, and another solo later
+    spans = build.solos_of(notes, 4.0, float(rate))
+    assert spans == [(47 * rate, 64 * rate), (120 * rate, 122 * rate)]
+    form = [{"story": "open"}, {"story": "rise"}, {"story": "moment"}, {"story": "close"}]
+    edges = [0, 16 * rate, 48 * rate, 80 * rate, 130 * rate]
+    assert build.sung_spans(form, edges, spans) == [(16 * rate, 47 * rate), (64 * rate, 80 * rate), (80 * rate, 120 * rate), (122 * rate, 130 * rate)]
