@@ -25,7 +25,7 @@ import numpy as np
 
 from .. import analysis, forever
 from . import RATE, desk, muse, reaper, sounds, stage_root, write_track
-from .orchestra import CHANNELS, CHARACTERS, INSTRUMENTS, Family, Take, band_of, family, settings_of, sounded
+from .orchestra import CHANNELS, CHARACTERS, INSTRUMENTS, Family, Take, band_of, family, given, settings_of
 from .score import Sheet, humanise
 
 VAR = Path(__file__).resolve().parents[3] / "var"
@@ -43,6 +43,14 @@ SOFT_WAR_DRUMS = -18.0                         # where a lighter track's softer 
 WAR_DRUMS = -15.5                              # where the drums sit in a track that has war drums: up with the tune, the loudest strokes in the piece
 BAND = {"lead": -17.0, "rhythm": -18.5, "drums": -17.5, "bass": -19.5, "texture": -24.0}       # a band: guitars and drums up front
 BAND_LIGHT = {"drums": -18.5, "bass": -19.5, "rhythm": -18.5}      # (2 to 2.5 dB nearer since "light and wimpy" and "a little harder")
+# Each band's record is balanced its own way (orchestra.BANDS; 2026-11-23, "all the knight rock songs sound like the same song": the same five places in every
+# one): dB over or under the places above. The doom band is its guitars and its bass, the chop its drums, the lounge and the twang their singers, the
+# cathedral its organ and its choir, the saloon its piano.
+BAND_BALANCE = {"doom": {"rhythm": 1.0, "bass": 1.0, "drums": -1.0, "lead": -0.5}, "stoner": {"rhythm": 0.5, "bass": 1.0, "drums": -0.5},
+                "tweed": {"rhythm": -0.5, "lead": 0.5}, "chop": {"drums": 1.0, "rhythm": -1.5, "bass": 0.5},
+                "shanty": {"rhythm": -1.0, "lead": 0.5, "texture": 0.5}, "twang": {"rhythm": -1.0, "drums": -0.5, "lead": 0.5, "texture": 1.0},
+                "lounge": {"rhythm": -1.5, "drums": -1.0, "bass": 0.5, "lead": 0.5}, "cellos": {"rhythm": 0.5, "drums": -1.0},
+                "cathedral": {"rhythm": 0.5, "texture": 1.0, "drums": -0.5}, "saloon": {"rhythm": 0.5, "drums": -1.0, "bass": -0.5}}
 RIDE = 0.15                    # how far each part of the story is brought up towards the loudest part (it was 0.42, which
                                # took most of the written dynamics away: "rewrite all music to be more dynamic", 2026-11-16)
 # The least each channel is played at in each part of the story, so that the story is whole
@@ -430,7 +438,7 @@ def write(fam: Family, take: int) -> Sheet:
         # The band's own instruments play what the writer names (orchestra.BANDS): the notes are the writer's, the sound the band's.
         for channel in CHANNELS:
             for voice in written.voices[channel].values():
-                voice.instrument = sounded(band, voice.instrument)
+                given(band, voice)
     form, first_bar = [], 0
     for section in fam.sections:
         written_as = {"story": section.story, "part": section.part, "first": first_bar, "bars": section.bars,
@@ -443,7 +451,7 @@ def write(fam: Family, take: int) -> Sheet:
     about = {"character": character.name, "role": character.role, "kinds": list(character.kinds), "serves": list(character.serves),
              "light": character.light, "weight": character.weight, "band": character.band, "hall": list(character.hall),
              "metre": fam.metre, "seed": fam.seed, "tonic": fam.key.name, "settings": list(settings_of(character)),
-             "sounds": band, "soft war": written.soft_war, "ducks under": [list(stroke) for stroke in strokes]}
+             "sounds": band, "shape": character.form, "soft war": written.soft_war, "ducks under": [list(stroke) for stroke in strokes]}
     sheet = Sheet(style=character.style, family=fam.name, take=take, title=fam.title, tempo=fam.bpm, beats=fam.beats, form=form,
                   parts=written.voices, about=about)
     sheet.revised("the first draft", "written by the studio's writer as %s (%s), and stacked on by its desk" % (character.name, fam.metre),
@@ -531,11 +539,16 @@ def perform(sheet: Sheet) -> dict:
     # measured where the summit has no solo, so that the lift is not taken back (2026-11-18: measured over the solo, the
     # whole lead channel was turned down by the lift, and the solo came out level with the rhythm guitars).
     soloed = [note for name, voice in voices.get("lead", {}).items() if name.endswith(" solo") for note in voice.notes]
-    solo_span = None
+    solo_span, solo_spans = None, []                     # the summit's, and every one (a jam has one before it: orchestra.FORMS)
     if soloed:
         beat_frames = 60.0 / bpm * RATE
-        solo_span = (int(min(note.start for note in soloed) * beat_frames),
-                     int(max(note.start + note.length for note in soloed) * beat_frames))
+        for index, (first, last) in enumerate(zip(edges, edges[1:])):
+            mine = [note for note in soloed if first - 0.1 * beat_frames <= note.start * beat_frames < last - 0.1 * beat_frames]
+            if mine:
+                solo_spans.append((int(min(note.start for note in mine) * beat_frames),
+                                   int(max(note.start + note.length for note in mine) * beat_frames)))
+                if index == moment:
+                    solo_span = solo_spans[-1]
     room = about["hall"][1] / 0.24
     strokes = [(float(at), float(loud)) for at, loud in about["ducks under"]]
     seed = about["seed"] * 31 + take
@@ -583,6 +596,8 @@ def perform(sheet: Sheet) -> dict:
     # and done in REAPER, as a mixer would: see the end.)
     if about["band"]:
         places = dict(BAND, **(BAND_LIGHT if about["weight"] < 0.7 else {}))
+        for channel, more in BAND_BALANCE.get(about.get("sounds") or "", {}).items():
+            places[channel] += more
     else:
         places = dict(PLACE, **(LIGHT if about["weight"] < 0.7 else {}))
         if any(voice.notes for name, voice in voices["drums"].items() if name.startswith("war drums")):
@@ -611,6 +626,16 @@ def perform(sheet: Sheet) -> dict:
         spans = list(zip(edges, edges[1:]))
         if channel == "lead" and solo_span:
             spans[moment] = where                                                  # (the solo is meant to stand over)
+        if channel == "lead" and len(solo_spans) > (1 if solo_span else 0):
+            # (...and so is a jam's first solo: what its part has after it, if anything, stands for the part.)
+            kept = []
+            for index, (first, last) in enumerate(spans):
+                early = next((span for span in solo_spans if span is not solo_span and first < span[1] and last > span[0]), None)
+                if early is None or index == moment:
+                    kept.append((first, last))
+                elif last - early[1] > 4 * int(bar_frames):
+                    kept.append((early[1], last))
+            spans = kept
         parts_of = [analysis.loudness_lufs(audio[first:last], RATE) for first, last in spans]
         loud = max(loud, max(parts_of) - 3.0)
         gain = min(max(places[channel] - loud, -18.0), 18.0)
@@ -625,11 +650,11 @@ def perform(sheet: Sheet) -> dict:
     alone: dict[str, list[tuple[float, float]]] = {}
     solo_db = 0.0
     lead_curve = None
-    if solo_span:
-        solo_db, lift_curve = solo_lift(parts, solo_span, int(beat_frames))
+    for span in solo_spans:
+        solo_db, lift_curve = solo_lift(parts, span, int(beat_frames))
         if lift_curve is not None:
             parts["lead"] = parts["lead"] * lift_curve[:, None]
-            lead_curve = lift_curve
+            lead_curve = lift_curve if lead_curve is None else lead_curve * lift_curve
     tune_dbs: list[float] = []
     if about["band"] and TUNE_LIFT and "lead" in parts:
         # A band's tune stands over its rhythm guitars wherever it sings: every part of the story but the open, where the
@@ -638,8 +663,9 @@ def perform(sheet: Sheet) -> dict:
         for section, first, last in zip(sheet.form, edges, edges[1:]):
             if section.get("story") == "open":
                 continue
-            if solo_span and first < solo_span[1] and last > solo_span[0]:
-                first = max(first, solo_span[1])
+            for span in solo_spans:
+                if first < span[1] and last > span[0]:
+                    first = max(first, span[1])
             if last - first > int(2 * RATE):
                 sung.append((first, last))
         tune_dbs, tune_curve = tune_lift(parts, sung, int(60.0 / bpm * RATE))

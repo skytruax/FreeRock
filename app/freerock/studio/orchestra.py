@@ -121,7 +121,8 @@ INSTRUMENTS = {
     "twang guitar": I(40, 84, 60, held=False, level=0.9), "chime guitar": I(40, 84, 62, held=False, level=0.9),
     "crunch guitar": I(40, 76, 50, held=False, wired=True), "fuzz guitar": I(40, 76, 50, held=False, wired=True),
     "sweet lead": I(52, 86, 67, wired=True), "fuzz lead": I(52, 86, 64, wired=True),
-    "fuzz bass": I(28, 55, 38, held=False), "round bass": I(28, 55, 38, held=False),
+    "riff celli": I(36, 76, 50, held=False), "fuzz viola": I(48, 86, 62, wired=True),
+    "fuzz bass": I(28, 60, 38, held=False), "round bass": I(28, 60, 38, held=False),
     # The big drums and what marks an arrival, found by name alone. A war drum's or a frame
     # drum's pitch is its size: 36 is the
     # biggest war drum, 45 the lowest frame drum. The others have one note each.
@@ -197,6 +198,8 @@ class Character:
     low: bool = False                                      # whoever sings its tunes over A4 sings them an octave down (LOW_TOP)
     # (2026-11-23, evening, played: "all the knight rock songs sound like the same song", "too much of the same instrument sounds".)
     sounds: str = ""                                       # whose instruments its band has (BANDS); "": the house band's
+    form: str = ""                                         # the shape of its songs (FORMS); "": the story in nine parts
+    opening: str = ""                                      # who opens a band's song: "" the guitars on their riff; "drums" or "bass" alone, the riff at the half
 
 
 C = Character
@@ -1553,6 +1556,58 @@ CHARACTERS = (
       leads=("clarinet",), strong=("lead guitar", "clarinet"), under=(), pads=("rock organ",), pad_ways=("drone",), plucks=("banjo", "rhythm guitar"),
       figures=("low riff", "strum"), basses=("fretless",), kit="rock", drums=(), grooves=("swamp stomp", "shuffle"), hall=(1.4, 0.15), lift=0.1, low=True, sounds="tweed",
       titles=(("Fever", "Croc-Tooth", "Witch-Doctor", "Sinking", "Mosquito", "Rot-Root"), ("Swamp", "Boil", "Cure", "Crossing", "Stomp", "Delta"))),
+    # --- 2026-11-23, night, the fifth round ("all the knight rock songs sound like the same song"): songs of other shapes (FORMS) and other metres, each
+    # --- in a band of its own sounds. Of the band's characters before it all but three were in four, and every song told the one story.
+    C("blackwater waltz", ("marsh", "coast"), style="knight", band=True, modes=("minor", "dorian"), bpm=(116, 130), metres=("3/4",), busy=0.5, weight=0.85,
+      leads=("viola",), strong=("viola", "lead guitar"), under=(), pads=("choir",), pad_ways=("drone", "pad"), plucks=("rhythm guitar", "single guitar"),
+      figures=("low riff", "strum"), basses=("picked bass",), kit="rock", drums=("timpani",), grooves=("swamp stomp", "half rock"), hall=(1.8, 0.19),
+      lift=0.1, low=True, sounds="cellos", form="verses", opening="bass",
+      titles=(("Blackwater", "Undertow", "Silt-Deep", "Ferryman's", "Weir", "Drifting"), ("Waltz", "Turning", "Toll", "Reel", "Ring", "Spiral"))),
+    C("gallows jig", ("haunted", "highland"), style="knight", band=True, modes=("minor", "dorian"), bpm=(132, 146), metres=("6/8",), busy=0.6, weight=0.85,
+      leads=("clarinet",), strong=("fiddle", "mandolin"), under=(), pads=("pipe drone",), pad_ways=("drone",), plucks=("rhythm guitar", "banjo"),
+      figures=("low riff", "strum"), basses=("picked bass",), kit="rock", drums=("great drum",), grooves=("swamp stomp", "gallows march"), hall=(1.6, 0.17),
+      lift=0.2, low=True, sounds="shanty", form="riff", opening="drums",
+      titles=(("Rope's-End", "Scaffold", "Cut-Down", "Tyburn", "Crow-Pecked", "Long-Drop"), ("Jig", "Caper", "Kick", "Swing", "Fling", "Hornpipe"))),
+    C("crooked mile", ("pastoral", "highland"), style="knight", band=True, modes=("dorian", "minor"), bpm=(126, 140), metres=("7/8",), busy=0.55, weight=0.85,
+      leads=("alto sax",), strong=("alto sax", "lead guitar"), under=(), pads=("rock organ",), pad_ways=("drone",), plucks=("single guitar", "rhythm guitar"),
+      figures=("low riff", "strum"), basses=("picked bass",), kit="rock", drums=(), grooves=("rock", "half rock"), hall=(1.3, 0.14), lift=0.2, low=True,
+      sounds="chop", form="riff", opening="bass",
+      titles=(("Crooked", "Seven-League", "Limping", "Switchback", "Odd-Footed", "Bandit's"), ("Mile", "Stride", "Run", "Shortcut", "Furlong", "Trot"))),
+    C("five black kings", ("regal", "highland"), style="knight", band=True, modes=("minor", "phrygian"), bpm=(98, 110), metres=("5/4",), busy=0.4, weight=0.95,
+      leads=("horns",), strong=("horns", "choir"), under=(), pads=("choir",), pad_ways=("drone", "pad"), plucks=("rhythm guitar", "single guitar"),
+      figures=("low riff", "toll"), basses=("picked bass",), kit="rock", drums=("timpani", "great drum"), grooves=("gallows march", "half rock"),
+      hall=(2.8, 0.3), lift=0.15, low=True, sounds="cathedral", form="verses",
+      titles=(("Five Kings'", "Broken-Crown", "Throne-Breaker's", "Black Synod", "Deposed", "Kingless"), ("Procession", "Anathema", "Interdict", "Conclave", "Vigil", "Edict"))),
+    C("high noon cairn", ("desert", "pastoral"), style="knight", band=True, modes=("minor", "phrygian"), bpm=(98, 110), busy=0.4, weight=0.85,
+      leads=("trumpet",), strong=("trumpet", "lead guitar"), under=(), pads=("choir",), pad_ways=("drone", "pad"), plucks=("twang guitar", "guitar"),
+      figures=("arp", "strum"), basses=("picked bass",), kit="room", drums=("church bell",), grooves=("train", "gallows march"), hall=(2.2, 0.24),
+      lift=0.2, low=True, sounds="twang", form="burn",
+      titles=(("High Noon", "Buzzard", "Dust-Choked", "Stranger's", "Dead-Eye", "Nameless"), ("Cairn", "Reckoning", "Standoff", "Widow", "Draw", "Grave"))),
+    C("hearse shuffle", ("haunted", "regal"), style="knight", band=True, modes=("dorian", "minor"), bpm=(88, 100), metres=("6/8",), busy=0.5, weight=0.7,
+      leads=("tenor sax",), strong=("tenor sax", "lead guitar"), under=(), pads=("oohs",), pad_ways=("drone",), plucks=("rhythm guitar", "steel guitar"),
+      figures=("riff", "strum"), basses=("fretless",), kit="room", drums=(), grooves=("shuffle", "brushes"), hall=(1.2, 0.13), lift=0.1, low=True,
+      sounds="saloon", form="jam", opening="drums",
+      titles=(("Hearse", "Undertaker's", "Casket", "Black-Crepe", "Sexton's", "Pallbearer"), ("Shuffle", "Blues", "Two-Step", "Slow Drag", "Wake", "Roll"))),
+    C("engine of ruin", ("infernal", "desert"), style="knight", band=True, modes=("phrygian", "minor"), bpm=(106, 118), busy=0.45, weight=1.0,
+      leads=("trombone",), strong=("trombone", "lead guitar"), under=(), pads=("choir",), pad_ways=("drone",), plucks=("rhythm guitar", "single guitar"),
+      figures=("low riff", "chug"), basses=("picked bass",), kit="rock", drums=("taiko",), grooves=("rock ride", "anvil rock"), hall=(1.5, 0.16), lift=0.2,
+      low=True, sounds="stoner", form="riff", opening="drums",
+      titles=(("Engine", "Cinder-Fed", "Siege-Furnace", "Molten", "Pitch-Black", "Slagheap"), ("of Ruin", "Ignition", "Piston", "Grinder", "Overload", "Scorch"))),
+    C("glass tide", ("mystic", "coast"), style="knight", band=True, modes=("dorian", "minor"), bpm=(104, 116), busy=0.35, weight=0.85,
+      leads=("bass flute",), strong=("viola", "lead guitar"), under=(), pads=("oohs",), pad_ways=("drone", "pad"), plucks=("chime guitar", "vibes"),
+      figures=("arp", "pulse"), basses=("fretless",), kit="room", drums=("timpani",), grooves=("black toms", "half rock"), hall=(3.0, 0.32), lift=0.2,
+      low=True, sounds="lounge", form="burn",
+      titles=(("Glass", "Moonlit", "Slow-Breaking", "Salt-Lit", "Distant", "Pale-Sea"), ("Tide", "Signal", "Horizon", "Afterglow", "Current", "Static"))),
+    C("blood gallop", KINDS_ALL, role="battle", serves=(2,), style="knight", band=True, modes=("minor", "phrygian"), bpm=(182, 198), metres=("6/8",), busy=0.55,
+      weight=1.0, leads=("horns",), strong=("lead guitar", "horns"), under=(), pads=("choir",), pad_ways=("tremolo", "drone"),
+      plucks=("rhythm guitar", "muted guitar"), figures=("low riff", "chug"), basses=("picked bass",), kit="rock", drums=("taiko",),
+      grooves=("gallows march", "black toms"), hall=(1.3, 0.14), lift=0.3, low=True, sounds="tweed", form="riff",
+      titles=(("Blood", "Hooves-Down", "Breakneck", "Flank", "No-Quarter", "Red-Spur"), ("Gallop", "Onrush", "Havoc", "Cutdown", "Melee", "Trample"))),
+    C("colossal tread", KINDS_ALL, role="boss", serves=(2,), style="knight", band=True, modes=("phrygian", "minor"), bpm=(100, 112), metres=("5/4",), busy=0.45,
+      weight=1.0, leads=("trombone",), strong=("lead guitar", "trombone"), under=(), pads=("choir",), pad_ways=("tremolo", "drone"),
+      plucks=("rhythm guitar", "muted guitar"), figures=("low riff", "chug"), basses=("picked bass",), kit="rock", drums=("great drum", "taiko"),
+      grooves=("half rock", "tom rock"), hall=(2.2, 0.23), lift=0.3, low=True, sounds="doom",
+      titles=(("Colossal", "Mountain-Breaker's", "Titanfall", "World-Cracking", "Goliath", "Monolith"), ("Tread", "Wrath", "Footfall", "Collapse", "Heave", "Verdict"))),
 )
 
 METRES = {"4/4": (4.0, (2.0, 2.0)), "3/4": (3.0, (3.0,)), "6/8": (3.0, (1.5, 1.5)), "5/4": (5.0, (3.0, 2.0)),
@@ -1653,7 +1708,7 @@ SOLOISTS = {"lead guitar": True, "fiddle": True, "mandolin": True, "harmonica": 
 # rounds' songs, led by what no band song led with, three in ten had none): two notes at once from the strings, the accordion and the steel
 # guitar, one from the winds.
 SOLOISTS_LOW = {**SOLOISTS, "viola": True, "cello": True, "accordion": True, "steel guitar": True, "clarinet": False, "trombone": False, "horns": False,
-                "soprano sax": False, "alto sax": False, "tenor sax": False, "bari sax": False}
+                "soprano sax": False, "alto sax": False, "tenor sax": False, "bari sax": False, "trumpet": False}
 # (2026-11-21, evening: "You gotta work on your fucking harmonica. Look up John Popper".) A harmonica's solo is a harp player's:
 # single notes, as John Popper plays them (it had taken the guitar's double stops: Campfire Ballad's solo two notes a third
 # apart on every eighth), its trill the warble between two holes a third apart, and its quick figures flurries of
@@ -1673,7 +1728,7 @@ HARP_BENDS = True
 # solos sang up to its very top, all in its shrill second octave: Silver Glade II A5 to D7, Dreaming Ballad II C#6 to C#7,
 # Sunny Wheels I and III E5 to C#7, eight takes.) A whistle's A6: a player keeps the top of a whistle for a note or two.
 SOLO_TOP = {"fiddle": 88, "mandolin": 86, "whistle": 93, "viola": 81, "cello": 71, "accordion": 84, "steel guitar": 79, "clarinet": 82,
-            "trombone": 67, "horns": 70, "soprano sax": 84, "alto sax": 78, "tenor sax": 74, "bari sax": 67}
+            "trombone": 67, "horns": 70, "soprano sax": 84, "alto sax": 78, "tenor sax": 74, "bari sax": 67, "trumpet": 78}
 # The figures a solo's middle is made of, three drawn for each solo: Angus Young's and Chuck Berry's (the repeated note, the
 # run in threes or fours, the trill, the double stops, the cascade, the pedal lick), the octaves Wes Montgomery and Hendrix
 # play a tune in, a figure echoed a step lower each beat, one note picked in threes against the beat, and notes slid into.
@@ -1808,6 +1863,18 @@ RIFF_HEADS = (((0.0, 1.0), (1.0, 0.5), (1.5, 0.5)), ((0.0, 1.5), (1.5, 0.5)), ((
 RIFF_TAILS = (((2.0, 1.0), (3.0, 0.5), (3.5, 0.5)), ((2.0, 0.5), (2.5, 0.5), (3.0, 1.0)), ((2.0, 1.5), (3.5, 0.5)), ((2.0, 1.0), (3.0, 1.0)),
               ((2.5, 0.5), (3.0, 0.5), (3.5, 0.5)), ((2.0, 0.5), (3.0, 0.5), (3.5, 0.5)), ((2.0, 2.0),))
 RIFF_STEPS = {0: 3.0, 2: 2.2, 3: 1.6, 4: 1.2, -1: 1.6, 1: 0.3}
+# ...and in the other metres (2026-11-23, night: 95 of 100 of the band's songs were in four): a bar's heads, its tails, and the beat the tails begin on.
+_RIFF_SIX = (((0.0, 1.0), (1.0, 0.5)), ((0.0, 0.5), (0.5, 0.5), (1.0, 0.5)), ((0.0, 1.5),), ((0.0, 0.5), (1.0, 0.5)))
+RIFF_SHAPES: dict[str, tuple[tuple, tuple, float]] = {
+    "4/4": (RIFF_HEADS, RIFF_TAILS, 2.0),
+    "3/4": ((((0.0, 1.0), (1.0, 0.5), (1.5, 0.5)), ((0.0, 1.5), (1.5, 0.5)), ((0.0, 0.5), (0.5, 0.5), (1.0, 1.0)), ((0.0, 2.0),), ((0.0, 1.0), (1.0, 1.0))),
+            (((2.0, 1.0),), ((2.0, 0.5), (2.5, 0.5)), ((2.5, 0.5),)), 2.0),
+    "6/8": (_RIFF_SIX, (((1.5, 1.0), (2.5, 0.5)), ((1.5, 0.5), (2.0, 0.5), (2.5, 0.5)), ((1.5, 1.5),), ((2.0, 0.5), (2.5, 0.5))), 1.5),
+    "5/4": ((((0.0, 1.0), (1.0, 0.5), (1.5, 0.5), (2.0, 1.0)), ((0.0, 1.5), (1.5, 0.5), (2.0, 1.0)), ((0.0, 0.5), (0.5, 1.0), (1.5, 0.5), (2.0, 0.5), (2.5, 0.5)),
+             ((0.0, 2.0), (2.0, 1.0)), ((0.0, 1.0), (1.5, 0.5), (2.0, 0.5), (2.5, 0.5))),
+            (((3.0, 1.0), (4.0, 1.0)), ((3.0, 0.5), (3.5, 0.5), (4.0, 1.0)), ((3.0, 1.0), (4.0, 0.5), (4.5, 0.5)), ((3.0, 2.0),)), 3.0),
+    "7/8": (_RIFF_SIX, (((1.5, 1.0), (2.5, 1.0)), ((1.5, 0.5), (2.0, 0.5), (2.5, 1.0)), ((1.5, 1.0), (2.5, 0.5), (3.0, 0.5)), ((1.5, 1.5), (3.0, 0.5))), 1.5),
+}
 
 
 def held_runs(symbols: list[str]) -> list[tuple[int, int]]:
@@ -1842,6 +1909,73 @@ class Section:
     level: tuple[float, float]     # how hard it is played at its start and at its end, 0 to 1
     lifted: bool = False           # in the higher key
     part: str = ""                 # which part of the long story it is (PARTS)
+    like: str = ""                 # which part's writing the band has there (FORMS); in the story its own
+    sings: str = ""                # ...and the lead: a part's, or "again", "call", "solo" or "rest" (FORMS)
+    whose: str = ""                # whose changes and whose tune: the "first" theme's or the "second"'s; "" where no theme is sung
+
+
+# The shapes a song can have (Character.form; 2026-11-23, night: "all the knight rock songs sound like the same song"; counted, every one of 402 told the
+# one story in nine parts of the same lengths, 455 to 492 s, as loud in each as the others are). A form gives the nine parts other lengths and
+# levels and, to a part, another part's writing: whose the band's is, what the lead does, and which theme is sung. A part not named is written as in the story.
+#
+#   verses   verse, chorus, verse, chorus, a bridge, the rise, the last chorus: the second theme is the chorus
+#   riff     the same, loud from its first bar and short: the riff has the verses, the lead calls and the riff answers; its middle breaks down
+#   jam      the head, a solo, the bridge, the head, the breakdown, the rise, the last solo and the head
+#   burn     one long rise: each part over the one before it, no valley
+@dataclass(frozen=True)
+class Form:
+    long: float                                            # seconds, about
+    shares: dict[str, float]
+    levels: dict[str, tuple[float, float, float, float]]   # a part's start and end, and what a heavy band's weight adds to each
+    parts: dict[str, tuple[str, str, str]]                 # part: (like, sings, whose)
+    breaks: bool = False                                   # its valley breaks down on the bass and the drums, as a fight's does
+
+
+FORMS: dict[str, Form] = {
+    "verses": Form(
+        long=372.0,
+        shares={"open": 0.065, "first": 0.13, "second": 0.115, "build": 0.13, "arrival": 0.12, "valley": 0.095, "climb": 0.1, "summit": 0.165, "close": 0.08},
+        levels={"open": (0.26, 0.4, 0.0, 0.0), "first": (0.42, 0.54, 0.0, 0.0), "second": (0.58, 0.62, 0.2, 0.22), "build": (0.46, 0.58, 0.0, 0.0),
+                "arrival": (0.62, 0.66, 0.22, 0.24), "valley": (0.26, 0.22, 0.0, 0.0), "climb": (0.36, 0.56, 0.0, 0.4),
+                "summit": (0.7, 0.7, 0.3, 0.3), "close": (0.5, 0.14, 0.0, 0.0)},
+        parts={"second": ("arrival", "arrival", "second"), "build": ("first", "again", "first"), "arrival": ("arrival", "arrival", "second"),
+               "valley": ("valley", "valley", "first"), "summit": ("summit", "summit", "second")}),
+    "riff": Form(
+        long=312.0,
+        shares={"open": 0.055, "first": 0.13, "second": 0.125, "build": 0.13, "arrival": 0.13, "valley": 0.1, "climb": 0.1, "summit": 0.165, "close": 0.065},
+        levels={"open": (0.5, 0.58, 0.0, 0.0), "first": (0.5, 0.58, 0.0, 0.0), "second": (0.62, 0.66, 0.22, 0.24), "build": (0.54, 0.62, 0.0, 0.0),
+                "arrival": (0.66, 0.7, 0.24, 0.26), "valley": (0.42, 0.5, 0.0, 0.0), "climb": (0.54, 0.66, 0.0, 0.32),
+                "summit": (0.72, 0.72, 0.28, 0.28), "close": (0.7, 0.5, 0.1, 0.1)},
+        parts={"open": ("open", "rest", ""), "first": ("first", "call", "first"), "second": ("arrival", "arrival", "second"),
+               "build": ("first", "call", "first"), "arrival": ("arrival", "arrival", "second"), "valley": ("valley", "valley", "first"),
+               "summit": ("summit", "summit", "second")},
+        breaks=True),
+    "jam": Form(
+        long=432.0,
+        shares={"open": 0.06, "first": 0.125, "second": 0.13, "build": 0.12, "arrival": 0.12, "valley": 0.095, "climb": 0.105, "summit": 0.175, "close": 0.07},
+        levels={"open": (0.3, 0.42, 0.0, 0.0), "first": (0.46, 0.56, 0.0, 0.0), "second": (0.52, 0.64, 0.0, 0.08), "build": (0.5, 0.6, 0.0, 0.0),
+                "arrival": (0.6, 0.64, 0.2, 0.22), "valley": (0.32, 0.28, 0.0, 0.0), "climb": (0.4, 0.58, 0.0, 0.4),
+                "summit": (0.7, 0.7, 0.3, 0.3), "close": (0.5, 0.16, 0.0, 0.0)},
+        parts={"second": ("first", "solo", "first"), "build": ("second", "second", "second"), "valley": ("valley", "valley", "second")},
+        breaks=True),
+    "burn": Form(
+        long=456.0,
+        shares={"open": 0.1, "first": 0.115, "second": 0.115, "build": 0.115, "arrival": 0.12, "valley": 0.115, "climb": 0.12, "summit": 0.16, "close": 0.04},
+        levels={"open": (0.16, 0.24, 0.0, 0.0), "first": (0.24, 0.32, 0.0, 0.0), "second": (0.34, 0.44, 0.0, 0.0), "build": (0.44, 0.52, 0.0, 0.0),
+                "arrival": (0.5, 0.56, 0.06, 0.08), "valley": (0.56, 0.6, 0.1, 0.14), "climb": (0.58, 0.66, 0.1, 0.3),
+                "summit": (0.72, 0.72, 0.28, 0.28), "close": (0.36, 0.1, 0.0, 0.0)},
+        parts={"first": ("valley", "valley", "first"), "second": ("first", "first", "first"), "build": ("second", "second", "second"),
+               "arrival": ("first", "again", "first"), "valley": ("arrival", "arrival", "second")}),
+}
+FORM_CALM = 0.76                   # a calm role's levels (the night, the inn, the cave, the camp), of a walk's, as the story's are
+
+
+def told(form: str, part: str, valley: str) -> tuple[str, str, str]:
+    """A part of a song of a form: whose writing the band has there, what the lead does, whose theme it is (`Section`)."""
+    if form and part in FORMS[form].parts:
+        return FORMS[form].parts[part]
+    whose = {"first": "first", "second": "second", "arrival": "first", "valley": valley, "summit": "first"}.get(part, "")
+    return part, part, whose
 
 
 @dataclass
@@ -1884,17 +2018,20 @@ def _spread(figures: str, bars: int) -> list[str]:
     return [chords[min(index * len(chords) // bars, len(chords) - 1)] for index in range(bars)]
 
 
-def _lengths(bar_s: float, period: int, fight: bool) -> dict[str, int]:
-    """How many bars each part of the story has, for a track of about eight minutes. A part in
+def _lengths(bar_s: float, period: int, fight: bool, form: str = "") -> dict[str, int]:
+    """How many bars each part of the story has, for a track of about eight minutes (a form's own length: FORMS). A part in
     which a theme is sung is so many statements of it, with room at the end, if need be, for
     its second half once more; the other parts go in fours (in twos where a bar is long)."""
-    shares = FIGHT_SHARES if fight else SHARES
+    shares = FORMS[form].shares if form else FIGHT_SHARES if fight else SHARES
+    long = FORMS[form].long if form else LONG
+    shortest, longest = SHORTEST * long / LONG, LONGEST * long / LONG
     loose = 2 if bar_s >= 3.0 else 4
-    grid = {part: period // 2 if part in THEMATIC else loose for part in PARTS}
-    least = {part: period if part in THEMATIC else loose for part in PARTS}
+    themed = [part for part in PARTS if told(form, part, "first")[0] in THEMATIC]
+    grid = {part: period // 2 if part in themed else loose for part in PARTS}
+    least = {part: period if part in themed else loose for part in PARTS}
     bars = {}
     for part in PARTS:
-        count = max(int(shares[part] * LONG / bar_s / grid[part] + 0.5) * grid[part], least[part])
+        count = max(int(shares[part] * long / bar_s / grid[part] + 0.5) * grid[part], least[part])
         if count * bar_s > MINUTE and count - grid[part] >= least[part]:
             count -= grid[part]
         bars[part] = count
@@ -1904,10 +2041,10 @@ def _lengths(bar_s: float, period: int, fight: bool) -> dict[str, int]:
     # and close are the last to be made longer.
     for _ in range(60):
         whole = sum(bars.values()) * bar_s
-        if SHORTEST <= whole <= LONGEST:
+        if shortest <= whole <= longest:
             break
-        over = {part: bars[part] * bar_s - shares[part] * LONG for part in PARTS}
-        if whole > LONGEST:
+        over = {part: bars[part] * bar_s - shares[part] * long for part in PARTS}
+        if whole > longest:
             able = [part for part in PARTS if bars[part] - grid[part] >= least[part]]
             part = max(able, key=lambda each: over[each])
             bars[part] -= grid[part]
@@ -1973,6 +2110,14 @@ BANDS: dict[str, dict[str, str]] = {
     "lounge": {"rhythm guitar": "chime guitar", "single guitar": "chime guitar", "muted guitar": "crunch muted", "picked bass": "round bass",
                "fretless": "round bass", "lead guitar": "sweet lead", "kit rock": "kit brushed", "kit room": "kit brushed", "clean guitar": "rhodes",
                "twelve string": "chime guitar"},
+    # (the fifth round's: riffs on two cellos through amplifiers, on a church organ and on a saloon's piano)
+    "cellos": {"rhythm guitar": "riff celli", "single guitar": "riff celli", "muted guitar": "muted celli", "picked bass": "fuzz bass", "fretless": "fuzz bass",
+               "lead guitar": "fuzz viola", "kit rock": "kit mallets", "kit room": "kit mallets", "rock organ": "choir", "clean guitar": "cello"},
+    "cathedral": {"rhythm guitar": "organ", "single guitar": "organ", "muted guitar": "celli pizz", "picked bass": "fuzz bass", "fretless": "fuzz bass",
+                  "lead guitar": "fuzz lead", "kit rock": "kit mallets", "kit room": "kit mallets", "rock organ": "choir", "clean guitar": "harpsichord"},
+    "saloon": {"rhythm guitar": "upright piano", "single guitar": "upright piano", "muted guitar": "upright piano", "picked bass": "round bass",
+               "fretless": "round bass", "lead guitar": "sweet lead", "kit rock": "kit rusty", "kit room": "kit brushed", "rock organ": "oohs",
+               "clean guitar": "wurly"},
 }
 # The library's first takes stay as they are; from this take on, a band song of any other character is played by another band than the house's, drawn for
 # the take: the same changes, its own tunes, and not the sound of every song before it.
@@ -1994,6 +2139,23 @@ def sounded(band: str, instrument: str) -> str:
     return BANDS[band].get(instrument, instrument) if band else instrument
 
 
+def given(band: str, voice: "Voice") -> None:
+    """Gives a voice to what plays it in a band (`sounded`), a note past that instrument's range an octave or more into it (the writer wrote for the
+    instrument it names: an organ's top chord is out of the horns' reach)."""
+    played = sounded(band, voice.instrument)
+    if played == voice.instrument:
+        return
+    voice.instrument = played
+    inst = INSTRUMENTS.get(played)
+    if inst is None or voice.drums:
+        return
+    for note in voice.notes:
+        while note.pitch > inst.high:
+            note.pitch -= 12
+        while note.pitch < inst.low:
+            note.pitch += 12
+
+
 # A low character's singers are brought down an octave where the middle of their notes is here or over it (A4).
 LOW_TOP = 69
 # How much harder a character that `opens` plays its opening (its start and its end) and its valley than the levels say.
@@ -2002,7 +2164,12 @@ OPENS = {"open": (0.13, 0.11), "valley": (0.07, 0.07)}
 
 def levels_of(character: Character) -> dict[str, tuple[float, float]]:
     """How hard each part of a character's story is played (`_levels`), its opening and its valley lifted where it `opens`."""
-    levels = dict(_levels(character.role, character.weight, character.busy))
+    if character.form:
+        scale = FORM_CALM if calm(character.role, character.busy) else 1.0
+        levels = {part: (min((low + low_more * character.weight) * scale, 1.0), min((high + high_more * character.weight) * scale, 1.0))
+                  for part, (low, high, low_more, high_more) in FORMS[character.form].levels.items()}
+    else:
+        levels = dict(_levels(character.role, character.weight, character.busy))
     if character.opens:
         for part, more in OPENS.items():
             levels[part] = tuple(min(level + up, 1.0) for level, up in zip(levels[part], more))
@@ -2030,7 +2197,7 @@ def family(character: Character, seed: int, name: str, title: str) -> Family:
     # A theme is eight bars; where eight bars are over in a quarter of a minute it is sixteen:
     # eight that end on a question and eight that answer it.
     period = 8 if 8 * bar_s >= 17.0 else 16
-    lengths = _lengths(bar_s, period, fight)
+    lengths = _lengths(bar_s, period, fight, character.form)
     away, home = HOME[mode]
     eight = _spread(rng.choice(THEMES[mode]), 8)
     eight[6], eight[7] = away, home
@@ -2053,6 +2220,8 @@ def family(character: Character, seed: int, name: str, title: str) -> Family:
     # In the valley the broader of the two themes is sung: the second where the first is busy
     # (a second theme is broad where the first is busy, and busy where it is broad).
     valley = "second" if character.busy >= 0.5 else "first"
+    if character.form:
+        valley = next(whose for like, _, whose in (told(character.form, part, valley) for part in PARTS) if like == "valley")
 
     def whole(changes: list[str]) -> list[str]:
         """One statement of a theme: its eight bars, or eight that stop on the chord before
@@ -2108,8 +2277,14 @@ def family(character: Character, seed: int, name: str, title: str) -> Family:
     levels = levels_of(character)
     made = Family(name=name, title=title, character=character, seed=seed, key=key, bpm=bpm, metre=metre, lift=lift,
                   period=period, valley=valley)
-    made.sections = [Section(WORD[part], lengths[part], changes[part], levels[part], bool(lift) and part in ("climb", "summit", "close"),
-                             part) for part in PARTS]
+    recipes = {part: told(character.form, part, valley) for part in PARTS}
+    for part, (like, _, whose) in recipes.items():
+        if character.form and part in FORMS[character.form].parts:
+            # (A form's part has the changes of what it is written as: a theme's, a rise's, or the opening's.)
+            changes[part] = run(lengths[part], second if whose == "second" else first) if like in THEMATIC \
+                else _spread(rises[0], lengths[part]) if like == "build" else changes[part]
+    made.sections = [Section(WORD[recipes[part][0]], lengths[part], changes[part], levels[part], bool(lift) and part in ("climb", "summit", "close"),
+                             part, *recipes[part]) for part in PARTS]
     return made
 
 
@@ -2607,6 +2782,10 @@ SETTINGS_OF: dict[str, tuple[str, ...]] = {
     "graveyard shift": ("graves", "settlement"), "black heath": ("wastes", "woods"), "watch on the wall": ("fort", "heights"),
     "drowned shaft": ("works", "water"), "spider vault": ("woods", "graves"), "echo forge": ("works", "heights"),
     "press gang": ("water", "settlement"), "bone caravan": ("wastes", "road"), "hollow moon": ("sacred", "woods"), "fever swamp": ("water", "woods"),
+    # The fifth round's (the same night).
+    "blackwater waltz": ("water", "ruins"), "gallows jig": ("graves", "heights"), "crooked mile": ("road", "fields"), "five black kings": ("fort", "ruins"),
+    "high noon cairn": ("wastes", "road"), "hearse shuffle": ("graves", "settlement"), "engine of ruin": ("works", "wastes"),
+    "glass tide": ("water", "sacred"), "blood gallop": ("fields", "road"), "colossal tread": ("heights", "ruins"),
     "barroom blues": ("settlement",), "dwarf hall": ("settlement", "heights"), "road camp": ("road", "woods"),
     "midnight ride": ("road",), "downpour run": ("road",), "field storm": ("fields",), "monsoon": ("woods", "water"),
     "witch storm": ("graves", "woods"),
@@ -3277,6 +3456,7 @@ class Take:
         self.total = at
         self.heavy = self.ch.weight >= 0.8
         self.fight = self.ch.role in FIGHTS
+        self.breaks = self.fight or bool(self.ch.form and FORMS[self.ch.form].breaks)     # whether its valley breaks down (a band's)
         self.soloed = False             # whether the lead guitar takes a solo at the summit (see lead)
         self.solo_key: Key | None = None    # the key the solo is in (a harmonica's is bent in it: harp_bends)
         self.solo_bars = 0              # how many of the summit's first bars the solo takes
@@ -3288,7 +3468,11 @@ class Take:
         sizes = (1.0, 2.0) if self.pulse == 1.0 else (self.group[-1], self.group[-1] + self.group[-2 if len(self.group) > 1 else -1])
         self.breath = min(next((size for size in sizes if size * beat_s >= 0.45), sizes[-1]), self.beats / 2)
         self.gaps = [(first + section.bars * self.beats - self.breath, first + section.bars * self.beats)
-                     for section, first, _, _ in self.spans if section.part in ("build", "climb")]
+                     for section, first, _, _ in self.spans if section.like in ("build", "climb")]
+        if self.ch.form:
+            # (In a form a chorus, or whatever comes in as a moment, has the breath before it whatever was played before.)
+            self.gaps += [(first - self.breath, first) for section, first, _, _ in self.spans
+                          if section.like in ("arrival", "summit") and (first - self.breath, first) not in self.gaps]
         self.cast()
         for write in (self.lead, self.answer, self.sing_low, self.make_room, self.texture, self.lay_out, self.rhythm, self.bass, self.drums,
                       self.war_drums, self.marks, self.breathe, self.effects):
@@ -3516,7 +3700,7 @@ class Take:
         """The first theme's opening on the lead guitar: the pitches of its first four notes (one to an onset), or None where
         the song has no first theme or its lead plays fewer than four notes there."""
         for section, first, _, _ in self.spans:
-            if section.part == "first":
+            if section.sings in ("first", "call"):
                 end = first + section.bars * self.beats
                 onsets: dict[float, int] = {}
                 for note in ordered:
@@ -3634,6 +3818,8 @@ class Take:
         if where == "pulses":
             return [(each, 1.0 if each in starts else 0.7) for each in pulses]
         if where == "back":
+            if simple and count == 5 and self.ch.band:
+                return [(1.0, 1.0), (4.0, 1.0)]                     # (a band's five: three and two, the snare on the second and the fifth)
             if simple:
                 return [(each, 1.0) for each in pulses if int(each) % 2 == 1] if count != 3 else [(1.0, 0.9), (2.0, 1.0)]
             return [(start, 1.0) for start in starts[1:]]
@@ -3667,8 +3853,8 @@ class Take:
         ch, rng, beats, fam = self.ch, self.rng, self.beats, self.fam
         period = fam.period
         solo, mate, third, other, hush, strong = self.solo, self.mate, self.third, self.other, self.hush, self.strong
-        first_chords = next(chords for section, _, _, chords in self.spans if section.part == "first")[:period]
-        second_chords = next(chords for section, _, _, chords in self.spans if section.part == "second")[:period]
+        first_chords = next(chords for section, _, _, chords in self.spans if section.whose == "first")[:period]
+        second_chords = next(chords for section, _, _, chords in self.spans if section.whose == "second")[:period]
         # The first theme, and the same again with its leaps filled in; a second theme, which is
         # broad where the first is busy and busy where the first is broad; a slower line to go
         # under each; and the second theme made to fit the first one's chords, for the summit.
@@ -3683,6 +3869,13 @@ class Take:
         under_b = answer(rng, fam, second_chords, tune_b)
         counter = recast(tune_b, first_chords, beats)
         self.tune, self.second, self.counter = tune, tune_b, counter
+        # A moment's singers have the first theme, the second under it; where a form's chorus is the second (FORMS) it is the other way about.
+        chorus = {"first": ((tune, again, adorned), under, counter)}
+        if ch.form:
+            chorus["second"] = ((tune_b, again_b, decorated(random.Random(fam.seed * 17 + self.take * 3 + 2), tune_b)), under_b,
+                                recast(tune, second_chords, beats))
+        else:
+            chorus["second"] = chorus["first"]
         whole, half = period * beats, period // 2 * beats
 
         def turns(bars: int) -> list[tuple[int, bool]]:
@@ -3704,7 +3897,8 @@ class Take:
             return 1 if second in HIGH and INSTRUMENTS[second].home - INSTRUMENTS[first].home < 7 else 0
 
         for section, first, key, chords in self.spans:
-            bars, part = section.bars, section.part
+            bars, part = section.bars, section.sings
+            sung_first, under_it, counter_to = chorus[section.whose or "first"]
 
             def sing(name: str, line: Line, bar: float, loud: float, octave: int = 0, tag: str = "") -> None:
                 even = 0.55 if part in ("arrival", "summit") and tag != " under" else 0.0
@@ -3733,10 +3927,42 @@ class Take:
                     at = bars * 3 // 4 + 1
                     sing(third, self.fit(tune.cut(0, 2 * beats), chords[at], aim=rng.choice((-2, 3))), at,
                          self.hard(section.level[1], 0.85))
-            elif part == "first":
+            elif part == "rest":
+                pass                                               # (the riff has it)
+            elif part == "call":
+                # A riff song's verse: the lead calls two bars of the theme, and leaves two for the riff to answer; the second time round the other
+                # player does.
+                for index, (bar, full) in enumerate(turns(bars)):
+                    caller, line = ((solo, tune), (mate, again))[index % 2] if section.part == "first" else ((mate, again), (solo, adorned))[index % 2]
+                    loud = self.hard(self.level(section, bar + period // 2))
+                    begin = 0 if full else period // 2
+                    for phrase in range(begin, period, 4):
+                        sing(caller, line.cut(phrase * beats, (phrase + 2) * beats), bar + phrase - begin, loud)
+            elif part == "solo":
+                # A jam's first solo, over the head's changes: whoever can of those who do not take the last one.
+                able = SOLOISTS_LOW if ch.low else SOLOISTS
+                player = next((name for name in (mate, other, third, solo) if name in able and name != strong[0]), None) \
+                    or next((name for name in strong + [solo] if name in able), None)
+                if player is None:
+                    for bar, full in turns(bars):
+                        sing(mate, again if full else again.cut(half, whole), bar, self.hard(self.level(section, bar + period // 2)))
+                else:
+                    own = random.Random(fam.seed * 31 + self.take * 7 + 6)
+                    inst = INSTRUMENTS[player]
+                    top = min(inst.high, SOLO_TOP.get(player, inst.high))
+                    reach = [step for step in range(-14, 22) if inst.low + 2 <= key.pitch(step, inst.home) <= top]
+                    length = min(bars, 16 if period <= 8 else period)
+                    for bar in range(0, bars - length + 1, length):
+                        mine = [chords[min(bar + each, len(chords) - 1)] for each in range(length)]
+                        sing(player, guitar_solo(own, tune, length, beats, self.pulse, fam.bpm, mine, key.mode, min(reach), max(reach),
+                                                 two=able.get(player, True), harp=player == "harmonica"),
+                             bar, self.hard(self.level(section, bar + length // 2)), tag=" solo")
+                        self.solo_key = key
+            elif part in ("first", "again"):
                 # The first theme: stated, then again by another with its leaps filled in, then
                 # by a third, then by two together. What room is left is its second half once more.
-                for index, (bar, full) in enumerate(turns(bars)):
+                # (A form's second verse, "again", sets out where the first left off.)
+                for index, (bar, full) in enumerate(turns(bars), start=1 if part == "again" else 0):
                     loud = self.hard(self.level(section, bar + period // 2))
                     if not full:
                         sing(third if third != solo else mate, again.cut(half, whole), bar, loud * 0.9)
@@ -3805,7 +4031,7 @@ class Take:
                 joiners = [name for name in dict.fromkeys((solo, mate)) if name not in strong[:2]] \
                     if CALM_ARRIVAL_JOINS and not ch.band and calm(ch.role, ch.busy) else []
                 for index, (bar, full) in enumerate(turns(bars)):
-                    use = (tune, again, adorned)[index % 3] if full else tune.cut(half, whole)
+                    use = sung_first[index % 3] if full else sung_first[0].cut(half, whole)
                     loud = self.hard(section.level[0])
                     sing(strong[0], use, bar, loud)
                     for name in (joiners if index == 0 else ()):
@@ -3815,11 +4041,11 @@ class Take:
                         sing(strong[1], use.moved(steps=2) if ch.light and not ch.band else use, bar, loud * 0.92,
                              octave=octave_of(strong[1], strong[0]))
                     if ch.under and full:
-                        sing(ch.under[0], under, bar, loud * 0.75, tag=" under")
+                        sing(ch.under[0], under_it, bar, loud * 0.75, tag=" under")
             elif part == "valley":
                 # The valley: one of the themes from a single player who has not stated it, and
                 # where there is time, again from another.
-                sung, sung_again = (tune, again) if fam.valley == "first" else (tune_b, again_b)
+                sung, sung_again = (tune, again) if section.whose == "first" else (tune_b, again_b)
                 echo = next((name for name in (mate, third, other, solo) if name != hush), hush)
                 # (A band's valley is quiet only if its tune is: a distorted guitar is as loud played softly. In a heavy
                 # band's the clean guitar has it and answers itself; in a lighter band's it stands in for the distorted
@@ -3885,7 +4111,7 @@ class Take:
                     if period <= 8 and whole_turns >= 3 and stated[1][1]:
                         solo_turns = 2
                 for index, (bar, full) in enumerate(stated):
-                    use = (tune, again, adorned)[index % 3] if full else tune.cut(half, whole)
+                    use = sung_first[index % 3] if full else sung_first[0].cut(half, whole)
                     loud = self.hard(section.level[0])
                     if soloist and 0 < index < solo_turns:
                         continue                                  # (the solo's second eight bars)
@@ -3912,7 +4138,7 @@ class Take:
                     if full:
                         both = index >= 1 or not several
                         for name in below:
-                            sing(name, counter if both else under, bar, loud * (0.85 if both else 0.8), tag=" under")
+                            sing(name, counter_to if both else under_it, bar, loud * (0.85 if both else 0.8), tag=" under")
                     if ch.band and INSTRUMENTS[strong[0]].wired:
                         # Twin guitars: the tune again a third above it.
                         sing(strong[0], use.moved(steps=2), bar, loud * 0.8, tag=" twin")
@@ -3945,11 +4171,11 @@ class Take:
         second_centre = 55 if INSTRUMENTS[self.other].home >= 64 else 62
         before: list[int] | None = None
         for section, first, key, chords in self.spans:
-            part, bars = section.part, section.bars
+            part, bars = section.like, section.bars
             pad, way = (self.pad_b, self.way_b) if part in ("second", "valley") else (self.pad, self.way)
             if part == "valley" and pad in REEDS and self.pad not in REEDS:
                 pad = self.pad                         # a reed does not hold the valley's drone (REEDS)
-            if part == "valley" and (not self.fight or ch.band):
+            if part == "valley" and (not self.breaks or ch.band):
                 way = self.valley_way                  # (a band's fight breaks down in its valley too: see `drums`)
             name = "tremolo" if way == "tremolo" and part in ("open", "build", "climb") else pad
             count = {"open": 2, "first": 3, "second": 3, "build": 4, "arrival": 4, "valley": 2, "climb": 4, "summit": 4, "close": 3}[part]
@@ -4098,7 +4324,7 @@ class Take:
         pattern_a, pattern_b = pattern(), pattern()
         # The riff that moves, one for each theme, and what it played in each bar (the bar's beat: where each note begins, and how many
         # semitones over the chord's root it is), for a heavy band's bass to go with.
-        self.moving = [self._moving_riff(0), self._moving_riff(1)] if ch.band and beats == 4.0 and "low riff" in ch.figures else []
+        self.moving = [self._moving_riff(0), self._moving_riff(1)] if ch.band and "low riff" in ch.figures else []
         self.riffed: dict[float, list[tuple[float, int]]] = {}
 
         def pluck(name: str, rank: int, at: float, length: float, pitch: int, loud: float, short: bool = False) -> None:
@@ -4312,17 +4538,20 @@ class Take:
                 or (part in ("build", "climb") and along >= 0.5)
 
         soloed = [note for name, voice in self.voices["lead"].items() if name.endswith(" solo") for note in voice.notes]
-        solo_from = min((note.start for note in soloed), default=None)
-        solo_to = max((note.start + note.length for note in soloed), default=None)
         for section, first, key, chords in self.spans:
-            part, bars = section.part, section.bars
+            part, bars = section.like, section.bars
             runs = held_runs(section.chords)
+            here = [note for note in soloed if first - 1e-6 <= note.start < first + bars * beats - 1e-6]      # (a solo is within one part)
+            solo_from = min((note.start for note in here), default=None)
+            solo_to = max((note.start + note.length for note in here), default=None)
             for bar, chord in enumerate(chords):
                 level, along = self.level(section, bar), bar / bars
                 second = part in ("second", "valley") or (part == "climb" and along < 0.5)
+                if ch.form and section.whose:
+                    second = section.whose == "second"               # (a form's chorus has the second theme's figure: FORMS)
                 name, figure = (self.pluck_b, self.figure_b) if second else (self.pluck, self.figure)
                 density = {"open": 0.15, "first": 0.5, "second": 0.45, "build": 0.5 + 0.5 * along, "arrival": 0.9,
-                           "valley": 0.5 if self.fight else 0.2, "climb": 0.35 + 0.65 * along, "summit": 1.0,
+                           "valley": 0.5 if self.breaks else 0.2, "climb": 0.35 + 0.65 * along, "summit": 1.0,
                            "close": 0.4 * (1.0 - along)}[part]
                 if self.bass_break(part, bars, bar):
                     continue                                     # the guitars rest while the bass leads the band back in
@@ -4337,11 +4566,13 @@ class Take:
                 elif end is not None:
                     density, level = 0.9, max(level, 0.8)        # the ending's chords, struck hard
                 # (A band's fight rests its riff through the first half of its valley: see `drums`.)
-                bare = part == "open" or (part == "valley" and (not self.fight or (ch.band and along < 0.5)))
+                bare = part == "open" or (part == "valley" and (not self.breaks or (ch.band and along < 0.5)))
                 if bare and not ch.band and (figure not in ("toll", "rock", "arp") or bar % 2 == 1 or bar == 0):
                     continue
                 if ch.band and part == "open":
                     density = 0.3                              # a band opens on its riff alone
+                    if ch.opening and bar < bars // 2:
+                        continue                               # (the drums or the bass have its first half: Character.opening)
                 if bare and part == "valley" and (ch.band or self.valley_way == "arp"):
                     continue                                   # ...and in the valley its guitars rest; so does whoever would play against the harp
                 if density < 0.12:
@@ -4482,7 +4713,7 @@ class Take:
         floor = PIZZICATO_FLOOR if PIZZICATO_FLOOR is not None and name in PLUCKED and not ch.band else 0
         tonics, middle = bass_tonics(self.spans, inst, centre, floor), centre
         for index_of, (section, first, key, chords) in enumerate(self.spans):
-            part, bars = section.part, section.bars
+            part, bars = section.like, section.bars
             runs = held_runs(section.chords)
             ahead = self.spans[index_of + 1] if index_of + 1 < len(self.spans) else None
             # Each part's line centred an octave over where its key note would have put it, or under, as `bass_tonics` moved
@@ -4503,6 +4734,13 @@ class Take:
                 if ch.band and self.heavy and part in ("arrival", "summit") and bar == 0:
                     low(bar_at, beats * 0.95, root, loud)                 # the stop: one note with the chord, left to ring
                     continue
+                if part == "open" and ch.opening == "bass" and self.moving:
+                    # The bass opens the song on the riff, alone, and goes on with it under the guitars (Character.opening).
+                    for on, length, step, blue in self.moving[0][bar % 4]:
+                        pitch = root + key.pitch(chord.root + step, 60, chord) - key.pitch(chord.root, 60, chord) + (1 if blue else 0)
+                        pitch += 12 if pitch < inst.low else -12 if pitch > inst.high else 0
+                        low(bar_at + on, length * 0.92, pitch, self.hard(max(level, 0.5), 0.9))
+                    continue
                 if part == "open":
                     if self.heavy or bar >= bars // 2:
                         # The key note, held; but in a long opening it goes with the chord where the harmony leaves home and
@@ -4517,7 +4755,7 @@ class Take:
                 # second; long notes where the story is quiet; and at the top of the climb the
                 # root over and over, driving at the summit.
                 fight_valley = "long" if ch.band and along < 0.5 else two          # a band's fight: held roots under its breakdown
-                way = {"first": one, "second": two, "build": one, "arrival": one, "valley": fight_valley if self.fight else "long",
+                way = {"first": one, "second": two, "build": one, "arrival": one, "valley": fight_valley if self.breaks else "long",
                        "climb": two if along < 0.5 else drive, "summit": one, "close": "long"}[part]
                 if self.after_solo(part, bar):
                     way = LAST_CHORUS.get(way, way)          # a light band's last chorus: its bass moves more (LIGHT_SUMMIT_TURNS)
@@ -4675,12 +4913,14 @@ class Take:
                 last = step
             return out, last
 
-        head, last = walked(own.choice(RIFF_HEADS), 0)
-        tails = own.sample(RIFF_TAILS, 2)
+        heads, all_tails, tail_at = RIFF_SHAPES[self.fam.metre]
+        head, last = walked(own.choice(heads), 0)
+        tails = own.sample(all_tails, 2)
         one, _ = walked(tails[0], last, lands=own.choice((-1, 2, 1 if phrygian else -1)))
         two, _ = walked(tails[1], last, lands=own.choice((3, 4, 2)))
         run = (4, 3, 2, 1 if phrygian else -1) if own.random() < 0.7 else (-1, 0, 2, 3)
-        turn = [(2.0 + 0.5 * index, 0.5, step) for index, step in enumerate(run)]
+        run = run[-min(int(round((self.beats - tail_at) / 0.5)), len(run)):]
+        turn = [(tail_at + 0.5 * index, 0.5, step) for index, step in enumerate(run)]
         blue, hole = own.random() < 0.45, own.random() < 0.4
 
         def marked(notes: list) -> list[tuple[float, float, int, bool]]:
@@ -4864,7 +5104,7 @@ class Take:
         are taken out, and one struck on it or held into it is cut to the band's short chord, so that the tune is alone
         between the band's chords."""
         for section, first, _, _ in self.spans:
-            if section.part != "summit":
+            if section.like != "summit":
                 continue
             stops = [first + bar * self.beats for bar in range(section.bars) if self.stop_time("summit", section.bars, bar)]
             if not stops:
@@ -4889,7 +5129,7 @@ class Take:
         if not (self.ch.band and self.heavy):
             return
         for section, first, _, _ in self.spans:
-            span = self.break_span(section.part, section.bars)
+            span = self.break_span(section.like, section.bars)
             if span is None:
                 continue
             since, until = first + span[0] * self.beats, first + (span[0] + span[1]) * self.beats
@@ -5034,13 +5274,18 @@ class Take:
                     self.strike(sound, bar_at + on, min(loud * weight * scale * (0.55 + 0.6 * level), 1.0), chord, key)
 
         for section, first, key, chords in self.spans:
-            part, bars = section.part, section.bars
+            part, bars = section.like, section.bars
             for bar, chord in enumerate(chords):
                 level, bar_at, along = self.level(section, bar), first + bar * beats, bar / bars
                 # Where the big drums play, the orchestra's own low drums leave the low end to
                 # them and the kettledrums are played down. (A band keeps its kit as it is.)
                 crowded = not ch.band and self.big(part, along)[0] is not None
-                if part == "open":
+                if part == "open" and ch.band and ch.opening == "drums" and not fight:
+                    # The drummer opens the song alone, and a crash brings the riff in at the half (Character.opening).
+                    lay(main["theme"], bar, bar_at, max(level, 0.5), 0.95, chord, key)
+                    if bar == bars // 2:
+                        self.strike("crash", bar_at, 0.7, chord, key)
+                elif part == "open":
                     if ch.band and not fight and bar == bars - 1 and ch.kit in ("rock", "room"):
                         for on, weight in self.spots("pulses"):          # the sticks count the band in
                             self.strike("hat", bar_at + on, 0.5 * weight, chord, key)
@@ -5152,14 +5397,14 @@ class Take:
                         for index in range(4):                       # a fill into the next time round
                             self.strike(fill, bar_at + beats - (4 - index) * 0.25, 0.45 + 0.12 * index, chord, key)
                 elif part == "valley":
-                    if fight and ch.band and along < 0.5:
+                    if self.breaks and ch.band and along < 0.5:
                         # A band's fight breaks down in its valley (2026-11-17, morning: its fight pieces went only 4 to
                         # 5 dB between their quietest part and their loudest, the whole band playing on through the
                         # valley): the riff stops under the clean guitar's theme, the bass holds its roots, and the
                         # drummer keeps time on the cymbal with the bass drum on the bar.
                         keeping = [layer for layer in main["theme"] if layer[0] in ("hat", "hat open", "ride")] or [("hat", "halves", 0.45)]
                         lay(keeping + [("boom", "down", 0.7)], bar, bar_at, level, 0.6, chord, key)
-                    elif fight and ch.band:
+                    elif self.breaks and ch.band:
                         # ...then the groove is back, and a fill takes it into the climb.
                         lay(main["theme"], bar, bar_at, level, 0.65, chord, key)
                         if bar == bars - 1 and self.fill_of(main):
@@ -5338,7 +5583,7 @@ class Take:
         frames = self.frame_cycle() if self.has_frames else []
         bar_s = beats * 60.0 / self.fam.bpm
         for section, first, _, chords in self.spans:
-            part, bars = section.part, section.bars
+            part, bars = section.like, section.bars
             # A rise ends in a roll: quick strokes on two drums, struck harder and harder, over
             # the last bar or two and through the breath, right up to the arrival. Sixteenths
             # where the music moves fast enough for those to be a roll; where it is slower,
@@ -5388,7 +5633,7 @@ class Take:
         ch, beats, period = self.ch, self.beats, self.fam.period
         beat_s = 60.0 / self.fam.bpm
         for index, (section, first, _, _) in enumerate(self.spans):
-            part, bars = section.part, section.bars
+            part, bars = section.like, section.bars
             if self.has_swell and (part in ("arrival", "summit") or (part == "second" and ch.weight >= 0.95 and not ch.band)):
                 seconds = {"arrival": 2.5 + 2.0 * ch.weight, "summit": 4.0 + 3.0 * ch.weight, "second": 2.5}[part]
                 length = min(min(max(seconds, 2.0), 8.0) / beat_s, self.spans[index - 1][0].bars * beats)
@@ -5470,7 +5715,7 @@ class Take:
         returns = []
         for section, first, _, _ in self.spans:
             harmony = tuple(section.chords)
-            returns.append(harmony in heard or section.part in ("valley", "summit"))
+            returns.append(harmony in heard or section.like in ("valley", "summit"))
             heard.add(harmony)
         riffs = any(voice.instrument == "rhythm guitar" and voice.notes for parts in self.voices.values() for voice in parts.values())
         for channel, parts in self.voices.items():
@@ -5498,7 +5743,7 @@ class Take:
         echo on every note. A light piece has them less far."""
         beats = self.beats
         depth = 0.6 if self.ch.light else 0.8
-        valley = next(((first, first + section.bars * beats) for section, first, _, _ in self.spans if section.part == "valley"), None)
+        valley = next(((first, first + section.bars * beats) for section, first, _, _ in self.spans if section.like == "valley"), None)
         for channel, parts in self.voices.items():
             for voice in parts.values():
                 if not voice.notes or voice.drums:
@@ -5588,7 +5833,7 @@ class Take:
         beats = self.beats
         paces = []
         for section, first, _, _ in self.spans:
-            if section.story != "moment" or (section.part == "summit" and self.soloed):
+            if section.story != "moment" or (section.like == "summit" and self.soloed):
                 continue                            # (a summit with a solo has no pedal: see _solo_marks)
             last = first + section.bars * beats
             notes = self._notes_in(voice, first, last)
@@ -5598,7 +5843,7 @@ class Take:
             gaps = [after - before for before, after in zip(onsets, onsets[1:]) if after - before > 0.05]
             busy = len(onsets) / (last - first)
             long_notes = [note for note in notes if note.length >= 2.0]
-            rocked = busy >= (1.0 if section.part == "summit" else 1.5) and bool(gaps)
+            rocked = busy >= (1.0 if section.like == "summit" else 1.5) and bool(gaps)
             if rocked:
                 paces.append(statistics.median(gaps))
                 voice.mark("wah", [(first, 0.0), (first + 0.5, depth), (last - 0.5, depth), (last, 0.0)])
@@ -5668,7 +5913,7 @@ class Take:
         arpeggios want the shimmer that a heavy band's arrival, struck dry, does not. The rises are left as they are."""
         beats = self.beats
         for section, first, _, _ in self.spans:
-            if section.part not in ("second", "arrival", "summit") or max(section.level) <= VIBE_QUIET:
+            if section.like not in ("second", "arrival", "summit") or max(section.level) <= VIBE_QUIET:
                 continue                                    # (the quiet passages are the vibe's own: `_vibe_marks`)
             last = first + section.bars * beats
             notes = self._notes_in(voice, first, last)
@@ -5710,7 +5955,7 @@ class Take:
             voice.swells += [(end - length, low), (end - 0.01, high), (end + 0.01, low)]
 
         for index, (section, first, _, _) in enumerate(self.spans):
-            part, bars = section.part, section.bars
+            part, bars = section.like, section.bars
             before = self.spans[index - 1][0].bars * beats if index else 0.0
             moment = part in ("arrival", "summit")
             summit = part == "summit"

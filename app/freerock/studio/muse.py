@@ -135,6 +135,9 @@ PARTS: dict[str, tuple[tuple, ...]] = {
     "tenor sax": (("Clarinet in B♭", 0, 127, "", "Muse Woodwinds/Tenor Saxophone"),),
     "bari sax": (("Bassoon", 0, 127, "", "Muse Woodwinds/Baritone Saxophone"),),
     "rhodes": (("Piano", 0, 127, "", "Muse Keys/Suitcase Piano"),), "upright piano": (("Piano", 0, 127, "", "Muse Keys/Upright Piano"),),
+    # (two cellos and a viola, each through an amplifier)
+    "riff celli": (("Violoncello", 0, 127, ""), ("Violoncello", 0, 127, "")), "muted celli": (("Violoncello", 0, 127, "pizz"), ("Violoncello", 0, 127, "pizz")),
+    "fuzz viola": (("Viola", 0, 127, ""),),
     "crunch guitar": (("Rhythm Guitar", 0, 127, "", "Muse Guitars Vol 1/Electric LP - Clean"), ("Rhythm Guitar", 0, 127, "", "Muse Guitars Vol 1/Electric SC - Clean")),
     "crunch muted": (("Muted Guitar", 0, 127, "", "Muse Guitars Vol 1/Electric LP - Clean"), ("Muted Guitar", 0, 127, "", "Muse Guitars Vol 1/Electric SC - Clean")),
     "fuzz guitar": (("Rhythm Guitar", 0, 127, "", "Muse Guitars Vol 1/Electric LP - Clean"), ("Rhythm Guitar", 0, 127, "", "Muse Guitars Vol 1/Electric SC - Clean")),

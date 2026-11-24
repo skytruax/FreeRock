@@ -907,7 +907,7 @@ parts and their levels. This is what differs.
 
 ### 4.1 The band
 
-These are the house band's instruments; there are seven bands beside it, with their own (4.11).
+These are the house band's instruments; there are ten bands beside it, with their own (4.11).
 
 | Written name | Played by | Seat and tone |
 |---|---|---|
@@ -1359,7 +1359,7 @@ Wing") and the way a singer phrases:
 
 ---
 
-### 4.11 Eight bands
+### 4.11 The bands
 
 "all the knight rock songs sound like the same song", "too much of the same instrument sounds" (2026-11-23, evening, played). Counted over the 402
 Knight Rock sheets staged: the same two distorted guitars, recorded distorted, in two songs of three; one bass recording in 96 of 100 (the fretless is the same
@@ -1378,7 +1378,10 @@ night). The writer writes for the instruments of 4.1 and its notes are its own; 
 | chop | one, driven, short, its middle forward | fuzz | sweet | rusty | horns; wurly | pit fighters, drowning ride, echo forge |
 | shanty | crunch | a tuba | sweet | rusty | as written | press gang |
 | twang | clean, a tremolo and a spring | round | sweet | rusty, brushed | oohs; twang guitar | whetstone fire, deserters' camp, bone caravan |
-| lounge | chime (a clean guitar, an ensemble, an echo) | round | sweet | brushed | as written; rhodes | last orders, smoke den, graveyard shift, black heath, spider vault |
+| lounge | chime (a clean guitar, an ensemble, an echo) | round | sweet | brushed | as written; rhodes | last orders, smoke den, graveyard shift, black heath, spider vault, glass tide |
+| cellos | two cellos, each driven, one each side; muted, plucked | fuzz | a viola, fuzzed | mallets | choir; a cello | blackwater waltz |
+| cathedral | a church organ; its muted string the celli plucked | fuzz | fuzz | mallets | choir; harpsichord | five black kings |
+| saloon | an upright piano | round | sweet | rusty, brushed | oohs; wurly | hearse shuffle |
 
 **The guitars and the basses** are Muse's clean guitars and its electric bass through an amplifier of the studio's own (`studio/jsfx/amp`, `sounds.AMPS`):
 a cut and a lift before the valve, one of five valves four times oversampled (clean, crunch, drive, fuzz, torn), an octave under (a
@@ -1399,8 +1402,46 @@ changes and form, its own tunes, and not the sound of the song before it.
 **Who solos.** A solo was the lead guitar's, the fiddle's and the like; a song sung low solos whoever leads its summit (`SOLOISTS_LOW`: the viola, the cello, the
 clarinet, the trombone, the horns and the saxophones too), to the top each has (`SOLO_TOP`). Three in ten of the two new rounds' songs had no solo before it.
 
-Owed, for the same sentence: the form (nine parts at 455 to 492 s in every song), the metre (95 of 100 in 4/4), and the player's choice between two songs (it
-does not know the band yet).
+A band's instrument is given its notes within its own range (`orchestra.given`): the writer wrote for the one it names, and an organ's top chord is out of the
+horns' reach, so a note past the range goes an octave or more into it.
+
+**The balance** is each band's own too (`build.BAND_BALANCE`, dB over or under the band's places): the doom's guitars and bass 1 nearer and its drums 1 back, the chop's
+drums 1 nearer and its guitar 1.5 back, the lounge's and the twang's singers 0.5 over with the rest back, the cathedral's organ 0.5 and its choir 1 nearer.
+
+### 4.12 Shapes and metres
+
+The same evening's other half. Every Knight Rock song told the one story (2.1): nine parts, 455 to 492 s, as loud in each as in every other, 4/4 in all but five of a
+hundred. A character can name a *form* (`Character.form`, `orchestra.FORMS`): the nine parts with other lengths and levels and, for a part, another part's
+writing.
+
+| Form | Seconds | What it is |
+|---|---|---|
+| (none) | 455 to 505 | the story: an opening, two themes, a build, an arrival, a valley, a climb, a summit, a close |
+| verses | 350 to 390 | a verse, the chorus, a verse, the chorus, a bridge, the rise, the last chorus. The second theme is the chorus, with the moment's writing each time it comes; the second verse sets out where the first left off |
+| riff | 295 to 330 | the same, loud from its first bar (its opening at 0.5 of full strength, where the story's is at 0.18): the riff has the opening alone; in the verses the lead calls two bars and leaves two for the riff to answer; its middle breaks down on the bass and the drums, as a fight's does |
+| jam | 410 to 455 | the head, a solo by somebody who does not take the last one, the bridge, the head, the breakdown, the rise, the last solo and the head |
+| burn | 430 to 480 | one long rise: every part is over the one before it, to the summit, and there is no valley |
+
+A `Section` says which part it is (`part`, always one of the nine, so the study, the meter, the judges and the pieces take it as they take any), whose writing the band
+has there (`like`), what the lead does (`sings`: a part's, or `again`, `call`, `solo`, `rest`) and whose theme it is (`whose`); in the story all of them are the
+part itself. Its story word follows what it is written as, so the player's fight finds a chorus a moment and the bridge a theme. A chorus or a summit has the
+breath before it whatever came before. Nothing made before has a form, and not one of 396 songs' notes changed as the forms went in (`hash_takes.py`).
+
+*Openings.* Every heavy song opened on one guitar's riff, the bass holding a note under it. A character can say who opens (`Character.opening`): the drummer alone, or the
+bass alone on the riff, with the guitars in at the half; blank for the guitars, as before.
+
+*Metres.* Of the 70 characters three were in anything but four. The fifth round's have 3/4, 6/8, 5/4 and 7/8, and the riff that is a line (4.2) has heads and tails
+for each (`RIFF_SHAPES`): six-eight's halves, five's three and two, seven's three, two and two. The grooves name places in the bar (*pulses*, *back*, *groups*) and
+are the same names in any metre.
+
+*The fifth round's ten* (forty families): blackwater waltz (3/4, verses), gallows jig (6/8, riff), crooked mile (7/8, riff), five black kings (5/4, verses), high noon
+cairn (a burn, a trumpet over tremolo guitars), hearse shuffle (6/8, a jam on a saloon's piano), engine of ruin (riff), glass tide (a burn), and for the fights, which had
+two battles and two bosses, blood gallop (6/8, riff) and colossal tread (5/4).
+
+*The player* knows what plays a song: a piece carries the instrument with the most notes of each channel (`studio.sounds_of`, its `sounds`), and a song with the
+last one's instruments counts up to `SOUNDS_ALIKE` (0.6) against itself, the one before that half as much and the one before that a quarter
+(`forever.js` `_soundsAlike`), beside what leads it (`LED_ALIKE`). It takes each channel of a song from any take of its family, as it always has, but from takes
+of one band (a piece's `band`, `studio.band_of`): a doom band's guitars are not laid over the house kit's drums.
 
 ## 5. House
 
@@ -2305,7 +2346,8 @@ caves (the bassoon, the english horn, the trombone) and four walks (a mandolin's
 clarinet's in the marsh), forty families, none before them changed, each in a band of its own (4.11).
 
 *A band character names its band* (the same night). `Character.sounds`, a key of `BANDS`, and not the one its neighbours have: a place's
-characters, and the two a song can follow in the rotation, are heard one after the other.
+characters, and the two a song can follow in the rotation, are heard one after the other. It names a form and a metre of its own as well where its neighbours
+have them (4.12).
 
 *Sung low, not only led low* (the same night). Where the tunes of the library stand, the middle of every song's lead notes, solos aside
 (395 Knight Rock and 372 Warcraft sheets): Knight Rock's heavy songs C5, its light ones F♯5, Warcraft's light ones F♯5, its heavy ones B4. The

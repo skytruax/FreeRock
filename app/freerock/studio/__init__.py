@@ -134,7 +134,40 @@ def lead_of(folder: Path) -> str:
     if not any(found.values()):
         return ""
     best = max(sorted(found), key=found.__getitem__)
-    return ONE_VOICE.get(best, best)
+    played = sheet["parts"]["lead"][best].get("instrument") or best          # (what a band's own instruments make of the written name: orchestra.BANDS)
+    return ONE_VOICE.get(played, played)
+
+
+def band_of(folder: Path) -> str:
+    """Whose instruments a staged song's band has (orchestra.BANDS), by its music sheet; "" for the house band's, an orchestra's, and a song without a
+    sheet. (2026-11-23: a family's later takes are played by other bands, and the player takes each channel from any take of a family: it keeps to one
+    band's.)"""
+    path = Path(folder) / "sheet.json"
+    return str((json.loads(path.read_text(encoding="utf-8")).get("about") or {}).get("sounds") or "") if path.is_file() else ""
+
+
+def sounds_of(folder: Path) -> list[str]:
+    """What plays a staged song, by its music sheet: the instrument with the most notes of each channel, solos aside. [] for a song without a sheet.
+
+    (2026-11-23, "too much of the same instrument sounds", "all the knight rock songs sound like the same song": the player goes on to a song whose
+    instruments are others where one suits the place as well.)"""
+    path = Path(folder) / "sheet.json"
+    if not path.is_file():
+        return []
+    parts = json.loads(path.read_text(encoding="utf-8"))["parts"]
+    out: list[str] = []
+    for channel in forever.CHANNELS:
+        counted: dict[str, int] = {}
+        for name, part in parts.get(channel, {}).items():
+            if not name.endswith((" solo", " at the moments")):
+                played = part.get("instrument") or name
+                counted[ONE_VOICE.get(played, played)] = counted.get(ONE_VOICE.get(played, played), 0) + len(part["notes"])
+        if any(counted.values()):
+            kits = [name for name in counted if name.startswith("kit ")]             # (a band's kit, whatever war drums roll over it)
+            found = max(kits or sorted(counted), key=counted.__getitem__)
+            if found not in out:
+                out.append(found)
+    return out
 
 
 def read_track(folder: Path) -> tuple[dict[str, Any], dict[str, np.ndarray]]:
@@ -239,14 +272,14 @@ def import_track(bucket: forever.Bucket, folder: Path, before: Before | None = N
         edges.append(int(round(bars * bar)))
     whole = edges[-1]
     stamp = stamp_of(folder, meta)
-    lead = lead_of(folder)
+    lead, sounds, band = lead_of(folder), sounds_of(folder), band_of(folder)
 
     def told(section: dict[str, Any]) -> dict[str, Any]:
         return {"title": "%s (%s)" % (meta["title"], section["story"]), "tonic": section.get("tonic", meta["tonic"]),
                 "story": section["story"], "moods": meta["moods"], "role": meta["role"], "serves": meta["serves"],
                 "follow": meta.get("follow") or {}, "floor": (meta.get("floor") or {}).get(section["story"], {}),
                 "track": source, "source": source, "credit": meta.get("credit", ""), "family": "%s/%s" % (meta["style"], meta["family"]),
-                "light": bool(meta.get("light")), "settings": meta.get("settings") or [], "lead": lead}
+                "light": bool(meta.get("light")), "settings": meta.get("settings") or [], "lead": lead, "sounds": sounds, "band": band}
 
     kept = before.unchanged(source, folder, stamp, [last - first for first, last in zip(edges, edges[1:])]) if before else []
     if kept:

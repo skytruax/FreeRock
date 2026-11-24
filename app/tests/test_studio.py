@@ -68,6 +68,8 @@ WORDS = ["open", "theme", "theme", "rise", "moment", "theme", "rise", "moment", 
 
 def test_a_family_is_a_story_of_about_eight_minutes_in_two_waves():
     for index, character in enumerate(orchestra.CHARACTERS):
+        if character.form:
+            continue                                                           # (a song of another shape: test_studio_forms.py)
         for seed in (100 + index, 5000 + index):
             fam = orchestra.family(character, seed, "f", "F")
             bar_s = fam.beats * 60.0 / fam.bpm
@@ -175,13 +177,16 @@ def test_every_take_of_every_character_can_be_written_and_played():
                 assert all(inst.low <= note.pitch <= inst.high for note in voice.notes), "%s: %s plays out of its range" % (character.name, name)
                 assert all(note.start < take.total for note in voice.notes)
         # The tune is never missing: someone sings in every part of the story.
+        # (But for a riff song's opening, which is the riff's: orchestra.FORMS.)
         for part in orchestra.PARTS:
-            assert played(take, "lead", part), "%s: nobody sings in the %s" % (character.name, part)
+            assert played(take, "lead", part) or fam.section(part).sings == "rest", "%s: nobody sings in the %s" % (character.name, part)
             assert played(take, "texture", part) and (part == "open" or played(take, "bass", part))
 
 
 def test_a_take_has_two_themes_that_can_be_told_apart():
     for index, character in enumerate(orchestra.CHARACTERS):
+        if character.form:
+            continue                                                           # (who sings where is the form's: test_studio_forms.py)
         fam = orchestra.family(character, 70 + index, "f", "F")
         take = orchestra.Take(fam, 1 + index % 2)
         first, second = take.tune.notes, take.second.notes
@@ -364,8 +369,9 @@ def test_the_big_drums_are_where_they_should_be_and_nowhere_else():
             assert take.voices["drums"][name].instrument == name and not take.voices["drums"][name].drums
         assert len(have.get("gong", [])) <= 2
         # The valley has no drums at all, but in a fight; a band's walking valley keeps time softly on its kit alone, the hat,
-        # the bass drum and the side stick (VALLEY_KEEPS_TIME, 2026-11-19).
-        if not fight:
+        # the bass drum and the side stick (VALLEY_KEEPS_TIME, 2026-11-19). (In a song of another shape the part by that name may be a
+        # chorus, or break down as a fight's does: orchestra.FORMS.)
+        if not fight and not take.breaks and take.fam.section("valley").like == "valley":
             valley = played(take, "drums", "valley")
             if character.band and orchestra.VALLEY_KEEPS_TIME:
                 assert valley and {name for name, _ in valley} == {"kit"} and {note.pitch for _, note in valley} <= {36, 37, 42}, \

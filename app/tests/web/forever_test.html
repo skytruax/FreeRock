@@ -586,7 +586,8 @@ function makePieces(key, pieces, free) {
     base.pieces[piece.id] = { title: piece.id, track: piece.track || piece.id, next: piece.then || "", story: piece.story || "",
       moods: piece.moods || [], role: piece.role || "wander", serves: piece.serves || [0, 1], bar_frames: BAR, bars,
       frames: windows * bars * BAR, windows, tonic: piece.tonic || "A minor", follow: piece.follow || {}, floor: piece.floor || {},
-      family: piece.family || "", light: piece.light === true, settings: piece.settings || [], lead: piece.lead || "" };
+      family: piece.family || "", light: piece.light === true, settings: piece.settings || [], lead: piece.lead || "",
+      sounds: piece.sounds || [], band: piece.band || "" };
     if (piece.place !== undefined) base.pieces[piece.id].place = piece.place;
   }
   if (free !== undefined) base.free_share = 1;
@@ -1188,6 +1189,40 @@ tests.pieceVoices = async () => {
                                   led("fiddle2", "fiddle"), led("harp1", "harp"), led("harp2", "harp")], ["pastoral"], 170),
     unsaid: await order("unsaid", [led("one", ""), led("two", ""), led("three", "")], ["pastoral"], 90),
     place: await order("place", [led("fiddle1", "fiddle"), led("fiddle2", "fiddle"), led("horn1", "horn", ["highland"])], ["pastoral"], 60),
+  };
+};
+
+// A song is followed by one other instruments play, where one suits the place as well.
+tests.pieceSounds = async () => {
+  const order = async (key, pieces, seconds) => {
+    const run = await render(seconds, { bucket: makePieces(key, pieces), tickEvery: 2.0, random: seeded(7),
+                                        target: Object.assign(mix(1), { kinds: ["pastoral"] }) });
+    const songs = [];
+    for (const entry of [...run.engine.log].sort((a, b) => a.at - b.at)) if (songs[songs.length - 1] !== pieceOf(entry)) songs.push(pieceOf(entry));
+    return songs;
+  };
+  const house = ["lead guitar", "rhythm guitar", "kit rock", "picked bass"], twang = ["trumpet", "twang guitar", "kit brushed", "round bass"],
+    lounge = ["tenor sax", "rhodes", "kit brushed", "round bass"];
+  const by = (id, sounds) => ({ id, sounds, moods: ["pastoral"] });
+  return {
+    round: await order("sounds", [by("house1", house), by("house2", house), by("twang1", twang), by("twang2", twang),
+                                  by("lounge1", lounge), by("lounge2", lounge)], 170),
+    unsaid: await order("unsounded", [by("one", []), by("two", []), by("three", [])], 90),
+    // Two takes of one family: how many times a moment had channels of both, where one band plays them and where two do.
+    mixed: await (async () => {
+      const count = async (key, band) => {
+        const run = await render(120, { tickEvery: 2.0, random: seeded(3), target: Object.assign(mix(1), { kinds: ["pastoral"] }),
+          bucket: makePieces(key, [{ id: "one", family: "song", moods: ["pastoral"] }, { id: "two", family: "song", moods: ["pastoral"], band }]) });
+        const at = new Map();
+        for (const entry of run.engine.log) {
+          const when = entry.at.toFixed(1);
+          if (!at.has(when)) at.set(when, new Set());
+          at.get(when).add(pieceOf(entry));
+        }
+        return [...at.values()].filter((songs) => songs.size > 1).length;
+      };
+      return { one: await count("oneband", ""), two: await count("twobands", "doom") };
+    })(),
   };
 };
 

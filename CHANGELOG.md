@@ -11,13 +11,22 @@ dictated, where it drove the change.
   organ, the viola, the bass clarinet, the trombone, the cello, the bass flute and the horns (250 of its 383 songs are led by a lead
   guitar), over four new drum patterns; Warcraft's by the low winds and brass.
 - **"all the knight rock songs sound like the same song"**, **"too much of the same instrument sounds"**: the same two distorted guitars were on two songs of
-  three, one bass recording on all but a few, one kit on four in five. Seven bands beside the house's (doom, stoner, tweed, chop, shanty, twang, lounge):
+  three, one bass recording on all but a few, one kit on four in five. Ten bands beside the house's (doom, stoner, tweed, chop, shanty, twang, lounge, and the fifth round's cellos, cathedral and saloon):
   Muse's clean guitars and its bass through an amplifier of the studio's own (`studio/jsfx/amp`, five valves, an octave under, tremolo, spring), the
   Big Rusty Drums with sticks, brushes and mallets, four saxophones, electric pianos and an upright. Every new band character has one
   (`Character.sounds`); from take 7 on a song of any other is played by another band than the house's. What is made stays as it is.
 - **The fourth round's ten** Knight Rock characters (forty families): three nights, three caves and the walks of the coast, the desert, the mystic lands
   and the marsh, each in a band of its own, led by a baritone saxophone, the cello, the horns, the bassoon, the english horn, the trombone, the
   mandolin, the viola, the bass flute and the clarinet.
+- **Songs of other shapes** (`orchestra.FORMS`): every Knight Rock song told one story in nine parts, 455 to 492 s long, as loud in each part as in every other.
+  Four more: verse and chorus, the riff song (loud from its first bar, the lead calling and the riff answering), the jam (a head, solos, the head) and the slow
+  burn; 300 to 460 s.
+- **Other metres**: 95 of 100 were in four. The riff that is a line moves in 3/4, 6/8, 5/4 and 7/8 too.
+- **The fifth round's ten** Knight Rock characters (forty families) have them: a waltz on amplified cellos, a jig, a seven, a five on a church organ, a stranger's
+  trumpet over tremolo guitars, a hearse's shuffle on a saloon piano, two slow burns, and for the fights (two battles and two bosses before) a gallop and a five.
+- **Openings**: a heavy song opened on one guitar's riff, always. A new one can open on its drums or on its bass (`Character.opening`).
+- **The player keeps songs of the same instruments apart** (`sounds` on a piece, `SOUNDS_ALIKE`), as it keeps songs of the same lead.
+- **A band's instrument plays within its range** (`orchestra.given`): the horns that stand for an organ had its top chords, past their highest note.
 - **A solo for whoever leads**: in a song sung low the viola, the cello, the clarinet, the trombone, the horns and the saxophones take one too.
 - **A riff that is a line** (`low riff`): every band song's riff was one of six rhythms of the bar's one chord. The new one is four bars on the
   scale over the chord's root, drawn afresh for each take and theme, with the heavy band's bass on it; its long notes keep off the tune's,

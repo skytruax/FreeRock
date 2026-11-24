@@ -552,6 +552,18 @@ async def test_a_song_heard_tonight_comes_after_its_sisters_of_other_nights(resu
     assert len(set(order[:6])) == 6, "a song came again before its sisters of other nights: %s" % order
 
 
+async def test_a_song_is_followed_by_one_that_other_instruments_play(results):
+    """("too much of the same instrument sounds", "all the knight rock songs sound like the same song", 2026-11-23.)"""
+    played = of(results, "pieceSounds")
+    band = lambda song: song.rstrip("0123456789")          # noqa: E731
+    assert len(played["round"]) >= 6 and len(set(played["round"][:6])) == 6, "a song came again before the round was done: %s" % played["round"]
+    bands = [band(song) for song in played["round"][:6]]
+    assert all(one != other for one, other in zip(bands, bands[1:])), "two songs of the same instruments in a row: %s" % played["round"]
+    assert len(played["unsaid"]) >= 3 and len(set(played["unsaid"][:3])) == 3, played["unsaid"]
+    # A family's takes are played channel by channel together where one band plays them, and never two bands at once.
+    assert played["mixed"]["one"] > 0 and played["mixed"]["two"] == 0, played["mixed"]
+
+
 async def test_a_song_is_followed_by_one_led_by_another_instrument_where_one_suits_the_place_as_well(results):
     """("make sure to switch up the instruments from song to song so theres variety", 2026-11-23.)"""
     voices = of(results, "pieceVoices")

@@ -127,6 +127,9 @@
   // as much ("make sure to switch up the instruments from song to song so theres variety", 2026-11-23): more than a piece of
   // the place's second kind counts against one of its first, less than a piece written for other ground.
   const LED_ALIKE = 0.3;
+  // A song of the very instruments of the last one counts this much against it, one of some of them that share of it; the one before that half as much, and
+  // the one before that a quarter ("all the knight rock songs sound like the same song", "too much of the same instrument sounds", 2026-11-23).
+  const SOUNDS_ALIKE = 0.6;
   // A track for neither this kind of place nor a neighbour counts this much against it: more than a track that suits the
   // place heard three times tonight (1.2 + 3 + a sister's 0.8), so it comes only where nothing else will do ("for songs
   // to match locations"; at 2 a desert's track came in once the hills' had each been heard twice).
@@ -214,6 +217,7 @@
       this.movedAt = -Infinity;  // when it last did
       this.restDue = null;       // when the next moment of silence is due, where pieces are strung together
       this.led = [];             // which instruments led the last two songs that began, the later first (see _ledAlike)
+      this.sounded = [];         // what played the last three songs that began, the later first (see _soundsAlike)
       this.pieceAt = new Map();  // piece id -> when it was last played here
       this.pieceTurn = 0;
       this.heavy = 0;            // how many tracks in a row have been heavy ones
@@ -655,7 +659,8 @@
     // The pieces a bucket holds, by id, each with its parts laid out by stretch and by channel.
     // A piece that is missing any of its parts is left out. Pieces of one family (written over
     // the same changes, bar for bar) that stand at the same place in the story are kin: any
-    // channel of one may be played with the other channels of another.
+    // channel of one may be played with the other channels of another, where one band plays them
+    // (a family's later takes are other bands': their guitars are not laid over this one's drums).
     //
     // The place is how many pieces of its track come before a piece, not its story word: a long
     // track has a word more than once (a theme, a second theme, the calm between two rises),
@@ -697,7 +702,7 @@
         piece.kin = [piece];
         if (piece.meta.family) {
           const key = [piece.meta.family, placeOf(id), piece.meta.story, piece.meta.frames, piece.meta.bar_frames,
-                       piece.meta.bars].join("|");
+                       piece.meta.bars, piece.meta.band || ""].join("|");
           if (!families.has(key)) families.set(key, []);
           families.get(key).push(piece);
           piece.kin = families.get(key);
@@ -788,6 +793,15 @@
     _ledAlike(meta) {
       if (!meta.lead || !meta.serves.includes(0)) return 0;
       return (this.led[0] === meta.lead ? LED_ALIKE : 0) + (this.led[1] === meta.lead ? LED_ALIKE / 2 : 0);
+    }
+
+    // How far a song sounds like the last three: what share of its instruments they had, the latest the most (SOUNDS_ALIKE).
+    _soundsAlike(meta) {
+      const mine = meta.sounds || [];
+      if (!mine.length || !meta.serves.includes(0)) return 0;
+      const share = (theirs) => theirs && theirs.length
+        ? mine.filter((each) => theirs.includes(each)).length / Math.max(mine.length, theirs.length) : 0;
+      return SOUNDS_ALIKE * (share(this.sounded[0]) + share(this.sounded[1]) / 2 + share(this.sounded[2]) / 4);
     }
 
     static family(meta) { return meta.family || meta.track; }
@@ -1025,7 +1039,8 @@
         if (piece.id === options.except && index.size > 1) continue;
         const story = !piece.meta.story || piece.meta.story === want ? 0 : STARTS_ELSEWHERE;
         const far = this._mood(piece.meta) >= 1 ? FAR : 0;
-        const score = [off(piece) + turn(piece) + story + far + this._rotation(piece.meta) + this._ledAlike(piece.meta), piece.plays,
+        const score = [off(piece) + turn(piece) + story + far + this._rotation(piece.meta) + this._ledAlike(piece.meta)
+                         + this._soundsAlike(piece.meta), piece.plays,
                        this.pieceAt.has(piece.id) ? this.pieceAt.get(piece.id) : -1];
         let order = 0;
         for (let i = 0; i < 3 && !order; i++) order = score[i] - bestScore[i];
@@ -1517,6 +1532,7 @@
         if (group.entry === "start" && piece.meta.serves.includes(0)) {
           if (piece.meta.light) { this.light += 1; this.heavy = 0; } else { this.heavy += 1; this.light = 0; }
           this.led = [piece.meta.lead || "", ...this.led].slice(0, 2);
+          this.sounded = [piece.meta.sounds || [], ...this.sounded].slice(0, 3);
         }
       }
       for (const node of [group.bed, group.rest]) {

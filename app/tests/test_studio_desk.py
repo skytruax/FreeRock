@@ -279,7 +279,7 @@ def test_every_sound_a_band_has_is_one_the_desk_can_play():
                 # (The same strokes on the same notes, so that a song's drums are struck as they were written.)
                 assert orchestra.KITS[plays[4:]] == orchestra.KITS[written[4:]], (name, written, plays)
             else:
-                assert plays in muse.PARTS and (plays in orchestra.INSTRUMENTS or plays in sounds.AMPS), (name, written, plays)
+                assert (plays in muse.PARTS or plays in sounds.SOUNDS) and (plays in orchestra.INSTRUMENTS or plays in sounds.AMPS), (name, written, plays)
         guitars = {band[each] for each in ("rhythm guitar", "single guitar")}
         assert guitars and "rhythm guitar" not in guitars, "%s still has the house band's guitars" % name
         assert band["picked bass"] not in ("picked bass", "fretless") and band["kit rock"] != "kit rock", name

@@ -1425,6 +1425,10 @@ AMPS: dict[str, Amp] = {
     "chime guitar": Amp(0, 5.0, bass=-3.0, middle=-1.0, treble=6.0, top=8000.0, spring=0.2, seats=(0.3,), chorus=0.5, echo=0.28, tight=150.0, bright=6.0, presence=3.0, level=-13.5),
     "sweet lead": Amp(1, 24.0, bass=1.0, middle=4.0, treble=-2.0, at=900.0, top=4600.0, spring=0.15, echo=0.2, tight=110.0, level=-23.5),
     "fuzz lead": Amp(3, 30.0, bass=1.0, middle=1.0, treble=-4.0, at=850.0, top=3800.0, echo=0.22, tight=100.0, level=-26.9),
+    # (the amplified cellos and viola: the same riff at -16 LUFS, the same muted string at -17, the same tune at -20.5, as the house band's)
+    "riff celli": Amp(2, 14.0, bass=1.0, middle=1.0, treble=1.0, at=900.0, top=5200.0, seats=_SIDES, tight=70.0, bright=4.0, presence=2.0, level=-23.0),
+    "muted celli": Amp(2, 12.0, bass=2.0, middle=0.0, treble=-2.0, top=3600.0, seats=_SIDES, tight=70.0, bright=3.0, level=-21.0),
+    "fuzz viola": Amp(2, 18.0, bass=1.0, middle=2.0, treble=-2.0, at=900.0, top=4600.0, spring=0.15, echo=0.2, tight=110.0, level=-24.6),
     "fuzz bass": Amp(3, 14.0, bass=3.0, middle=4.0, treble=0.0, at=800.0, top=3600.0, tight=25.0, bright=8.0, level=-18.8),
     "round bass": Amp(0, 4.0, bass=3.0, middle=-1.0, treble=-12.0, at=400.0, top=1800.0, tight=25.0, level=-3.0),
 }
