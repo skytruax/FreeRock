@@ -764,6 +764,8 @@
     // channel from one take or another), so hearing one is hearing them all. A sister family (another tune of the same
     // character, its instruments and grooves) heard in the last two hours counts too: to an ear nearly the same song
     // ("been hearing the same thing over and over", 2026-11-16: two jigs of one palette were the most played tracks).
+    // (2026-11-23, played: a cave's three characters heard once each tonight, every other cave song was a sister of one of them and
+    // the song just heard was not its own: Glowworm Cave came back with one song between. A song is its own nearest sister.)
     _rotation(meta) {
       const now = this.ctx.currentTime, family = Forever.family(meta), kind = Forever.kind(family);
       let cost = 0;
@@ -773,7 +775,7 @@
         for (const at of own) cost += HEARD_LATELY * Math.exp(-Math.max(0, now - at) / HEARD_TAU);
       }
       for (const [key, times] of this.begun) {
-        if (key !== family && times.length && Forever.kind(key) === kind && now - Math.max(...times) < SISTER_FOR) {
+        if (times.length && Forever.kind(key) === kind && now - Math.max(...times) < SISTER_FOR) {
           cost += SISTER_OFF;
           break;
         }

@@ -4,7 +4,8 @@ so that the two can be heard and judged at one loudness; it stays only if the nu
 
     cd app && uv run --no-sync --with numba python ../tools/revise.py knight/anywhere-barroom-blues-2/2 --recipe <file> [--dry]
         the recipe is a Python file with `revise(sheet) -> (what, why)`, which changes the sheet it is given; --dry changes
-        nothing on the drive and says what it would change
+        nothing on the drive and says what it would change; --later changes the sheet and keeps the take of before, and leaves the
+        performing to the next list that comes to the song (a night's lane, with the renders' processors)
     ... revise.py knight/anywhere-barroom-blues-2/2 --back
         puts the take as it was before the revision back, and its sheet's
 
@@ -69,6 +70,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("track", help="style/family/take")
     parser.add_argument("--recipe", help="a Python file with revise(sheet) -> (what, why)")
     parser.add_argument("--dry", action="store_true", help="say what would change; change nothing")
+    parser.add_argument("--later", action="store_true", help="change the sheet now; the next list that comes to the song performs it")
     parser.add_argument("--back", action="store_true", help="put the take of before the revision back")
     args = parser.parse_args(argv)
     folder = sheets.path_of(args.track).parent
@@ -94,6 +96,10 @@ def main(argv: list[str] | None = None) -> int:
         for path in folder.iterdir():
             if path.suffix == ".flac" or path.name in ("track.json", "sheet.json", "measured.json"):
                 shutil.copy2(path, kept / path.name)
+    if args.later:
+        sheet.save(sheets.path_of(args.track))
+        print("%s: its sheet is revised and the take of before kept; the next list that comes to it performs it" % args.track)
+        return 0
     from freerock.studio import reaper
     reaper.configure()
     made = sheets.perform(sheet)

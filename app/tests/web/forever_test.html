@@ -102,7 +102,7 @@ async function render(seconds, options) {
   const ctx = new OfflineAudioContext(2, seconds * RATE, RATE);
   const engine = new FreeRockForever(ctx, makeLoader(options.kind || "tones", options.fetched),
                                      { limiter: options.limiter === true, random: options.random || seeded(7), cue: options.cue,
-                                       report: options.report });
+                                       report: options.report, memory: options.memory });
   await engine.setTarget(options.target || mix(1));
   await engine.setBucket(bucket);
   await engine.start();
@@ -1133,6 +1133,21 @@ tests.pieceFamilies = async () => {
                                          { id: "b1", family: "dance-1", moods: ["pastoral"] }, { id: "b2", family: "dance-2", moods: ["pastoral"] },
                                          { id: "d1", family: "river-1", moods: ["pastoral"] }]);
   const run = await render(260, { bucket, tickEvery: 2.0, target: Object.assign(mix(1), { kinds: ["pastoral"] }) });
+  const order = [];
+  for (const entry of [...run.engine.log].sort((a, b) => a.at - b.at)) if (order[order.length - 1] !== pieceOf(entry)) order.push(pieceOf(entry));
+  return { order };
+};
+
+// A moment with two characters, each with three families: one of each is for the ground underfoot and has never been heard; the other four were
+// heard some nights ago, and are sisters of those. Tonight the two come first, then the four, and neither again before them.
+tests.pieceSisters = async () => {
+  const one = (id, family, settings) => ({ id, family, settings, moods: ["pastoral"] });
+  const bucket = makePieces("sisters", [one("m1", "mine-1", ["woods"]), one("m2", "mine-2", ["road"]), one("m3", "mine-3", ["road"]),
+                                        one("g1", "glow-1", ["woods"]), one("g2", "glow-2", ["road"]), one("g3", "glow-3", ["road"])]);
+  const kept = {};
+  for (const family of ["mine-2", "mine-3", "glow-2", "glow-3"]) kept[family] = [Date.now() / 1000 - 3 * 86400];
+  const run = await render(230, { bucket, tickEvery: 2.0, target: Object.assign(mix(1), { kinds: ["pastoral"], setting: "woods" }),
+                                  memory: { load: () => kept, save: () => {} } });
   const order = [];
   for (const entry of [...run.engine.log].sort((a, b) => a.at - b.at)) if (order[order.length - 1] !== pieceOf(entry)) order.push(pieceOf(entry));
   return { order };

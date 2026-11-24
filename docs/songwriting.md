@@ -2261,6 +2261,13 @@ is where its key note is put, and a tune climbs a fifth to an octave over its ke
 the middle of their notes at A4 or over (`LOW_TOP`) an octave down, where all but a few of the notes can be: the clarinet to A4, the viola
 and the bass flute to D4, a fiddle at the moment from D6 to D5 (`Take.sing_low`; solos and the wired guitars stay). All twenty are.
 
+*A bass line is bowed* (the same night). In the first round's dark towns the contrabassoon carried the bass line alone (a character's
+`basses` take turns, and a contrabassoon has no one to double it): 4 to 6 dB over the liked stems in the bass's middle in five songs of the
+ten, all reed and little floor. Of the 32 heavy Warcraft songs judged, the basses' lines and the celli's read 6.94 and 6.98 for
+enjoyment and 2.94 and 3.09 for musicality, the tuba's 6.65 and 2.62, the bassoon's 6.40. From the third round on the line is the basses' or
+the celli's, and the contrabassoon and the tuba double it at the moments, as they did. Five of the first round's songs have their line given to the
+basses in their sheets, to be judged beside what they were.
+
 *Heard from the first bar* (the same night). Nine of Warcraft's twenty songs of the first round, ten new and ten old, opened at −36 to −43 LUFS
 (Gutted Parish −39, Ramparts City −37, Iron Bridge −36, Gatehouse Square −38), where the others open at −28 to −34 and a town or an inn is
 heard over. A character that `opens` plays its opening louder by 0.13 to 0.11 of full strength and its valley by 0.07 (`OPENS`), and nothing else:

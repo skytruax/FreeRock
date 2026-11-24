@@ -15,10 +15,17 @@ dictated, where it drove the change.
   whoever sings (the standing riff's check listens to the lead guitar alone).
 - **Sung low**: the library's tunes stand at C5 in Knight Rock's heavy songs and F♯5 in its light ones, and the new dark songs' were no lower, whatever
   led them. The twenty's singers stand an octave down wherever the middle of their notes was A4 or over (`Character.low`).
+- **A bass line is bowed**: the first round's dark Warcraft towns gave theirs to the contrabassoon alone, 4 to 6 dB over the liked stems in its middle;
+  the third round's are the basses' and the celli's.
+- `tools/revise.py --later`: a song's sheet is revised now and the next list that comes to the song performs it, so a night's revisions are
+  performed with the renders' processors.
 - **Heard from the first bar**: nine of Warcraft's twenty songs of the first round opened at -36 to -43 LUFS. The new towns, camps and inns play
   their openings and their valleys louder (`Character.opens`).
 - The riff listens to whoever sings: in songs led by another voice than the lead guitar a quarter of its moved chords sounded an eighth note's length
   or more a semitone from the tune (6 in 100 a beat or more).
+- **"we want to not hear the same music much"**: a song heard in the last two hours came back with one song between (Glowworm Cave), where every
+  other song for the moment was a sister of one heard tonight: the song itself was not counted as its own sister. It is, so it comes
+  after them. It takes effect when the player page is loaded again.
 - **A town's roof is not a cave's**: the game says "indoors" of both, and Menethil Keep and two town halls played a cave's music, a third of the week's
   time indoors outside dungeons. Where the place's name says a building (a hall, a keep, a tower, a harbor, a shire...) the music outside goes
   on, muffled (`atlas.building_of`, `Rules.buildings`). It takes effect when the server is next started.

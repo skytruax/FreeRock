@@ -574,6 +574,16 @@ def test_a_low_characters_singers_stand_low():
     assert lowered >= 10, lowered
 
 
+def test_a_reed_or_a_tuba_is_not_a_dark_songs_bass_line():
+    """(2026-11-23, night, the studies of the first round: a dark song's bass line given to the contrabassoon alone stood 4 to 6 dB over the liked
+    stems in its middle, all reed and little floor; among the 32 heavy Warcraft songs judged a tuba's or a bassoon's line reads 0.3 lower on
+    every score than the basses' or the celli's.) From the third round's characters on it doubles and never carries the line."""
+    names = [character.name for character in orchestra.CHARACTERS]
+    for character in orchestra.CHARACTERS[names.index("beggars court"):]:
+        if not character.band:
+            assert not set(character.basses) & {"contrabassoon", "tuba", "bassoon", "contrabass flute"}, (character.name, character.basses)
+
+
 def test_a_lead_guitars_bent_note_stays_in_its_range():
     """(2026-11-23: the blues bend is made after the line is put in the guitar's range, and took Grinding Sky's top note a semitone out of it.)"""
     inst = orchestra.INSTRUMENTS["lead guitar"]

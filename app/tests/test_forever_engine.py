@@ -532,6 +532,15 @@ async def test_the_takes_of_one_family_count_as_one_song_and_its_sister_families
     assert heard[3] == "dance-2", "the sister family did not come before a second hearing of the others: %s" % heard
 
 
+async def test_a_song_heard_tonight_comes_after_its_sisters_of_other_nights(results):
+    """("we want to not hear the same music much", 2026-11-23; played that evening: indoors in Menethil Harbor Glowworm Cave came back with one
+    song between, every other cave song a sister of one heard tonight and the one just heard not counted as its own.)"""
+    order = of(results, "pieceSisters")["order"]
+    assert len(order) >= 6, order
+    assert set(order[:2]) == {"m1", "g1"}, "what had never been heard did not come first: %s" % order
+    assert len(set(order[:6])) == 6, "a song came again before its sisters of other nights: %s" % order
+
+
 async def test_a_song_is_followed_by_one_led_by_another_instrument_where_one_suits_the_place_as_well(results):
     """("make sure to switch up the instruments from song to song so theres variety", 2026-11-23.)"""
     voices = of(results, "pieceVoices")

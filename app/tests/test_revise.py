@@ -110,6 +110,22 @@ def test_a_revision_is_said_before_it_is_made_and_dry_changes_nothing(var, tmp_p
         tool.main([TRACK, "--recipe", str(unmoved), "--dry"])
 
 
+def test_a_revision_for_later_is_the_songs_sheet_and_is_performed_by_the_next_list_that_comes_to_it(var, tmp_path, monkeypatch, capsys):
+    """(2026-11-23, night: a night's revisions were each performed on the two processors of the studies, the renders' six beside them.)"""
+    folder, tool = _staged(var), _tool()
+    recipe = tmp_path / "softer.py"
+    recipe.write_text(RECIPE, encoding="utf-8")
+    monkeypatch.setattr(tool.sheets, "perform", lambda sheet: pytest.fail("performed at once"))
+    assert tool.main([TRACK, "--recipe", str(recipe), "--later"]) == 0
+    assert "the next list that comes to it performs it" in capsys.readouterr().out
+    kept = var / "studio-demo" / "before-revise" / TRACK
+    assert (kept / "lead.flac").read_bytes() == b"as it was: lead" == (folder / "lead.flac").read_bytes()
+    assert json.loads((kept / "sheet.json").read_text(encoding="utf-8"))["history"][-1]["by"] == "the writer"
+    now = sheets.revised_of("knight", "test-song-1", 2)
+    assert now is not None and now.revision == 2 and {note.loud for note in now.parts["texture"]["harmonica"].notes} == {0.4}
+    assert tool.main([TRACK, "--back"]) == 0 and sheets.revised_of("knight", "test-song-1", 2) is None
+
+
 def test_a_performed_revision_keeps_the_take_of_before_and_can_be_put_back(var, tmp_path, monkeypatch, capsys):
     folder, tool = _staged(var), _tool()
     recipe = tmp_path / "softer.py"
