@@ -184,6 +184,25 @@ def test_a_song_with_a_recording_missing_is_cut_again_and_one_that_cannot_be_is_
     assert len(new.pieces) == 5 and all(new._file(clip.id).is_file() for clip in new.clips)
 
 
+def test_a_song_that_is_resting_is_staged_and_not_put_in(tmp_path):
+    # (2026-11-24: House was heard as sweet still; its sweetest songs rest, by a list, and a line taken out brings its song back.)
+    one, two = _stage(tmp_path, 1), _stage(tmp_path, 2)
+    _bucket(tmp_path, [one, two])
+    assert pieces.resting(tmp_path, "warcraft") == {}
+    rest = tmp_path / "studio" / "warcraft" / "resting.txt"
+    rest.write_text("# what rests, and why\n\ntest-family/2 sweet: a major key, bells\n", encoding="utf-8")
+    assert pieces.resting(tmp_path, "warcraft") == {"test-family/2": "sweet: a major key, bells"}
+    new, done = pieces.build_beside(tmp_path, "warcraft")
+    assert (done["put"], done["taken"], done["wrong"]) == (1, 1, []) and set(_songs(new)) == {"warcraft/test-family/1"}
+    assert studio.staged(tmp_path, "warcraft") == [one, two]          # it is staged all the same
+    rest.write_text("", encoding="utf-8")
+    new, done = pieces.build_beside(tmp_path, "warcraft")
+    assert done["put"] == 2 and set(_songs(new)) == {"warcraft/test-family/1", "warcraft/test-family/2"}
+    rest.write_text("test-family 2\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="family and take"):
+        pieces.build_beside(tmp_path, "warcraft")
+
+
 def test_a_build_keeps_what_was_played_loved_and_banned_even_while_it_was_building(tmp_path):
     takes = [_stage(tmp_path, 1), _stage(tmp_path, 2)]
     _bucket(tmp_path, takes)

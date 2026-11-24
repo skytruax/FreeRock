@@ -212,6 +212,103 @@ def test_a_drummer_with_brushes_sweeps_the_snare():
     assert build.write(night, 1).parts["drums"]["kit"].instrument == "kit swept"
 
 
+def test_a_family_past_a_house_band_character_s_third_is_another_band_s_song():
+    """(Thirty-six more of the house band's songs stood next in the day's lists: "all the knight rock songs sound like the same song".)"""
+    house = {character.name: character for character in CHARACTERS if character.band and not character.sounds}
+    old, new = [], []
+    for fam, _ in build.plan():
+        if fam.character.name in house:
+            (old if int(fam.name.rsplit("-", 1)[1]) <= orchestra.FRESH_FROM else new).append(fam)
+    assert old and all(fam.character == house[fam.character.name] for fam in old), "a family made before is changed"
+    assert len(new) >= 40 and all(fam.character.sounds in BANDS and fam.character.form in ("",) + tuple(FORMS) for fam in new)
+    fourth = [fam for fam in new if fam.name.endswith("-4")]
+    bands = [fam.character.sounds for fam in fourth]
+    assert len(set(bands)) >= 12 and max(bands.count(each) for each in set(bands)) <= 7, bands
+    assert len({fam.character.form for fam in fourth}) == 5
+    assert len({fam.character.leads[1 % len(fam.character.leads)] for fam in fourth}) >= 12
+    assert all(fam.key.mode.startswith(orchestra.FRESH_MODES) for fam in fourth), [fam.key.mode for fam in fourth]
+    beside = [fam for fam in fourth if not fam.character.light and fam.character.weight >= 0.7 and fam.character.role not in orchestra.FIGHTS + ("storm",)]
+    assert all(one.character.sounds != other.character.sounds for one, other in zip(beside, beside[1:]))
+    for fam in fourth[::6]:
+        sheet = build.write(fam, 1)
+        assert sheet.about["sounds"] == fam.character.sounds == orchestra.band_of(fam, 1)
+        played = {voice.instrument for parts in sheet.parts.values() for voice in parts.values() if voice.notes}
+        assert not played & {"rhythm guitar", "single guitar", "muted guitar", "picked bass", "lead guitar", "kit rock", "kit room"}, (fam.name, played)
+        lead = orchestra.sounded(fam.character.sounds, fam.character.leads[1 % len(fam.character.leads)])
+        sings = {lead} | (set(orchestra.SINGS[fam.character.sounds]) if lead in orchestra.SUNG else set())     # (a fiddle in a borrowed song is the band's own singer)
+        assert any(voice.instrument in sings and len(voice.notes) > 20 for voice in sheet.parts["lead"].values()), (fam.name, lead)
+
+
+def test_a_light_song_is_another_song_by_another_band():
+    """(The bands' test: an inn's song read the same by all fourteen: what it strummed and who sang it was in no band.)"""
+    assert set(orchestra.STRUMS) == set(orchestra.SINGS) == set(BANDS)
+    from freerock.studio import sounds
+    for band in BANDS:
+        assert all(each in INSTRUMENTS or each in sounds.AMPS for each in orchestra.STRUMS[band] + orchestra.SINGS[band]), band
+    strums = [orchestra.STRUMS[band][0] for band in BANDS]
+    assert len(set(strums)) >= 12
+    inn = next(fam for fam, _ in build.plan() if fam.name == "anywhere-tavern-rock-1")
+    assert orchestra.borrowed(inn) and not orchestra.borrowed(next(fam for fam, _ in build.plan() if fam.name == "anywhere-rogues-quarter-1"))
+    import dataclasses
+    heard = {}
+    plain = build.write(inn, 1)
+    house = {voice.instrument for channel in ("lead", "rhythm") for voice in plain.parts[channel].values() if voice.notes}
+    for band in orchestra.FRESH_BANDS["light"]:
+        sheet = build.write(dataclasses.replace(inn, character=dataclasses.replace(inn.character, sounds=band)), 1)
+        heard[band] = frozenset(voice.instrument for channel in ("lead", "rhythm") for voice in sheet.parts[channel].values() if voice.notes)
+        assert not heard[band] & (set(orchestra.STRUMMED) - set(orchestra.STRUMS[band])), (band, heard[band])
+        for channel in ("lead", "rhythm"):
+            for voice in sheet.parts[channel].values():
+                inst = INSTRUMENTS[voice.instrument] if voice.instrument in INSTRUMENTS else None
+                assert inst is None or all(inst.low <= note.pitch <= inst.high for note in voice.notes), (band, voice.instrument)
+    assert len(set(heard.values())) == len(heard) and all(len(each & house) <= 1 for each in heard.values()), (house, heard)
+
+
+def test_every_company_is_players_the_desk_knows_and_none_is_another_genre_s():
+    """("make sure were using unique bands on all genres".)"""
+    from freerock.studio import club, muse, sounds
+    assert len(orchestra.COMPANIES) >= 10
+    signatures = set()
+    for name, company in orchestra.COMPANIES.items():
+        assert name not in BANDS and name not in club.ACTS
+        table = orchestra.company_table(company)
+        for written, plays in table.items():
+            if written.startswith("kit "):
+                assert plays[4:] in orchestra.KITS
+                continue
+            assert plays in INSTRUMENTS and (plays in muse.PARTS or plays in sounds.SOUNDS), (name, written, plays)
+            assert plays not in sounds.AMPS, "%s: an amplifier is Knight Rock's" % name
+        assert "violins" not in table.values() and "harp" not in table.values() and "pizzicato" not in table.values(), "%s is the orchestra" % name
+        signatures.add((company.high, company.bed, company.pluck))
+    assert len(signatures) == len(orchestra.COMPANIES)
+
+
+def test_a_fourth_family_of_an_orchestra_s_is_a_company_s_song_and_the_first_three_stay():
+    fams = [(fam, takes) for fam, takes in build.plan() if fam.character.style == "warcraft"]
+    old = [fam for fam, _ in fams if int(fam.name.rsplit("-", 1)[1]) <= orchestra.FRESH_FROM]
+    new = [fam for fam, _ in fams if int(fam.name.rsplit("-", 1)[1]) > orchestra.FRESH_FROM]
+    assert old and not any(fam.character.sounds for fam in old) and len(new) >= 150
+    given = [fam.character.sounds for fam in new]
+    assert set(given) == set(orchestra.COMPANIES) and max(given.count(each) for each in set(given)) <= 4 * min(given.count(each) for each in set(given)), given
+    assert sum(one == other for one, other in zip(given, given[1:])) <= len(given) // 12
+    # A company plays where it belongs.
+    for fam in new:
+        kinds = fam.character.kinds
+        assert len(kinds) >= 5 or fam.character.sounds in orchestra.COMPANY_FOR[kinds[0]], (fam.name, fam.character.sounds)
+    assert all(fam.key.mode.startswith(orchestra.FRESH_MODES) for fam in new)
+    for fam in new[::23]:
+        sheet = build.write(fam, 1)
+        assert sheet.about["sounds"] == fam.character.sounds
+        table = orchestra.SETS[fam.character.sounds]
+        played = {voice.instrument for parts in sheet.parts.values() for voice in parts.values() if voice.notes}
+        assert not played & {"violins", "violins slow", "violas", "celli", "harp", "pizzicato", "strings slow", "tremolo"} - set(table.values()), (fam.name, fam.character.sounds, played)
+        for parts in sheet.parts.values():
+            for voice in parts.values():
+                inst = INSTRUMENTS.get(voice.instrument)
+                if inst and not voice.drums and voice.instrument in table.values():
+                    assert all(inst.low <= note.pitch <= inst.high for note in voice.notes), (fam.name, voice.instrument)
+
+
 def test_a_long_moment_turns_where_a_character_turns():
     """(The second round's studies: a summit's guitars one colour 27 and 29 bars.) The guitars' figure in the stretch is not the moment's."""
     turning = [character for character in CHARACTERS if character.turns and character.weight >= 0.8]
@@ -329,7 +426,7 @@ def test_a_soft_lead_of_a_band_of_other_sounds_is_brought_up_further(tmp_path):
 def test_an_amplified_instrument_is_held_together_and_the_others_keep_their_range():
     """(Sentence March's valley tune, a chime guitar's, read -48 LUFS; Keel-Scarred Shove's opening riff -40, under its choir.)"""
     from freerock.studio import muse, sounds
-    assert set(muse.SQUEEZE) <= set(muse.PARTS) and all(0.0 < hold <= 0.7 for hold in muse.SQUEEZE.values())
+    assert set(muse.SQUEEZE) <= set(muse.PARTS) | set(sounds.SOUNDS) and all(0.0 < hold <= 0.7 for hold in muse.SQUEEZE.values())
     assert set(sounds.AMPS) - {"torn organ"} <= set(muse.SQUEEZE)                  # (an organ has no soft hand)
     notes = [Note(0.0, 1.0, 45, 0.25), Note(1.0, 1.0, 45, 1.0)]
     held = muse.shared("crunch guitar", notes)
@@ -338,7 +435,7 @@ def test_an_amplified_instrument_is_held_together_and_the_others_keep_their_rang
         assert all([note.loud for note in mine] == [0.25, 1.0] for _, _, mine, _ in muse.shared(written, notes))
     # ...and no band's written guitars, basses or lead guitar are left to fall away: each is held, or never falls (an organ, a harpsichord), or is
     # an acoustic instrument played by itself.
-    loose = {"organ", "harpsichord", "celli pizz", "torn organ", "upright piano", "marimba", "clarinet"}
+    loose = {"organ", "harpsichord", "celli pizz", "torn organ", "upright piano", "marimba", "clarinet", "trumpet", "war tuba"}
     for name, band in BANDS.items():
         for written in ("rhythm guitar", "single guitar", "muted guitar", "picked bass", "fretless", "lead guitar"):
             assert band[written] in muse.SQUEEZE or band[written] in loose, (name, written, band[written])
@@ -387,3 +484,18 @@ def test_a_solo_picked_up_in_the_bar_before_leaves_its_part_to_be_lifted():
     form = [{"story": "open"}, {"story": "rise"}, {"story": "moment"}, {"story": "close"}]
     edges = [0, 16 * rate, 48 * rate, 80 * rate, 130 * rate]
     assert build.sung_spans(form, edges, spans) == [(16 * rate, 47 * rate), (64 * rate, 80 * rate), (80 * rate, 120 * rate), (122 * rate, 130 * rate)]
+
+
+def test_a_song_is_heard_from_its_first_bar():
+    """(169 of the 521 songs of Warcraft's library opened under -36 LUFS, the first minute of them under a game's own sounds.)"""
+    heard = [-43.0, -33.0, -33.5, -27.0, -22.0, -41.0, -27.0, -20.0, -38.0]
+    lifts = [min((max(heard) - loud) * build.RIDE, 12.0) for loud in heard]
+    out = build.opened(heard, lifts)
+    assert abs(heard[0] + out[0] - (-20.0 - build.OPEN_UNDER)) < 1e-6 and out[1:] == lifts[1:]       # 16 dB under the summit
+    assert heard[0] + out[0] < heard[1] + lifts[1] - 1.9                                             # and under the theme it leads to
+    assert build.opened([-60.0] + heard[1:], [0.0] + lifts[1:])[0] == build.OPEN_MOST                # so far and no further
+    loud = [-30.0] + heard[1:]
+    assert build.opened(loud, lifts) == lifts                                                        # one that is heard is left
+    soft = [-43.0, -42.0, -20.0]
+    assert build.opened(soft, [0.0, 0.0, 0.0]) == [0.0, 0.0, 0.0]                                    # (never over what comes after it)
+    assert build.opened([-80.0] + heard[1:], lifts) == lifts and build.opened([-40.0], [0.0]) == [0.0]

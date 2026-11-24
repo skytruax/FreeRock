@@ -308,7 +308,11 @@ def test_a_band_s_kit_is_held_to_the_house_s(monkeypatch):
     from freerock.studio import orchestra, sounds
     from freerock.studio.score import Note, Voice
     used = {plays[4:] for band in orchestra.BANDS.values() for written, plays in band.items() if written.startswith("kit ")}
-    assert used == set(sounds.OWN_BOOM) and used <= set(sounds.KIT_GAINS) & set(sounds.KIT_LEVEL) & set(sounds.KICKED)
+    assert used <= set(sounds.OWN_BOOM) and used <= set(sounds.KIT_GAINS) & set(sounds.KIT_LEVEL) & set(sounds.KICKED)
+    # No two bands have one drum set: a snare is each one's own, but for the two that have no stick in the hand (2026-11-24: fourteen bands on three kits).
+    sets = [band["kit rock"] for band in orchestra.BANDS.values()]
+    assert len(set(sets)) == len(sets), sets
+    assert sounds.level("kit felt poplar") == sounds.level("kit felt") if sounds.LEVELS.is_file() else True
     for kit in used:
         assert set(sounds.KIT_GAINS[kit]) <= set(orchestra.KITS[kit]) and all(abs(each) <= 15.0 for each in sounds.KIT_GAINS[kit].values())
         assert "boom" not in sounds.KIT_GAINS[kit], "the bass drum is what the others are held to"
@@ -327,6 +331,82 @@ def test_a_band_s_kit_is_held_to_the_house_s(monkeypatch):
     assert kicks("sticks") < 0.55 * kicks("rusty") and abs(kicks("sticks") - kicks("rock")) < 1e-6
 
 
+def test_an_instrument_that_came_with_a_program_is_played_by_it(tmp_path, monkeypatch):
+    """("find more instruments!": a saxophone with five ways of playing, a voice that slides, a lyre that rings: studio.programs.)"""
+    from freerock.studio import programs, sounds
+    folder = tmp_path / "horn" / "Programs"
+    folder.mkdir(parents=True)
+    came = "// by the people who recorded it\r\n<control>\r\nset_cc1=63\r\nlabel_cc1=Dynamics\r\n\r\n<global>\r\nsw_lokey=24\r\nsw_default=24\r\n#include \"maps/long.sfz\"\r\n"
+    (folder / "horn.sfz").write_bytes(came.encode("latin-1"))
+    (folder / "line.sfz").write_bytes(b"<global>\nsw_default=24\n<region>\nsample=a.wav\n")
+    # (The bowed synthesiser's: its block of controls has its other files after it, and what stood after them set nothing.)
+    (folder / "synth.sfz").write_bytes(b"<control>\nset_cc82=16\n\n#include \"setup.sfz\"\n#include \"one.sfz\"\n\n<curve>curve_index=8\nv000=0\n")
+    monkeypatch.setattr(programs, "FOUND", tmp_path)
+    horn = programs.Program("horn/Programs/horn.sfz", "brass", 40, 60, key=12, tune=-4.5, held=True, cc=((1, 90.0), (21, 30.0)), switch=27, line="horn/Programs/line.sfz",
+                            slurred=((105, 127.0),), early=0.02, cut=50.0)
+    monkeypatch.setattr(programs, "PROGRAMS", {"horn": horn})
+    made = programs.wrapper("horn")
+    text = made.read_bytes().decode("latin-1")
+    assert made == folder / "freerock horn.sfz" and (folder / "horn.sfz").read_bytes() == came.encode("latin-1")     # beside its own files, which are left
+    assert "sw_default=27" in text and "sw_default=24" not in text and "hint_ram_based=1" in text
+    # What its controllers start at comes after the program's own, in its block of controls; its tuning where all of it is.
+    assert text.index("set_cc1=63") < text.index("set_cc1=90") < text.index("<global>") and "set_cc21=30" in text and "<global>\ntune=-4.5" in text
+    line = programs.wrapper("horn", slurs=True)
+    said = line.read_text(encoding="latin-1")
+    assert line.name == "freerock horn line.sfz" and "set_cc105=127" in said and "set_cc105" not in text and "sample=a.wav" in said
+    monkeypatch.setitem(programs.PROGRAMS, "synth", programs.Program("horn/Programs/synth.sfz", "synth strings", 28, 91, cc=((82, 14.0),)))
+    said = programs.wrapper("synth").read_text(encoding="latin-1")
+    assert said.index("set_cc82=16") < said.index("set_cc82=14") < said.index("#include")
+    before = made.stat().st_mtime_ns
+    assert programs.wrapper("horn") == made and made.stat().st_mtime_ns == before                      # not written again: a sampler may be playing it
+    monkeypatch.setitem(sounds.SOUNDS, "horn", sounds.Sound((sounds.Player("horn", seat=0.1),)))
+    monkeypatch.setattr(sounds, "level", lambda name: {"before": 2.0, "after": -1.0})
+    monkeypatch.setattr(sounds, "_written", {})
+    monkeypatch.setattr(sounds, "_tracks", {})
+    from freerock.studio.score import Note, Voice
+    alone = sounds.lines(Voice(notes=[Note(0.0, 2.0, 45, 0.6), Note(0.0, 2.0, 52, 0.6)], instrument="horn"), "horn", 120.0)
+    assert len(alone) == 1 and [note.pitch for note in alone[0].notes] == [57, 64]                      # written as it sounds, played where its keys are
+    assert alone[0].early >= 0.02 and alone[0].controls and "freerock horn.sfz" in alone[0].template
+    slurred = sounds.lines(Voice(notes=[Note(0.0, 1.0, 45, 0.6), Note(1.0, 1.0, 47, 0.6)], instrument="horn"), "horn", 120.0)
+    assert "freerock horn line.sfz" in slurred[0].template and slurred[0].notes[0].length > 1.0
+    low = sounds.lines(Voice(notes=[Note(0.0, 1.0, 30, 0.6)], instrument="horn"), "horn", 120.0)
+    assert [note.pitch for note in low[0].notes] == [54]                                                 # (30 an octave up is 42, within it)
+
+
+def test_a_bass_through_an_amplifier_follows_the_hand(monkeypatch):
+    """(The garage's and the skald's valleys: the bass at -30 LUFS under a tune at -33, as loud as at their summits, where the house's is at -47.)"""
+    from freerock.studio import sounds
+    from freerock.studio.score import Note, Voice
+    monkeypatch.setattr(sounds, "level", lambda name: {"before": 0.0, "after": 0.0})
+    monkeypatch.setattr(sounds, "track_of", lambda name, slurs=False: name)
+    notes = [Note(0.0, 1.0, 40, 0.75), Note(1.0, 1.0, 40, 0.75), Note(2.0, 1.0, 43, 0.25), Note(3.0, 1.0, 43, 0.9)]
+    line, = sounds.lines(Voice(notes=notes, instrument="growly bass"), "bass", 120.0)
+    hand = sounds.AMPS["growly bass"].hand
+    at = dict(line.moves)
+    assert hand > 0.5 and abs(at[0.0] - 1.0) < 1e-6 and abs(at[2.0] - (0.25 / 0.75) ** hand) < 1e-6 and at[3.0] > 1.0 and 1.0 not in at
+    assert sounds.lines(Voice(notes=notes, instrument="hollow guitar"), "guitar", 120.0)[0].moves == []
+
+
+def test_every_instrument_found_is_set_down_whole():
+    from freerock.studio import muse, orchestra, programs, sounds
+    for name, program in programs.PROGRAMS.items():
+        assert program.low < program.high and sounds.family(name) == program.kind and program.kind in sounds.SENDS, name
+        assert 0 <= program.low + program.key and program.high + program.key <= 127
+        assert any(player.name == name for sound in sounds.SOUNDS.values() for player in sound.players), "nothing written is played by %s" % name
+    new = ("erhu", "lyre", "growl sax", "subtone sax", "saxcordion", "war tuba", "archtop guitar", "guitar banjo", "tagelharpa", "hollow guitar", "hollow muted", "hollow lead", "riff harpa",
+           "riff sax", "torn sax", "wired erhu", "growly bass", "torn bass", "driven bass", "heart lead", "heart pluck", "heart stab", "heart pad", "iron bass")
+    for written in new:
+        inst = orchestra.INSTRUMENTS[written]
+        assert written in sounds.SOUNDS and written not in muse.PARTS
+        for player in sounds.SOUNDS[written].players:
+            assert sounds.family(player.name) in sounds.SENDS and sounds.depth_of(sounds.template_of(player.name)) >= 0.0
+            if player.name in programs.PROGRAMS:
+                # Every note the writers may give it is one it has.
+                assert programs.PROGRAMS[player.name].low <= inst.low and inst.high <= programs.PROGRAMS[player.name].high, (written, player.name)
+    wired = [written for written in new if written in sounds.AMPS]
+    assert len(wired) >= 8 and all(muse.SQUEEZE.get(written) for written in wired)
+
+
 def test_an_amplifier_is_on_every_track_of_a_sound_that_has_one(monkeypatch, tmp_path):
     from freerock.studio import muse, sounds
     from freerock.studio.score import Note, Voice
@@ -340,7 +420,8 @@ def test_an_amplifier_is_on_every_track_of_a_sound_that_has_one(monkeypatch, tmp
     for name in sounds.AMPS:
         made = sounds.lines(Voice(notes=[Note(0.0, 1.0, 45, 0.7)], instrument=name), name, 100.0)
         assert made and all(any("freerock/amp" in effect for effect in line.effects) for line in made), name
-        assert len(made) == len(muse.PARTS[name]) and len({line.pan for line in made}) == len(made), (name, [line.pan for line in made])
+        parts = len(muse.PARTS[name]) if name in muse.PARTS else len(sounds.SOUNDS[name].players) // (2 if any(player.notes == "short" for player in sounds.SOUNDS[name].players) else 1)
+        assert len(made) == parts and len({(line.pan, line.name) for line in made}) == len(made), (name, [line.pan for line in made])
     plain = sounds.lines(Voice(notes=[Note(0.0, 1.0, 45, 0.7)], instrument="rhythm guitar"), "rhythm guitar", 100.0)
     assert not any("freerock/amp" in effect for line in plain for effect in line.effects)
 
@@ -354,7 +435,7 @@ def test_a_song_in_a_bands_own_sounds_is_the_same_music_played_by_them(monkeypat
     plain = build.write(dataclasses.replace(fam, character=dataclasses.replace(character, sounds="")), 1)
     own = build.write(fam, 1)
     heard = {voice.instrument for parts in own.parts.values() for voice in parts.values() if voice.notes}
-    assert "doom guitar" in heard and "fuzz bass" in heard and "kit felt" in heard
+    assert "doom guitar" in heard and "fuzz bass" in heard and "kit felt poplar" in heard
     assert not heard & {"rhythm guitar", "single guitar", "muted guitar", "picked bass", "lead guitar", "kit rock"}
     assert own.about["sounds"] == "doom" and plain.about["sounds"] == ""
     for channel, parts in plain.parts.items():

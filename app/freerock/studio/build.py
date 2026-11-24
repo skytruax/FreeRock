@@ -25,7 +25,7 @@ import numpy as np
 
 from .. import analysis, forever
 from . import RATE, desk, muse, reaper, sounds, stage_root, write_track
-from .orchestra import CHANNELS, CHARACTERS, INSTRUMENTS, Family, Take, band_of, family, given, held, settings_of
+from .orchestra import CHANNELS, CHARACTERS, INSTRUMENTS, STRUMS, Family, Take, band_of, borrow, borrowed, family, fresh, given, held, settings_of
 from .score import Sheet, humanise
 
 VAR = Path(__file__).resolve().parents[3] / "var"
@@ -51,8 +51,9 @@ BAND_BALANCE = {"doom": {"rhythm": 1.0, "bass": 1.0, "drums": -1.0, "lead": -0.5
                 "shanty": {"rhythm": -1.0, "lead": 0.5, "texture": 0.5}, "twang": {"rhythm": -1.0, "drums": -0.5, "lead": 0.5, "texture": 1.0},
                 "lounge": {"rhythm": -1.5, "drums": -1.0, "bass": 0.5, "lead": 0.5}, "cellos": {"rhythm": 0.5, "drums": -1.0},
                 "cathedral": {"rhythm": 0.5, "texture": 1.0, "drums": -0.5}, "saloon": {"rhythm": 0.5, "drums": -1.0, "bass": -0.5},
-                "hammond": {"rhythm": 0.5, "drums": 0.5}, "grit": {"rhythm": -0.5, "bass": 0.5}, "baroque": {"rhythm": -0.5, "texture": 0.5, "drums": -1.0},
-                "bones": {"rhythm": 1.0, "drums": -0.5}}
+                "hammond": {"rhythm": 0.5, "drums": 0.5, "bass": -1.5}, "grit": {"rhythm": -0.5, "bass": 0.5}, "baroque": {"rhythm": -0.5, "texture": 0.5, "drums": -1.0},
+                "bones": {"rhythm": 1.0, "drums": -0.5}, "garage": {"rhythm": 0.5, "lead": 0.5}, "skald": {"rhythm": 1.0, "texture": 0.5, "drums": -0.5},
+                "brawl": {"rhythm": 0.5, "bass": -1.0, "drums": 0.5}}
 RIDE = 0.15                    # how far each part of the story is brought up towards the loudest part (it was 0.42, which
                                # took most of the written dynamics away: "rewrite all music to be more dynamic", 2026-11-16)
 # The least each channel is played at in each part of the story, so that the story is whole
@@ -63,6 +64,10 @@ RIDE = 0.15                    # how far each part of the story is brought up to
 # channel is turned down under the hardest stroke, as a part of its level.
 DUCK = {"bass": 0.56, "texture": 0.8, "rhythm": 0.8, "lead": 0.9}
 DRUMS_UP = 6.0                 # dB: the most the drums are ever turned up to reach their place
+# A song is heard from its first bar (2026-11-24, the day's seven Warcraft songs studied: every one opened at -37 to -41 LUFS; then counted: 169 of the 521 songs of Warcraft's
+# library under -36, which a game's own sounds cover: the first minute of them is not heard at all. The characters that `opens` are written louder there, and they are the
+# newest alone). An opening stands no further than this under its song's loudest part, and is brought up no more than this for it.
+OPEN_UNDER, OPEN_MOST = 16.0, 9.0
 MUSE_WORKERS = 5               # how many parts of a piece MuseScore performs at once
 # (2026-11-16, twice. In the afternoon: "theres not much difference between quet and full, we want more ...
 # drasticness", and a calm game was given no drums and a third of the bass. Played that evening: "the abruptness
@@ -105,33 +110,39 @@ def _shapes_last(character) -> list[int]:
 # for every scenario, following everything weve learned".) How many families each character of Knight Rock and of Warcraft has
 # beyond the plan's own (`plan`), by style: each one more song for its kind of place. 0 (or no entry): the plan's own, as
 # before. (That night Knight Rock, the music they play, was given a second round: Warcraft had 210 first takes still to make.)
-MORE_FAMILIES = {"knight": 2, "warcraft": 1}
+MORE_FAMILIES = {"knight": 2, "warcraft": 2}
 
 
 # House's titles (house.PLAN's, the test keeps them the same), written out here so that the plan, which the study and the lanes
 # read without the House synthesiser's numba, need not import house (2026-11-22: it did for an afternoon, and every study of a
 # Knight or Warcraft take stopped on "No module named 'numba'").
 HOUSE_TITLES = (
-    'Ambush', 'Ash Wind', 'Banners', 'Bedroll Sky', 'Bellows and Sparks', 'Bells under the Hill', 'Black Rain',
-    'Black Water', 'Blades', 'Bone Procession', 'Breakers', 'Breakwater', 'Bullfrog Bass', 'By the Fire', 'Cairn Wind',
-    'Cannonade', 'Canopy', 'Capture the Flag', 'Caravan at Noon', 'Cellar Door', 'Charge', 'Cinder Bloom', 'Cold Stars',
-    'Cool of the Evening', 'Curfew Bell', 'Customs Wall', 'Dead Radio', 'Desert Nocturne', 'Dewfall', 'Driftwood Hearth',
-    'Dripstone', 'Drowned Halls', 'Drowned King', 'Dunes at Dawn', 'Eclipse Gate', 'Embers under Stars', 'Empty Throne',
-    'Fireflies', 'Fishmarket', 'Frozen Echoes', 'Furnace Psalm', 'Gallows Meadow', 'Gaslight', 'Ghostfire',
-    'Gilded Halls', 'Glade at Dusk', 'Glowworm Hollow', 'Guildhall Steps', "Gull's Morning", 'Hammerfall',
-    'Harbour Lights', 'Hay Bale Sunset', 'Heat Haze', 'Hoarfrost', 'Hold the Line', 'Hollow Road', 'Hushed Parlour',
-    'Ice Bridge', 'Ice Fang', 'Ice Fishing', 'Keelhaul', 'Lanterns in the Fog', 'Lanterns on the Square',
-    'Larks over the Ridge', 'Last Candle', 'Last Stand', 'Lodestone', 'Long Road Home', 'Low Rafters', 'Market Day',
+    'Ambush', 'Ash Bucket', 'Ash Wind', 'Back Room', 'Backwater', 'Banners', 'Barbed Wire', 'Bedroll Sky',
+    'Bellows and Sparks', 'Bells under the Hill', 'Black Frost', 'Black Market', 'Black Rain', 'Black Water', 'Blackout',
+    'Blades', 'Blast Furnace', 'Boiler Room', 'Bone Procession', 'Bone Saw', 'Breakers', 'Breakwater', 'Bullfrog Bass',
+    'Buried Machine', 'Burn Barrel', 'By the Fire', 'Cairn Wind', 'Cannonade', 'Canopy', 'Capture the Flag',
+    'Caravan at Noon', 'Cellar Door', 'Chain Gang', 'Charge', 'Cinder Bloom', 'Closing Time', 'Cold Iron', 'Cold Stars',
+    'Cold Storage', 'Cool of the Evening', 'Crawlspace', 'Curfew Bell', 'Customs Wall', 'Dead Hours', 'Dead Radio',
+    'Dead Reckoning', 'Desert Nocturne', 'Dewfall', 'Dim Lamp Alley', 'Driftwood Hearth', 'Dripstone', 'Drop Shaft',
+    'Drowned Halls', 'Drowned King', 'Dry Dock', 'Dunes at Dawn', 'Eclipse Gate', 'Embers under Stars', 'Empty Throne',
+    'Fireflies', 'Fishmarket', 'Frostbite', 'Frozen Echoes', 'Furnace Psalm', 'Gallows Meadow', 'Gaslight', 'Ghostfire',
+    'Gilded Halls', 'Glade at Dusk', 'Glowworm Hollow', 'Gravel Pit', 'Graveyard Shift', 'Guildhall Steps',
+    "Gull's Morning", 'Hammerfall', 'Harbour Lights', 'Hay Bale Sunset', 'Heat Haze', 'Hoarfrost', 'Hold the Line',
+    'Hollow Road', 'Hushed Parlour', 'Ice Bridge', 'Ice Fang', 'Ice Fishing', 'Insomnia', 'Iron Lung', 'Keelhaul',
+    'Knife Bazaar', 'Knuckle Duster', 'Lanterns in the Fog', 'Lanterns on the Square', 'Larks over the Ridge',
+    'Last Candle', 'Last Stand', 'Lodestone', 'Long Road Home', 'Low Ceiling', 'Low Rafters', 'Market Day', 'Meat Locker',
     'Mended Nets', 'Mill Stream', 'Mint Tea', 'Mirage', 'Monsoon Drums', 'Moonless', 'Moonlit Ebb', 'Moonwell',
-    'Morning on the Hill', 'Moth Wings', 'Night Prowl', 'No Fire Tonight', 'Nomad Fire', 'Northern Lights', 'Oasis',
-    'Ossuary', 'Owl Light', 'Parrots', 'Peat Smoke', 'Rain on the Roofs', 'Red Rock', 'Reedlight', 'River Drums',
-    'Salt Caravan', 'Sandblast', 'Sandstone Hollow', 'Scarecrow Road', 'Seaspray', 'Siege Bells', 'Sleepless Shift',
-    'Smog Quarter', 'Snowglobe', 'Snowmelt', 'Squall', 'Stand Fast', 'Standing Dead', 'Starfall', 'Stone and Sky',
-    'Strangler Fig', 'Sunken Grotto', 'Sunlit Fields', 'The Dark Hall', 'The Deep Road', 'The Forge at Rest',
-    "The Headsman's Walk", 'The High Moor', 'The Kind Ghost', "The King's Road", 'The Leviathan', 'The Long Wait',
-    'The Long Watch', 'The Old Swamp', 'The Usurper', 'Throne of Ash', 'Thunderhead', 'Tide Camp', 'Tidepools',
-    'Under the Mountain', "Undertaker's Table", 'Vulture Sky', 'Whispering Boughs', 'White Grave', "Will-o'-the-Wisp",
-    'Willow Lanterns', 'Wind over the Pass', "Wreckers' Lantern",
+    'Morning on the Hill', 'Moth Wings', 'Night Prowl', 'Night Shift', 'No Fire Tonight', 'Nomad Fire', 'Northern Lights',
+    'Oasis', 'Ossuary', 'Owl Light', 'Parrots', 'Pawn Shop', 'Peat Smoke', 'Power Cut', 'Rail Yard', 'Rain on the Roofs',
+    'Red Moon', 'Red Rock', 'Reedlight', 'Riot Line', 'River Drums', 'Rust Water', 'Salt Caravan', 'Sandblast',
+    'Sandstone Hollow', 'Scarecrow Road', 'Scrap Yard', 'Seaspray', 'Short Circuit', 'Siege Bells', 'Sleepless Shift',
+    'Smog Quarter', 'Smoke Break', 'Snowglobe', 'Snowmelt', 'Speakeasy', 'Squall', 'Stand Fast', 'Standing Dead',
+    'Starfall', 'Stone and Sky', 'Strangler Fig', 'Strip Mine', 'Sump', 'Sunken Grotto', 'Sunlit Fields', 'The Dark Hall',
+    'The Deep Road', 'The Forge at Rest', "The Headsman's Walk", 'The High Moor', 'The Kind Ghost', "The King's Road",
+    'The Leviathan', 'The Long Wait', 'The Long Watch', 'The Old Swamp', 'The Usurper', 'Throne of Ash', 'Thunderhead',
+    'Tide Camp', 'Tidepools', 'Trench Line', 'Under the Mountain', "Undertaker's Table", 'Voltage', 'Vulture Sky',
+    'Wet Powder', 'Whispering Boughs', 'White Grave', "Will-o'-the-Wisp", 'Willow Lanterns', 'Wind over the Pass',
+    "Wreckers' Lantern",
 )
 
 
@@ -159,7 +170,8 @@ def plan() -> list[tuple[Family, int]]:
         titles.add(title)
         place = character.kinds[0] if len(character.kinds) < 5 else "anywhere"
         name = "%s-%s-%d" % (place, character.name.replace(" ", "-"), number + 1)
-        out.append((family(character, seed, name, title), takes))
+        # (A house band's character's families past its third are another band's songs: orchestra.fresh.)
+        out.append((family(fresh(character, number), seed, name, title), takes))
 
     later, camps, last = [], [], []
     for index, character in enumerate(CHARACTERS):
@@ -326,6 +338,15 @@ def tamed_tone(name: str, instrument: str, band: bool = False, channel: str = ""
     return None
 
 
+def opened(heard: list[float], lifts: list[float]) -> list[float]:
+    """How far each part of a song is brought up (`lifts`, dB), its opening so far that it is heard (OPEN_UNDER), and never over what comes after it."""
+    if len(heard) < 2 or heard[0] <= -70.0:
+        return lifts
+    stands = [loud + lift for loud, lift in zip(heard, lifts)]
+    more = min(max(min(max(stands) - OPEN_UNDER, stands[1] - 2.0) - stands[0], 0.0), OPEN_MOST)
+    return [lifts[0] + more] + lifts[1:]
+
+
 def stage(fam: Family, take: int) -> dict:
     """Writes one take of a family as its sheet and performs it (`write`, `perform`). Returns what it measured. The
     REAPER project is kept (see `project_of`), and the sheet beside the staged track. A take whose sheet a musician has
@@ -438,8 +459,11 @@ def write(fam: Family, take: int) -> Sheet:
     band = band_of(fam, take)
     if band:
         # The band's own instruments play what the writer names (orchestra.BANDS): the notes are the writer's, the sound the band's.
+        lent = band in STRUMS and borrowed(fam)
         for channel in CHANNELS:
             for voice in written.voices[channel].values():
+                if lent:
+                    borrow(band, channel, voice, fam.seed + take)
                 given(band, voice)
                 if channel in ("lead", "rhythm"):
                     held(voice)
@@ -735,7 +759,7 @@ def perform(sheet: Sheet) -> dict:
     # band together, easing from one level to the next over three seconds at each join.
     mix = sum(parts.values())
     heard = [analysis.loudness_lufs(mix[first:last], RATE) for first, last in zip(edges, edges[1:])]
-    lifts = [min((max(heard) - loud) * RIDE, 12.0) if loud > -70.0 else 0.0 for loud in heard]
+    lifts = opened(heard, [min((max(heard) - loud) * RIDE, 12.0) if loud > -70.0 else 0.0 for loud in heard])
     ride = np.empty(frames, dtype=np.float32)
     for index, (first, last) in enumerate(zip(edges, edges[1:])):
         ride[first:last] = lifts[index]
@@ -775,7 +799,8 @@ def perform(sheet: Sheet) -> dict:
         "credit": "Written by FreeRock's studio (%s, %s); %sput together in REAPER, with the sfizz sampler on the VSCO 2 Community "
                   "Edition and VCSL recordings (Versilian Studios, CC0), the TinySOL recordings (Cella, Ghisi, Lostanlen, Levy, "
                   "Fineberg and Maresz, IRCAM, CC BY 4.0), Naked Drums (Wilkinson Audio, CC BY 4.0) and Big Rusty Drums (Karoryfer, "
-                  "CC0), the FreePats bagpipe (Gilles Sadowski, CC0), the AVL drum kits (Glen MacArthur, CC BY-SA 3.0) and the Surge XT, "
+                  "CC0), more of Karoryfer's, Bragi's Workshop's, Brian Wood's and itsclipping's recordings (CC0), the MuldjordKit (Lars "
+                  "Muldjord, DrumGizmo, CC BY 4.0), the FreePats bagpipe (Gilles Sadowski, CC0), the AVL drum kits (Glen MacArthur, CC BY-SA 3.0) and the Surge XT, "
                   "ZynAddSubFX and Geonkick synths"
                   % (about["character"], about["metre"], "its instruments performed by MuseScore Studio with Muse Sounds (Muse Group) and " if muse.available() else ""),
         "seed": about["seed"], "measured": {"sections": loudness, "channels": levels, "gains": gains},

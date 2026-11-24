@@ -123,12 +123,31 @@ def swap_back(var_dir: Path, style: str) -> Path:
     return ready
 
 
+def resting(var_dir: Path, style: str) -> dict[str, str]:
+    """The staged songs of a style that are kept out of its bucket for now, each ("family/take") with why: a line each in
+    var/studio/<style>/resting.txt. They stay staged, and on the listening pages; a line taken out of the list brings its song
+    back at the next build. (2026-11-24: House was heard as sweet still, with 41 dark songs among 102 light ones.)"""
+    path = studio.stage_root(Path(var_dir), style) / "resting.txt"
+    out: dict[str, str] = {}
+    for line in path.read_text(encoding="utf-8").splitlines() if path.is_file() else ():
+        if not line.strip() or line.startswith("#"):
+            continue
+        name, _, why = line.strip().partition(" ")
+        if name.count("/") != 1:
+            raise ValueError("%s: a song is said as its family and take (meadow-01/2), not %r" % (path, name))
+        out[name] = why.strip()
+    return out
+
+
 def add_staged(bucket: forever.Bucket, var_dir: Path, style: str, before: studio.Before | None = None) -> list[tuple[Path, list[str], str]]:
-    """Puts every staged track of a style in its bucket. For each track, in order: its folder,
-    the ids of the pieces it became (none if it was in the bucket already), and what was wrong
-    with it if it could not be put in (the others still are)."""
+    """Puts every staged track of a style in its bucket, but for those that are resting (`resting`). For each track, in order:
+    its folder, the ids of the pieces it became (none if it was in the bucket already), and what was wrong with it if it could
+    not be put in (the others still are)."""
     done = []
+    rest = resting(var_dir, style)
     for folder in studio.staged(Path(var_dir), style):
+        if "%s/%s" % (folder.parent.name, folder.name) in rest:
+            continue
         try:
             done.append((folder, studio.import_track(bucket, folder, before), ""))
         except (ValueError, KeyError, OSError, soundfile.SoundFileError) as problem:

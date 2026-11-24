@@ -70,12 +70,46 @@ DESIGNS: dict[str, dict] = {
                        "level": [(0.0, 0.0), (1.0, 1.0), (15.0, 1.0), (55.0, 0.26), (190.0, 0.075), (400.0, 0.025), (546.0, 0.01), (556.0, 0.0)],
                        "punch": 0.9, "punch_level": [(0.0, 0.0), (1.0, 1.0), (30.0, 0.5), (110.0, 0.0)],
                        "click": 0.06, "click_ms": 5.0, "click_hz": 1500.0, "drive": 5.0, "drive_in": 0.6, "drive_out": 0.42},
+    # The hard songs' (2026-11-24, "house is a little better keep iterating"). Read alone through a hard act's drum bus, the kick above is a knock and a sine: 19 dB from its loudness to its peak, its body
+    # 12 dB down by 170 ms, so that what the other instruments left of it was a click. A hard one is driven into a ceiling at the desk (club.HARD_KICK, sounds.clip): as tall, 2 to 3 dB
+    # louder, 12 to 14 dB from its loudness to its peak, its body held 190 to 350 ms. These are drawn for that: a fall from higher, the triangle's knock as tall as the body and longer, a harder
+    # click, and gone before the next beat. The 909's is the hammer, the 606's a boom torn as far as it goes, the 808's round. (The 606's and the 808's clicks at first as soft as their machines': with
+    # the old kick's click gone Blast Furnace's drums were 6 dB short over 5 kHz.) Each is tuned where its song is ("house kick hard@46.2": `design`).
+    "house kick hard": {"length": 300.0,
+                        "pitch": [(0.0, 460.0), (6.0, 235.0), (15.0, 138.0), (30.0, 88.0), (55.0, 61.0), (100.0, 51.5), (300.0, 49.0)],
+                        "level": [(0.0, 0.0), (1.0, 1.0), (38.0, 1.0), (80.0, 0.4), (130.0, 0.12), (190.0, 0.03), (270.0, 0.0)],
+                        "punch": 1.0, "punch_level": [(0.0, 0.0), (1.0, 1.0), (45.0, 0.8), (110.0, 0.25), (180.0, 0.0)],
+                        "click": 2.2, "click_ms": 16.0, "click_hz": 2600.0, "drive": 6.0, "drive_in": 0.8, "drive_out": 0.42},
+    "house kick hard 606": {"length": 360.0,
+                            "pitch": [(0.0, 300.0), (8.0, 170.0), (20.0, 105.0), (40.0, 70.0), (80.0, 55.0), (130.0, 50.0), (360.0, 49.0)],
+                            "level": [(0.0, 0.0), (1.0, 1.0), (45.0, 1.0), (95.0, 0.4), (150.0, 0.13), (215.0, 0.03), (320.0, 0.0)],
+                            "punch": 1.2, "punch_level": [(0.0, 0.0), (1.0, 1.0), (60.0, 0.8), (130.0, 0.2), (200.0, 0.0)],
+                            "click": 2.4, "click_ms": 18.0, "click_hz": 2400.0, "drive": 10.0, "drive_in": 0.9, "drive_out": 0.38},
+    "house kick hard 808": {"length": 360.0,
+                            "pitch": [(0.0, 220.0), (8.0, 120.0), (20.0, 78.0), (45.0, 58.0), (90.0, 50.0), (360.0, 49.0)],
+                            "level": [(0.0, 0.0), (1.0, 1.0), (45.0, 1.0), (110.0, 0.42), (180.0, 0.14), (260.0, 0.03), (340.0, 0.0)],
+                            "punch": 0.9, "punch_level": [(0.0, 0.0), (1.0, 1.0), (40.0, 0.7), (110.0, 0.2), (180.0, 0.0)],
+                            "click": 1.9, "click_ms": 14.0, "click_hz": 2400.0, "drive": 5.0, "drive_in": 0.7, "drive_out": 0.45},
 }
+REACH = (41.0, 59.0)             # where a kick may come to rest, Hz: E1 to A#1
+
+
+def rest(tonic: int) -> float:
+    """Where a hard song's kick comes to rest: on the song's root, or where that is under or over a kick's reach on its fifth."""
+    for step in (0, 7):
+        hz = 440.0 * 2.0 ** (((tonic + step) % 12 + 24 - 69) / 12.0)
+        if REACH[0] <= hz <= REACH[1]:
+            return hz
+    return 49.0
 
 
 def design(name: str, presets: Path) -> dict:
-    """The design as a Geonkick drum (one preset file's JSON)."""
-    spec = DESIGNS[name]
+    """The design as a Geonkick drum (one preset file's JSON). "house kick hard@46.2": its whole fall moved so that it comes to rest at 46.2 Hz."""
+    plain, _, tail = name.partition("@")
+    spec = DESIGNS[plain]
+    if tail:
+        moved = float(tail) / spec["pitch"][-1][1]
+        spec = dict(spec, pitch=[(ms, hz * moved) for ms, hz in spec["pitch"]])
     drum = json.loads((presets / (TEMPLATE + ".gkick")).read_text(encoding="utf-8"))
     out = copy.deepcopy(drum)
     length = spec["length"]

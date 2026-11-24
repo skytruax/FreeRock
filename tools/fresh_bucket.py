@@ -36,6 +36,9 @@ def beside(style: str) -> int:
         style, done["put"], after["pieces"], after["tracks"], after["minutes"]))
     print("%s: %d of them as they were (their recordings linked), %d cut from what is staged" % (
         style, done["taken"], done["put"] - done["taken"]))
+    rest = pieces.resting(VAR, style)
+    if rest:
+        print("%s: %d songs resting (var/studio/%s/resting.txt): staged, and not put in" % (style, len(rest), style))
     print("%s: %d parts kept what they had been: their plays, loves and bans (%d had any)" % (style, done["carried"], done["marks"]))
     print("%s: built beside the one that plays, in %s" % (style, bucket.folder))
     for folder, problem in done["wrong"]:

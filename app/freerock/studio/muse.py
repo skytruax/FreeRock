@@ -696,6 +696,8 @@ SQUEEZE: dict[str, float] = {
     "crunch guitar": 0.6, "crunch muted": 0.6, "fuzz guitar": 0.5, "fuzz muted": 0.5, "doom guitar": 0.5, "doom muted": 0.5, "chop guitar": 0.5, "chop muted": 0.5,
     "twang guitar": 0.5, "chime guitar": 0.45, "sweet lead": 0.6, "fuzz lead": 0.5, "fuzz bass": 0.1, "round bass": 0.15, "riff celli": 0.5, "muted celli": 0.5,
     "fuzz viola": 0.55, "fuzz wurly": 0.5, "stomp tuba": 0.3,
+    "hollow guitar": 0.55, "hollow muted": 0.6, "hollow lead": 0.55, "archtop guitar": 0.3, "riff harpa": 0.55, "riff sax": 0.5, "torn sax": 0.4, "wired erhu": 0.5, "growly bass": 0.2,
+    "iron bass": 0.4, "torn bass": 0.4, "driven bass": 0.2, "lyre": 0.45, "heart lead": 0.3, "heart stab": 0.3,
 }
 
 

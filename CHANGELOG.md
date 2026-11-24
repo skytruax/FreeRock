@@ -27,6 +27,25 @@ dictated, where it drove the change.
 - **The bands' amplified instruments are held together** (`muse.SQUEEZE`) and a soft lead is lifted further (`TUNE_MOST_BANDS`, `tools/lift_tunes.py`): in the first songs of
   the new bands a valley's tune read -48 LUFS and an opening riff -40, where the house's recorded distortion never falls. The tune is measured against the bass too,
   and a church organ plays a band's songs on its full stops.
+- **"house still needs to work on that main synth lead sound", "and also should use differrent bands"** (2026-11-24): ten leads of House's own (`patches.DESIGNS`; the saw and the supersaw, which
+  led 135 of 196 songs, measured as one sound), played with accents, opening over the drop, held in three bands (`jsfx/lift`); and eleven acts (`club.ACTS`), each its lead, chords,
+  bass, pad and drum machine, some of them not synths at all. The songs there are stay note for note.
+- **"make sure were using unique bands on all genres"** (2026-11-24): Warcraft's eleven companies (`orchestra.COMPANIES`) and a fourth family for each of its 189 characters, a company's; House's acts
+  with no sound of Knight Rock's bands; House's ten new songs of round two, each in an act. **"make sure were making new music every night not just iterating"**: new songs stand first in the night's lane.
+- **House heard as sweet still** (2026-11-24): the House in the player counted (of 193 songs 76 in major, lydian or mixolydian, 102 light, maracas in 103, glass plucks in 74, all at 110), and twelve hard
+  families written against it: 118 to 132 beats a minute, one chord and its shadow, a riff hammered on one note, stabs with no third, nothing that rings or rattles sweetly, drums and bass driven, the drop
+  brought over the theme; five stabs and basses and three leads of their own. `var/studio/<style>/resting.txt` (`pieces.resting`) keeps songs staged and out of the player for a while.
+- **"house is a little better keep iterating"** (2026-11-24): eleven more hard and after-hours families (bosses, battles, a battleground, storms, caves, a town, a camp, an inn, a night); the hard songs arranged
+  (`house.HARD_SCENES`: four ways their layers come and go, rises that keep the riff back, no chord roll, no thirds, a form of its own for each); a riff hammered even, its strokes off the beat no longer 4 to 7 dB
+  under the beat's; one synth for a riff (three quarters of it had been played by a second one, 10 dB down); a kick of their own, clipped and tuned to the song, for each kind of drum machine. `tools/hardness.py` measures how hard a song sounds against how sweet.
+- **A drop over its theme, an opening that is heard** (2026-11-24, two faults of the whole library found by the study of the day's songs): in all 164 House songs that are not calm the drop stood 0.4 to
+  1.4 dB over the theme (themes held under it now, `club.HELD_BACK_SOFTER`); 169 of Warcraft's 521 songs open under -36 LUFS (`build.opened`: within 16 dB of the loudest part). Songs made from here on.
+- **A drum set of its own for every Knight Rock band** (2026-11-24): fourteen bands had three kits; fifteen of Frankensnare's snares, each matched to its kit at a groove's strength, and the Muldjord kit.
+- **"find more instruments!"** (2026-11-24): an erhu, a lyre, a tagelharpa, a growling baritone saxophone and its subtone, saxophones as an accordion, a war tuba, two hollow-bodied guitars, an archtop, a
+  banjo, a jazz bass, a cello and a double bass as a synthesiser, and the Muldjord kit; played by their own programs where they came with one (`studio/programs.py`). Knight Rock's garage, skald and
+  brawl, Warcraft's silk and mead hall, House's cyborg and junkyard are made of them.
+- **"keep up the multiple band concept but make sure to test each bands musicality"** (2026-11-24): every band plays the same two songs, measured and judged against the house's, before it is
+  given more; and the house band's characters' families past their third are another band's songs (`orchestra.fresh`), forty-six that were planned in the house's sounds.
 - **The bands' kits are held to the house's** (2026-11-24; `sounds.KIT_GAINS`): their bass drum stood where the house's does and the snare, the hats, the toms and the crashes six to
   nine dB too far under it, so the first twenty songs of the new bands were a kick and little else, and it stood over the tune in their valleys. The kits with sticks and
   with mallets are balanced, the one with brushes as well, and it sweeps the snare on the beat (`swish`) where "brushes" was nearly silent.

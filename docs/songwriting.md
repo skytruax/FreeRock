@@ -1434,6 +1434,24 @@ Wurlitzer (`wurly`) and its upright piano. A saxophone leads smoke den and grave
 band drawn for the take (`COVER_BANDS`: a heavy song by doom, stoner, tweed, chop, twang or shanty, a light one by lounge, twang or tweed): the family's
 changes and form, its own tunes, and not the sound of the song before it.
 
+**Fresh families.** A house band's character has families past its third that are another band's song from their first take (`orchestra.fresh`, 2026-11-24). Forty-six were planned
+in the house's sounds and none made, thirty-six of them next in the day's lists: the sameness again. The place, the moment and the writer's manner stay the character's; the
+band, who leads (the second of the leads: take 1's first theme), the shape, a groove and a dark mode are given out round the table, so that no two beside each other share
+them.
+
+**Warcraft's companies** (`orchestra.COMPANIES`, 2026-11-24: "make sure were using unique bands on all genres"). The orchestra is not the only set of players: eleven companies, each who sings what the
+writer gives to a high, a middle and a low voice, the four parts the strings have (the violins', the violas', the celli's, the basses'), who holds chords, who plucks, and a kit: winds, iron brass,
+a monastery (choirs, an organ, handbells), a quartet with a piano, a consort (recorder, viol, harpsichord), bronze (vibes, handchimes, kalimba), a caravan (shenai, sitar, koto), the highlands (fiddle,
+accordion, mandolin), a carnival (an E-flat clarinet, accordion, dulcimer), a horde (choir, horns, trombone, marimba) and a crypt (bass flute, celesta, music box, an organ); then, of the instruments found that day, silk (an erhu, a lyre) and a mead hall
+(a bagpipe over a tuba, a lyre and a tagelharpa). Counted before: no instrument leads
+more than 11 in 100 of Warcraft's songs, but celli and violas are in four of five, a glockenspiel in three of five, and a harp accompanies the most. Every character has a fourth family,
+which is a company's, in a dark mode and sung low; its first three stay the orchestra's.
+
+**Every band is tested before it is given more songs** (Sky, 2026-11-24: "keep up the multiple band concept but make sure to test each bands musicality"). The same two songs, a heavy walk
+and an inn's, written once and played by every band and by the house's, eight bars each of the first theme, the valley and the summit: so the band is the one thing that differs.
+Measured: each channel against the mix in each part, the tune against the riff, how fast the riff's notes start, the riff's, the tune's and the bass's tuning, notes out of
+reach, how much of the tune lies under the riff, the mud and the glare against the house's; then the three judges. A band passes, or goes back to the desk with what was found.
+
 **Who solos.** A solo was the lead guitar's, the fiddle's and the like; a song sung low solos whoever leads its summit (`SOLOISTS_LOW`: the viola, the cello, the
 clarinet, the trombone, the horns and the saxophones too), to the top each has (`SOLO_TOP`). Three in ten of the two new rounds' songs had no solo before it.
 
@@ -1877,6 +1895,60 @@ chorus and the hall are the desk's now*.
   `PULSE`; a triangle is the modern oscillator's, `triangle`), and an oscillator of another kind takes
   its settings' kinds from a patch that has it (`patches.KINDS`). *With the patches as designed
   alone, Glade at Dusk III's drop: TuneJury 1.16 to 1.39.*
+  *The leads made anew* (2026-11-24: "house still needs to work on that main synth lead sound"; `patches.DESIGNS` "house lead …", `sounds.HOUSE_LEADS`). Measured in the last drops of six songs
+  each, the saw and the supersaw, which led 135 of 196 songs, stood within 1 dB of each other in every octave, 22 dB down by 5 to 10 kHz, nine dB under the mix, and as open on a drop's
+  first bar as on its last (the writer's brightness is 1 all through a drop). A lead is now a body (two saws and a square through a driven ladder each note throws open), a width
+  (saws spread far, nothing under 400 Hz) and a bite (an octave's click for seven hundredths of a second), laid at measured levels (*as first laid, by ear of the numbers alone, the width
+  stood 17 dB under the body and the bite 35: a layer's level is set against the first's at one loudness*), or one of seven others: hard sync, two turning pulses, a throat's two formants, struck
+  metal, an acid line, a growl, a driven pluck. Each is played with accents (the beat over the eighth over the sixteenth, `club.accented`), harder as the drop goes on, and
+  its filter follows how hard it is struck, so that it opens; a mono one slides between notes that are tied. At the desk it is held in three bands (`jsfx/lift`: what is quiet in each
+  brought up, what is loud held), with presence at 2.6 kHz and its top open.
+  *House's acts* (`club.ACTS`, "and also should use differrent bands"): as Knight Rock's bands, whose instruments a song has: the big lead of its drops, the second synth that joins it, the soft
+  lead of its themes, its chords, its bass, its pad and its drum machine. Eleven beside House's own: warehouse (acid), undercroft (the growl), foundry (metal), signal (sync), monolith (the
+  ladder), vesper (the voice), velvet (the pulses), strobe (the pluck), chamber (a cello), brass (a trumpet) and bazaar (a sitar). No two have one lead. A family's first
+  take is House's own act, its others and every new family's another's (`club.act_of`), given out by the moment: the calm ones to a calm song, the hard ones to a fight. A song's main
+  voice, whichever the writer drew, is the act's big lead (`parts_of_the_lead`). The sheet says what plays it, and is played as it says. Two more are of the instruments found that day: cyborg
+  (a cello's and a double bass's bows as a synthesiser's oscillators, all of it) and junkyard (a baritone saxophone torn by an amplifier over a jazz bass, driven; its growl, tried first, is the player's voice in the horn, two in five of it in no key).
+  *The hard ones* (2026-11-24: heard as sweet still, after the dark families). The House in the player was counted: of 193 songs 76 in major, lydian or mixolydian, 102 light, maracas in 103,
+  glass plucks in 74, every one at 110 beats a minute, every one a loop of four chords. Darkness of mood was not it; the writing is. A hard family (palettes "hard", "hard-broken", "hard-slow") is
+  118 to 132 beats a minute (`Family.bpm`, `house.at`: the writer's and the desk's beat for as long as one song is written or played), stands on one chord and leans on another (loops H1 to H5: a
+  phrygian second, a minor seventh, a fourth, or nothing), its stabs a root and a fifth and no third, low; no maracas, tambourine, chime, snap, bell, glass, harp or whistle anywhere in it, its act's own
+  instruments included (what an act's keys are made of was bells until it was looked at); and its tune is a riff hammered on one note (`HAMMERS`, `Tune._hammered`): two bars of one pitch, three or
+  four of its strokes the step over it, the step under it or the octave, said again, moved up a third or a fourth, and left out for the last half bar. (*Its first riff was the writer's cell of the
+  chord's notes up and down: a trance lead on a hard band.*) Its act drives its drums and its bass at the desk (`Act.drive`: what rings between the strokes brought up under them, hot tape, the bass's
+  harmonics), its lead stands 2 dB nearer (3 at first) and its bass 1, and its themes are held under its drops (`HELD_BACK`: 1.2 dB on the drums and the bass, 2.5 on the lead; *Riot Line's drop stood 0.8 dB over its theme,
+  its drums and its lead at one level in both, so that the drop brought nothing*; counted then in all 164 staged songs that are not calm, the drop stood 0.4 to 1.4 dB over the theme, under one in 125:
+  every other song's themes are held too, `HELD_BACK_SOFTER`, about a decibel). A stab of inharmonic metal reads out of the key (59% in it, at a ratio of 2.76): whole ratios.
+  *How a hard song is arranged* (`house.HARD_SCENES`, 17:00 the same day, the first five read block by block by their sheets). They had one skeleton and one texture: the stabs the same bar from the first to the
+  last, the groove whole from the theme's first bar, the whole tune given away in the rise before its drop could bring it, and three things of a festival's left in the build: the chords rolling into the drop in
+  eighths and sixteenths, the bass's eighths opening on one note, and a third over the riff the second time round. A hard song now has one of four arrangements, taken in turns by a family's takes: *stacked* (the riff from
+  the drop's first bar, a layer more every eight), *held* (the groove and its stabs for eight bars, then the riff; never a fight's or a storm's), *answered* (two bars of riff, two of stabs) and *lone* (the riff over drums
+  and bass, hardly a stab). The stabs wait in the theme, leave the rise, have a second figure; the bass has a second figure; the middle of a last drop is the floor: the kick, the bass, the toms, hardly a hat and
+  no riff, so that the riff comes back. The rise does not give the riff away: its one note hammered and opening, the bass going on under a closed filter, or one chord struck in threes, and then half a bar of
+  nothing. The second synth says the riff an octave under or over it, never a third, never on the riff's own synth. No two hard families have the same lengths of everything.
+  *A riff is even* (`club.HAMMERED`, `ACCENTS`). Read in the recordings: the strokes off the beat stood 4 to 7 dB under the beat's in every song led by a synth of House's own, which made a pulse on the kick and ghosts between
+  it; the two songs led by recordings, which had no accents, were even, and drove. And the desk put what is written under six tenths of the loudest on a track of its own, so that three quarters of Riot Line's riff
+  was played by another copy of the synth, 10 dB down, and nothing could slide; that track also struck the riff and its octave together on a synth that has one voice (86 strokes of it; Power Cut's lead came out
+  17 cents flat). A lead of House's own plays its soft strokes itself, and only what sounds together with a louder note is a line under it (`club.voices`).
+  *Its kick* (`kicks.DESIGNS` "house kick hard …", `club.HARD_KICK`, `sounds.clip`). Read alone through a hard act's drum bus, the kick every House song had was a knock and a sine: 19 dB from its loudness to its peak, its
+  body 12 dB down by 170 ms, so that under a band what was left of it was a click. A hard kick is a clipped one: drawn to fall from higher with a longer knock, its 190 Hz and its 1.2 kHz brought up, driven 14
+  to 26 dB into a ceiling (`jsfx/clip`), its box taken out after: 2 to 3 dB louder at a lower peak, 12 to 14 dB from loudness to peak, its body held 190 to 350 ms. One for each kind of machine, the
+  909's a hammer, the 606's a boom, the 808's round; and each comes to rest on its song's root, or on its fifth where the root is out of a kick's reach (`kicks.rest`).
+  *What softened them* (each channel of three songs left out in turn, by `tools/hardness.py --without`). Without its bass a song was 4 to 5 softer: the bass is the hardness, and stands a decibel up. Without its lead Blast
+  Furnace was 3 harder and darker in both its parts: its lead was struck metal, two modulated sines, and rings as a bell does (a razor has its place: saws and a narrow pulse clipped hard); the acid line's was none the worse
+  for being there. Without its stabs Scrap Yard was 2 harder (the plate's). And a hard act plays close (`club.CLOSE`): a third of the echo every other song's lead and chords have, a progressive record's dotted eighths from
+  side to side, and a third of the hall.
+  *Which lead is whose* (the same measure, thirteen of House's leads in one drop with everything else the same). Hardest first: sync -5, the anthem -6, the acid line -7, the throat -7, the ladder -9, the stack -9, the driven
+  pluck -11, the growl -12, the factory's saw as it was -12.5, the two turning pulses -16.5, struck metal -18. A lead that rings like a bell is the sweetest thing a song can be led by, whatever it is called. Metal and the
+  pulses lead no act now; the growl, dull and low, is a soft voice for a theme.
+  *A stroke has a pitch.* A hard-synced lead swept 22 half-steps over half a second read 19 cents flat in two songs: in a riff's short stroke there is nothing but sweep, overtones sliding at 3.97 and 4.42 times the
+  note. Swept six, from a little higher, its long notes are in tune and its short ones within 5 cents.
+  *How hard it sounds, measured* (`tools/hardness.py`). The judges' model that hears audio against words (LAION-CLAP, music) scores ten seconds of a drop or a theme against three pairs of descriptions
+  (hard against soft, dark against sweet, raw against cheesy), the one side less the other, the same windows always. It hears what was complained of: the sweet songs stand at -9 to -18 and the hard ones' drops at
+  +1 to +11. Their themes stand at -5 to +1: a theme is where the hardness is owed.
+  *The other dark ones* (`house.GRIM`, the same day): a dark palette's percussion was a light one's still (chimes in the haunted, shakers in the caves, a cowbell in the infernal, finger snaps in an inn), and
+  some acts were sweet in what they are for (strobe's glass, vesper's whistle and harp, bazaar's kalimba). The twenty dark families with no take have nothing sweet struck (`house.SWEET`), and those acts
+  have a pluck, a bass clarinet and a dulcimer alone in their places. Families that were made keep theirs.
   The third set, that evening, the rest of what House played as the factory made it, the sub aside
   (a sine, whose whole job is to be one): *the FM bass*, one sine modulated by two at its note and an
   octave over it, the filter envelope throwing both up at each note and letting them settle, bright
@@ -2077,6 +2149,12 @@ limit (300 s and twelve for every second of music), its window pictured beside t
 minutes (`desk.RENDER_STALL`), and tried once more (`reaper.Stalled`): that night one met "Can't write
 to REAPER configuration file" at its start, three renders having begun together, and held one of the
 night's three places for its whole limit, 6,121 s.
+
+**An opening is heard** (`build.opened`, 2026-11-24). Every song of the day's seven studied opened at -37 to -41 LUFS; counted then, 169 of Warcraft's 521 stood under -36 (Knight Rock's 16 of 425), which a
+game's own sounds cover: the first minute of such a song is silence. The writer's `opens` plays the newest characters' louder; the desk now brings any opening to within 16 dB of its song's loudest
+part, by 9 dB at most, and never over the theme it leads to.
+
+**A drop stands over its theme** (`club.HELD_BACK`, `HELD_BACK_SOFTER`, the same day): House's in 5.7.
 
 ### 6.7 File formats
 
@@ -2530,6 +2608,16 @@ round). *The numbers find what to listen to; the ear decides.* And keep an instr
 when the writing should not change: who sings the second theme is chosen by how far an instrument's
 home note sits from the first singer's, and the chanter's narrower range had moved the bagpipe into
 the band's leads.
+
+**Instruments that come with a program** (2026-11-24, "find more instruments!"; `studio/programs.py`). A library that is more than a folder of notes (a saxophone with five ways of playing, a lyre that rings
+until it is damped, an erhu that slides) is played by its own SFZ program in the same sampler. What is set down for it: its program, which family it is on the desk with, the notes it has as they sound, how far
+its keys are from them, the cents it is out, what its controllers start at, its keyswitch, and the program for a line of single notes. The studio's lines are written into a copy beside it, never into it; controller 1 is
+the dynamics of nearly all of them, as it is the desk's. To add one: clone it into a folder of its own under `samples/found` with its licence; check that its recordings are whole (a repository whose attributes
+rewrite line endings breaks every one of them, and a broken recording plays as noise: the black and green guitars'); play every key alone and read where it sounds and how far out
+(`desk.project` puts a second before the first note, so a reading that forgets it reads the note before: every third semitone out); then a ladder through its range by the written name, its levels
+(`sounds.levels`), and the same music by its band. Left alone: what will not be brought into tune (a bass voice, two notes a third of a semitone out), and shouted vocals (the music is instrumental).
+A library's single notes are often the better way (guitars for an amplifier of the studio's own): cut to begin at their stroke (some have a tenth of a second before it), named "a3_f_rr2", and
+read by `samples.pitched`, which tunes each one. A kit of many microphones is mixed first, as a mixer would (close, overheads, room), softest to hardest (`kit metal`).
 
 ### 8.9 Work in passes
 

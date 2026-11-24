@@ -45,6 +45,7 @@ import math
 import random
 import time
 import zlib
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -100,6 +101,13 @@ LOOPS = {
     "N4": ("minor", 2, ((0, "7"), (3, "7"), (5, ""), (4, "7"))),
     "N5": ("minor", 1, ((0, ""), (2, ""), (6, ""), (5, ""))),
     "N6": ("minor", 2, ((0, "9"), (5, "7"), (3, "7"), (6, ""))),
+    # (2026-11-24, heard as sweet still: a loop of four chords is a song's; hard music stands on one and leans on another.) One chord and its shadow: the
+    # phrygian's second, the minor's seventh, the fourth, and one that never moves.
+    "H1": ("phrygian", 2, ((0, ""), (0, ""), (0, ""), (1, ""))),
+    "H2": ("minor", 2, ((0, ""), (0, ""), (6, ""), (0, ""))),
+    "H3": ("minor", 4, ((0, ""), (3, ""))),
+    "H4": ("phrygian", 4, ((0, ""), (0, ""))),
+    "H5": ("dorian", 2, ((0, ""), (0, ""), (0, ""), (6, ""))),
     "P1": ("phrygian", 2, ((0, ""), (1, ""), (0, ""), (6, ""))),
     "P2": ("phrygian", 2, ((0, ""), (1, ""), (2, ""), (1, ""))),
     "P3": ("phrygian dominant", 2, ((0, ""), (1, ""), (0, ""), (6, ""))),
@@ -388,6 +396,17 @@ PALETTES: dict[str, dict[str, Any]] = {
                    keys=("stab", "brass", "pluck"), keys_style=("stabs", "arp", "pumpchords"),
                    lead=("saw", "super", "hollow"), pad=("super", "hollow", "strings"),
                    perc=("tom", "cowbell", "ride"), hats=("sixteenths", "off", "eighths"), atmos="", voicing="close"),
+    # Hard (2026-11-24). Nothing sweet in it: no maracas, chimes, tambourines or snaps, no harp, bell, glass or whistle; a bass that drives, stabs with no third
+    # ("open"), a riff low down, toms and rims and claves.
+    "hard": dict(bass=("saw", "reese", "square"), bass_style=("driving", "rolling"), keys=("stab",), keys_style=("stabs",),
+                 lead=("saw", "hollow", "super"), pad=("hollow",), perc=("tom", "rim", "clave"), hats=("off", "sixteenths"), atmos="", voicing="open", low=True),
+    "hard-broken": dict(bass=("reese", "saw"), bass_style=("synco", "rolling"), keys=("stab", "pluck"), keys_style=("stabs", "dub", "stabs"),
+                        lead=("hollow", "saw", "super"), pad=("hollow",), perc=("rim", "tom", "quijada"), hats=("sixteenths", "off"), atmos="", voicing="open", low=True),
+    "hard-slow": dict(bass=("sub", "reese"), bass_style=("dub", "long"), keys=("stab",), keys_style=("dub", "stabs"),
+                      lead=("hollow", "saw"), pad=("hollow",), perc=("rim", "clave"), hats=("sparse", "off"), atmos="", voicing="open", low=True),
+    # ...and what is left when the hard ones have gone home: an inn's, a camp's, a night's. A low tune sung, not a riff; low chords with no third; a rim and a clave.
+    "after-hours": dict(bass=("sub", "reese"), bass_style=("dub", "long"), keys=("keys",), keys_style=("broken", "stabs"),
+                        lead=("hollow", "saw"), pad=("hollow",), perc=("rim", "clave"), hats=("sparse", "off"), atmos="", voicing="open", low=True, grim=True),
     # The new kinds of place (2026-11-17, evening: "make sure all genres got the updates around new place categories"): the
     # marsh's dub bass, marimba and glass, a jawbone rattle and drips; the coast's harp and strummed strings, whistle and the
     # sea; the snow's bells and glass and wind. Each a light one and a deep one, as the others are.
@@ -436,6 +455,8 @@ class Family:
     swing: float                   # how late the off sixteenths are, as a share of one
     kit: str                       # the drum machine: 909, 808, 707 or 606
     palette: str
+    act: str = ""                  # whose instruments its first take has (club.ACTS), where it says
+    bpm: int = BPM                 # how fast it goes (`at`)
 
     @property
     def mode(self) -> str:
@@ -466,6 +487,34 @@ class Family:
         opening, theme, rise, moment, close = self.sections
         return (("open", opening), ("theme", 2 * theme), ("rise", rise), ("moment", moment), ("theme", theme), ("rise", rise),
                 ("moment", 2 * moment), ("close", close))
+
+
+# The dark families that had no take when the hard ones were written (2026-11-24): a dark palette's percussion is a light one's still (chimes in the haunted, shakers in the caves, a
+# cowbell in the infernal), and an act plays what is written for it. These have none of it. Those that were made keep theirs.
+GRIM = frozenset(("camp-07", "depths-05", "depths-06", "depths-07", "depths-08", "boss-04", "boss-05", "boss-06", "night-07", "night-08", "town-08", "town-09", "ember-11", "ember-12", "camp-11", "camp-12",
+                  "night-11", "night-12", "depths-10", "storm-08"))
+SWEET = ("chime", "maracas", "tambourine", "snap", "clap2", "cabasa", "agogo", "cowbell")
+
+
+def grim(palette: dict) -> dict:
+    """A palette with nothing sweet struck in it."""
+    struck = tuple(each for each in palette["perc"] if each not in SWEET)
+    return dict(palette, perc=struck if len(struck) > 1 else struck + tuple(each for each in ("rim", "tom", "clave") if each not in struck)[:2 - len(struck)], grim=True)
+
+
+@contextmanager
+def at(bpm: float):
+    """House at another tempo, for as long as a song of it is written or played: the writer's and the desk's beat are these (2026-11-24: every song was at 110)."""
+    from . import club
+    kept = {name: globals()[name] for name in ("BPM", "BEAT", "STEP", "BAR", "BAR_FRAMES")}
+    beat = 60.0 / bpm
+    try:
+        globals().update(BPM=int(bpm) if float(bpm).is_integer() else bpm, BEAT=beat, STEP=beat / 4.0, BAR=4.0 * beat, BAR_FRAMES=RATE * 240.0 / bpm)
+        club.BEAT = beat
+        yield
+    finally:
+        globals().update(kept)
+        club.BEAT = kept["BEAT"]
 
 
 ANY = ()
@@ -630,6 +679,60 @@ PLAN: tuple[Family, ...] = (
     Family("night-10", "Sleepless Shift", ("coast", "marsh", "regal"), "night", S01, False, 7, "N6", (16, 24, 8, 24, 8), "broken", 0.04, "606", "coast-deep"),
     Family("ember-10", "Cellar Door", ("pastoral", "regal", "highland"), "ember", S01, False, 9, "N5", (8, 16, 8, 16, 8), "half", 0.1, "808", "regal-deep"),
     Family("depths-09", "Ossuary", ("haunted", "mystic", "infernal"), "depths", S01, False, 9, "N4", E5, "broken3", 0.0, "909", "haunted-dark"),
+    # (Round two, 2026-11-23, written down then and held for the leads: where House's dark music was missing: the desert's and the mystic lands' towns, the inns of
+    # the desert, the jungle, the mystic lands, the coast and the snow, two camps, two nights, a cave for the desert and the fields, a storm for the cities. Each
+    # in an act of its own: club.ACTS.)
+    Family("town-08", "Knife Bazaar", ("desert", "jungle", "mystic"), "town", S01, False, 5, "P3", (8, 16, 8, 16, 8), "broken2", 0.08, "808", "desert-dark"),
+    Family("town-09", "Black Market", ("regal", "highland", "pastoral"), "town", S01, False, 1, "N6", (8, 16, 8, 16, 8), "four", 0.04, "909", "regal-deep"),
+    Family("ember-11", "Speakeasy", ("desert", "jungle", "infernal"), "ember", S01, False, 2, "P4", (8, 16, 8, 16, 8), "half", 0.1, "808", "desert-dark"),
+    Family("ember-12", "Low Ceiling", ("mystic", "frozen", "coast"), "ember", S01, False, 8, "N3", (8, 16, 8, 16, 8), "broken", 0.08, "606", "coast-deep"),
+    Family("camp-11", "Wet Powder", ("marsh", "coast", "jungle"), "camp", S01, False, 9, "P2", (8, 16, 8, 16, 8), "none", 0.0, "808", "marsh-dark"),
+    Family("camp-12", "Frostbite", ("frozen", "highland", "desert"), "camp", S01, False, 5, "N6", (8, 16, 8, 16, 8), "half", 0.04, "606", "frozen-deep"),
+    Family("night-11", "Blackout", ("haunted", "infernal", "marsh"), "night", S01, False, 0, "P1", (16, 24, 8, 24, 8), "four", 0.0, "909", "infernal-dark"),
+    Family("night-12", "Red Moon", ("desert", "jungle", "frozen", "highland"), "night", S01, False, 10, "P3", (16, 24, 8, 24, 8), "broken", 0.04, "808", "desert-dark"),
+    Family("depths-10", "Buried Machine", ("desert", "jungle", "pastoral", "highland"), "depths", S01, False, 11, "N3", E5, "broken3", 0.0, "909", "jungle-dark"),
+    Family("storm-08", "Voltage", ("mystic", "regal", "frozen"), "storm", S01, False, 1, "N5", (8, 24, 8, 24, 8), "broken2", 0.0, "909", "mystic-deep"),
+    # (Hard, 2026-11-24: the House in the player was counted: 76 of 193 songs in major, lydian or mixolydian, 102 light, maracas in 103, glass plucks in 74, all at 110. Faster,
+    # on one chord and its shadow, no third in the stabs, a riff low down, the drums and the bass driven, an act of the hard ones.)
+    Family("pastoral-08", "Gravel Pit", ("pastoral", "highland"), W, S01, False, 4, "H1", (16, 16, 8, 16, 8), "four", 0.1, "909", "hard", "warehouse", 126),
+    Family("highland-08", "Strip Mine", ("highland", "frozen"), W, S01, False, 7, "H2", (8, 16, 4, 24, 8), "four", 0.0, "606", "hard", "foundry", 128),
+    Family("haunted-08", "Meat Locker", ("haunted", "marsh"), W, S01, False, 1, "H4", (8, 24, 8, 24, 8), "broken2", 0.0, "808", "hard-broken", "cyborg", 122),
+    Family("desert-08", "Scrap Yard", ("desert", "infernal"), W, S01, False, 9, "H1", (8, 16, 8, 24, 8), "four", 0.0, "808", "hard", "junkyard", 127),
+    Family("jungle-08", "Chain Gang", ("jungle", "marsh"), W, S01, False, 2, "H5", (8, 24, 8, 16, 8), "broken3", 0.14, "909", "hard-broken", "signal", 124),
+    Family("infernal-07", "Blast Furnace", ("infernal",), W, S01, False, 6, "H1", (8, 16, 8, 24, 8), "four", 0.0, "909", "hard", "foundry", 130),
+    Family("regal-08", "Riot Line", ("regal", "pastoral"), W, S01, False, 11, "H2", (8, 16, 8, 24, 8), "four", 0.0, "909", "hard", "warehouse", 128),
+    Family("mystic-07", "Cold Storage", ("mystic", "frozen"), W, S01, False, 8, "H4", (16, 16, 8, 24, 16), "broken", 0.16, "808", "hard-broken", "undercroft", 123),
+    Family("coast-07", "Rail Yard", ("coast", "marsh"), W, S01, False, 3, "H3", (8, 16, 8, 16, 8), "four", 0.1, "909", "hard", "monolith", 125),
+    Family("battle-06", "Bone Saw", ANY, "battle", S2, False, 0, "H1", (4, 16, 8, 24, 8), "four", 0.0, "909", "hard", "warehouse", 132),
+    Family("storm-09", "Power Cut", ("desert", "coast", "highland", "infernal"), "storm", S01, False, 5, "H2", (8, 8, 8, 24, 8), "broken3", 0.12, "909", "hard-broken", "signal", 128),
+    Family("depths-11", "Boiler Room", ("infernal", "regal", "highland"), "depths", S01, False, 10, "H4", (8, 24, 8, 24, 8), "broken2", 0.18, "808", "hard-slow", "undercroft", 118),
+    # (The second set, the same day, "house is a little better keep iterating": the moments the first had one of or none.)
+    Family("boss-07", "Iron Lung", ANY, "boss", S2, False, 1, "H1", (4, 16, 4, 24, 4), "four", 0.0, "909", "hard", "foundry", 132),
+    Family("battle-07", "Knuckle Duster", ANY, "battle", S2, False, 10, "H2", (4, 8, 8, 24, 4), "four", 0.06, "808", "hard", "junkyard", 130),
+    Family("battleground-04", "Trench Line", ANY, "battleground", S012, False, 7, "H1", (4, 16, 8, 24, 8), "four", 0.0, "909", "hard", "monolith", 131),
+    Family("storm-10", "Dead Reckoning", ("coast", "marsh", "haunted", "frozen"), "storm", S01, False, 4, "H4", (8, 16, 8, 16, 8), "broken3", 0.1, "909", "hard-broken", "undercroft", 126),
+    Family("depths-12", "Drop Shaft", ("haunted", "frozen", "mystic", "marsh"), "depths", S01, False, 0, "H1", (16, 24, 8, 16, 8), "broken2", 0.12, "808", "hard-slow", "cyborg", 120),
+    Family("town-10", "Night Shift", ("regal", "infernal", "highland"), "town", S01, False, 9, "H5", (8, 16, 8, 16, 8), "four", 0.1, "909", "hard", "signal", 122),
+    Family("marsh-05", "Sump", ("marsh", "haunted"), W, S01, False, 2, "H4", (8, 24, 4, 24, 8), "broken", 0.16, "808", "hard-broken", "undercroft", 121),
+    Family("frozen-06", "Cold Iron", ("frozen", "highland"), W, S01, False, 8, "H2", (16, 16, 4, 24, 8), "four", 0.08, "606", "hard", "foundry", 127),
+    Family("camp-13", "Burn Barrel", ("infernal", "desert", "highland", "marsh"), "camp", S01, False, 5, "H5", (8, 16, 8, 16, 8), "half", 0.08, "808", "after-hours", "chamber", 104),
+    Family("ember-13", "Back Room", ("regal", "pastoral", "highland", "infernal"), "ember", S01, False, 3, "H2", (8, 16, 8, 16, 8), "broken", 0.12, "606", "after-hours", "velvet", 108),
+    Family("night-13", "Dead Hours", ("regal", "infernal", "haunted", "marsh"), "night", S01, False, 6, "H4", (16, 24, 8, 24, 8), "broken", 0.08, "808", "after-hours", "vesper", 106),
+    # (The third set, 17:25 the same day, where the player says House is heard the most per song: its towns, camps, inns, nights, storms and caves; and four more to walk to.)
+    Family("town-11", "Pawn Shop", ("pastoral", "coast", "marsh"), "town", S01, False, 2, "H4", (8, 16, 8, 16, 8), "broken2", 0.14, "808", "hard-broken", "undercroft", 118),
+    Family("town-12", "Dim Lamp Alley", ("haunted", "mystic", "frozen"), "town", S01, False, 10, "H3", (8, 16, 8, 16, 8), "four", 0.08, "909", "hard", "cyborg", 120),
+    Family("camp-14", "Ash Bucket", ("pastoral", "regal", "frozen"), "camp", S01, False, 1, "H3", (8, 16, 8, 16, 8), "none", 0.06, "606", "after-hours", "vesper", 98),
+    Family("camp-15", "Rust Water", ("coast", "jungle", "mystic", "haunted"), "camp", S01, False, 8, "H2", (8, 16, 8, 16, 8), "broken", 0.1, "707", "after-hours", "velvet", 102),
+    Family("ember-14", "Closing Time", ("coast", "marsh", "frozen"), "ember", S01, False, 11, "H5", (8, 16, 8, 16, 8), "half", 0.12, "808", "after-hours", "chamber", 100),
+    Family("ember-15", "Smoke Break", ("haunted", "desert", "jungle", "mystic"), "ember", S01, False, 4, "H3", (8, 16, 8, 16, 8), "broken", 0.1, "606", "after-hours", "vesper", 104),
+    Family("night-14", "Graveyard Shift", ("pastoral", "coast", "frozen"), "night", S01, False, 9, "H1", (16, 24, 8, 24, 8), "broken3", 0.1, "808", "after-hours", "chamber", 108),
+    Family("night-15", "Insomnia", ("desert", "jungle", "mystic", "highland"), "night", S01, False, 2, "H2", (16, 16, 8, 24, 16), "four", 0.06, "707", "after-hours", "velvet", 109),
+    Family("storm-11", "Short Circuit", ("pastoral", "regal", "mystic", "jungle"), "storm", S01, False, 3, "H1", (8, 8, 8, 24, 8), "four", 0.0, "909", "hard", "monolith", 132),
+    Family("depths-13", "Crawlspace", ("pastoral", "coast", "regal", "jungle", "desert"), "depths", S01, False, 6, "H4", (8, 24, 8, 16, 8), "broken", 0.14, "606", "hard-slow", "foundry", 118),
+    Family("pastoral-09", "Barbed Wire", ("pastoral",), W, S01, False, 8, "H2", (8, 16, 4, 24, 8), "four", 0.0, "808", "hard", "junkyard", 124),
+    Family("coast-08", "Dry Dock", ("coast",), W, S01, False, 5, "H5", (16, 16, 8, 16, 8), "broken2", 0.1, "909", "hard-broken", "foundry", 122),
+    Family("marsh-06", "Backwater", ("marsh", "jungle"), W, S01, False, 0, "H1", (8, 24, 8, 16, 8), "broken3", 0.16, "808", "hard-broken", "cyborg", 119),
+    Family("frozen-07", "Black Frost", ("frozen", "mystic"), W, S01, False, 11, "H3", (8, 16, 8, 24, 8), "four", 0.06, "909", "hard", "signal", 126),
 )
 TAKES = (1, 2, 3)
 NUMERALS = {1: "I", 2: "II", 3: "III", 4: "IV", 5: "V"}
@@ -676,6 +779,10 @@ RIFFS = (
     ((0, 2), (3, 2), (6, 2), (8, 2), (10, 2), (12, 4), (16, 2), (19, 2), (22, 2), (24, 2), (26, 2), (28, 4)),
     ((0, 3), (3, 3), (6, 3), (9, 3), (12, 2), (14, 2), (16, 3), (19, 3), (22, 3), (25, 7)),
 )
+# A hard song's riff (2026-11-24, Riot Line read by the sheet: its riff was the chord's notes up and down over the bar, a trance lead's on a hard band): one note
+# hammered, two bars of it, and three or four of its strokes somewhere else: the step over it, the step under it, the octave. A bar each, "x" a stroke, "-" the
+# stroke held; the second bar of the two is the first's, or another's.
+HAMMERS = ("x..x..x...x.x...", "x.xx..x.x.xx..x.", "x---x.xxx---x.x.", "xx.x.xx.x.x.xx..", "x.x.x.x.x.x.xxxx", "..x...x...x.x.xx", "x..xx..xx..xx.x.", "x-.x-.x-.x-.x.xx", "x.......x..x..x.")
 FLOWS = (
     ((0, 2), (2, 2), (4, 2), (6, 2), (8, 4), (12, 2), (14, 2), (16, 2), (18, 2), (20, 2), (22, 2), (24, 6)),
     ((0, 1), (1, 1), (2, 2), (4, 2), (6, 2), (8, 6), (16, 1), (17, 1), (18, 2), (20, 2), (22, 2), (24, 6)),
@@ -783,7 +890,7 @@ class Tune:
     climb a third higher. Notes on the strong beats and the long notes are notes of the chord
     under them; the notes between move by step."""
 
-    def __init__(self, changes: Changes, rng: random.Random, home: int = 67, riff: bool = False):
+    def __init__(self, changes: Changes, rng: random.Random, home: int = 67, riff: bool = False, hammer: bool = False):
         # (The middle of the tune at G4, not D5 as it was: 2026-11-17, morning, "your house needs some work". Against
         # the liked house stems the leads had nothing under 320 Hz and 6 to 19 dB too much from 900 Hz to 3.5 kHz, where
         # the liked leads have their weight at 200 to 450 Hz: a house hook sits in the warm middle, not over the band.)
@@ -793,6 +900,9 @@ class Tune:
         self.low, self.high = self.centre - 6, self.centre + 7
         # A riff (RIFFS) or a singing hook (HOOKS): the riff is a house lead's, every note on the chord.
         self.riff = riff
+        if hammer:
+            self._hammered()
+            return
         hook = rng.choice(RIFFS if riff else HOOKS)
         other = rng.choice(FLOWS + LONGS)
         shape = rng.choice(("arch", "rising", "valley", "wave", "arch"))
@@ -873,6 +983,36 @@ class Tune:
             degree = tones[min(base + cell[index % size], len(tones) - 1)]
             out.append(Tone(at, length, degree, 0.85 if index % size == 0 else 0.68))
         return out
+
+    def _hammered(self) -> None:
+        """A hard song's tune (HAMMERS): one note hammered for two bars and turned at their end, said again; another rhythm of it a third or a fourth up for two bars;
+        the first again with its last half bar left out, for the breath. Its second eight bars put the octave where the first had the step."""
+        rng = self.rng
+        shapes = rng.sample(HAMMERS, 3)
+        moves = rng.choice(((1, -1, 7), (1, 7, 1), (-1, 2, 1), (7, 1, -1), (2, 1, -2), (-2, -1, 1)))       # where its few strokes go, by turns
+        away = sorted(rng.sample(range(1, 8), 3))                                                         # and which of the phrase's strokes those are, of eight
+
+        def said(bars: tuple[str, str], bar: int, up: int, moved: tuple[int, ...]) -> list[Tone]:
+            strokes = [(16 * half + at, 1 + len(text[at + 1:]) - len(text[at + 1:].lstrip("-"))) for half, text in enumerate(bars) for at in range(16) if text[at] == "x"]
+            count, out = len(strokes), []
+            for index, (at, length) in enumerate(strokes):
+                root = self._chord(bar, at)[0]
+                root = self.centre + (root - 7 if root > 3 else root) - self.centre % 7 + up
+                place = index * 8 // count
+                turn = moved[away.index(place) % len(moved)] if place in away and (index == 0 or place != (index - 1) * 8 // count) else 0
+                degree = min(max(root + turn, self.low - 3), self.high + 3)
+                out.append(Tone(at, min(length, 4) if length > 1 else 1, degree, 0.95 if turn else 0.85 if at % 16 == 0 else 0.68))
+            return out
+        lift = rng.choice((2, 3))
+        a, turned = said((shapes[0], shapes[0]), 0, 0, moves), said((shapes[0], shapes[1]), 2, 0, moves[::-1])
+        b = said((shapes[2], shapes[2]), 4, lift, moves)
+        a3 = [note for note in said((shapes[0], shapes[0]), 6, 0, moves) if note.at < 24]
+        octave = tuple(7 if each == 1 else each for each in moves)
+        self.idea = a
+        self.first = a + self._moved(turned, 32) + self._moved(b, 64) + self._moved(a3, 96)
+        self.second = (self._moved(said((shapes[0], shapes[0]), 8, 0, octave), 128) + self._moved(said((shapes[0], shapes[1]), 10, 0, octave[::-1]), 160)
+                       + self._moved(said((shapes[2], shapes[1]), 12, lift, octave), 192) + self._moved([note for note in said((shapes[0], shapes[0]), 14, 0, octave) if note.at < 24], 224))
+        self.notes = self.first + self.second
 
     def _answer(self, notes: list[Tone], bar: int, lift: int | None = None) -> list[Tone]:
         """The same idea over other chords: moved up or down as a whole to where it fits them
@@ -963,6 +1103,23 @@ PERCUSSION = {
     "ride": ((0, "ride", 0.4), (4, "ride", 0.55), (8, "ride", 0.4), (12, "ride", 0.55)),
 }
 EVERY = {"quijada": 4, "chime": 8, "tom": 2, "timbale": 2}          # figures that come only every so many bars
+# A hard song's toms, in the second half of its drops: two bars, the second an answer, under everything (2026-11-24, "house is a little better keep iterating": what was left of a festival
+# in the hard songs was taken out one by one: the snare's roll into every drop, the note that climbs two octaves, the sweep's glare, the straightness).
+HARD_TOMS = (((3, "tom_low", 0.8), (6, "tom_low", 0.5), (11, "tom_mid", 0.7), (14, "tom_low", 0.6)),
+             ((2, "tom_low", 0.5), (3, "tom_low", 0.8), (6, "tom_mid", 0.6), (10, "tom_low", 0.6), (13, "tom_mid", 0.7), (14, "tom_low", 0.5)))
+# How a hard song is arranged (2026-11-24, the five that were made read block by block: the stabs the same bar from the first to the last, the whole tune given away in the rise
+# before its drop could bring it, the chords' roll and the bass's eighths opening into the drop as a festival's do, the groove whole from the theme's first bar, now and then a third
+# over the riff). The layers of a drop, eight bars at a time: L the riff; C the riff's first two bars of every four and no more; U the second synth on it, an octave under; H the
+# second synth an octave over; S the stabs; A the stabs in the two bars of four the riff leaves; s the stabs to their other figure; B the bass to its other figure; T the toms. With no
+# riff in a block its hats are sparse: the floor. `rise`: "hammer", the riff's one note hammered and opening; "machine", the bass going on under a closed filter; "stab", one chord
+# struck in threes. `stabs` and `bass`: how many bars of the first theme they wait.
+HARD_SCENES: dict[str, dict] = {
+    "stacked": dict(first=("L", "LS", "LSU"), last=("LS", "LSU", "sBT", "LS", "LSH", "LsHT"), rise="hammer", stabs=8, bass=0),
+    "held": dict(first=("S", "LS", "LST"), last=("LS", "LST", "sB", "LB", "LSH", "LsHT"), rise="machine", stabs=16, bass=4),
+    "answered": dict(first=("CA", "CAT", "LS"), last=("CA", "CAU", "sBT", "LS", "CAH", "LSHT"), rise="stab", stabs=0, bass=8),
+    "lone": dict(first=("L", "LU", "LS"), last=("L", "LUT", "BT", "LSB", "LH", "LsHT"), rise="machine", stabs=24, bass=0),
+}
+THREES = ((0, 2.0), (3, 2.0), (6, 2.0), (9, 2.0), (12, 2.0), (14, 1.5))
 # Bass figures for one bar: (sixteenth, how long, which note of the chord).
 BASSES = {
     "offbeat": ((2, 1.6, "R"), (6, 1.6, "R"), (10, 1.6, "R"), (14, 1.6, "R")),
@@ -1026,7 +1183,7 @@ class Take:
     def __init__(self, fam: Family, take: int, bars: tuple[int, int, int, int, int] | None = None):
         self.family, self.take = fam, take
         self.changes = Changes(fam)
-        self.palette = PALETTES[fam.palette]
+        self.palette = grim(PALETTES[fam.palette]) if fam.name in GRIM else PALETTES[fam.palette]
         self.seed = fam.seed * 7 + take
         # The story in two waves (Family.story); a track staged before that, read back with its own lengths, in one.
         if bars is None:
@@ -1051,7 +1208,13 @@ class Take:
         self.kick = KICKS[fam.groove]
         self.arc = ARCS[ARC_OF[fam.role]]
         # Walking music, the moments and the fights have a riff for a hook two takes in three; the calm moments sing.
-        self.tune = Tune(self.changes, self.rng("tune"), riff=fam.role not in CALM_ROLES and self.pick("riff", (True, True, False)))
+        low = bool(self.palette.get("low"))              # (a hard song's tune is always a riff, hammered, an octave under the others'; a calm one's is sung, as low)
+        self.tune = Tune(self.changes, self.rng("tune"), home=55 if low else 67, riff=(low and fam.role not in CALM_ROLES) or (fam.role not in CALM_ROLES and self.pick("riff", (True, True, False))),
+                         hammer=low and fam.role not in CALM_ROLES)
+        # A hard song's arrangement (HARD_SCENES); a fight's and a storm's riff is there from its drop's first bar.
+        self.scene: dict | None = None
+        if low and fam.role not in CALM_ROLES:
+            self.scene = HARD_SCENES[self.pick("scene", tuple(each for each in HARD_SCENES if each != "held" or not (fam.hard or fam.role == "storm")))]
 
     # --- what a take is made of ----------------------------------------------------------------
     def rng(self, what: str) -> random.Random:
@@ -1074,6 +1237,14 @@ class Take:
         if story == "rise":
             return first + (last - first) * along ** 1.8      # it holds back, then goes
         return first + (last - first) * along
+
+    def layers(self, inside: int, count: int, first: int) -> str:
+        """What plays in a bar of a hard song's drop (HARD_SCENES): a drop of fewer blocks than the scene has goes through it faster, and ends where it ends."""
+        drops = [at for story, at, _ in self.sections if story == "moment"]
+        wanted = self.scene["last" if len(drops) > 1 and first == drops[-1] else "first"]
+        blocks = max((count + 7) // 8, 1)
+        at = min(inside // 8, blocks - 1)
+        return wanted[at if blocks == len(wanted) else round(at * (len(wanted) - 1) / max(blocks - 1, 1))]
 
     def blank(self) -> np.ndarray:
         return np.zeros((self.frames, 2), dtype=np.float32)
@@ -1125,7 +1296,7 @@ class Take:
         kick = "punch" if fam.hard else self.pick("kick", ("kick", "kick2", "kick"))
         kick_speed = 0.96 + 0.08 * ((fam.seed % 100) / 100.0)
         backbeat = self.pick("backbeat", (("clap",), ("clap", "snare"), ("snare2",)) if fam.groove != "half" and fam.role not in ("ember", "camp")
-                             else (("snap",), ("rim",), ("clap",)))
+                             else (("rim",), ("clap",)) if self.palette.get("grim") else (("snap",), ("rim",), ("clap",)))
         back_steps = (8,) if fam.groove in ("half", "none") else (4, 12)
         hat_figure = self.pick("hats", self.palette["hats"])
         hats = HATS[hat_figure]
@@ -1136,7 +1307,7 @@ class Take:
         grows = FIGHT_DRUMS_GROW and fam.hard               # a fight's drums: the hats with the theme, the percussion after
         perc_in = self.pick("perc-in", (8, 4, 0)) if not fam.hard else 8 if grows else 0
         fill = self.pick("fill", ("snare", "toms", "lift"))
-        roll = self.pick("roll", ("snare", "clap", "crack")) if fam.role not in CALM_ROLES else self.pick("roll", ("maracas", "rim", "hat"))
+        roll = self.pick("roll", ("snare", "clap", "crack")) if fam.role not in CALM_ROLES else self.pick("roll", ("rim", "hat") if self.palette.get("grim") else ("maracas", "rim", "hat"))
         roll_level = 1.0 if fam.role not in CALM_ROLES else 0.45       # an inn has no drum roll: a shaker stirs
         pause = self.pick("pause", (True, False, True))
         sneak = self.pick("sneak", (True, True, False))
@@ -1199,6 +1370,8 @@ class Take:
                     turned = HAT_TURNS.get(hat_figure, hat_figure) if (inside // 16 + shift) % 2 == 1 else hat_figure
                     if story == "close":
                         turned = "sparse" if hat_figure != "sparse" else "off"
+                    if self.scene and story == "moment" and not set("LC") & set(self.layers(inside, count, first)):
+                        turned = "sparse"                        # the floor: the kick, the bass and the toms, and hardly a hat
                     for sound, steps in (HATS[turned] if not (grows and story == "open") else {}).items():
                         if sound == "open" and story == "theme" and inside < 8 and len(HATS[turned]) > 1:
                             continue
@@ -1226,15 +1399,19 @@ class Take:
                     else:
                         begins = 0 if grows and story == "close" else perc_in
                         first_on, second_on = inside >= begins and not (odd and story == "theme"), story == "theme" and odd
+                    floor = self.scene and story == "moment" and not set("LC") & set(self.layers(inside, count, first))
                     if LONG_DROP_GROWS and story == "moment" and count >= 32 and inside >= 16 and not out_bar and "ride" not in kinds \
-                            and fam.role not in CALM_ROLES:
-                        # A long drop from its second block: the ride on the beat (LONG_DROP_GROWS).
+                            and fam.role not in CALM_ROLES and not floor:
+                        # A long drop from its second block: the ride on the beat (LONG_DROP_GROWS). (Not on a hard song's floor: it rang straight through it, and the meter heard the drums the same 23 bars.)
                         for step in (0, 4, 8, 12):
                             hit(wet, "ride", bar, step, 0.2 if step % 8 == 0 else 0.16, 0.3)
                     if first_on and not out_bar:
                         figure(first_perc, bar, 0.34 * (0.6 + 0.4 * energy), -0.35)
                     if second_on and not out_bar:
                         figure(second_perc, bar, 0.32 * (0.6 + 0.4 * energy), 0.4)
+                    if self.scene and story == "moment" and "T" in self.layers(inside, count, first) and not out_bar and not filling:
+                        for step, sound, loud in HARD_TOMS[inside % 2]:
+                            hit(wet, sound, bar, step, 0.42 * loud, {"tom_mid": -0.25, "tom_low": 0.2}[sound])
                     if filling:
                         if this_fill == "snare":
                             for index, step in enumerate((12, 13, 14, 15)):
@@ -1269,12 +1446,18 @@ class Take:
                 elif story == "open" and sneak and inside >= count // 2:
                     # Before the groove: a shaker or the hats, far off, coming closer.
                     near = (inside - count // 2) / max(count - count // 2, 1)
-                    for step, sound, loud in PERCUSSION[first_perc if first_perc in ("maracas", "cabasa", "tambourine", "rim", "snap") else "maracas"]:
+                    for step, sound, loud in PERCUSSION[first_perc if first_perc in ("maracas", "cabasa", "tambourine", "rim", "snap")
+                                                        else "rim" if self.palette.get("low") or self.palette.get("grim") else "maracas"]:
                         hit(wet, sound, bar, step, 0.12 + 0.16 * near * loud, -0.3)
                 elif story == "close" and inside >= count - 2 and self.kick:
                     hit(wet, "hat", bar, 2, 0.12, 0.18)
                     hit(wet, "hat", bar, 10, 0.1, 0.18)
-                if story == "rise" and inside >= count - build:
+                if story == "rise" and self.palette.get("low") and fam.role not in CALM_ROLES:
+                    # A hard song's rise has no roll: the floor tom on the beat, coming nearer, and half a bar of nothing before the drop.
+                    for step in (0, 4, 8, 12):
+                        if not (last and step >= 8):
+                            hit(wet, "tom_low", bar, step, 0.16 + 0.34 * inside / max(count - 1, 1), 0.0, 0.94)
+                elif story == "rise" and inside >= count - build:
                     # The roll: slow, then twice as fast, then twice as fast again, climbing.
                     turn = inside - (count - build)
                     for step8 in range(32):
@@ -1300,10 +1483,12 @@ class Take:
     # --- bass --------------------------------------------------------------------------------
     def bass_note(self, chord: tuple[int, str], which: str, after: tuple[int, str] | None = None) -> int:
         """A note of a chord for the bass, low: its root, fifth, octave, or a step up to the next root."""
+        floor = 28 if self.palette.get("low") else 31            # (a hard song's roots from E1: an F sharp's root stood at 92 Hz, over where a kick's weight is)
+
         def low(pitch: int) -> int:
-            while pitch < 31:
+            while pitch < floor:
                 pitch += 12
-            while pitch >= 43:
+            while pitch >= floor + 12:
                 pitch -= 12
             return pitch
         root = low(self.changes.pitch(chord[0], 2))
@@ -1327,6 +1512,9 @@ class Take:
         loud = trim(sound, 40)
         early = self.pick("bass-open", (False, True, False))
         builds = self.pick("bass-build", (True, False, True))
+        scene = self.scene
+        other = BASSES[next((each for each in self.palette["bass_style"] if each != style), style)]
+        one = next((at for story, at, _ in self.sections if story == "theme"), None)           # where the first theme begins
         for story, first, count in self.sections:
             build = self.build_bars(count)
             for inside in range(count):
@@ -1335,10 +1523,27 @@ class Take:
                 bright = 0.4 + 0.6 * energy
                 if self.dropped_out(story, inside, count):
                     continue                                   # the drop-out: the bass out for the bar
+                if scene and story == "theme" and first == one and inside < scene["bass"] and not fam.hard:
+                    continue                                   # a hard song's kick and hats alone first
+                if scene and story == "rise":
+                    # A hard song's rise: the bass going on under a closed filter that opens, or one long note to a bar, far down; nothing in its last half bar.
+                    along, ends = inside / count, inside == count - 1
+                    if scene["rise"] == "machine":
+                        for step, length, which in figure:
+                            if not (ends and step >= 8):
+                                synth.play(out, sound, self.at(bar, step), length * STEP * 0.92, self.bass_note(chord, "R" if which == "O" else which, after),
+                                           loud * (0.24 + 0.2 * along) * (0.85 + rng.random() * 0.15), seed=self.seed + bar * 16 + int(step), bright=0.15 + 0.7 * along ** 1.5)
+                    else:
+                        held = sound if not isinstance(sound, Patch) or sound.sustain > 0.5 else BASS["sub"]
+                        synth.play(out, held, self.at(bar, 0), (7 if ends else 15) * STEP, self.bass_note(chord, "R"), trim(held, 40) * 0.16 * (0.5 + energy),
+                                   seed=self.seed + bar, bright=0.35)
+                    continue
                 if (story in ("theme", "moment") and not self.broken(story, first)) or (fam.hard and story in ("open", "close")) \
                         or (story == "close" and self.kick_plays(story, inside, count, first)):
                     notes = figure
-                    if story == "theme" and inside < 4 and style in ("rolling", "synco", "tresillo"):
+                    if scene and story == "moment" and "B" in self.layers(inside, count, first):
+                        notes = other                          # (HARD_SCENES)
+                    elif story == "theme" and inside < 4 and style in ("rolling", "synco", "tresillo"):
                         notes = BASSES["offbeat"]              # it starts plainly and fills in
                     elif (THEME_BASS_TURNS and story == "theme" and count >= 32 and inside >= count // 2 and style not in ("long", "dub")
                           and fam.role not in CALM_ROLES):
@@ -1377,16 +1582,19 @@ class Take:
         stabs = STABS[rng.randrange(len(STABS))]
         arp = ARPS[rng.randrange(len(ARPS))]
         through_rise = self.pick("keys-rise", (True, False, True))
+        scene = self.scene
+        second = self.rng("stabs-second").choice([each for each in STABS if each is not stabs])
+        one = next((at for story, at, _ in self.sections if story == "theme"), None)           # where the first theme begins
         voiced: list[int] | None = None
-        spread = self.palette["voicing"]
+        spread, low = self.palette["voicing"], bool(self.palette.get("low"))      # (a hard song's chords are an octave under the others')
         for story, first, count in self.sections:
             build = self.build_bars(count)
             for inside in range(count):
                 bar, energy = first + inside, self.energy(story, inside / count, first)
                 chord = self.changes.chord(inside)
-                voiced = self.changes.voicing(chord, 55, 76, voiced, spread)
+                voiced = self.changes.voicing(chord, 43 if low else 55, 64 if low else 76, voiced, spread)
                 notes = list(voiced)
-                if story == "moment":
+                if story == "moment" and not low:
                     notes = notes + [notes[-1] + 12 if notes[-1] + 12 <= 84 else notes[0] + 12]       # fuller at the drop
                 # (2026-11-18: a theme half an octave to an octave darker than the drop, opening across it, as the records
                 # studied do: "the theme is darker than the drop".)
@@ -1404,19 +1612,30 @@ class Take:
                     continue
                 if self.dropped_out(story, inside, count):
                     continue                                   # the drop-out: the last chord rings on in the echo and the hall
+                struck = stabs
+                if scene:
+                    # A hard song's stabs come and go (HARD_SCENES): they wait in the first theme, leave the rise unless it is theirs, and have a second figure, the breakdown's too.
+                    now = self.layers(inside, count, first) if story == "moment" else ""
+                    if (story == "theme" and first == one and inside < scene["stabs"]) or (story == "rise" and scene["rise"] != "stab") \
+                            or (story == "moment" and (not set("SsA") & set(now) or ("A" in now and inside % 4 < 2))):
+                        continue
+                    if "s" in now or self.broken(story, first):
+                        struck = second
+                    elif story == "rise":
+                        struck = tuple(each for each in THREES if inside < count - 1 or each[0] < 8)
                 thin = (story == "open" and inside < count // 2) or (story == "close" and inside >= count // 2)
                 # The chords' roll into the drop: in the last two bars of a rise, eighths and then sixteenths. A calm piece
                 # has no roll into its moment (2026-11-18, Cold Stars I, a night piece: a bell's sixteenths had rung into
                 # each other 6 dB over its own drop).
-                building = story == "rise" and inside >= count - 2 and fam.role not in CALM_ROLES
-                if style == "dub":
+                building = story == "rise" and inside >= count - 2 and fam.role not in CALM_ROLES and not scene
+                if style == "dub" and not (scene and story == "rise"):
                     # One chord thrown into the echo, and left to ring.
                     if inside % 2 == 0 or story == "moment":
                         for index, pitch in enumerate(notes):
                             synth.play(out, sound, self.at(bar, 3 if inside % 4 else 6), 1.4 * STEP, pitch, level * 1.3,
                                        pan=(index - 1.5) * 0.25, seed=self.seed + bar + index, bright=bright)
-                elif style in ("stabs", "strum") or (building and style != "arp"):
-                    places = tuple((step, 0.9) for step in range(0, 16, 1 if inside == count - 1 else 2)) if building else stabs
+                elif style in ("stabs", "strum") or (building and style != "arp") or (scene and story == "rise"):
+                    places = tuple((step, 0.9) for step in range(0, 16, 1 if inside == count - 1 else 2)) if building else struck
                     for number, (step, length) in enumerate(places):
                         if thin and number % 2:
                             continue
@@ -1512,7 +1731,7 @@ class Take:
             elif story == "theme":
                 # The hook, stated and left; then answered.
                 half = count // 2 if not fam.hard else 0
-                if THEME_SINGS and not fam.hard and fam.role not in CALM_ROLES:
+                if THEME_SINGS and not fam.hard and fam.role not in CALM_ROLES and not self.scene:
                     # The first half sings too, softly under the groove: the tune's opening phrases in their order, one
                     # every four bars from the fifth, so that the theme is a tune and not a groove waiting for one.
                     for index, inside in enumerate(range(4, half - 1, 4)):
@@ -1520,6 +1739,14 @@ class Take:
                 for index, inside in enumerate(range(half, count - 1, 4)):
                     say(cut(tune.notes, 32 * (index % 2), 32 * (index % 2) + 32) if index < 2 else cut(tune.notes, 96, 128),
                         first + inside, soft if not fam.hard else main, 0.42, 0.6)
+            elif story == "rise" and self.scene:
+                # A hard song's does not give its riff away: its one note hammered, opening up, or nothing of it (HARD_SCENES).
+                if self.scene["rise"] == "hammer":
+                    struck = [note.degree for note in tune.idea]
+                    most = max(sorted(set(struck)), key=struck.count)
+                    for inside in range(0, count, 2):
+                        say([Tone(note.at, note.length, most, note.loud) for note in tune.idea if inside + 2 < count or note.at < 24], first + inside, main,
+                            0.3 + 0.25 * inside / count, 0.15 + 0.75 * inside / count)
             elif story == "rise":
                 # The whole tune, alone; then again, opening up, to the edge of the drop.
                 for inside in range(0, count - 1, 8):
@@ -1540,6 +1767,16 @@ class Take:
                     if self.dropped_out(story, inside + 7, count):
                         # The phrase's last bar is the drop-out: what is begun before it ends as it begins.
                         notes = [Tone(note.at, min(note.length, 112 - note.at), note.degree, note.loud) for note in notes if note.at < 112]
+                    if self.scene:
+                        # A hard song's, by its layers (HARD_SCENES): the second synth, never the riff's own, says it an octave under or over.
+                        now = self.layers(inside, count, first)
+                        if "C" in now:
+                            notes = [note for note in notes if note.at % 64 < 32]
+                        if set("LC") & set(now):
+                            say(notes, first + inside, main, 0.62, 1.0)
+                        if late is not None and set("UH") & set(now):
+                            say(notes, first + inside, late, 0.3, 0.95, shift=-7 if "U" in now else 7)
+                        continue
                     if not answering:
                         say(notes, first + inside, main, 0.62, 1.0)
                     if late is not None and inside >= count // 2:
@@ -1608,8 +1845,9 @@ class Take:
             if story == "rise":
                 build = (8 if count >= 16 else 4) * BAR
                 end = self.at(first + count, 0)
-                out.append(Air("sweep", end - build, build, 1.1 * gentle, 250.0, 9000.0, True, seed=self.seed + 1))
-                if tonal:
+                # (A hard song's air is darker, and nothing in it climbs.)
+                out.append(Air("sweep", end - build, build, 1.1 * gentle, 250.0, 3600.0 if self.palette.get("low") else 9000.0, True, seed=self.seed + 1))
+                if tonal and not self.palette.get("low"):
                     out.append(Air("climb", end - build, build, 0.16 * gentle, 600.0, 5600.0, True, pitch=self.changes.pitch(0, 4)))
             if story == "moment":
                 out.append(Air("thud", start, 2.5, 0.5 * gentle))

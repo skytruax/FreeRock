@@ -116,6 +116,142 @@ def test_houses_own_patches_are_written_as_designed():
     assert pad["a_env1_attack"] >= patches.seconds(0.5) and pad["a_env1_release"] >= patches.seconds(1.5)
 
 
+def test_every_act_is_played_by_something_the_desk_knows_and_none_by_an_organ():
+    # (2026-11-24: "house still needs to work on that main synth lead sound", "and also should use differrent bands".)
+    from freerock.studio import club, muse, patches, sounds
+    assert len(club.ACTS) >= 10
+    for name, act in club.ACTS.items():
+        for instrument in (act.big, act.late, act.soft, *act.keys, *act.bass, *act.pad):
+            assert instrument in sounds.SOUNDS or instrument in muse.PARTS, (name, instrument)
+            assert "organ" not in instrument, "no organs in House"
+        assert act.machine in ("909", "808", "707", "606") and act.big != act.late, name
+    bigs = [act.big for act in club.ACTS.values()]
+    assert len(set(bigs)) == len(bigs), "no two acts have one lead"
+    # Each lead of House's own is one of the designs, or some of them laid together with the first in front.
+    for name, layers in sounds.HOUSE_LEADS.items():
+        assert layers[0][1] == 0.0 and all("house lead " + design in patches.DESIGNS for design, _ in layers), name
+        assert all(db < 0.0 for _, db in layers[1:]) and len(sounds.SOUNDS[name].players) == len(layers)
+    assert all(act in club.ACTS for acts in club.ACTS_FOR.values() for act in acts) and set(club.ACTS) == {act for acts in club.ACTS_FOR.values() for act in acts}
+
+
+def test_an_act_plays_a_song_of_its_own_and_the_first_takes_stay():
+    from freerock.studio import club, sounds
+    plain = house.family("pastoral-01")
+    assert club.act_of(plain, 1) == "" and {club.act_of(plain, take) for take in (2, 3)} <= set(club.ACTS)
+    assert club.act_of(house.family("boss-04"), 1) in club.ACTS_FOR["fight"] and club.act_of(house.family("night-05"), 1) in club.ACTS_FOR["calm"]
+    given = [club.act_of(house.family(name), 1) for name in sorted(club.ACTS_ALSO)]
+    assert len(set(given)) >= 9 and max(given.count(each) for each in set(given)) <= 5, given
+    # The sheet says what plays it, and is played as it says.
+    sheet = club.write("boss-04", 1)
+    act = club.ACTS[sheet.about["sounds"]]
+    leads = {part.instrument for part in sheet.parts["lead"].values()}
+    assert leads <= {act.big, act.late, act.soft} and act.big in leads
+    assert sheet.about["machine"] == act.machine and all(part.instrument == "house kit " + act.machine for part in sheet.parts["drums"].values())
+    heard = club.heard_from(sheet)
+    assert {heard.played[key] for key in heard.notes if key[0] == "lead"} == leads
+    assert {written for channel, _, _, written, *_ in club.voices(heard) if channel == "lead"} == leads
+    was = club.write("pastoral-01", 1)
+    assert was.about["sounds"] == "" and all(part.instrument == club.PLAYED[tuple(name.split(" ", 1))] for channel, parts in was.parts.items()
+                                             if channel != "drums" for name, part in parts.items())
+
+
+def test_a_hard_song_has_nothing_sweet_in_it_and_goes_at_its_own_pace():
+    # (2026-11-24: of the 193 House songs in the player 102 light, 76 in major keys, maracas in 103.)
+    from freerock.studio import club
+    hard = [fam for fam in house.PLAN if fam.palette.startswith("hard")]
+    assert len(hard) >= 10 and len({fam.bpm for fam in hard}) >= 6 and all(118 <= fam.bpm <= 132 for fam in hard)
+    assert all(fam.loop.startswith("H") and not fam.light and club.ACTS[fam.act].drive for fam in hard)
+    late = [fam for fam in house.PLAN if fam.palette == "after-hours"]
+    assert late and all(fam.role in house.CALM_ROLES and fam.loop.startswith("H") and fam.bpm <= 110 and fam.act in club.ACTS_FOR["calm"] for fam in late)
+    assert all(fam.bpm == 110 and not fam.act for fam in house.PLAN if fam not in hard and fam not in late)
+    for fam in late:
+        sheet = club.write(fam.name, 1)
+        assert sheet.about["sounds"] == fam.act and sheet.tempo == fam.bpm and not house.Take(fam, 1).tune.riff
+        assert not set(sheet.parts["drums"]) & {"maracas", "snap", "chime", "tambourine", "cabasa"}, (fam.name, set(sheet.parts["drums"]))
+        sung = [note.pitch for part in sheet.parts["lead"].values() for note in part.notes]
+        assert sung and sum(sung) / len(sung) < 66, (fam.name, sum(sung) / len(sung))
+        assert club.act_of(fam, 2) != fam.act and club.act_of(fam, 2) in club.ACTS_FOR["calm"]
+    before = (house.BPM, house.BEAT, house.STEP, house.BAR, house.BAR_FRAMES, club.BEAT)
+    for fam in hard[::4]:
+        sheet = club.write(fam.name, 1)
+        assert sheet.tempo == fam.bpm and sheet.about["sounds"] == fam.act and abs(sheet.about["meta"]["bar_frames"] - house.RATE * 240.0 / fam.bpm) < 1e-6
+        assert (house.BPM, house.BEAT, house.STEP, house.BAR, house.BAR_FRAMES, club.BEAT) == before         # the pace is the song's, and no other's
+        assert not set(sheet.parts["drums"]) & {"maracas", "tambourine", "chime", "snap", "clap2", "agogo", "cabasa"}, set(sheet.parts["drums"])
+        played = {part.instrument for channel, parts in sheet.parts.items() if channel != "drums" for part in parts.values()}
+        assert not played & {"harp", "marimba", "guitar", "house bell", "house glass", "house piano", "house lead sine", "strings slow", "wurly", "electric piano"}, (fam.name, played)
+        big = [note.pitch for part in sheet.parts["lead"].values() if part.instrument == club.ACTS[fam.act].big for note in part.notes]
+        assert big and sum(big) / len(big) < 64, (fam.name, sum(big) / len(big))
+        # Every note is inside the song, and on its sixteenths at its own pace.
+        last = max(note.start for parts in sheet.parts.values() for part in parts.values() for note in part.notes)
+        assert last < sheet.bars * 4.0 + 1.0
+        kick = next(part for name, part in sheet.parts["drums"].items() if name in club.KICKS)
+        assert len(kick.notes) > 200 and all(abs(note.start * 4 - round(note.start * 4)) < 0.05 + fam.swing for note in kick.notes)
+        # No roll into its drops, and nothing that climbs: the floor tom coming nearer and half a bar of nothing.
+        for section, after in zip(sheet.form, sheet.form[1:]):
+            if section["story"] == "rise" and after["story"] == "moment":
+                a, b = section["first"] * 4.0, after["first"] * 4.0
+                rolled = [note for name in ("snare", "clap", "crack") if name in sheet.parts["drums"] for note in sheet.parts["drums"][name].notes if a - 0.05 <= note.start < b - 0.05]
+                beats = [note for note in sheet.parts["drums"]["tom_low"].notes if a - 0.05 <= note.start < b - 0.05]
+                assert not rolled and len(beats) == section["bars"] * 4 - 2 and beats[-1].loud > beats[0].loud, (fam.name, len(rolled), len(beats))
+        assert not any(air["kind"] == "climb" for air in sheet.airs)
+        # A riff hammered on one note: more of it on one pitch than on all the others.
+        phrase = house.Take(fam, 1).tune
+        assert phrase.riff and all(note.at == int(note.at) and note.length >= 1 for note in phrase.notes)
+        counted = [sum(note.degree == each for note in phrase.idea) for each in {note.degree for note in phrase.idea}]
+        assert max(counted) * 2 > sum(counted) and len(counted) >= 3, (fam.name, counted)
+        # Its chords stand low, a root and its fifth.
+        stabs = [note.pitch for part in sheet.parts["rhythm"].values() for note in part.notes]
+        assert stabs and max(stabs) <= 79 and sum(stabs) / len(stabs) < 62, (fam.name, max(stabs), sum(stabs) / len(stabs))
+
+
+def test_a_dark_song_of_tonight_has_nothing_sweet_struck_in_it():
+    """(A dark palette's percussion was a light one's: chimes in the haunted, shakers in the caves.)"""
+    from freerock.studio import club
+    names = {fam.name: fam for fam in house.PLAN}
+    assert house.GRIM <= set(names) and all(not names[name].light and club.act_of(names[name], 1) for name in house.GRIM)
+    for name, palette in house.PALETTES.items():
+        made = house.grim(palette)
+        assert len(made["perc"]) >= 2 and not set(made["perc"]) & set(house.SWEET) and set(made["perc"]) <= set(house.PERCUSSION)
+        assert palette.get("grim") is None or name == "after-hours"
+    for name in sorted(house.GRIM)[::4]:
+        sheet = club.write(name, 1)
+        assert not set(sheet.parts["drums"]) & {"chime", "maracas", "tambourine", "snap", "cabasa", "cowbell", "agogo_high", "agogo_low"}, (name, set(sheet.parts["drums"]))
+        played = {part.instrument for channel in ("lead", "rhythm", "texture") for part in sheet.parts[channel].values()}
+        assert not played & {"house bell", "house glass", "harp", "marimba", "house lead sine", "kalimba"}, (name, played)
+
+
+def test_a_hard_acts_themes_are_held_under_its_drops():
+    from freerock.studio import club
+    sections = [("open", 0, 4), ("theme", 4, 8), ("rise", 12, 4), ("moment", 16, 8), ("close", 24, 4)]
+    frames = int(28 * house.BAR_FRAMES)
+    at = lambda curve, bar: float(curve[int(bar * house.BAR_FRAMES)])                             # noqa: E731
+    curve = club.held_back(sections, "lead", frames)
+    assert len(curve) == frames and abs(at(curve, 8) - 10 ** (club.HELD_BACK["lead"] / 20.0)) < 1e-3
+    assert all(abs(at(curve, bar) - 1.0) < 1e-3 for bar in (1, 14, 17, 22, 26)) and np.all(np.diff(curve[int(10 * house.BAR_FRAMES):int(14 * house.BAR_FRAMES)]) >= -1e-6)
+    assert np.allclose(club.held_back(sections, "texture", frames), 1.0)
+    assert np.allclose(club.held_back(sections, "lead", frames, np.full(frames, 0.5, dtype=np.float32)), 0.5 * curve)
+    # (Any other song that is not calm has them held too, less.)
+    softer = club.held_back(sections, "lead", frames, held=club.HELD_BACK_SOFTER)
+    assert at(curve, 8) < at(softer, 8) < 1.0 and at(softer, 17) > 0.999
+
+
+def test_a_lead_of_houses_own_is_played_with_accents_and_opens_over_the_drop():
+    from freerock.studio import club
+    from freerock.studio.score import Note
+    form = [{"story": "theme", "first": 0, "bars": 8}, {"story": "moment", "first": 8, "bars": 16}]
+    notes = [Note(32.0 + step * 0.25, 0.2, 60 + step % 5, 0.5) for step in range(256)]
+    club.accented(notes, form)
+    on = [note.loud for note in notes if abs(note.start - round(note.start)) < 0.01]
+    between = [note.loud for note in notes if abs(note.start * 2 - round(note.start * 2)) > 0.1]
+    assert min(on[-4:]) > 1.4 * max(between[-4:]) and on[-1] > 1.6 * on[0]
+    # A hard song's riff is hammered: its strokes between the beats within a decibel of the beat's.
+    even = [Note(32.0 + step * 0.25, 0.2, 60, 0.5) for step in range(64)]
+    club.accented(even, form, hammered=True)
+    assert 1.0 < even[-4].loud / even[-3].loud < 1.13 and even[-4].loud > even[-2].loud > even[-3].loud
+    tied = [(note, after) for note, after in zip(notes, notes[1:]) if note.start + note.length > after.start]
+    assert tied and all(after.pitch != note.pitch for note, after in tied) and len(tied) < len(notes) / 3
+
+
 def test_houses_own_oscillators_are_the_waves_they_say():
     # (2026-11-21, afternoon: the classic oscillator's Shape -1 is a pulse and +1 a double saw, an octave up; the designs had
     # read them the other way about.) A classic oscillator is a saw or a pulse, a triangle is the modern oscillator's, and an
@@ -328,7 +464,7 @@ def test_the_bass_only_ever_plays_notes_of_the_scale_and_stays_low():
             for which in ("R", "F", "O", "A"):
                 pitch = take.bass_note(chord, which, after)
                 assert pitch % 12 in scale, "%s: the bass leaves the key on %r of %r" % (fam.name, which, chord)
-                assert 29 <= pitch <= 55, "%s: the bass is out of its range at %d" % (fam.name, pitch)
+                assert (28 if house.PALETTES[fam.palette].get("low") else 29) <= pitch <= 55, "%s: the bass is out of its range at %d" % (fam.name, pitch)
             assert take.bass_note(chord, "R") % 12 == take.changes.pitch(chord[0], 0) % 12, "the root is not the root"
 
 
@@ -623,6 +759,30 @@ def test_a_lone_sub_is_heard(monkeypatch):
     assert abs(growl("sub") - 0.45) < 1e-9
 
 
+def test_a_hard_acts_kick_is_its_own_tuned_to_the_song_and_clipped(monkeypatch, tmp_path):
+    # (2026-11-24: a knock and a sine, 19 dB from its loudness to its peak, under songs meant to be hard.)
+    from freerock.studio import club, desk, kicks
+    assert all(kicks.REACH[0] <= kicks.rest(tonic) <= kicks.REACH[1] for tonic in range(12))
+    assert round(kicks.rest(4), 1) == 41.2 and round(kicks.rest(9), 1) == 55.0 and round(kicks.rest(0), 1) == 49.0 and round(kicks.rest(11), 1) == 46.2      # E, A; C's fifth, B's
+    assert set(club.HARD_KICK) == {act.machine for act in club.ACTS.values() if act.drive}
+    for name, _, _ in club.HARD_KICK.values():
+        spec = kicks.DESIGNS[name]
+        assert spec["level"][-1][1] == 0.0 and spec["length"] <= 420.0 and spec["pitch"][0][1] > 200.0
+        if (desk.GEONKICK / (kicks.TEMPLATE + ".gkick")).is_file():
+            plain, moved = kicks.design(name, desk.GEONKICK), kicks.design(name + "@46.2", desk.GEONKICK)
+            assert abs(moved["osc1"]["freq_env"]["points"][-1][1] - kicks.freq(46.2)) < 1e-9 < abs(plain["osc1"]["freq_env"]["points"][-1][1] - kicks.freq(46.2))
+    if not club.house.synth.TR8.is_dir() or not (desk.GEONKICK / (kicks.TEMPLATE + ".gkick")).is_file():
+        return
+    monkeypatch.setattr(club.muse, "available", lambda: False)
+
+    def kick(drive: float) -> str:
+        heard = club.Heard(hits=[("kick", "909", 0.0, 0.9, 0.0), ("clap", "909", 0.5, 0.6, 0.0)], drive=drive, rest=46.2)
+        out, strokes = club.lines(heard, 1, tmp_path)
+        assert len(strokes) == 1 and {line.name for line in out["drums"]} == {"house kick", "house room"}
+        return "\n".join(next(line for line in out["drums"] if line.name == "house kick").effects)
+    assert "freerock/clip" in kick(0.8) and "freerock/clip" not in kick(0.0)
+
+
 def test_the_own_fm_bass_middle_is_cut(monkeypatch, tmp_path):
     # (2026-11-22, the day's House studies: the own FM bass 3 to 8 dB heavy at 450 to 900 Hz in all eleven takes that drew it.)
     # FM_MIDDLE cuts it an octave wide at 600 Hz at the desk, in the bass's own equaliser; off, the band is flat.
@@ -784,8 +944,8 @@ def test_a_riff_is_a_cell_of_the_chords_notes_said_again_with_a_shape_of_its_own
     for fam in house.PLAN:
         made = house.Take(fam, 1)
         tune = made.tune
-        if not tune.riff:
-            continue
+        if not tune.riff or made.palette.get("low"):
+            continue                    # (a hard song's riff is one note hammered: the rule of its own, below)
         riffs += 1
         idea = [note for note in tune.idea]
         pitches = [made.changes.pitch(note.degree) for note in idea]
@@ -803,6 +963,15 @@ def test_a_riff_is_a_cell_of_the_chords_notes_said_again_with_a_shape_of_its_own
         orders = [tuple(ranks(notes)[:3]) for notes in by_chord.values() if len(notes) >= 3]
         assert len(orders) >= 1
     assert riffs >= 20
+    # A hard song's: one note more than half of its strokes, three different notes at least, and never more than an octave and a step from the hammered one; its second
+    # eight bars strike somewhere the first do not.
+    hammered = [house.Take(fam, 1).tune for fam in house.PLAN if house.PALETTES[fam.palette].get("low") and fam.role not in house.CALM_ROLES]
+    assert len(hammered) >= 20
+    for tune in hammered:
+        degrees = [note.degree for note in tune.idea]
+        most = max(set(degrees), key=degrees.count)
+        assert degrees.count(most) * 2 > len(degrees) and len(set(degrees)) >= 3 and max(abs(each - most) for each in degrees) <= 8, degrees
+        assert {note.degree for note in tune.second} != {note.degree for note in tune.first}
     monkeypatch.setattr(house, "RIFF_CELLS", False)
     old = house.Take(next(fam for fam in house.PLAN if fam.name == "infernal-01"), 1).tune
     pitches = [note.degree for note in old.idea]

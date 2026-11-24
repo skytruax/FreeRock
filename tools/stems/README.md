@@ -95,6 +95,29 @@ Under `var/samples` (on the assets drive), each fetched from GitHub as a tarball
 | `freepats/Bagpipe` | A bagpipe in G (designed by Rémy Dubois, built by Olle Geris), its chanter from F4 to G5, two takes a note, 28 to 67 cents under A 440 (each note tuned by the sampler); plays the bagpipe's tunes since 2026-11-18 (chosen by ear; held, its upper middle stood over its body, so drones stay MuseScore's english horn: docs/songwriting.md, 8.8); the drones on G2 and G3 are not used. Recorded in 2020 by Gilles Sadowski about 80 cm from one microphone. Its LICENSE.txt and README.txt are kept beside it | freepats.zenvoid.org/Ethnic/bagpipe.html (github.com/freepats/bagpipe, cloned 2026-11-18) | CC0 |
 | `naked-drums` | A drum kit with five toms, ten takes of every stroke and a far-room microphone: its bass drum's inside, outside and room microphones are the kick (`sounds.NAKED`); the rest is not used yet | sfzinstruments/WilkinsonAudio.NakedDrums | CC BY 4.0 (Wilkinson Audio) |
 
+Found on 2026-11-24 ("find more instruments!"), each cloned from github.com/sfzinstruments into a folder of its own under
+`var/samples/found` (no history, no hooks, nothing in them run; a repository whose attributes rewrite line endings is checked
+out with `* -text` in `.git/info/attributes`, or every recording in it is broken: the black and green guitars' were). Their
+licence files are kept beside them. Those with a program of their own are played by it (`studio/programs.py`); single notes are
+cut to begin at their stroke, named by note, strength and turn, under `var/samples/merged`.
+
+| Folder | What | Plays | Licence |
+|---|---|---|---|
+| `aliexpress-erhu` | A cheap erhu played by a violinist, close, in stereo | erhu, wired erhu | CC0 |
+| `cithara-barbarica` | A Germanic lyre of ten metal strings: fingers, nails | lyre | CC0 |
+| `Karoryfer.HorsePulse` | A bass tagelharpa plucked (Bragi's Workshop's) | tagelharpa, riff harpa | CC0 |
+| `karoryfer.bear-sax` | A 1926 Conn baritone saxophone: growl, subtone, short notes | growl sax, subtone sax, riff sax | CC0 |
+| `karoryfer.weresax` | An alto saxophone; its notes as an accordion's reeds | saxcordion | CC0 |
+| `karoryfer.war-tuba` | A street band's tuba (Jakub Lewicki) | war tuba | CC0 |
+| `karoryfer.string-cyborgs` | A cello's and a double bass's bowed notes as a synthesiser's oscillators | heart lead, pluck, stab and pad, iron bass | CC0 |
+| `karoryfer.growlybass` | A jazz bass with new roundwounds | growly bass | CC0 |
+| `karoryfer.black-and-green-guitars` | A Hofner Club and a Gretsch Anniversary, straight from their jacks (Brian Wood) | hollow guitar, hollow muted, hollow lead | CC0 |
+| `karoryfer.shinyguitar` | An archtop guitar's magnetic pickup | archtop guitar | CC0 |
+| `ganjo` | A six-string banjo (itsclipping) | guitar banjo | CC0 |
+| `legato_vocal_tutorial` | A bass voice's "a", sliding from note to note (from Hadzi-Fia) | bass voice (not given to anyone yet: two of its notes are a third of a semitone out) | CC0 |
+| `DrumGizmo.MuldjordKit` | Lars Muldjord's Tama Superstar, sixteen microphones to a stroke | kit metal | CC BY 4.0 (Lars Muldjord, DrumGizmo; mapped by kinwie) |
+| `karoryfer-bigcat.cello`, `karoryfer.emilyguitar`, `karoryfer.cowsynth`, `karoryfer.caveman-cosmonaut`, `karoryfer.squidpipes`, `jlearman.SteelDrum`, `body_percussion`, `zamenhof_stickmusterstuch_error`, `karoryfer.272-merry-orks`, `karoryfer.pastabass`, `karoryfer.meatbass`, `karoryfer.big-little-bass`, `karoryfer.ergo`, `dsmolken.double-bass`, `karoryfer.gogodze-phu-vol-i`, `karoryfer.gogodze-phu-vol-ii` | A cello, a clean guitar, strange synths, a squid's bagpipes, a steel drum, stomps and claps, glitches, a death metal choir, basses, Ghanaian drums | nothing yet | CC0 |
+
 `studio/samples.py` reads a folder of single notes into zones (measuring each recording's pitch),
 `studio/sfz.py` writes the sampler's instrument file for it into `var/reaper/sfz`, and
 `studio/sounds.py` says which of them play each instrument the writers name.

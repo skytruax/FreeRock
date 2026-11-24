@@ -1,0 +1,68 @@
+desc: FreeRock lift (three bands, the quiet brought up and the loud held down)
+// Part of FreeRock's studio (2026-11-24: "house still needs to work on that main synth lead sound"). What a dance record's lead goes through before anything
+// else: three bands, each with what is under its threshold brought up (and no further than so many dB) and what is over it held, so that the edge and the tail
+// of every note are heard as well as its body. Copied into REAPER's Effects folder by freerock.studio.reaper.configure.
+
+slider1:0.4<0,1,0.01>Depth
+slider2:260<60,1000,1>Low crossover (Hz)
+slider3:2600<1000,9000,1>High crossover (Hz)
+slider4:-27<-60,0,0.1>Threshold (dB)
+slider5:4<1,20,0.1>Ratio over it
+slider6:2<1,8,0.1>Ratio under it
+slider7:14<0,30,0.1>Most it is brought up (dB)
+slider8:8<0.5,100,0.1>Attack (ms)
+slider9:110<10,600,1>Release (ms)
+slider10:0<-24,24,0.1>Low (dB)
+slider11:0<-24,24,0.1>Middle (dB)
+slider12:0<-24,24,0.1>High (dB)
+slider13:0<-24,24,0.1>Level (dB)
+
+in_pin:left input
+in_pin:right input
+out_pin:left output
+out_pin:right output
+
+@init
+function set_low(f) instance(b0 b1 b2 a1 a2) local(w c s al d)
+(
+  w = 2 * $pi * min(f, srate * 0.45) / srate; c = cos(w); s = sin(w); al = s / sqrt(2); d = 1 + al;
+  b0 = (1 - c) / 2 / d; b1 = (1 - c) / d; b2 = b0; a1 = -2 * c / d; a2 = (1 - al) / d;
+);
+function set_high(f) instance(b0 b1 b2 a1 a2) local(w c s al d)
+(
+  w = 2 * $pi * min(f, srate * 0.45) / srate; c = cos(w); s = sin(w); al = s / sqrt(2); d = 1 + al;
+  b0 = (1 + c) / 2 / d; b1 = -(1 + c) / d; b2 = b0; a1 = -2 * c / d; a2 = (1 - al) / d;
+);
+function run(x) instance(b0 b1 b2 a1 a2 z1 z2) local(y)
+(
+  y = b0 * x + z1 + 0.0000000000000000001; z1 = b1 * x - a1 * y + z2; z2 = b2 * x - a2 * y; y;
+);
+function copy_low(f) instance(p q) ( p.set_low(f); q.set_low(f); );
+function copy_high(f) instance(p q) ( p.set_high(f); q.set_high(f); );
+function go(x) instance(p q) ( q.run(p.run(x)) );
+function held(level) instance(env) local(db want k)
+(
+  k = level > env ? up_k : down_k;
+  env = level + (env - level) * k;
+  db = env > 0.000001 ? 20 * log10(env) : -120;
+  want = db > thr ? (thr - db) * (1 - 1 / over) : db > -75 ? min((thr - db) * (1 - 1 / under), most) * min((db + 75) / 15, 1) : 0;
+  10 ^ (want * depth / 20);
+);
+
+@slider
+depth = slider1; thr = slider4; over = max(slider5, 1); under = max(slider6, 1); most = slider7;
+up_k = exp(-1 / (srate * slider8 / 1000)); down_k = exp(-1 / (srate * slider9 / 1000));
+lo_l.copy_low(slider2); lo_r.copy_low(slider2); re_l.copy_high(slider2); re_r.copy_high(slider2);
+mi_l.copy_low(slider3); mi_r.copy_low(slider3); hi_l.copy_high(slider3); hi_r.copy_high(slider3);
+g_lo = 10 ^ (slider10 / 20); g_mi = 10 ^ (slider11 / 20); g_hi = 10 ^ (slider12 / 20); g_out = 10 ^ (slider13 / 20);
+
+@sample
+l0 = lo_l.go(spl0); l1 = lo_r.go(spl1);
+r0 = re_l.go(spl0); r1 = re_r.go(spl1);
+m0 = mi_l.go(r0); m1 = mi_r.go(r1);
+h0 = hi_l.go(r0); h1 = hi_r.go(r1);
+a = low_band.held(max(abs(l0), abs(l1))) * g_lo;
+b = middle_band.held(max(abs(m0), abs(m1))) * g_mi;
+c = high_band.held(max(abs(h0), abs(h1))) * g_hi;
+spl0 = (l0 * a + m0 * b + h0 * c) * g_out;
+spl1 = (l1 * a + m1 * b + h1 * c) * g_out;

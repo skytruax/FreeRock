@@ -30,8 +30,8 @@ SINE, FM3, FM2, MODERN = 1, 5, 6, 8                 # the sine, the two FM oscil
 # their harmonics read, -1 at 0.5 had only the odd harmonics, a square's, and +1 only the even ones: their "squares" had
 # been saws an octave up, and their "triangles" squares. A triangle is the modern oscillator's: `triangle`.)
 SAW, PULSE = 0.0, -1.0
-LP12, LP24, LADDER, HP12, OBXD4 = 1, 2, 3, 4, 12    # filters; the legacy ladder's subtype 3 is 24 dB
-WS_SOFT = 1                                         # the waveshaper's soft saturation (after the first filter); its drive in dB
+LP12, LP24, LADDER, HP12, BP12, OBXD4 = 1, 2, 3, 4, 6, 12    # filters; the legacy ladder's subtype 3 is 24 dB
+WS_SOFT, WS_HARD = 1, 2                             # the waveshaper's soft saturation and its hard clip (after the first filter); its drive in dB
 SOURCES = {"velocity": 1, "keytrack": 2, "amp env": 15, "filter env": 16, "lfo1": 17, "lfo2": 18, "scene lfo1": 23,
            "scene lfo2": 24, "random": 31}
 # An oscillator of another kind keeps its seven settings in other units, some of them whole numbers where the saw's are
@@ -107,6 +107,9 @@ def env(which: int, attack: float, decay: float, sustain: float, release: float)
     return {p + "attack": seconds(attack), p + "decay": seconds(decay), p + "sustain": sustain, p + "release": seconds(release)}
 
 
+# A lead's slow vibrato, which waits, and its one voice that slides only between notes that are tied (Surge's fingered portamento).
+VIBRATO = {"a_lfo0_shape": 0, "a_lfo0_rate": rate(5.2), "a_lfo0_delay": seconds(0.4), "a_lfo0_attack": seconds(0.5)}
+MONO = {"a_polymode": 3, "a_portamento": seconds(0.06), "polylimit": 2}
 # Each design: its parameters (on the empty saw) and its modulations, {parameter: [(source, depth), ...]}.
 # (The first two sets were measured, refined against the factory patches and judged while their squares were saws an octave
 # up and their triangles squares (see SAW, PULSE); the measurements beside them are of those. Drawn as they are described
@@ -297,6 +300,125 @@ DESIGNS: dict[str, tuple[dict, dict]] = {
                     "a_filter1_type": LP12, "a_filter1_subtype": 0, "a_filter1_cutoff": hz(7000.0), "a_filter1_keytrack": 0.3,
                     **env(2, 0.001, 0.8, 0.0, 1.0), **env(1, 0.001, 2.0, 0.0, 1.2), "polylimit": 16},
                    {"a_osc1_param0": [("filter env", 0.12), ("velocity", 0.06)], "a_osc1_param2": [("filter env", 0.06)]}),
+    # ----- the leads (2026-11-24: "house still needs to work on that main synth lead sound"). Measured, the saw and the supersaw were one sound, within 1 dB
+    # of each other in every octave, dull from 5 kHz and as open on a drop's first bar as on its last, and 135 of 196 songs had one of them. Each of these is
+    # played harder or softer and opens as it is; those with a bend of their own slide between notes that meet (a mono voice, its slide on tied notes only).
+    # The body: two saws and a square an octave under through a driven ladder that each note throws open and lets fall.
+    "house lead ladder": ({**osc(1), **osc(2, pitch=0.08, level=0.9), **osc(3, shape=PULSE, octave=-1, level=0.55),
+                           "a_filter1_type": LADDER, "a_filter1_subtype": 3, "a_filter1_cutoff": hz(620.0), "a_filter1_resonance": 0.38,
+                           "a_filter1_envmod": 38.0, "a_filter1_keytrack": 0.6, "a_ws_type": WS_SOFT, "a_ws_drive": 8.0,
+                           **env(2, 0.002, 0.3, 0.32, 0.2), **env(1, 0.002, 0.5, 0.9, 0.16), **VIBRATO, **MONO},
+                          {"a_filter1_cutoff": [("velocity", 16.0)], "a_pitch": [("lfo1", 0.16)]}),
+    # The width beside it: nine saws spread far and seven an octave up, nothing of them under 400 Hz.
+    "house lead width": ({**osc(1, voices=9, detune=0.34), **osc(2, octave=1, voices=7, detune=0.26, level=0.5),
+                          "a_filter1_type": LP24, "a_filter1_subtype": 0, "a_filter1_cutoff": hz(2600.0), "a_filter1_resonance": 0.1,
+                          "a_filter1_envmod": 16.0, "a_filter1_keytrack": 0.6, "a_filter2_type": HP12, "a_filter2_subtype": 0, "a_filter2_cutoff": hz(420.0),
+                          **env(2, 0.004, 0.4, 0.5, 0.3), **env(1, 0.004, 0.6, 0.8, 0.22), "polylimit": 8},
+                         {"a_filter1_cutoff": [("velocity", 16.0)]}),
+    # The bite: each note's first fiftieth of a second, an octave up, and gone.
+    "house lead bite": ({**osc(1, octave=1), **osc(2, shape=PULSE, octave=2, width=0.3, level=0.5), "a_filter1_type": LP12, "a_filter1_subtype": 0,
+                         "a_filter1_cutoff": hz(7000.0), "a_filter2_type": HP12, "a_filter2_subtype": 0, "a_filter2_cutoff": hz(900.0),
+                         **env(1, 0.001, 0.07, 0.0, 0.05), "polylimit": 8},
+                        {}),
+    # Hard sync: a saw restarted by another's clock, the clock swept down by each note's envelope: a scream at the start of it. (Swept 22 half-steps in half a second, a riff's short
+    # stroke was all sweep: overtones sliding at 3.97, 4.42 and 8.4 times the note, read 19 cents flat in two songs. Six, from a little higher, and a stroke has a pitch.)
+    "house lead sync": ({**osc(1), "a_osc1_param4": 7.0, **osc(2, shape=PULSE, octave=-1, level=0.5), "a_filter1_type": LADDER, "a_filter1_subtype": 3,
+                         "a_filter1_cutoff": hz(1500.0), "a_filter1_resonance": 0.2, "a_filter1_envmod": 18.0, "a_filter1_keytrack": 0.6,
+                         "a_ws_type": WS_SOFT, "a_ws_drive": 6.0, **env(2, 0.004, 0.45, 0.25, 0.25), **env(1, 0.003, 0.5, 0.9, 0.16), **VIBRATO, **MONO},
+                        {"a_osc1_param4": [("filter env", 6.0), ("velocity", 3.0)], "a_filter1_cutoff": [("velocity", 12.0)], "a_pitch": [("lfo1", 0.18)]}),
+    # Two pulses whose widths turn against each other over an octave's square: the dark, wide lead of a polysynth.
+    "house lead pwm": ({**osc(1, shape=PULSE, width=0.5, voices=2, detune=0.07), **osc(2, shape=PULSE, width=0.35, pitch=-0.06, level=0.9),
+                        **osc(3, shape=PULSE, octave=-1, level=0.4), "a_filter1_type": LP24, "a_filter1_subtype": 1, "a_filter1_cutoff": hz(1050.0),
+                        "a_filter1_resonance": 0.3, "a_filter1_envmod": 22.0, "a_filter1_keytrack": 0.6, "a_lfo6_shape": 1, "a_lfo6_rate": rate(0.7), "a_lfo6_trigmode": 0,
+                        **env(2, 0.004, 0.4, 0.4, 0.25), **env(1, 0.004, 0.6, 0.9, 0.2), **VIBRATO, "a_portamento": seconds(0.03), "polylimit": 4},
+                       {"a_osc1_param1": [("scene lfo1", 0.32)], "a_osc2_param1": [("scene lfo1", -0.22)], "a_filter1_cutoff": [("velocity", 14.0)],
+                        "a_pitch": [("lfo1", 0.12)]}),
+    # A voice: two band-passes side by side where a throat has its two formants, turning between an "oh" and an "ah" in eighths.
+    "house lead vox": ({**osc(1, voices=3, detune=0.1), **osc(2, shape=PULSE, width=0.3, octave=-1, level=0.5), "a_fb_config": 3,
+                        "a_filter1_type": BP12, "a_filter1_subtype": 0, "a_filter1_cutoff": hz(620.0), "a_filter1_resonance": 0.62, "a_filter1_envmod": 4.0,
+                        "a_filter2_type": BP12, "a_filter2_subtype": 0, "a_filter2_cutoff": hz(1250.0), "a_filter2_resonance": 0.6, "a_filter2_envmod": 10.0,
+                        "a_ws_type": WS_SOFT, "a_ws_drive": 6.0, "a_lfo0_shape": 0, "a_lfo0_rate": rate(1.83), "a_lfo0_trigmode": 1,
+                        **env(2, 0.02, 0.35, 0.3, 0.2), **env(1, 0.006, 0.5, 0.9, 0.18), **MONO},
+                       {"a_filter1_cutoff": [("lfo1", 4.0), ("velocity", 4.0)], "a_filter2_cutoff": [("lfo1", -7.0), ("velocity", 7.0)]}),
+    # Struck metal that holds its note: two modulated sines, one at an odd ratio, the strike throwing both up.
+    "house lead metal": ({**fm2(1, m1=0.24, r1=1, m2=0.16, r2=5, feedback=0.25), **fm3(2, m1=0.2, r1=2.76, m2=0.1, r2=1.0, level=0.5),
+                          "a_filter1_type": LP24, "a_filter1_subtype": 1, "a_filter1_cutoff": hz(1700.0), "a_filter1_resonance": 0.2, "a_filter1_envmod": 26.0,
+                          "a_filter1_keytrack": 0.6, "a_ws_type": WS_SOFT, "a_ws_drive": 6.0,
+                          **env(2, 0.001, 0.22, 0.18, 0.2), **env(1, 0.001, 0.45, 0.55, 0.2), "polylimit": 4},
+                         {"a_osc1_param0": [("filter env", 0.14), ("velocity", 0.06)], "a_osc1_param2": [("filter env", 0.1)], "a_filter1_cutoff": [("velocity", 12.0)]}),
+    # The acid line: one saw through a ladder turned nearly to its own note, slammed open by each note's envelope, an accent further.
+    "house lead acid": ({**osc(1), "a_filter1_type": LADDER, "a_filter1_subtype": 3, "a_filter1_cutoff": hz(300.0), "a_filter1_resonance": 0.82,
+                         "a_filter1_envmod": 44.0, "a_filter1_keytrack": 0.25, "a_ws_type": WS_SOFT, "a_ws_drive": 11.0,
+                         **env(2, 0.002, 0.2, 0.0, 0.1), **env(1, 0.002, 0.5, 0.7, 0.06), **MONO},
+                        {"a_filter1_cutoff": [("velocity", 18.0)]}),
+    # The growl: saws and squares driven hard, a low-pass opened and shut on the eighths.
+    "house lead growl": ({**osc(1, voices=2, detune=0.12), **osc(2, shape=PULSE, voices=2, detune=0.07, pitch=-0.03, octave=-1, level=0.7),
+                          "a_filter1_type": LP24, "a_filter1_subtype": 1, "a_filter1_cutoff": hz(520.0), "a_filter1_resonance": 0.35, "a_filter1_envmod": 18.0,
+                          "a_filter1_keytrack": 0.4, "a_ws_type": WS_SOFT, "a_ws_drive": 12.0, "a_lfo0_shape": 0, "a_lfo0_rate": rate(3.667), "a_lfo0_trigmode": 1,
+                          **env(2, 0.004, 0.35, 0.3, 0.2), **env(1, 0.004, 0.6, 0.9, 0.15), **MONO},
+                         {"a_filter1_cutoff": [("lfo1", 14.0), ("velocity", 10.0)]}),
+    # Hard ones (2026-11-24: what was played was counted, bells, glass and plucks over major chords; these stand under a hard song's riff).
+    # The hoover: saws, a pulse whose width turns and a square an octave under, bent up into each note from a semitone and a half under it in a thirtieth of a second (from three, in a
+    # twentieth, it took half of a quick note to arrive).
+    "house lead hoover": ({**osc(1, voices=5, detune=0.26), **osc(2, shape=PULSE, width=0.4, voices=2, detune=0.1, level=0.8), **osc(3, shape=PULSE, octave=-1, level=0.6),
+                           "a_filter1_type": LP24, "a_filter1_subtype": 1, "a_filter1_cutoff": hz(1500.0), "a_filter1_resonance": 0.18, "a_filter1_envmod": 10.0,
+                           "a_filter1_keytrack": 0.5, "a_ws_type": WS_SOFT, "a_ws_drive": 8.0, "a_lfo6_shape": 1, "a_lfo6_rate": rate(2.2), "a_lfo6_trigmode": 0,
+                           **env(2, 0.001, 0.03, 0.0, 0.1), **env(1, 0.003, 0.5, 0.9, 0.12), **MONO},
+                          {"a_pitch": [("filter env", -1.5)], "a_osc2_param1": [("scene lfo1", 0.28)], "a_filter1_cutoff": [("velocity", 14.0)]}),
+    # The razor (the foundry's, in the place of struck metal, which rings as a bell does: without its lead Blast Furnace measured darker and rawer than with it): saws and a narrow pulse an octave under,
+    # shut low, thrown half open by each stroke and clipped hard.
+    "house lead razor": ({**osc(1, voices=3, detune=0.14), **osc(2, shape=PULSE, width=0.22, octave=-1, voices=2, detune=0.08, level=0.85),
+                          "a_filter1_type": LP24, "a_filter1_subtype": 1, "a_filter1_cutoff": hz(620.0), "a_filter1_resonance": 0.3, "a_filter1_envmod": 20.0,
+                          "a_filter1_keytrack": 0.45, "a_ws_type": WS_HARD, "a_ws_drive": 18.0, "a_filter2_type": LP12, "a_filter2_subtype": 0, "a_filter2_cutoff": hz(4600.0),
+                          **env(2, 0.001, 0.14, 0.15, 0.1), **env(1, 0.001, 0.4, 0.85, 0.09), **MONO},
+                         {"a_filter1_cutoff": [("velocity", 16.0)]}),
+    # A reed: two narrow pulses through a band-pass low in the throat, a slow vibrato that waits: a dark, nasal line, no bell in it.
+    "house lead reed": ({**osc(1, shape=PULSE, width=0.12), **osc(2, shape=PULSE, width=0.2, pitch=0.06, level=0.7), **osc(3, shape=PULSE, octave=-1, width=0.3, level=0.35),
+                         "a_filter1_type": LP24, "a_filter1_subtype": 1, "a_filter1_cutoff": hz(900.0), "a_filter1_resonance": 0.42, "a_filter1_envmod": 14.0,
+                         "a_filter1_keytrack": 0.6, "a_filter2_type": HP12, "a_filter2_subtype": 0, "a_filter2_cutoff": hz(140.0), "a_ws_type": WS_SOFT, "a_ws_drive": 7.0,
+                         **env(2, 0.008, 0.3, 0.45, 0.2), **env(1, 0.006, 0.5, 0.9, 0.14), **VIBRATO, **MONO},
+                        {"a_filter1_cutoff": [("velocity", 14.0)], "a_pitch": [("lfo1", 0.2)]}),
+    # The fifth: a saw, another a fifth over it and a square an octave under, one key a bare power chord.
+    "house lead fifth": ({**osc(1, voices=2, detune=0.08), **osc(2, pitch=7.0, voices=2, detune=0.08, level=0.75), **osc(3, shape=PULSE, octave=-1, level=0.55),
+                          "a_filter1_type": LADDER, "a_filter1_subtype": 3, "a_filter1_cutoff": hz(560.0), "a_filter1_resonance": 0.32, "a_filter1_envmod": 34.0,
+                          "a_filter1_keytrack": 0.5, "a_ws_type": WS_SOFT, "a_ws_drive": 9.0,
+                          **env(2, 0.002, 0.28, 0.25, 0.2), **env(1, 0.002, 0.5, 0.85, 0.14), "polylimit": 4},
+                         {"a_filter1_cutoff": [("velocity", 16.0)]}),
+    # Stabs. The rave's: five saws and a pulse an octave under, driven, thrown open and shut within an eighth.
+    "house stab rave": ({**osc(1, voices=5, detune=0.2), **osc(2, shape=PULSE, octave=-1, level=0.6), **osc(3, octave=1, voices=3, detune=0.15, level=0.3),
+                         "a_filter1_type": LADDER, "a_filter1_subtype": 3, "a_filter1_cutoff": hz(420.0), "a_filter1_resonance": 0.28, "a_filter1_envmod": 40.0,
+                         "a_filter1_keytrack": 0.4, "a_ws_type": WS_SOFT, "a_ws_drive": 10.0,
+                         **env(2, 0.001, 0.13, 0.08, 0.1), **env(1, 0.001, 0.3, 0.12, 0.12), "polylimit": 12},
+                        {"a_filter1_cutoff": [("velocity", 16.0)]}),
+    # The clang: a hammer on plate, the strike alone bright. (At an odd ratio, 2.76, as a plate's is, its chords read 59% in the key: at whole ones it is plate in tune.)
+    "house stab clang": ({**fm3(1, m1=0.24, r1=3.0, m2=0.16, r2=1.0, feedback=0.1), **fm2(2, m1=0.22, r1=1, m2=0.14, r2=3, octave=-1, level=0.7),
+                          "a_filter1_type": LP24, "a_filter1_subtype": 1, "a_filter1_cutoff": hz(900.0), "a_filter1_resonance": 0.15, "a_filter1_envmod": 30.0,
+                          "a_filter1_keytrack": 0.4, "a_ws_type": WS_SOFT, "a_ws_drive": 9.0,
+                          **env(2, 0.001, 0.1, 0.0, 0.1), **env(1, 0.001, 0.35, 0.0, 0.16), "polylimit": 12},
+                         {"a_osc1_param0": [("filter env", 0.14), ("velocity", 0.05)], "a_filter1_cutoff": [("velocity", 12.0)]}),
+    # The dub's: a dark minor-less chord behind a band-pass, left to ring a little, for the echo to repeat.
+    "house stab dub": ({**osc(1, voices=2, detune=0.1), **osc(2, shape=PULSE, width=0.35, pitch=0.05, level=0.6),
+                        "a_filter1_type": BP12, "a_filter1_subtype": 0, "a_filter1_cutoff": hz(480.0), "a_filter1_resonance": 0.35, "a_filter1_envmod": 20.0,
+                        "a_filter1_keytrack": 0.3, "a_ws_type": WS_SOFT, "a_ws_drive": 7.0, "a_lfo6_shape": 0, "a_lfo6_rate": rate(0.15), "a_lfo6_trigmode": 0,
+                        **env(2, 0.002, 0.2, 0.15, 0.3), **env(1, 0.002, 0.4, 0.25, 0.45), "polylimit": 12},
+                       {"a_filter1_cutoff": [("scene lfo1", 7.0), ("velocity", 10.0)]}),
+    # Basses. The acid's: the acid lead's ladder an octave down, its resonance less, so that its low end stays.
+    "house bass acid": ({**osc(1), **osc(2, shape=PULSE, pitch=0.03, level=0.35), "a_filter1_type": LADDER, "a_filter1_subtype": 3, "a_filter1_cutoff": hz(220.0),
+                         "a_filter1_resonance": 0.62, "a_filter1_envmod": 36.0, "a_filter1_keytrack": 0.3, "a_ws_type": WS_SOFT, "a_ws_drive": 9.0,
+                         **env(2, 0.001, 0.14, 0.04, 0.08), **env(1, 0.001, 0.4, 0.65, 0.05), **MONO},
+                        {"a_filter1_cutoff": [("velocity", 14.0)]}),
+    # The grinder: two pulses and a saw beating slowly, driven into the shaper and cut again after it.
+    "house bass grind": ({**osc(1, shape=PULSE, width=0.35, voices=2, detune=0.1), **osc(2, voices=2, detune=0.08, pitch=-0.04, level=0.8),
+                          "a_filter1_type": LP24, "a_filter1_subtype": 1, "a_filter1_cutoff": hz(850.0), "a_filter1_resonance": 0.15, "a_filter1_envmod": 14.0,
+                          "a_filter1_keytrack": 0.3, "a_ws_type": WS_SOFT, "a_ws_drive": 14.0, "a_filter2_type": LP12, "a_filter2_subtype": 0, "a_filter2_cutoff": hz(3200.0),
+                          **env(2, 0.001, 0.2, 0.3, 0.1), **env(1, 0.001, 0.5, 0.85, 0.06), "polylimit": 4},
+                         {"a_filter1_cutoff": [("velocity", 10.0)]}),
+    # A pluck that can sing: three saws, a pulse an octave up and a square under, thrown open by a driven ladder and left a quarter open.
+    "house lead pluck": ({**osc(1, voices=3, detune=0.1), **osc(2, shape=PULSE, width=0.28, octave=1, level=0.4), **osc(3, shape=PULSE, octave=-1, level=0.35),
+                          "a_filter1_type": LADDER, "a_filter1_subtype": 3, "a_filter1_cutoff": hz(420.0), "a_filter1_resonance": 0.3, "a_filter1_envmod": 44.0,
+                          "a_filter1_keytrack": 0.6, "a_ws_type": WS_SOFT, "a_ws_drive": 5.0,
+                          **env(2, 0.001, 0.26, 0.06, 0.25), **env(1, 0.001, 0.55, 0.25, 0.3), "polylimit": 8},
+                         {"a_filter1_cutoff": [("velocity", 20.0)]}),
 }
 
 

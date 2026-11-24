@@ -38,7 +38,7 @@ from pathlib import Path
 import numpy as np
 
 from .. import analysis, forever
-from . import RATE, desk, house, muse, reaper, sfz, sounds, stage_root, write_track
+from . import RATE, desk, house, kicks, muse, reaper, sfz, sounds, stage_root, write_track
 from .score import Note, Sheet, Voice
 
 VAR = Path(__file__).resolve().parents[3] / "var"
@@ -92,14 +92,140 @@ PLACE = {"drums": -12.5, "bass": -15.0, "rhythm": -20.0, "lead": -19.0, "texture
 CALM = {"drums": -18.0, "bass": -18.0, "lead": -18.0, "texture": -20.0}        # an inn, the night
 
 
+# (Which lead is whose, 2026-11-24, 17:50: thirteen of House's own leads in one drop, its other channels the same, measured hard against sweet (tools/hardness.py): sync -5, anthem -6, acid -7, the throat -7,
+# ladder -9, stack -9, the driven pluck -11, the growl -12, the factory's saw -12.5, the turning pulses -16.5, struck metal -18. Metal and the pulses lead no act now; the growl is a dark song's soft voice.)
+# Whose instruments a House song has (2026-11-24: "house still needs to work on that main synth lead sound", "and also should use differrent bands"; of 196
+# songs 84 were led by the saw and 51 by the supersaw, one sound within 1 dB in every octave). What the writer names is played by what the act has: its big
+# lead at the drops, the second synth that joins it, the soft lead of its themes, its chords, its bass, its pad, and its drum machine. "" is House's own act,
+# the sound of every song until now, its two big leads made anew (MAIN_LEADS).
+@dataclass(frozen=True)
+class Act:
+    big: str                           # the lead of the drops
+    late: str                          # the second synth, half way through a drop
+    soft: str                          # the lead of the themes and the rises
+    keys: tuple[str, ...]              # the chords and the figures, by turns
+    bass: tuple[str, ...] = ()         # the bass that is heard, by turns (a song whose bass is the sub alone keeps it)
+    pad: tuple[str, ...] = ()
+    machine: str = ""
+    drive: float = 0.0                 # how hard its drums and its bass are driven at the desk (0 to 1)
+
+
+ACTS: dict[str, Act] = {
+    "warehouse": Act("house lead acid", "house lead ladder", "house lead growl", ("house stab rave",), ("house bass saw", "house bass acid"), ("house pad hollow",), "909", drive=0.8),
+    "undercroft": Act("house lead ladder", "house lead fifth", "house lead growl", ("house stab dub",), ("house bass wide",), ("house pad hollow",), "808", drive=0.7),
+    "foundry": Act("house lead razor", "house lead sync", "house lead reed", ("house stab clang",), ("house bass fm", "house bass grind"), ("house pad hollow",), "606", drive=0.8),
+    "signal": Act("house lead sync", "house lead fifth", "house lead vox", ("house stab",), ("house bass square",), ("house pad super",), "909", drive=0.6),
+    "monolith": Act("house lead hoover", "house lead fifth", "house lead vox", ("house stab rave", "brass"), ("house bass grind",), ("house pad super",), "909", drive=0.7),
+    "vesper": Act("house lead vox", "house lead reed", "bass clarinet", ("electric piano",), ("house bass fm",), ("choir",), "707"),
+    "velvet": Act("house lead reed", "house lead vox", "wurly", ("rhodes", "electric piano"), ("house bass pluck",), ("house pad warm",), "707"),
+    "strobe": Act("house lead pluck", "house lead stack", "house pluck", ("house pluck",), ("house bass fm",), ("house pad super",), "606"),
+    "chamber": Act("cello", "viola", "bass flute", ("dream piano",), ("house bass pluck",), ("strings slow",), "808"),
+    "brass": Act("trumpet", "trombone", "clarinet", ("rhodes", "wurly"), ("house bass pluck",), ("house pad warm",), "707"),
+    "bazaar": Act("sitar", "shenai", "koto", ("dulcimer",), ("house bass fm",), ("house pad hollow",), "808"),
+    # (of the instruments found on 2026-11-24: a cello's and a double bass's bows as a synthesiser's oscillators, all of it; a saxophone torn by an amplifier and a jazz bass, driven)
+    "cyborg": Act("heart lead", "house lead fifth", "heart pluck", ("heart stab",), ("iron bass",), ("heart pad",), "909", drive=0.7),
+    "junkyard": Act("torn sax", "house lead hoover", "subtone sax", ("house stab clang",), ("driven bass",), ("house pad hollow",), "808", drive=0.7),
+}
+# The acts a moment may have, in the order they are given out (a calm one's lead is soft).
+ACTS_FOR = {"calm": ("velvet", "vesper", "strobe", "chamber", "brass", "bazaar"), "fight": ("foundry", "warehouse", "undercroft", "monolith", "signal", "cyborg", "junkyard"),
+            "town": ("brass", "velvet", "strobe", "chamber", "signal"), "depths": ("undercroft", "foundry", "vesper", "cyborg"),
+            "light": ("strobe", "velvet", "bazaar", "vesper", "chamber", "brass"),
+            "heavy": ("warehouse", "undercroft", "chamber", "monolith", "foundry", "brass", "signal", "bazaar", "cyborg", "junkyard")}
+# A family's first take is House's own act; its other takes, every take of the families planned after ACTS_AFTER, and of those that had no take yet when the acts
+# came in (ACTS_ALSO), another's.
+ACTS_AFTER = "depths-09"
+ACTS_ALSO = frozenset(("ember-05", "ember-06", "ember-07", "ember-08", "camp-05", "camp-06", "camp-07", "camp-08", "depths-05", "depths-06", "depths-07", "depths-08",
+                       "boss-04", "boss-05", "boss-06", "night-05", "night-06", "night-07", "night-08", "town-04", "desert-05", "jungle-02", "jungle-04", "jungle-05",
+                       "boss-02", "battleground-02"))
+# House's own two big leads made anew: what is played where a sheet names the first.
+MAIN_LEADS: dict[str, str] = {}
+
+
+def act_of(fam: house.Family, take: int) -> str:
+    """Whose instruments a take of a family has (ACTS)."""
+    if fam.act and take <= 1:
+        return fam.act
+    names = [each.name for each in house.PLAN]
+    at = names.index(fam.name) if fam.name in names else 0
+    if fam.act:                        # a hard song's other takes are other hard acts'
+        kin = ACTS_FOR["fight" if fam.act in ACTS_FOR["fight"] else "calm"]
+        return kin[(kin.index(fam.act) + take - 1) % len(kin)]
+    if take <= 1 and fam.name not in ACTS_ALSO and at <= names.index(ACTS_AFTER):
+        return ""
+    kind = ("calm" if fam.role in house.CALM_ROLES else "fight" if fam.role in ("battle", "boss", "storm", "battleground") else fam.role if fam.role in ACTS_FOR
+            else "light" if fam.light else "heavy")
+    return ACTS_FOR[kind][(at + take) % len(ACTS_FOR[kind])]
+
+
+def parts_of_the_lead(heard: "Heard", sections: list[tuple[str, int, int]]) -> dict[tuple[str, str], str]:
+    """Which of a song's lead voices is the big one (the most of the drops is its), which joins it there ("late") and which sings the rest ("soft")."""
+    drops = [(first * house.BAR, (first + count) * house.BAR) for story, first, count in sections if story == "moment"]
+    counts = {(table, sound): (sum(1 for note in notes if any(a <= note[0] < b for a, b in drops)), len(notes))
+              for (channel, table, sound), notes in heard.notes.items() if channel == "lead"}
+    if not counts:
+        return {}
+    big = max(counts, key=lambda each: (counts[each][0], counts[each][1], each))
+    return {each: "big" if each == big else "late" if inside > 0.6 * whole else "soft" for each, (inside, whole) in counts.items()}
+
+
+def played(table: str, sound: str, act: str = "", seed: int = 0, part: str = "") -> str:
+    """What plays a sound of the writer's in an act (`part`, for a lead: `parts_of_the_lead`)."""
+    first = PLAYED[(table, sound)]
+    if not act or (table, sound) in (("bass", "sub"), ("bass", "harsh"), ("bass", "harsh saw")):
+        return first
+    has = ACTS[act]
+    if table == "lead":
+        return {"big": has.big, "late": has.late}.get(part, has.soft)
+    turns = {"keys": has.keys, "bass": has.bass, "pad": has.pad}[table] or (first,)
+    return turns[(seed + sorted(name for kind, name in PLAYED if kind == table).index(sound)) % len(turns)]
+
+
+def reached(instrument: str, pitch: int) -> int:
+    """A note within an instrument's reach, an octave or more away where it has to be (a saxophone does not sing at the top of a synth)."""
+    from .orchestra import INSTRUMENTS
+    inst = INSTRUMENTS.get(instrument)
+    if inst is None:
+        return pitch
+    while pitch > inst.high:
+        pitch -= 12
+    while pitch < inst.low:
+        pitch += 12
+    return pitch
+
+
+# How hard a stroke of a lead of House's own is on the beat, the eighth and the sixteenth, before it is squared; a hard song's riff is hammered nearly even (2026-11-24, 17:00: at
+# 1, 0.82 and 0.66 the recorded riffs of Riot Line, Blast Furnace and Bone Saw had every stroke off the beat 4 to 7 dB under the beat's: a pulse on the kick and ghosts
+# between, where the two led by a saxophone's and a cello's recordings, which had no accents, were even).
+ACCENTS, HAMMERED = (1.0, 0.9, 0.8), (1.0, 0.97, 0.95)
+
+
+def accented(notes: list[Note], form: list[dict], hammered: bool = False) -> None:
+    """A lead of House's own played as a hand plays it: the beat's note harder than the eighth's and that than the sixteenth's, the whole harder as a drop goes
+    on, so that its filter, which follows how hard it is struck, opens; and every fourth note tied to the next where they are near, so that it slides."""
+    beat, eighth, sixteenth = HAMMERED if hammered else ACCENTS
+    for index, note in enumerate(notes):
+        near = lambda step: abs(note.start / step - round(note.start / step)) < 0.02      # noqa: E731
+        accent = beat if near(1.0) else eighth if near(0.5) else sixteenth
+        section = next((each for each in form if each["first"] * 4.0 - 1e-6 <= note.start < (each["first"] + each["bars"]) * 4.0), None)
+        along = (note.start - section["first"] * 4.0) / max(section["bars"] * 4.0, 1.0) if section and section["story"] == "moment" else 0.4
+        note.loud = min(max(note.loud * ((0.68 + 0.32 * along) * accent) ** 2, 1e-4), 1.0)
+        after = notes[index + 1] if index + 1 < len(notes) else None
+        if after is not None and index % 4 == 3 and after.pitch != note.pitch and 0.0 <= after.start - note.start - note.length < 0.2:
+            note.length = after.start - note.start + 0.06
+
+
 @dataclass
 class Heard:
     """What the writer asked to be played."""
     notes: dict[tuple[str, str, str], list[tuple[float, float, float, float, float, float]]] = field(default_factory=lambda: defaultdict(list))
     hits: list[tuple[str, str, float, float, float]] = field(default_factory=list)      # drum, machine, seconds, level, pan
     airs: list = field(default_factory=list)       # what the texture is besides its notes: risers, wind, drips (house.Air)
+    # What each part is played by, where its sheet says: (channel, table, sound) -> the written instrument (else PLAYED).
+    played: dict[tuple[str, str, str], str] = field(default_factory=dict)
     # Each part's effect marks and their settings, from its sheet (score.EFFECTS): (channel, table, sound) -> (marks, settings).
     marks: dict[tuple[str, str, str], tuple[dict, dict]] = field(default_factory=dict)
+    drive: float = 0.0             # how hard its act's drums are driven (Act.drive)
+    rest: float = 49.0             # where a hard act's kick comes to rest, in Hz (kicks.rest)
 
 
 class _Drum:
@@ -183,7 +309,7 @@ def _loud(levels: list[float]) -> list[float]:
 
 SPAN = 4            # bars: a voice's level is read four at a time (a house phrase is eight, every part a whole number of them)
 UNDER = 0.6         # a note written under this part of the loudest in its four bars is a line under the tune: a doubling, an echo
-SUBBED = ("house bass pluck", "house bass saw")      # the basses that are heard more than felt: a sine goes under them
+SUBBED = ("house bass pluck", "house bass saw", "iron bass", "driven bass", "house bass grind")      # the basses that are heard more than felt: a sine goes under them
 # The basses with a sawtooth growl under them, closed above 900 Hz (`voices`): the sub, and the factory FM bass, which had no
 # middle of its own. House's own FM bass has one, and the growl under it is not heard: taken away in three songs, the bass moved
 # 1 dB or less in every octave and the judges stayed level (2026-11-22; Sunlit Fields II's bass, 7 dB over the liked stems at
@@ -226,6 +352,14 @@ KICK_TRIM = 5.1
 MACHINE_KICKS = False
 MACHINE_KICK = {"909": ("house kick", KICK_TRIM), "808": ("house kick 808", KICK_TRIM + 1.0), "707": ("house kick 707", KICK_TRIM + 2.0),
                 "606": ("house kick 606", KICK_TRIM - 0.6)}
+# A hard act's kick (2026-11-24; studio/kicks.py): which, by its machine, how many dB it is driven into its ceiling and how soft that is; and how far it stands under where it was made (it is 2.4 dB louder at
+# the same height than the kick before it, and is to be a decibel over it).
+HARD_KICK = {"909": ("house kick hard", 20.0, 0.35), "606": ("house kick hard 606", 26.0, 0.2), "808": ("house kick hard 808", 14.0, 0.5)}
+HARD_KICK_AT = 0.85
+HARD_TOPS = {"room": 1.15, "hats": 1.35}       # ...and its claps, snares and toms, and its hats, up against that kick (the channel is brought to its place by the whole of it, and the kick is most of that)
+# A hard act plays close (2026-11-24: what softened its songs, the measure of it says, was the lead, and what it went through was a dream's: an echo in dotted eighths from side to side and a hall): how much of
+# the echo its stabs and its lead have, and how far its stabs and its lead are sent to the hall.
+CLOSE = (0.35, 0.1, 0.12)
 # (2026-11-21: the wide twin added 0.0 to 0.4 dB to the bass in five long drops of six, unheard, and louder at 0.95 only 0.6.)
 # With House's own instruments the twin is a sound of its own, driven saws with the low end left to the bass
 # (studio/patches.py, "house bass harsh"), whatever the bass is.
@@ -243,7 +377,12 @@ if sounds.OWN_HOUSE:
 # ("i wish i could hear more of that saw synths top end"). The other leads, a calm piece's sung melody and the riff's
 # pluck in the quiet, keep the gentler top (2026-11-18: the open top had reached them too, and an inn's tune stood
 # 20 dB over the liked leads there).
-OPEN_TOP = ("house lead saw", "house lead super")
+OPEN_TOP = ("house lead saw", "house lead super") + tuple(sounds.HOUSE_LEADS)
+# How a lead of House's own is held at the desk: (how deep its three bands are held, dB on the highest, chorus, how wide, how much echo).
+LEAD_CHAIN: dict[str, tuple[float, float, float, float, float]] = {
+    "": (0.4, 1.5, 0.0, 1.15, 0.24), "house lead stack": (0.45, 2.0, 0.0, 1.25, 0.24), "house lead anthem": (0.45, 2.0, 0.0, 1.35, 0.24),
+    "house lead pwm": (0.35, 1.0, 0.35, 1.3, 0.24), "house lead vox": (0.45, 2.5, 0.0, 1.15, 0.24), "house lead metal": (0.4, 1.0, 0.0, 1.15, 0.24),
+    "house lead acid": (0.35, 1.0, 0.0, 1.1, 0.24), "house lead growl": (0.45, 2.0, 0.0, 1.15, 0.24), "house lead pluck": (0.4, 1.5, 0.0, 1.2, 0.34)}
 SUB_UNDER = 0.8     # ...this far under the bass it holds up (0.7 until the third pass: the liked basses have 3 to 7 dB more at 28 to 57 Hz)
 # House's room, at the foot of every channel's folder (sounds.hall): how long it rings (s), nothing in it over (Hz) or under
 # (Hz), and how long its lows ring against the rest. A darker room than the orchestra's, as it was set the first night
@@ -302,7 +441,8 @@ def voices(heard: Heard) -> list[tuple[str, str, str, str, float, list[Note], fl
         most[channel] = max(most[channel], max(levels.values()))
     out = []
     for (channel, table, name), notes in sorted(heard.notes.items()):
-        written = PLAYED[(table, name)]
+        written = heard.played.get((channel, table, name)) or PLAYED[(table, name)]
+        written = MAIN_LEADS.get(written, written)
         levels = spans[(channel, table, name)]
         # Each voice of a channel to the others as the writer has them where each is loudest (its quieter bars are the
         # volume moves' business, or its velocities').
@@ -314,10 +454,18 @@ def voices(heard: Heard) -> list[tuple[str, str, str, str, float, list[Note], fl
             # The four bars ride the track's volume; how hard a note is struck says only how it stands out in them. What is
             # written well under the tune there (the drop's line over it the second time round) is a track of its own, as
             # far under as it was written: an instrument that plays every note alike would play it as loud as the tune.
+            # (A lead of House's own plays its soft strokes itself: they are its accents, and on a track of their own it could not slide to them. Only what sounds with a louder
+            # note is a line under it: 2026-11-24, three quarters of Riot Line's riff on the track under.)
             ride = _ride(levels)
             share = [level / levels[_span_of(at)] for at, _, _, level, _, _ in notes]
-            tune = [(note, part) for note, part in zip(notes, share) if part >= UNDER]
-            under = [(note, part) for note, part in zip(notes, share) if part < UNDER]
+            loudest: dict[int, float] = defaultdict(float)
+            for at, _, _, level, _, _ in notes:
+                loudest[round(at / 0.03)] = max(loudest[round(at / 0.03)], level)
+            alone_at = lambda at, level: level >= max(loudest.get(round(at / 0.03) + k, 0.0) for k in (-1, 0, 1)) * 0.999      # noqa: E731
+            own = channel == "lead" and written in sounds.HOUSE_LEADS
+            over = [part >= UNDER if not own else alone_at(note[0], note[3]) for note, part in zip(notes, share)]
+            tune = [(note, part) for note, part, top in zip(notes, share, over) if top]
+            under = [(note, part) for note, part, top in zip(notes, share, over) if not top]
             parts = []
             if tune:
                 parts.append(("", [note for note, _ in tune], _loud([part for _, part in tune]), taste))
@@ -333,7 +481,7 @@ def voices(heard: Heard) -> list[tuple[str, str, str, str, float, list[Note], fl
             for cut, mine in sorted(bands.items()):
                 out.append((channel, table, name + suffix, written, cut, mine, level, ride))
                 every += mine
-        if written in GROWLED and (written != "house bass fm" or FM_GROWL or not sounds.HOUSE.get(written, "").startswith("own:")):
+        if written in GROWLED and (written != "house bass fm" or FM_GROWL or not sounds.house_own(written)):
             # (2026-11-17, night: against the liked house stems the bass was 30 dB short in its middle and 44 at its top: a
             # sine under 100 Hz, which a small loudspeaker does not play at all. The FM bass the same the next morning: 17 to
             # 30 dB short from 450 Hz up.) A sawtooth on the same notes, closed
@@ -389,6 +537,15 @@ def lines(heard: Heard, seed: int, work: Path) -> tuple[dict[str, list[desk.Line
             effects, send, volume = chains[which]
             if which == "kick" and OWN_KICK:
                 effects = [sounds.turned(kick_trim)] + effects
+            if which == "kick" and heard.drive:
+                # A hard act's kick: its own, tuned to the song, its knock and its edge brought up into a ceiling, and again after it.
+                hard_kick, pushed, soft = HARD_KICK.get(machine, HARD_KICK["909"])
+                kick_template = desk.bare("house hard kick", [desk.geonkick("own/%s@%.1f" % (hard_kick, heard.rest))])
+                effects = [sounds.turned(KICK_TRIM), sounds.equalise(low_cut=32.0, bands=((190.0, 4.0, 1.0), (1200.0, 6.0, 0.8))), sounds.clip(pushed, ceiling=-4.0, soft=soft),
+                           sounds.equalise(low_cut=30.0, bands=((170.0, 2.5, 0.9), (1100.0, 3.0, 0.8), (4000.0, 4.0, 1.2)))]
+                volume = HARD_KICK_AT
+            elif heard.drive:
+                volume *= HARD_TOPS[which]                     # (what is over the kick, up with it)
             out["drums"].append(desk.Line("house %s" % which, kick_template if which == "kick" else template, notes, volume=volume,
                                           send=send, effects=effects))
     # ----- the voices: each sound of each channel, its notes shared out by how bright they are asked for
@@ -405,7 +562,7 @@ def lines(heard: Heard, seed: int, work: Path) -> tuple[dict[str, list[desk.Line
             # the studio's own is shaped in its synth, its filter opening with each note: the cuts below, made to tame the
             # factory patches' tops against the liked stems (separated from whole mixes, so dull at the top), would only muffle
             # it. It keeps its top, the lows its part does not need taken away.
-            own = sounds.HOUSE.get(written, "").startswith("own:")
+            own = sounds.house_own(written)
             effects, settings = heard.marks.get((channel, table, name.split(" ")[0]), ({}, {}))
             for line in sounds.lines(Voice(notes=mine, instrument=written, effects=dict(effects), settings=dict(settings)), title, house.BPM,
                                      taste=taste, room=1.0, seed=seed, muse_level=sounds.LEVEL):
@@ -442,9 +599,10 @@ def lines(heard: Heard, seed: int, work: Path) -> tuple[dict[str, list[desk.Line
                         tone, top = (), dict(high_shelf=(9000.0, -2.0))
                         if written == "house bell" and BELL_BODY is not None:
                             tone, top = ((450.0, BELL_BODY[0], 1.5),), dict(high_shelf=(4000.0, BELL_BODY[1]))
+                    close = heard.drive > 0.0 and written != "house stab dub"           # (a hard act's stabs are close: CLOSE)
                     line.effects = list(line.effects) + [sounds.equalise(low_cut=150.0 if own else 80.0, bands=tone, **top)] \
-                        + moved + [sounds.warm(0.3), sounds.wide(1.3), sounds.echo(house.BPM, 0.26, left=3, right=4, again=0.36)]
-                    line.send = max(line.send, 0.24)
+                        + moved + [sounds.warm(0.3), sounds.wide(1.3), sounds.echo(house.BPM, 0.26 * (CLOSE[0] if close else 1.0), left=3, right=4, again=0.36)]
+                    line.send = CLOSE[1] if close else max(line.send, 0.24)
                 elif channel == "lead":
                     # (The night's leads, MuseScore's, were 6 dB dull at their top and 3 in their middle against the liked house
                     # stems: lifted. The Surge leads are the other way about: taken down from 2.5 kHz. Open from 120 Hz, since
@@ -470,8 +628,17 @@ def lines(heard: Heard, seed: int, work: Path) -> tuple[dict[str, list[desk.Line
                         toned = sounds.equalise(low_cut=85.0, bands=((1200.0, 3.0, 1.5),), high_shelf=(4000.0, 6.0))
                     # (...and the lead: tape, a chorus on a synth's, a longer echo from side to side, more room.)
                     widened = ([sounds.excite(0.15)] if written in OPEN_TOP else []) + [sounds.ensemble(0.35), sounds.wide(1.3)] if synth_played else []
-                    line.effects = list(line.effects) + [toned, sounds.warm(0.35)] + widened + [sounds.echo(house.BPM, 0.3, left=3, right=4, again=0.42)]
-                    line.send = max(line.send, 0.3)
+                    echoed = CLOSE[0] if heard.drive else 1.0
+                    added = [toned, sounds.warm(0.35)] + widened + [sounds.echo(house.BPM, 0.3 * echoed, left=3, right=4, again=0.42)]
+                    if written in sounds.HOUSE_LEADS or written in sounds.HEARTS:
+                        # (2026-11-24) A lead of House's own: held in three bands (jsfx/lift), so that the edge and the tail of each note are heard with
+                        # its body, presence at 2.6 kHz, its top open, and little chorus: its movement is its own.
+                        depth, high, chorus, spread, again = LEAD_CHAIN.get(written, LEAD_CHAIN[""])
+                        added = [sounds.equalise(low_cut=140.0, bands=((350.0, -1.5, 1.2), (2600.0, 2.0, 0.9)), high_shelf=(9000.0, 1.0)), sounds.lift(depth, high),
+                                 sounds.warm(0.3)] + ([sounds.ensemble(chorus)] if chorus else []) + [sounds.wide(spread),
+                                                                                                    sounds.echo(house.BPM, again * echoed, left=3, right=4, again=0.4)]
+                    line.effects = list(line.effects) + added
+                    line.send = CLOSE[2] if heard.drive else max(line.send, 0.3)
                 elif channel == "texture":
                     # (...and the pad 15 to 35 dB too much there: its glass is kept, its glare taken away; 16 dB bright still on
                     # 2026-11-17, night, with the risers tamed: 4 dB more off, and closed from 5 kHz.)
@@ -622,6 +789,12 @@ def story_at(sections: list[tuple[str, int, int]], beat: float) -> str:
 
 
 def write(name: str, take: int) -> Sheet:
+    """A House take's music sheet, its first draft, at its family's tempo (house.at)."""
+    with house.at(house.family(name).bpm):
+        return _write(name, take)
+
+
+def _write(name: str, take: int) -> Sheet:
     """A House take's music sheet, its first draft: what the writer (studio.house) asks to be played, taken down as it
     writes (`listen`), every part with its effect marks. Each part's low-pass follows its notes' brightness as the
     track opens and closes (`cutoff`), and its high-pass where the form takes the bottom away (`thinning`)."""
@@ -629,17 +802,23 @@ def write(name: str, take: int) -> Sheet:
     fam = track.family
     heard = listen(track)
     calm = fam.role in house.CALM_ROLES
+    act = act_of(fam, take)
     form = [dict({"story": story, "first": first, "bars": count}, **({"breakdown": True} if track.broken(story, first) else {}))
             for story, first, count in track.sections]
     parts: dict[str, dict[str, Voice]] = {channel: {} for channel in forever.CHANNELS}
+    roles = parts_of_the_lead(heard, track.sections)
     for (channel, table, sound), notes in sorted(heard.notes.items()):
-        part = Voice(instrument=PLAYED[(table, sound)],
-                     notes=[Note(at / BEAT, length / BEAT, int(round(pitch)), level) for at, length, pitch, level, _, _ in notes])
+        instrument = played(table, sound, act, track.seed, roles.get((table, sound), "") if channel == "lead" else "")
+        part = Voice(instrument=instrument,
+                     notes=[Note(at / BEAT, length / BEAT, reached(instrument, int(round(pitch))) if act else int(round(pitch)), level)
+                            for at, length, pitch, level, _, _ in notes])
+        if channel == "lead" and MAIN_LEADS.get(instrument, instrument) in sounds.HOUSE_LEADS:
+            accented(part.notes, form, hammered=track.scene is not None)
         lane: list[tuple[float, float]] = []
         for at, _, _, _, _, bright in sorted(notes):
             # The drop's big synths open further than the band: the hook, whose edge is what is heard (a theme's lead
             # about 6 kHz, not 3; "i wish i could hear more of that saw synths top end"). The other leads follow the band.
-            beat, hz = at / BEAT, cutoff(0.35 + 0.65 * bright if channel == "lead" and PLAYED[(table, sound)] in OPEN_TOP else bright)
+            beat, hz = at / BEAT, cutoff(0.35 + 0.65 * bright if channel == "lead" and instrument in OPEN_TOP else bright)
             if lane and beat - lane[-1][0] < 1e-3:
                 lane[-1] = (lane[-1][0], max(lane[-1][1], hz))
             else:
@@ -666,12 +845,12 @@ def write(name: str, take: int) -> Sheet:
         parts[channel]["%s %s" % (table, sound)] = part
     if not calm:
         harsher(parts, form)
-    machine = heard.hits[0][1] if heard.hits else ""
+    machine = (ACTS[act].machine if act else "") or (heard.hits[0][1] if heard.hits else "")
     for drum, _, at, level, _ in heard.hits:
         parts["drums"].setdefault(drum, Voice(drums=True, instrument="house kit " + machine)).notes.append(Note(at / BEAT, 0.25, 36, level))
     meta = track.meta()
     about = {"meta": meta, "frames": track.frames, "kick": bool(track.kick), "role": fam.role, "calm": calm, "seed": track.seed,
-             "machine": machine, "hard": fam.hard}
+             "machine": machine, "hard": fam.hard, "sounds": act}
     sheet = Sheet(style="house", family=name, take=take, title=meta["title"], tempo=float(house.BPM), beats=4.0, form=form, parts=parts,
                   about=about, airs=[asdict(air) for air in heard.airs])
     sheet.revised("the first draft", "written by the studio's house writer (%s, %s)" % (fam.palette, fam.groove), by="the writer")
@@ -713,6 +892,7 @@ def heard_from(sheet: Sheet) -> Heard:
         for part_name, part in parts.items():
             table, sound = part_name.split(" ", 1)
             heard.notes[(channel, table, sound)] = [(n.start * BEAT, n.length * BEAT, float(n.pitch), n.loud, 0.0, 1.0) for n in part.notes]
+            heard.played[(channel, table, sound)] = part.instrument
             if part.effects:
                 heard.marks[(channel, table, sound)] = (part.effects, part.settings)
     heard.hits = sorted(((drum, sheet.about["machine"], n.start * BEAT, n.loud, 0.0) for drum, part in sheet.parts.get("drums", {}).items()
@@ -746,6 +926,27 @@ def ridden(audio: np.ndarray, spans: list[tuple[int, int]], ceiling: float, ease
     return curve
 
 
+# How far a song's themes are held under its drops, by channel, in dB: a hard act's, and any other's that is not calm (2026-11-24: Riot Line's theme was 0.8 dB under
+# its drop, its drums and its lead at one level in both: there was nothing left for the drop to bring. Then counted: of the 164 House songs staged that are not calm the
+# drop stood 0.4 to 1.4 dB over the theme in every one, under a decibel in 125).
+HELD_BACK = {"drums": -1.2, "bass": -1.2, "rhythm": -1.5, "lead": -2.5}
+HELD_BACK_SOFTER = {"drums": -1.0, "bass": -1.0, "rhythm": -1.0, "lead": -1.5, "texture": -0.5}
+
+
+def held_back(sections: list[tuple[str, int, int]], channel: str, frames: int, over: "np.ndarray | float" = 1.0, held: dict[str, float] | None = None) -> np.ndarray:
+    """A channel's volume through a song (HELD_BACK, or `held`): its themes held under its drops, each eased over a bar into what comes after it."""
+    curve = np.ones(frames, dtype=np.float32)
+    down, bar = 10.0 ** ((HELD_BACK if held is None else held).get(channel, 0.0) / 20.0), int(house.BAR_FRAMES)
+    for story, first, count in sections:
+        if story == "theme":
+            curve[int(round(first * house.BAR_FRAMES)):min(int(round((first + count) * house.BAR_FRAMES)), frames)] = down
+    # (Eased by the mean over a bar: what is after a theme, a rise without its drums or a drop, is at its full by the second beat of it.)
+    half = max(bar // 2, 1)
+    total = np.cumsum(np.concatenate([np.full(half, curve[0]), curve, np.full(half, curve[-1])]), dtype=np.float64)
+    eased = (total[2 * half:] - total[:-2 * half]) / (2.0 * half)
+    return (np.resize(eased, frames) * over).astype(np.float32)
+
+
 def stage(name: str, take: int) -> dict:
     """Writes one take of a house family as its sheet and performs it (`write`, `perform`). A take whose sheet a musician has
     revised is performed from its sheet (`sheet.revised_of`)."""
@@ -754,6 +955,12 @@ def stage(name: str, take: int) -> dict:
 
 
 def perform(sheet: Sheet) -> dict:
+    """Plays a House sheet and stages it, at the tempo it says (house.at)."""
+    with house.at(sheet.tempo):
+        return _perform(sheet)
+
+
+def _perform(sheet: Sheet) -> dict:
     """Plays a House sheet and stages it: MuseScore and Surge XT play its parts in REAPER with their marks, the drums from
     the drum machine's recordings, each channel giving way under the kick as deep as its part of the story asks; then
     each channel to its place, the mix rendered again in REAPER, and the track staged with its sheet beside it."""
@@ -769,6 +976,8 @@ def perform(sheet: Sheet) -> dict:
         # MuseScore performs its instruments' lines several at a time before the project is put together.
         muse.prepare([(written, mine, float(house.BPM), []) for _, _, _, written, _, mine, _, _ in voices(heard) if written in muse.PARTS],
                      seed=about["seed"], workers=4)
+    heard.drive = ACTS[about["sounds"]].drive if about.get("sounds") in ACTS and not about["calm"] else 0.0
+    heard.rest = kicks.rest(house.family(name).tonic)
     under, strokes = lines(heard, about["seed"], work)
     folders = []
     for channel in forever.CHANNELS:
@@ -791,6 +1000,18 @@ def perform(sheet: Sheet) -> dict:
             # house stems: the strokes rose a third as fast as theirs through the orchestra's drum bus).
             bus = [sounds.equalise(low_cut=28.0, bands=((250.0, -3.0, 1.2),)), sounds.squeeze(-16.0, 2.5, 12.0, 120.0, 1.5),
                    sounds.ceiling(-1.0, push=1.5)]
+        drive = ACTS[about["sounds"]].drive if about.get("sounds") in ACTS else 0.0
+        if drive and channel == "drums":
+            # A hard act's drums (2026-11-24): what rings between the strokes brought up under them, and the whole through hot tape.
+            bus = bus[:-1] + [sounds.smash(0.55 * drive, makeup=8.0), sounds.warm(drive), sounds.equalise(high_shelf=(3000.0, 2.0 * drive))] + bus[-1:]
+        elif drive and channel == "bass":
+            bus = bus[:-1] + [sounds.burn(0.4 * drive), sounds.warm(drive), sounds.enhance(0.5 * drive)] + bus[-1:]
+        elif drive and channel == "rhythm":
+            # ...its stabs (the whole of Riot Line's and Blast Furnace's mixes stood 3 dB short from 1.2 to 5 kHz of what such a record has there).
+            bus = bus[:-1] + [sounds.equalise(low_cut=90.0, bands=((2500.0, 2.5, 0.9),)), sounds.warm(0.4 * drive)] + bus[-1:]
+        elif drive and channel == "lead":
+            # ...and its lead: a riff at the bottom of a synth's range is dull (Blast Furnace's 21 dB down from 5 kHz): its edge up, hot tape, a little air made out of it.
+            bus = bus[:-1] + [sounds.equalise(low_cut=110.0, bands=((1800.0, 1.5, 0.9),), high_shelf=(3200.0, 3.0)), sounds.warm(0.6 * drive), sounds.excite(0.3 * drive)] + bus[-1:]
         folders.append((desk.Line(channel, desk.bare(channel, []), effects=bus, moves=moves), under[channel]))
     seconds = sheet.bars * house.BAR
     rpp = work / "track.rpp"
@@ -806,8 +1027,14 @@ def perform(sheet: Sheet) -> dict:
     want = dict(PLACE, **(CALM if about["calm"] else {}))
     if not about["kick"]:
         want["drums"] = -27.0
+    if about.get("sounds") in ACTS and ACTS[about["sounds"]].drive and not about["calm"]:
+        # (A hard act stands on its drums and its bass, and its lead is heard: 2026-11-24, 17:40, each channel of three songs left out in turn, the bass was what their hardness was, 4 to 5 of it by its
+        # measure, and the lead what softened them: the bass a decibel up and the lead, which had been 3 dB nearer, 2.)
+        want = {**want, "drums": want["drums"] + 0.7, "bass": want["bass"] + 1.0, "lead": want["lead"] + 2.0, "rhythm": want["rhythm"] + 1.5, "texture": want["texture"] - 3.0}
     faders = {}
     alone: dict[str, list[tuple[float, float]]] = {}
+    hard = about.get("sounds") in ACTS and ACTS[about["sounds"]].drive > 0.0 and not about["calm"]
+    held = {} if about["calm"] else HELD_BACK if hard else HELD_BACK_SOFTER
     for channel in list(parts):
         have = analysis.loudness_lufs(parts[channel][a:b], RATE)
         if have < -70.0:
@@ -824,7 +1051,10 @@ def perform(sheet: Sheet) -> dict:
             # riff was 15 dB under its rises at the drops, the whole channel turned down by its rises; then its chords 5).
             faders[channel] = 10.0 ** ((want[channel] - have) / 20.0)
             parts[channel] = (parts[channel] * faders[channel]).astype(np.float32)
-            ride = ridden(parts[channel], list(zip(edges, edges[1:])), want[channel] + 3.0, int(house.BAR_FRAMES))
+            # (A hard song's lead is nowhere louder than at its drop: Riot Line's stood 3 dB over it in its rises and as it left.)
+            ride = ridden(parts[channel], list(zip(edges, edges[1:])), want[channel] + (0.0 if hard else 3.0), int(house.BAR_FRAMES))
+            if held.get(channel):
+                ride = held_back(sections, channel, frames, 1.0 if ride is None else ride, held)
             if ride is not None:
                 parts[channel] = (parts[channel] * ride[:, None]).astype(np.float32)
                 alone[channel] = desk.ride_points(ride)
@@ -832,6 +1062,10 @@ def perform(sheet: Sheet) -> dict:
         have = max(have, max(analysis.loudness_lufs(parts[channel][low:high], RATE) for low, high in zip(edges, edges[1:])) - 3.0)
         faders[channel] = 10.0 ** ((want[channel] - have) / 20.0)
         parts[channel] = (parts[channel] * faders[channel]).astype(np.float32)
+        if held.get(channel):
+            ride = held_back(sections, channel, frames, held=held)
+            parts[channel] = (parts[channel] * ride[:, None]).astype(np.float32)
+            alone[channel] = desk.ride_points(ride)
     # What is still ringing two seconds before the recording ends is eased away to nothing (as the writer's own render does).
     last = int(2.0 * RATE)
     ease = np.ones(frames, dtype=np.float32)
@@ -856,13 +1090,15 @@ def perform(sheet: Sheet) -> dict:
     meta = dict(about["meta"])
     meta["credit"] = ("Written by FreeRock's studio (studio.house); played in REAPER by the Surge XT synth (with Argitoth's Trance Lead 1, "
                       "a patch that ships with it), MuseScore Studio's Muse Sounds (Muse Group) "
-                      "and MckAudio's TR-8 drum-machine recordings (CC0), put together by studio.club.")
+                      "MckAudio's TR-8 drum-machine recordings (CC0) and, in some songs, Karoryfer's and others' recordings (CC0) in the sfizz "
+                      "sampler, put together by studio.club.")
     found = house.measure(meta, parts)
     folder = stage_root(VAR, "house") / name / str(take)
     write_track(folder, meta, parts)
     sheet.save(folder / "sheet.json")
     found.update(family=name, take=take, title=meta["title"], seconds=round(seconds, 1), took=round(time.time() - began, 1),
-                 voices=sorted("%s: %s %s -> %s" % (channel, table, sound, PLAYED[(table, sound)]) for channel, table, sound in heard.notes))
+                 voices=sorted("%s: %s %s -> %s" % (channel, table, sound, heard.played.get((channel, table, sound)) or PLAYED[(table, sound)])
+                              for channel, table, sound in heard.notes))
     scratch = folder / "measured.json.new"
     scratch.write_text(json.dumps(found, indent=1) + "\n", encoding="utf-8")
     scratch.replace(folder / "measured.json")

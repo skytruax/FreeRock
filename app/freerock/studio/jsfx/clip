@@ -1,0 +1,30 @@
+desc: FreeRock clip (a stroke driven into its ceiling)
+// Part of FreeRock's studio (2026-11-24: "house is a little better keep iterating"). A hard kick is a clipped one: its body driven into a ceiling so that what is left of
+// the sine is nearly a square, with the knock a loudspeaker plays, as tall as it was. Nothing cut before it or after it. Each sample is shaped twice, between it and the
+// one before it as well, which keeps the worst of what folds back out. Copied into REAPER's Effects folder by freerock.studio.reaper.configure.
+
+slider1:12<0,48,0.1>Drive (dB)
+slider2:-1<-24,0,0.1>Ceiling (dB)
+slider3:0.4<0,1,0.01>Softness
+slider4:1<0,1,0.01>Mix
+
+in_pin:left input
+in_pin:right input
+out_pin:left output
+out_pin:right output
+
+@init
+function tanh(x) local(a) ( a = exp(2 * min(max(x, -12), 12)); (a - 1) / (a + 1); );
+function shaped(x) local(y) ( y = x * g; (1 - soft) * min(max(y, -1), 1) + soft * tanh(y); );
+function clip(x) instance(before) local(out) ( out = 0.5 * (shaped(0.5 * (x + before)) + shaped(x)); before = x; out; );
+
+@slider
+g = 10 ^ (slider1 / 20);
+c = 10 ^ (slider2 / 20);
+soft = slider3;
+mix = slider4;
+
+@sample
+l = spl0; r = spl1;
+spl0 = l * (1 - mix) + left.clip(l) * c * mix;
+spl1 = r * (1 - mix) + right.clip(r) * c * mix;

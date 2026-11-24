@@ -2169,7 +2169,8 @@ def test_every_character_has_more_families(monkeypatch):
     assert [(fam.name, fam.title, fam.seed) for fam, _ in now[:len(one)]] == [(fam.name, fam.title, fam.seed) for fam, _ in one]
     assert [fam.character.style for fam, _ in one[len(before):]] == \
         sorted((fam.character.style for fam, _ in one[len(before):]), key=["knight", "warcraft"].index)
-    assert {fam.character.style for fam, _ in now[len(one):]} == {"knight"}
+    assert [fam.character.style for fam, _ in now[len(one):]] == sorted((fam.character.style for fam, _ in now[len(one):]), key=["knight", "warcraft"].index)
+    assert {fam.character.style for fam, _ in now[len(one):]} == {"knight", "warcraft"}         # (Warcraft's second, 2026-11-24: its companies' songs)
 
 
 def test_no_two_families_share_a_title_across_the_styles():

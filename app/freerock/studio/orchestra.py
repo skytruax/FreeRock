@@ -41,7 +41,7 @@ from __future__ import annotations
 import math
 import random
 import statistics
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 from .score import Note, Voice
 from .theory import MODES, Chord, Key, Line, tones, voiced
@@ -124,6 +124,13 @@ INSTRUMENTS = {
     "riff celli": I(36, 76, 50, held=False), "fuzz viola": I(48, 86, 62, wired=True),
     "stomp tuba": I(28, 55, 40), "torn organ": I(36, 84, 50, held=False), "fuzz wurly": I(40, 88, 55, held=False),
     "fuzz bass": I(28, 60, 38, held=False), "round bass": I(28, 60, 38, held=False),
+    # Found on 2026-11-24 ("find more instruments!"; studio.programs, and sounds.RECORDED's last).
+    "erhu": I(62, 81, 71), "lyre": I(64, 84, 73, held=False), "growl sax": I(37, 67, 50), "subtone sax": I(37, 67, 51), "saxcordion": I(57, 91, 68, level=0.8),
+    "war tuba": I(28, 58, 40), "bass voice": I(38, 58, 48), "archtop guitar": I(40, 84, 60, held=False), "guitar banjo": I(39, 75, 57, held=False),
+    "tagelharpa": I(40, 58, 48, held=False), "hollow guitar": I(40, 76, 50, held=False, wired=True), "hollow muted": I(40, 72, 47, held=False, wired=True),
+    "hollow lead": I(52, 84, 66, wired=True), "riff harpa": I(38, 64, 46, held=False), "riff sax": I(37, 66, 46, held=False), "torn sax": I(37, 67, 52), "wired erhu": I(62, 81, 71, wired=True),
+    "growly bass": I(28, 60, 38, held=False), "torn bass": I(28, 47, 38, held=False), "driven bass": I(28, 60, 38, held=False),
+    "heart lead": I(36, 88, 62), "heart pluck": I(36, 88, 62, held=False), "heart stab": I(36, 88, 60, held=False), "heart pad": I(36, 88, 60), "iron bass": I(28, 47, 36, held=False),
     # The big drums and what marks an arrival, found by name alone. A war drum's or a frame
     # drum's pitch is its size: 36 is the
     # biggest war drum, 45 the lowest frame drum. The others have one note each.
@@ -159,7 +166,15 @@ KITS = {
     "felt": dict(_STROKES, boom=36, snare=38, crash=49, crash2=57, tamb=54, ting=81, clack=37),
     "swept": dict(_STROKES, boom=36, snare=38, crash=49, crash2=57, tamb=54, ting=81, clack=37, swish=84),
     "room": dict(_STROKES, boom=36, snare=38, crash=49, crash2=57, tamb=54, ting=81, clack=37),
+    # (the Muldjord kit, found on 2026-11-24: a death metal record's Tama, its microphones mixed; held to the house's kit as those are)
+    # (five bobobo drums of Ghana, found the same day, for a company's hands)
+    "bobobo": dict(_STROKES, boom=64, snare=63, crash=55, crash2=49, tamb=54, ting=80, clack=62, shake=70, jingle=69),
+    "metal": dict(_STROKES, boom=36, snare=38, crash=49, crash2=57, tamb=54, ting=81, clack=37),
 }
+# A snare of its own for each band (2026-11-24: fourteen bands shared three kits, and a band is told by its drummer too): fifteen snares of Frankensnare's, each in the kit its band
+# had, struck on the same notes (what plays them: sounds.SNARES).
+OWN_SNARES = {"sticks": ("birch", "maple", "steel", "mahogany", "shell", "mystery", "aluminium", "ash", "sapele"), "felt": ("poplar", "thud", "ziggurat", "flyer", "wrenches", "alder")}
+KITS.update({"%s %s" % (kit, snare): dict(KITS[kit]) for kit, snares in OWN_SNARES.items() for snare in snares})
 
 
 # ---------------------------------------------------------------------------------------------
@@ -2202,43 +2217,199 @@ def _levels(role: str, heavy: float, busy: float = 0.5) -> dict[str, tuple[float
 # is the writer's, the sound the set's. The house band's, the sound of every song until now, is "".
 BANDS: dict[str, dict[str, str]] = {
     "doom": {"rhythm guitar": "doom guitar", "single guitar": "doom guitar", "muted guitar": "doom muted", "picked bass": "fuzz bass", "fretless": "fuzz bass",
-             "lead guitar": "fuzz lead", "kit rock": "kit felt", "kit room": "kit felt", "rock organ": "horns", "clean guitar": "chime guitar"},
+             "lead guitar": "fuzz lead", "kit rock": "kit felt poplar", "kit room": "kit felt poplar", "rock organ": "horns", "clean guitar": "chime guitar"},
     "stoner": {"rhythm guitar": "fuzz guitar", "single guitar": "fuzz guitar", "muted guitar": "fuzz muted", "picked bass": "fuzz bass", "fretless": "fuzz bass",
-               "lead guitar": "fuzz lead", "kit rock": "kit sticks", "kit room": "kit sticks", "rock organ": "choir", "clean guitar": "chime guitar"},
+               "lead guitar": "fuzz lead", "kit rock": "kit sticks birch", "kit room": "kit sticks birch", "rock organ": "choir", "clean guitar": "chime guitar"},
     "tweed": {"rhythm guitar": "crunch guitar", "single guitar": "crunch guitar", "muted guitar": "crunch muted", "picked bass": "round bass",
-              "fretless": "round bass", "lead guitar": "sweet lead", "kit rock": "kit sticks", "kit room": "kit swept"},
+              "fretless": "round bass", "lead guitar": "sweet lead", "kit rock": "kit sticks maple", "kit room": "kit swept"},
     "chop": {"rhythm guitar": "chop guitar", "single guitar": "chop guitar", "muted guitar": "chop muted", "picked bass": "fuzz bass", "fretless": "fuzz bass",
-             "lead guitar": "sweet lead", "kit rock": "kit sticks", "kit room": "kit sticks", "rock organ": "horns", "clean guitar": "wurly"},
+             "lead guitar": "sweet lead", "kit rock": "kit sticks steel", "kit room": "kit sticks steel", "rock organ": "horns", "clean guitar": "wurly"},
     "shanty": {"rhythm guitar": "crunch guitar", "single guitar": "crunch guitar", "muted guitar": "crunch muted", "picked bass": "stomp tuba", "fretless": "stomp tuba",
-               "lead guitar": "sweet lead", "kit rock": "kit sticks", "kit room": "kit sticks"},
+               "lead guitar": "sweet lead", "kit rock": "kit sticks mahogany", "kit room": "kit sticks mahogany"},
     "twang": {"rhythm guitar": "twang guitar", "single guitar": "twang guitar", "muted guitar": "crunch muted", "picked bass": "round bass",
-              "fretless": "round bass", "lead guitar": "sweet lead", "kit rock": "kit sticks", "kit room": "kit swept", "rock organ": "oohs",
+              "fretless": "round bass", "lead guitar": "sweet lead", "kit rock": "kit sticks shell", "kit room": "kit swept", "rock organ": "oohs",
               "clean guitar": "twang guitar"},
     "lounge": {"rhythm guitar": "chime guitar", "single guitar": "chime guitar", "muted guitar": "crunch muted", "picked bass": "round bass",
                "fretless": "round bass", "lead guitar": "sweet lead", "kit rock": "kit swept", "kit room": "kit swept", "clean guitar": "rhodes",
                "twelve string": "chime guitar"},
     # (the fifth round's: riffs on two cellos through amplifiers, on a church organ and on a saloon's piano)
     "cellos": {"rhythm guitar": "riff celli", "single guitar": "riff celli", "muted guitar": "muted celli", "picked bass": "fuzz bass", "fretless": "fuzz bass",
-               "lead guitar": "fuzz viola", "kit rock": "kit felt", "kit room": "kit felt", "rock organ": "choir", "clean guitar": "cello"},
+               "lead guitar": "fuzz viola", "kit rock": "kit felt thud", "kit room": "kit felt thud", "rock organ": "choir", "clean guitar": "cello"},
     "cathedral": {"rhythm guitar": "organ", "single guitar": "organ", "muted guitar": "celli pizz", "picked bass": "fuzz bass", "fretless": "fuzz bass",
-                  "lead guitar": "fuzz lead", "kit rock": "kit felt", "kit room": "kit felt", "rock organ": "choir", "clean guitar": "harpsichord"},
+                  "lead guitar": "fuzz lead", "kit rock": "kit felt ziggurat", "kit room": "kit felt ziggurat", "rock organ": "choir", "clean guitar": "harpsichord"},
     "saloon": {"rhythm guitar": "upright piano", "single guitar": "upright piano", "muted guitar": "upright piano", "picked bass": "round bass",
-               "fretless": "round bass", "lead guitar": "sweet lead", "kit rock": "kit sticks", "kit room": "kit swept", "rock organ": "oohs",
+               "fretless": "round bass", "lead guitar": "sweet lead", "kit rock": "kit sticks mystery", "kit room": "kit swept", "rock organ": "oohs",
                "clean guitar": "wurly"},
     # (the sixth round's: riffs on an organ and on an electric piano torn by their amplifiers, on a harpsichord, and on a marimba over mallets)
     "hammond": {"rhythm guitar": "torn organ", "single guitar": "torn organ", "muted guitar": "torn organ", "picked bass": "fuzz bass", "fretless": "fuzz bass",
-                "lead guitar": "sweet lead", "kit rock": "kit sticks", "kit room": "kit sticks", "rock organ": "choir", "clean guitar": "rhodes"},
+                "lead guitar": "sweet lead", "kit rock": "kit sticks aluminium", "kit room": "kit sticks aluminium", "rock organ": "choir", "clean guitar": "rhodes"},
     "grit": {"rhythm guitar": "fuzz wurly", "single guitar": "fuzz wurly", "muted guitar": "fuzz wurly", "picked bass": "round bass", "fretless": "round bass",
-             "lead guitar": "fuzz lead", "kit rock": "kit sticks", "kit room": "kit swept", "rock organ": "oohs", "clean guitar": "wurly"},
+             "lead guitar": "fuzz lead", "kit rock": "kit sticks ash", "kit room": "kit swept", "rock organ": "oohs", "clean guitar": "wurly"},
     "baroque": {"rhythm guitar": "harpsichord", "single guitar": "harpsichord", "muted guitar": "celli pizz", "picked bass": "round bass", "fretless": "round bass",
-                "lead guitar": "fuzz viola", "kit rock": "kit felt", "kit room": "kit swept", "rock organ": "choir", "clean guitar": "harpsichord"},
+                "lead guitar": "fuzz viola", "kit rock": "kit felt flyer", "kit room": "kit swept", "rock organ": "choir", "clean guitar": "harpsichord"},
     "bones": {"rhythm guitar": "marimba", "single guitar": "marimba", "muted guitar": "marimba", "picked bass": "round bass", "fretless": "round bass",
-              "lead guitar": "clarinet", "kit rock": "kit felt", "kit room": "kit felt", "rock organ": "oohs", "clean guitar": "marimba"},
+              "lead guitar": "clarinet", "kit rock": "kit felt wrenches", "kit room": "kit felt wrenches", "rock organ": "oohs", "clean guitar": "marimba"},
+    # (of the instruments found on 2026-11-24, "find more instruments!": two hollow-bodied guitars, one each side; a bowed harp plucked and torn, over a bowed bass; two
+    # growling saxophones over a tuba, no guitar in it)
+    "garage": {"rhythm guitar": "hollow guitar", "single guitar": "hollow guitar", "muted guitar": "hollow muted", "picked bass": "growly bass", "fretless": "growly bass",
+               "lead guitar": "hollow lead", "kit rock": "kit sticks sapele", "kit room": "kit sticks sapele", "rock organ": "wurly", "clean guitar": "archtop guitar"},
+    "skald": {"rhythm guitar": "riff harpa", "single guitar": "riff harpa", "muted guitar": "riff harpa", "picked bass": "torn bass", "fretless": "torn bass",
+              "lead guitar": "wired erhu", "kit rock": "kit felt alder", "kit room": "kit felt alder", "rock organ": "full choir", "clean guitar": "lyre"},
+    "brawl": {"rhythm guitar": "riff sax", "single guitar": "riff sax", "muted guitar": "riff sax", "picked bass": "war tuba", "fretless": "war tuba",
+              "lead guitar": "trumpet", "kit rock": "kit metal", "kit room": "kit metal", "rock organ": "brass", "clean guitar": "saxcordion"},
 }
+# What strums and who sings in a band that plays a song written for the house's (a cover, or a fresh family's: `borrowed`). (2026-11-24, the bands' test: the same
+# inn's song by all fourteen read the same to a decibel, its riff's attack 3.0 to 3.4 and its tune a third under the riff in every one: what a light song strums is a
+# steel guitar, a banjo or a mandolin, and what sings it a fiddle or a harmonica, and no band had either.) By turns, as the writer names them: STRUMMED, SUNG.
+STRUMMED = ("steel guitar", "banjo", "mandolin", "twelve string", "guitar")
+SUNG = ("fiddle", "harmonica", "whistle", "accordion", "mandolin", "steel guitar", "ocarina")
+STRUMS: dict[str, tuple[str, ...]] = {
+    "doom": ("chime guitar", "bells"), "stoner": ("chime guitar", "wurly"), "tweed": ("crunch guitar", "wurly"), "chop": ("chop guitar", "wurly"), "shanty": ("accordion", "mandolin"),
+    "twang": ("twang guitar", "dulcimer"), "lounge": ("rhodes", "vibes"), "cellos": ("celli pizz", "cello"), "cathedral": ("harp", "handbells"), "saloon": ("upright piano", "dulcimer"),
+    "hammond": ("wurly", "rhodes"), "grit": ("fuzz wurly", "wurly"), "baroque": ("harpsichord", "celli pizz"), "bones": ("marimba", "kalimba"),
+    "garage": ("archtop guitar", "wurly"), "skald": ("lyre", "koto"), "brawl": ("saxcordion", "vibes")}
+SINGS: dict[str, tuple[str, ...]] = {
+    "doom": ("english horn", "cello"), "stoner": ("bass flute", "trombone"), "tweed": ("alto sax", "viola", "clarinet"), "chop": ("tenor sax", "trombone"), "shanty": ("mandolin", "clarinet", "fiddle"),
+    "twang": ("trumpet", "viola", "harmonica"), "lounge": ("bari sax", "bass flute", "tenor sax"), "cellos": ("viola", "cello"), "cathedral": ("horns", "english horn"),
+    "saloon": ("clarinet", "tenor sax", "fiddle"), "hammond": ("trombone", "alto sax"), "grit": ("bari sax", "english horn"), "baroque": ("recorder", "viola", "oboe"), "bones": ("clarinet", "bass flute", "ocarina"),
+    "garage": ("subtone sax", "harmonica"), "skald": ("erhu", "euphonium"), "brawl": ("torn sax", "trumpet")}
+
+
+def borrowed(fam: "Family") -> bool:
+    """Whether a band of other sounds plays a song of a character written for the house's."""
+    first = next((each for each in CHARACTERS if each.name == fam.character.name), fam.character)
+    return first.band and not first.sounds
+
+
+def borrow(band: str, channel: str, voice: "Voice", place: int = 0) -> None:
+    """A borrowed song's strummed and sung parts given to the band's own (STRUMS, SINGS), `place` turning them from song to song."""
+    if channel == "rhythm" and voice.instrument in STRUMMED:
+        voice.instrument = STRUMS[band][(STRUMMED.index(voice.instrument) + place) % len(STRUMS[band])]
+    elif channel == "lead" and voice.instrument in SUNG:
+        voice.instrument = SINGS[band][(SUNG.index(voice.instrument) + place) % len(SINGS[band])]
+    else:
+        return
+    inst = INSTRUMENTS.get(voice.instrument)
+    for note in voice.notes if inst else ():
+        while note.pitch > inst.high:
+            note.pitch -= 12
+        while note.pitch < inst.low:
+            note.pitch += 12
+
+
+# Warcraft's companies (2026-11-24: "make sure were using unique bands on all genres"): who plays a song of its, as a band does a rock song. The orchestra of every
+# song until now is ""; a company is another set of players altogether: who sings what the writer gives to a high, a middle and a low voice, the four parts the
+# strings have, who holds chords, who plucks, and its drums. None is one of Knight Rock's bands or House's acts.
+@dataclass(frozen=True)
+class Company:
+    high: tuple[str, ...]
+    middle: tuple[str, ...]
+    low: tuple[str, ...]
+    bed: tuple[str, str, str, str]          # the violins', the violas', the celli's and the basses' parts
+    chord: tuple[str, ...]
+    pluck: tuple[str, ...]
+    kit: str = ""
+
+
+COMPANIES: dict[str, Company] = {
+    "winds": Company(("oboe", "flute"), ("english horn", "clarinet"), ("bass clarinet", "bassoon"), ("flute", "clarinet", "bassoon", "contrabassoon"), ("oohs",), ("marimba", "kalimba"), "wood"),
+    "iron brass": Company(("trumpet",), ("horns", "euphonium"), ("trombone", "tuba"), ("horns", "horns", "trombone", "tuba"), ("brass",), ("dulcimer", "xylophone"), "march"),
+    "monastery": Company(("oohs",), ("choir", "english horn"), ("cello", "full choir"), ("oohs", "choir", "choir", "organ"), ("organ",), ("handbells", "bells"), "orchestra"),
+    "quartet": Company(("violin",), ("viola", "clarinet"), ("cello", "bass clarinet"), ("violin", "viola", "cello", "acoustic bass"), ("accordion",), ("piano", "dream piano"), "folk"),
+    "consort": Company(("recorder",), ("viola", "english horn"), ("cello", "bassoon"), ("recorder", "viola", "cello", "basses pizz"), ("pipe drone",), ("harpsichord", "guitar"), "hands"),
+    "bronze": Company(("ocarina", "vibes"), ("bass flute", "handbells"), ("cello", "melodic tom"), ("oohs", "bass flute", "cello", "basses slow"), ("oohs",), ("vibes", "handchimes", "kalimba"), "hands"),
+    "caravan": Company(("shenai", "shakuhachi"), ("english horn", "viola"), ("cello", "bass clarinet"), ("shenai", "viola", "cello", "fretless"), ("pipe drone",), ("sitar", "koto"), "hands"),
+    "highland": Company(("fiddle", "whistle"), ("accordion", "viola"), ("cello", "euphonium"), ("fiddle", "viola", "cello", "acoustic bass"), ("pipe drone",), ("mandolin", "twelve string"), "folk"),
+    "carnival": Company(("eb clarinet", "violin"), ("accordion", "clarinet"), ("bassoon", "euphonium"), ("violin", "clarinet", "bassoon", "tuba"), ("accordion",), ("dulcimer", "xylophone"), "wood"),
+    "horde": Company(("shakuhachi", "pan flute"), ("horns", "shenai"), ("trombone", "contrabassoon"), ("full choir", "horns", "trombone", "tuba"), ("full choir",), ("marimba", "melodic tom"), "bobobo"),
+    "crypt": Company(("bass flute", "ocarina"), ("oohs", "bass clarinet"), ("cello", "contrabassoon"), ("oohs", "bass flute", "celli slow", "contrabass flute"), ("organ",), ("celesta", "music box"), "orchestra"),
+    # (of the instruments found on 2026-11-24: an erhu's and a lyre's, and a pipe's over a tuba with a lyre and a tagelharpa)
+    "silk": Company(("erhu",), ("clarinet", "english horn"), ("cello", "bass clarinet"), ("erhu", "viola", "cello", "acoustic bass"), ("oohs",), ("lyre", "koto"), "hands"),
+    "mead hall": Company(("bagpipe",), ("euphonium", "viola"), ("war tuba", "bassoon"), ("viola", "viola", "cello", "war tuba"), ("full choir",), ("lyre",), "folk"),
+}
+# What the writer names, by who it is for in a company.
+_SINGS = {"high": ("flute", "piccolo", "oboe", "whistle", "ocarina", "recorder", "pan flute", "violin", "fiddle", "eb clarinet", "shakuhachi", "bagpipe"),
+          "middle": ("clarinet", "english horn", "viola", "horns", "trumpet", "oohs", "choir", "shenai", "accordion", "brass", "full choir"),
+          "low": ("cello", "bassoon", "trombone", "bass clarinet", "euphonium", "bass flute", "tuba", "contrabassoon", "contrabass flute"),
+          "chord": ("strings", "strings slow", "tremolo", "organ", "pipe drone"),
+          "pluck": ("harp", "pizzicato", "guitar", "celesta", "dulcimer", "marimba", "bells", "harpsichord", "kalimba", "vibes", "mandolin", "piano", "xylophone", "steel guitar", "banjo",
+                    "handbells", "glock", "dream piano", "twelve string", "handchimes", "koto", "sitar", "music box", "celli pizz", "church bell")}
+_BED = (("violins", "violins slow"), ("violas",), ("celli", "celli slow"), ("basses", "basses slow", "basses pizz", "acoustic bass", "fretless"))
+
+
+def company_table(company: Company) -> dict[str, str]:
+    """What plays each instrument the writer names, in a company: by turns where it has more than one for a place, so that two singers of the writer's are two here."""
+    out: dict[str, str] = {}
+    for place, names in _SINGS.items():
+        has = getattr(company, place)
+        out.update({name: has[index % len(has)] for index, name in enumerate(names)})
+    for names, player in zip(_BED, company.bed):
+        out.update({name: player for name in names})
+    if company.kit:
+        out.update({"kit " + kit: "kit " + company.kit for kit in ("orchestra", "march", "folk", "hands", "wood")})
+    return out
+
+
+# The companies that belong to a kind of ground, by turns; a moment that is anywhere's has any.
+COMPANY_FOR = {"pastoral": ("quartet", "highland", "mead hall", "consort", "carnival", "winds"), "highland": ("highland", "iron brass", "mead hall", "winds", "monastery"),
+               "haunted": ("crypt", "carnival", "monastery", "silk", "quartet"), "desert": ("caravan", "silk", "bronze", "consort", "horde"),
+               "jungle": ("horde", "bronze", "silk", "winds", "caravan"), "infernal": ("iron brass", "horde", "caravan", "bronze", "crypt"),
+               "regal": ("consort", "iron brass", "silk", "quartet", "monastery"), "mystic": ("bronze", "crypt", "silk", "caravan", "monastery"),
+               "marsh": ("winds", "carnival", "horde", "crypt"), "coast": ("highland", "mead hall", "consort", "carnival", "quartet"),
+               "frozen": ("quartet", "mead hall", "crypt", "highland", "monastery")}
+SETS: dict[str, dict[str, str]] = {**BANDS, **{name: company_table(company) for name, company in COMPANIES.items()}}
 # The library's first takes stay as they are; from this take on, a band song of any other character is played by another band than the house's, drawn for
 # the take: the same changes, its own tunes, and not the sound of every song before it.
 COVERS_FROM = 7
 COVER_BANDS = {"heavy": ("doom", "stoner", "tweed", "chop", "twang", "shanty"), "light": ("lounge", "twang", "tweed")}
+
+# A character's families past its third are another song than its first ones (2026-11-24; "all the knight rock songs sound like the same song", "too much of the
+# same instrument sounds": forty-six families of the house band's characters were planned and none made, thirty-six of them next in the day's lists). The place,
+# the moment and the writer's manner are the character's; the band, who leads, the shape of the song, the groove and the mode are drawn round the table, so
+# that no two beside each other share them. Dark, and sung low, as the new characters are.
+FRESH_FROM = 3
+FRESH_BANDS = {"heavy": ("cellos", "garage", "stoner", "saloon", "skald", "doom", "chop", "cathedral", "brawl", "twang", "hammond", "bones", "shanty", "grit", "tweed", "baroque"),
+               "light": ("lounge", "garage", "tweed", "saloon", "skald", "twang", "baroque", "grit", "bones"),
+               "fight": ("doom", "brawl", "hammond", "stoner", "skald", "cellos", "tweed", "cathedral", "garage", "shanty")}
+FRESH_FORMS = {"wander": ("riff", "verses", "", "jam", "burn"), "town": ("verses", "riff", ""), "storm": ("riff", "verses", ""), "ember": ("jam", "verses", ""),
+               "camp": ("burn", "verses", ""), "night": ("burn", ""), "depths": ("", "burn"), "battle": ("riff", ""), "boss": ("", "riff"),
+               "battleground": ("riff", "")}
+FRESH_FORMS_LIGHT = ("verses", "jam", "burn", "")                  # a light walk's: no riff song without a riff's guitars
+FRESH_LEADS = ("trumpet", "viola", "tenor sax", "trombone", "cello", "clarinet", "fiddle", "bari sax", "bass flute", "horns", "english horn", "mandolin", "alto sax",
+               "accordion", "bass clarinet")
+FRESH_GROOVES = ("swamp stomp", "black toms", "train", "gallows march", "shuffle", "tom rock", "half rock")
+FRESH_MODES = ("minor", "dorian", "phrygian")
+
+
+def fresh(character: Character, number: int) -> Character:
+    """A house band's character for its family of this number (from FRESH_FROM on, counted from nought): another band's song. An orchestra's: a company's."""
+    if character.sounds or number < FRESH_FROM:
+        return character
+    if not character.band:
+        ground = lambda each: each.kinds[0] if len(each.kinds) < 5 else ""      # noqa: E731
+        ours = [each for each in CHARACTERS if each.style == character.style and not each.band and ground(each) == ground(character)]
+        names = COMPANY_FOR.get(ground(character), tuple(COMPANIES))
+        at = ours.index(character) + (number - FRESH_FROM) * 2
+        modes = tuple(each for each in character.modes if each.startswith(FRESH_MODES)) or ("minor", "dorian")
+        return replace(character, sounds=names[at % len(names)], modes=modes, dark=True, opens=True, low=True)
+    fight = character.role in FIGHTS or character.role == "storm"
+    kind = "fight" if fight else "light" if character.light or character.weight < 0.7 else "heavy"
+    houses = [each for each in CHARACTERS if each.band and not each.sounds]
+    at = houses.index(character) + (number - FRESH_FROM) * 5
+    beside = [each for each in houses if (each.role in FIGHTS or each.role == "storm") == fight]
+    place = beside.index(character) + (number - FRESH_FROM) * 5
+    forms = FRESH_FORMS_LIGHT if character.role == "wander" and kind == "light" else FRESH_FORMS[character.role]
+    same = [each for each in houses if each.role == character.role and (each.light or each.weight < 0.7) == (kind == "light" or (fight and (each.light or each.weight < 0.7)))]
+    turn = same.index(character) if character in same else at
+    lead = FRESH_LEADS[at % len(FRESH_LEADS)]
+    others = tuple(each for each in character.leads if each != lead)
+    groove = FRESH_GROOVES[at % len(FRESH_GROOVES)]
+    modes = tuple(each for each in character.modes if each.startswith(FRESH_MODES)) or ("minor", "dorian")
+    return replace(character, sounds=FRESH_BANDS[kind][place % len(FRESH_BANDS[kind])], form=forms[(turn + number - FRESH_FROM) % len(forms)],
+                   # (take 1's first theme is the second of these; its summit's too in every other song, the guitar's in the rest)
+                   leads=(others[0], lead) + others[1:] if others else (lead,), strong=(character.strong[0], lead) if at % 2 else character.strong,
+                   grooves=character.grooves if character.role in ("night", "depths") else (character.grooves[0], groove), modes=modes,
+                   dark=True, opens=True, low=True, turns=character.weight >= 0.8)
 
 
 def band_of(fam: "Family", take: int) -> str:
@@ -2252,14 +2423,14 @@ def band_of(fam: "Family", take: int) -> str:
 
 def sounded(band: str, instrument: str) -> str:
     """What plays an instrument the writer names, in a band's own sounds (BANDS)."""
-    return BANDS[band].get(instrument, instrument) if band else instrument
+    return SETS[band].get(instrument, instrument) if band else instrument
 
 
 # What a band's own players that no amplifier holds are held by (0 to 1: how far of the way to full strength each note goes), and how much nearer one that is
 # soft by nature stands (dB), where it plays for another (2026-11-24, 00:05: Black Spire Ward's church organ had its first theme on its soft stops, seven dB
 # under the guitars after eleven of lift; Deposed Interdict's harpsichord the valley's tune at -46 LUFS).
 HELD = {"organ": 0.5}
-NEARER = {"harpsichord": 8.0}
+NEARER = {"harpsichord": 8.0, "saxcordion": 6.0}
 
 
 def held(voice: "Voice") -> None:

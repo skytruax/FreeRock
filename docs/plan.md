@@ -216,6 +216,13 @@ on those", "loop", 2026-11-23). `tools/cycle.py` picks and remembers; `docs/song
 5. **The round is closed** (`cycle.py round end`) with what was made, what was tested, what was learnt and what was heard, the
    library is built again with the game off, and the next begins.
 
+Two rules over all of it, 2026-11-24 ("make sure were using unique bands on all genres, and make sure were making new music every night not just iterating"):
+
+- **Every style has bands of its own**: Knight Rock's bands (`orchestra.BANDS`), House's acts (`club.ACTS`), Warcraft's companies (`orchestra.COMPANIES`). None is borrowed, no two in a style have one
+  lead and one set of players, and each is tested for its musicality (the same music by each, measured, and judged against the style's own) before it is given many songs.
+- **Every night makes new songs before anything else**: at least ten new songs of each style stand at the front of the night's lane; revisions, re-renders and
+  covers come after them. The morning's report says how many of the night's songs were new.
+
 The bars for a round: no kind of place or moment in any style with fewer songs than ten; no song heard more often than three
 times while another for the same place has not been heard once; and a song's neighbours in an evening not led by the same
 instrument.

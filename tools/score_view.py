@@ -90,8 +90,8 @@ def house_lines(name: str, take: int, part: str, bars: int) -> tuple[list[tuple[
                 lines.append((each_part, way, part_notes, chosen, label))
         else:
             lines.append(("Piano", "", mine, None, label))           # a synth: written out on a staff of its own
-    caption = "%s %d: %s, house, %d BPM, bars %d-%d" % (track.family.title, take, part, house.BPM, first + 1, first + bars)
-    return lines, float(house.BPM), caption
+    caption = "%s %d: %s, house, %d BPM, bars %d-%d" % (track.family.title, take, part, track.family.bpm, first + 1, first + bars)
+    return lines, float(track.family.bpm), caption
 
 
 def joined(lines: list[tuple[str, str, list[Note], str | None, str]], bpm: float, caption: str) -> str:
