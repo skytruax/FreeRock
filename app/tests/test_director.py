@@ -374,6 +374,28 @@ def test_walking_indoors_muffles_at_once_and_moves_to_depths_if_you_stay():
     assert at(16.75).place == "depths" and at(17).place == "wander"
 
 
+def test_a_building_in_a_town_is_not_a_cave():
+    """(2026-11-23, played: Menethil Keep and two town halls were given a cave's music: the game says "indoors" of both.) The music outside
+    goes on under a town's roof, muffled; a mine, a stronghold that is a cave and a place nothing is known of are as they were."""
+    def indoors(zone, place, **more):
+        start = GameState(daytime=True, speed=7.0, zone_name=zone, subzone_name=place, has_subzone=place is not None, **more)
+        return play([(5, {"indoors": True})], 15, start=start)(12)
+
+    for zone, place in (("Wetlands", "Menethil Keep"), ("Wetlands", "Menethil Harbor"), ("Lakeshire Town Hall", "Lakeshire"),
+                        ("Darkshire Town Hall", None), ("Duskwood", "Darkshire"), ("Westfall", "Alexston Farmstead"), ("Redridge Mountains", "Stonewatch Tower")):
+        inside = indoors(zone, place)
+        assert inside.place == "wander" and not inside.sited, (zone, place, inside.place)
+        assert inside.lowpass_hz == 2500.0 and inside.reverb == 0.40, "still heard through the walls"
+    for zone, place in (("Westfall", "Jangolode Mine"), ("Loch Modan", "Mo'grosh Stronghold"), ("Redridge Mountains", "Render's Rock"),
+                        ("Duskwood", "Dawning Wood Catacombs"), ("Loch Modan", None), (None, None)):
+        assert indoors(zone, place).place == "depths", (zone, place)
+    inn = indoors("Wetlands", "Deepwater Tavern", resting=True)
+    assert inn.place == "ember" and inn.sited, "an inn is an inn"
+    as_it_was = play([(5, {"indoors": True})], 15, rules=Rules(buildings=False),
+                     start=GameState(daytime=True, speed=7.0, zone_name="Wetlands", subzone_name="Menethil Keep", has_subzone=True))(12)
+    assert as_it_was.place == "depths"
+
+
 def test_ducking_into_a_doorway_does_not_change_the_section():
     at = play([(5, {"indoors": True}), (5.75, {"indoors": False})], 12)
     assert all(at(moment).place == "wander" for moment in (5, 5.5, 6, 7, 9, 12))

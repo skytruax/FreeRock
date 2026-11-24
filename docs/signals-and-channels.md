@@ -105,7 +105,7 @@ The first match wins (`director.py:465-526`). Ordinary fights do not change the 
 | 4 | dead or a ghost | ember | wander |
 | 5 | the afterglow of a boss fight that lasted 10 s or more (8 s after the hold) | ember | |
 | 6 | the hold after a boss fight | battle | storm |
-| 7 | in a cave or building for 1 s (released 2 s after leaving) | depths | wander |
+| 7 | in a cave, or under a roof whose place's name does not say a building (`atlas.building_of`: a hall, a keep, a tower, a harbor, a shire...), for 1 s (released 2 s after leaving) | depths | wander |
 | 8 | in an inn (resting, indoors) | ember | wander |
 | 9 | in a town (resting, out of doors) | town | wander |
 | 10 | a rain storm for 4 s, out of doors (it ends once the rain has been under 0.4, or turned to other weather, for 20 s together) | storm | wander |

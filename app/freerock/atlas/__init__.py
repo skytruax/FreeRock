@@ -152,6 +152,28 @@ def setting_of(text: str | None) -> str:
     return ""
 
 
+# Words of a place's name that say a roof there is a building's, and the words that say it is a cave's all the same (the game says "indoors" of
+# both). 2026-11-23, played: Menethil Keep and two town halls were given a cave's music, a third of the week's time indoors outside dungeons.
+BUILDING_WORDS = ("hall", "keep", "inn", "tavern", "tower", "abbey", "cathedral", "chapel", "barracks", "manor", "house", "lodge", "library", "academy",
+                  "farm", "farmstead", "homestead", "mill", "barn", "stable", "cottage", "harbor", "harbour", "port", "dock", "village", "town",
+                  "hamlet", "shire", "city", "market", "square")
+BUILDING_ENDS = ("shire", "hall", "town", "ville", "stead")
+CAVE_WORDS = ("mine", "cave", "cavern", "den", "barrow", "crypt", "tomb", "catacomb", "tunnel", "grotto", "burrow", "hollow", "lair", "pit", "dig",
+              "excavation", "quarry", "sewer", "shaft", "warren", "hive", "underground", "depth")
+
+
+def building_of(zone_name: str | None, place_name: str | None = None) -> bool:
+    """Whether the place's own name, or the zone's (the game gives some town halls as zones), says that a roof there is a building's."""
+    def words_of(name: str | None) -> set[str]:
+        words = set(slug(name or "").split("-")) - {""}
+        return words | {word[:-1] for word in words if word.endswith("s") and len(word) > 3}
+
+    place, zone = words_of(place_name), words_of(zone_name)
+    if (place | zone) & set(CAVE_WORDS):
+        return False
+    return bool((place | zone) & set(BUILDING_WORDS)) or any(word.endswith(BUILDING_ENDS) and len(word) >= 7 for word in place | zone)
+
+
 def setting_for(zone_name: str | None, place_name: str | None = None) -> str:
     """The setting of where the player is: its own name's, or the zone's name's, or what the
     zone's profile says of it (Westfall's "golden fields"); "" where nothing says."""

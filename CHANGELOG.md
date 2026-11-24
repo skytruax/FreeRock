@@ -19,6 +19,9 @@ dictated, where it drove the change.
   their openings and their valleys louder (`Character.opens`).
 - The riff listens to whoever sings: in songs led by another voice than the lead guitar a quarter of its moved chords sounded an eighth note's length
   or more a semitone from the tune (6 in 100 a beat or more).
+- **A town's roof is not a cave's**: the game says "indoors" of both, and Menethil Keep and two town halls played a cave's music, a third of the week's
+  time indoors outside dungeons. Where the place's name says a building (a hall, a keep, a tower, a harbor, a shire...) the music outside goes
+  on, muffled (`atlas.building_of`, `Rules.buildings`). It takes effect when the server is next started.
 - A bend on the blues scale no longer takes the lead guitar's top note out of its range.
 - **The page of what is new lost an evening's new songs**: it took the bucket file's time for the build's, and the server writes that file again as
   it plays, so 104 new songs stood as none. The build's time is its newest piece's.

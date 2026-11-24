@@ -23,6 +23,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from . import atlas
 from .state import GameState
 
 # The kinds of moment, most urgent first: what a written piece's role is one of.
@@ -141,6 +142,8 @@ class Rules:
     afterglow_fight_s: float = 10.0   # ...that lasted at least this long; a short one goes straight back
     depths_after_s: float = 1.0
     depths_release_s: float = 2.0
+    # (2026-11-23, played: the game says "indoors" of a cave and of a building alike, and a keep and two town halls were given a cave's music.)
+    buildings: bool = True            # a roof in a town or a keep (atlas.building_of) is not a cave's: the music outside goes on, muffled
     rain_drums_at: float = 0.3        # rain this strong brings the drums in
     storm_at: float = 0.6             # rain this strong is a rain storm: the whole band comes in
     storm_after_s: float = 4.0        # a storm that lasts this long brings in the storm's music
@@ -452,7 +455,8 @@ class Director:
         # A dungeon is indoors from end to end; its own music is made for that. The cave rules
         # are for stepping into a mine or a building out in the world.
         cave = state.indoors and not dungeon
-        if cave and not state.resting:
+        building = cave and rules.buildings and atlas.building_of(state.zone_name, state.subzone_name)
+        if cave and not building and not state.resting:
             m.outdoors_since = None
             m.indoors_since = m.indoors_since if m.indoors_since is not None else now
             if now - m.indoors_since >= rules.depths_after_s:
