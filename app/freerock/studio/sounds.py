@@ -1432,8 +1432,8 @@ AMPS: dict[str, Amp] = {
     "fuzz viola": Amp(2, 18.0, bass=1.0, middle=2.0, treble=-2.0, at=900.0, top=4600.0, spring=0.15, echo=0.2, tight=110.0, level=-28.0),
     "torn organ": Amp(2, 14.0, bass=1.0, middle=2.0, treble=-1.0, at=1000.0, top=4800.0, seats=(0.0,), tight=90.0, bright=2.0, presence=1.0, level=-10.6),
     "fuzz wurly": Amp(1, 18.0, bass=1.0, middle=3.0, treble=1.0, at=900.0, top=4800.0, tremolo=0.2, rate=5.0, seats=(0.2,), tight=110.0, bright=4.0, presence=2.0, level=-20.2),
-    "fuzz bass": Amp(3, 14.0, bass=3.0, middle=4.0, treble=0.0, at=800.0, top=3600.0, tight=25.0, bright=8.0, level=-21.3),
-    "round bass": Amp(0, 4.0, bass=3.0, middle=-1.0, treble=-12.0, at=400.0, top=1800.0, tight=25.0, level=-8.0),
+    "fuzz bass": Amp(3, 14.0, bass=3.0, middle=4.0, treble=0.0, at=800.0, top=3600.0, tight=25.0, bright=8.0, level=-19.3),
+    "round bass": Amp(0, 4.0, bass=3.0, middle=-1.0, treble=-12.0, at=400.0, top=1800.0, tight=25.0, level=-4.5),
 }
 
 

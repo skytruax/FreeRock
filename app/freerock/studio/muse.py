@@ -694,8 +694,8 @@ def _plain(recording: Path) -> bool:
 # -19.6; the fuzz lead -34.3, -24.7, -20.0. Held so far, a crunch falls 7 dB, a doom 4, a lead 8, a clean one 12. (What is not amplified keeps its whole range.)
 SQUEEZE: dict[str, float] = {
     "crunch guitar": 0.6, "crunch muted": 0.6, "fuzz guitar": 0.5, "fuzz muted": 0.5, "doom guitar": 0.5, "doom muted": 0.5, "chop guitar": 0.5, "chop muted": 0.5,
-    "twang guitar": 0.5, "chime guitar": 0.45, "sweet lead": 0.6, "fuzz lead": 0.5, "fuzz bass": 0.5, "round bass": 0.5, "riff celli": 0.5, "muted celli": 0.5,
-    "fuzz viola": 0.55, "fuzz wurly": 0.5, "stomp tuba": 0.5,
+    "twang guitar": 0.5, "chime guitar": 0.45, "sweet lead": 0.6, "fuzz lead": 0.5, "fuzz bass": 0.1, "round bass": 0.15, "riff celli": 0.5, "muted celli": 0.5,
+    "fuzz viola": 0.55, "fuzz wurly": 0.5, "stomp tuba": 0.3,
 }
 
 

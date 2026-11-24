@@ -25,7 +25,7 @@ import numpy as np
 
 from .. import analysis, forever
 from . import RATE, desk, muse, reaper, sounds, stage_root, write_track
-from .orchestra import CHANNELS, CHARACTERS, INSTRUMENTS, Family, Take, band_of, family, given, settings_of
+from .orchestra import CHANNELS, CHARACTERS, INSTRUMENTS, Family, Take, band_of, family, given, held, settings_of
 from .score import Sheet, humanise
 
 VAR = Path(__file__).resolve().parents[3] / "var"
@@ -441,6 +441,8 @@ def write(fam: Family, take: int) -> Sheet:
         for channel in CHANNELS:
             for voice in written.voices[channel].values():
                 given(band, voice)
+                if channel in ("lead", "rhythm"):
+                    held(voice)
     form, first_bar = [], 0
     for section in fam.sections:
         written_as = {"story": section.story, "part": section.part, "first": first_bar, "bars": section.bars,
@@ -472,7 +474,8 @@ TUNE_MOST = 5.0
 # ...and in a band of other sounds (orchestra.BANDS) up to this much (2026-11-23, 23:30, the first of them, Casket Roll: a tenor saxophone, the choir's oohs and
 # a sweet lead played softly read 10 to 12 dB under what they are at the summit, where the house's distorted lead reads 3; in its head, its bridge and its
 # close the lift stood at its 5 and the tune was still 4 dB under the piano).
-TUNE_MOST_BANDS = 11.0
+TUNE_MOST_BANDS = 13.0
+TUNE_UNDER_BASS = 1.0    # dB the bass may stand over where the tune is measured against it, in those bands (Deposed Interdict's valley: no guitars, the bass at -29)
 
 
 def solo_lift(parts: dict[str, np.ndarray], span: tuple[int, int], ramp: int) -> tuple[float, np.ndarray | None]:
@@ -515,11 +518,14 @@ def sung_spans(form: list[dict], edges: list[int], solo_spans: list[tuple[int, i
     return sung
 
 
-def tune_lift(parts: dict[str, np.ndarray], spans: list[tuple[int, int]], ramp: int, most: float | None = None) -> tuple[list[float], np.ndarray | None]:
+def tune_lift(parts: dict[str, np.ndarray], spans: list[tuple[int, int]], ramp: int, most: float | None = None,
+              bass: bool = False) -> tuple[list[float], np.ndarray | None]:
     """How far the lead channel is brought up in each part of a band's story where its tune sings (TUNE_LIFT), so that it
     stands TUNE_OVER dB over the rhythm guitars there, and at most `most` (TUNE_MOST); nothing where it stands over them already, or
-    where the lead or the guitars play little. The gain for each sample, eased from part to part over `ramp` samples."""
+    where the lead or the guitars play little. The gain for each sample, eased from part to part over `ramp` samples. With `bass`, against the bass as
+    well (TUNE_UNDER_BASS): in a valley with no guitars it is what the tune sings over."""
     most = TUNE_MOST if most is None else most
+    least = -58.0 if bass else -50.0
     if "lead" not in parts or "rhythm" not in parts:
         return [], None
     frames = len(parts["lead"])
@@ -531,8 +537,10 @@ def tune_lift(parts: dict[str, np.ndarray], spans: list[tuple[int, int]], ramp: 
         # and read -31 of the chord before it.)
         since = first + min(int(4.0 * RATE), (last - first) // 4) if most > TUNE_MOST else first
         band = analysis.loudness_lufs(parts["rhythm"][since:last], RATE)
+        if bass and "bass" in parts:
+            band = max(band, analysis.loudness_lufs(parts["bass"][since:last], RATE) - TUNE_UNDER_BASS - TUNE_OVER)
         lift = 0.0
-        if lead > -50.0 and band > -50.0:
+        if lead > least and band > -50.0:
             lift = max(min(band + TUNE_OVER - lead, most), 0.0)
         db[first:last] = lift
         lifts.append(round(float(lift), 2))
@@ -685,7 +693,7 @@ def perform(sheet: Sheet) -> dict:
         # A band's tune stands over its rhythm guitars wherever it sings: every part of the story but the open, where the
         # riff is alone, and the solo, which is lifted by its own measure.
         tune_dbs, tune_curve = tune_lift(parts, sung_spans(sheet.form, edges, solo_spans), int(60.0 / bpm * RATE),
-                                         most=TUNE_MOST_BANDS if about.get("sounds") else TUNE_MOST)
+                                         most=TUNE_MOST_BANDS if about.get("sounds") else TUNE_MOST, bass=bool(about.get("sounds")))
         if tune_curve is not None:
             parts["lead"] = parts["lead"] * tune_curve[:, None]
             lead_curve = tune_curve if lead_curve is None else lead_curve * tune_curve

@@ -2251,6 +2251,21 @@ def sounded(band: str, instrument: str) -> str:
     return BANDS[band].get(instrument, instrument) if band else instrument
 
 
+# What a band's own players that no amplifier holds are held by (0 to 1: how far of the way to full strength each note goes), and how much nearer one that is
+# soft by nature stands (dB), where it plays for another (2026-11-24, 00:05: Black Spire Ward's church organ had its first theme on its soft stops, seven dB
+# under the guitars after eleven of lift; Deposed Interdict's harpsichord the valley's tune at -46 LUFS).
+HELD = {"organ": 0.5}
+NEARER = {"harpsichord": 8.0}
+
+
+def held(voice: "Voice") -> None:
+    """A band's church organ plays on its full stops (HELD): its soft ones are another instrument, fifteen dB away."""
+    hold = HELD.get(voice.instrument, 0.0)
+    if hold:
+        for note in voice.notes:
+            note.loud = min(note.loud + (1.0 - note.loud) * hold, 1.0)
+
+
 def given(band: str, voice: "Voice") -> None:
     """Gives a voice to what plays it in a band (`sounded`), a note past that instrument's range an octave or more into it (the writer wrote for the
     instrument it names: an organ's top chord is out of the horns' reach)."""
@@ -2258,6 +2273,8 @@ def given(band: str, voice: "Voice") -> None:
     if played == voice.instrument:
         return
     voice.instrument = played
+    if played in NEARER:
+        voice.settings["gain db"] = voice.settings.get("gain db", 0.0) + NEARER[played]
     inst = INSTRUMENTS.get(played)
     if inst is None or voice.drums:
         return

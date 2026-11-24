@@ -319,3 +319,28 @@ def test_an_amplified_instrument_is_held_together_and_the_others_keep_their_rang
     for name, band in BANDS.items():
         for written in ("rhythm guitar", "single guitar", "muted guitar", "picked bass", "fretless", "lead guitar"):
             assert band[written] in muse.SQUEEZE or band[written] in loose, (name, written, band[written])
+
+
+def test_a_church_organ_plays_a_band_s_songs_on_its_full_stops():
+    """(Black Spire Ward: the organ's first theme on its soft stops, under the guitars after eleven dB of lift.)"""
+    voice = Voice(notes=[Note(0.0, 1.0, 60, 0.4), Note(1.0, 1.0, 62, 0.9)], instrument="organ")
+    orchestra.held(voice)
+    assert [round(note.loud, 2) for note in voice.notes] == [0.7, 0.95]
+    other = Voice(notes=[Note(0.0, 1.0, 60, 0.4)], instrument="horns")
+    orchestra.held(other)
+    assert other.notes[0].loud == 0.4
+    quiet = Voice(notes=[Note(0.0, 1.0, 60, 0.4)], instrument="clean guitar")
+    orchestra.given("cathedral", quiet)
+    assert quiet.instrument == "harpsichord" and quiet.settings["gain db"] == orchestra.NEARER["harpsichord"]
+
+
+def test_a_valley_s_tune_is_measured_against_the_bass_it_sings_over():
+    import numpy as np
+    rate = build.RATE
+    t = np.arange(rate * 16) / rate
+    tone = lambda hz, db: ((np.sin(2 * np.pi * hz * t) * 10 ** (db / 20)).astype(np.float32))[:, None].repeat(2, axis=1)      # noqa: E731
+    parts = {"lead": tone(880.0, -44.0), "rhythm": tone(220.0, -70.0), "bass": tone(110.0, -28.0)}
+    spans = [(0, 16 * rate)]
+    assert build.tune_lift(parts, spans, rate // 4)[1] is None                        # (the house band's measure: no guitars, nothing to stand over)
+    lifts, curve = build.tune_lift(parts, spans, rate // 4, most=build.TUNE_MOST_BANDS, bass=True)
+    assert curve is not None and 4.0 < lifts[0] <= build.TUNE_MOST_BANDS

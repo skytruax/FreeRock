@@ -1397,10 +1397,15 @@ Two guitars sit at ∓0.6, the second 11 ms behind, as the house's do; the chop'
 full strength reads −16.9, −16.3 and −16.2 LUFS, and its lead −20.9, −20.6 and −20.6. A clean guitar through an amplifier falls: the crunch −34.2, −23.5, −15.7; the sweet
 lead −39.6, −28.6, −19.6; the chime −46.6, −34.6, −23.2. Sentence March's valley, a chime guitar's tune, read −48 and Keel-Scarred Shove opened on a riff at −40, under
 its choir. So each amplified instrument's notes go part of the way to full strength before they are played (0.6 for the crunch and the sweet lead, 0.5 for the others,
-0.45 for the chime), as an amplifier does to a soft hand: a crunch falls 7 dB, a doom 4, a lead 8. What is not amplified keeps its range.
+0.45 for the chime), as an amplifier does to a soft hand: a crunch falls 7 dB, a doom 4, a lead 8. What is not amplified keeps its range. (The basses are hardly held, a tenth
+and a seventh of the way: the house's bass falls from −27 LUFS at a summit to −38 in the first theme and −44 in a valley, and held by a half they stood at −29 everywhere
+and sang over the tune.) A band's church organ, which the sampler plays from soft stops under 0.62 and full
+ones over it, 15 dB apart, is held too where it has the tune or the riff (`orchestra.HELD`): Black Spire Ward's first theme was on its soft stops, under the guitars. A
+harpsichord that stands for another instrument stands 8 dB nearer (`NEARER`).
 
-*The tune's lift* (4.1) goes to 11 dB in a band of other sounds (`build.TUNE_MOST_BANDS`; the house band's stays 5): a saxophone, the oohs or a viola played softly read 10
-to 12 under what they are at the summit. `tools/lift_tunes.py` gives it to a take staged before.
+*The tune's lift* (4.1) goes to 13 dB in a band of other sounds (`build.TUNE_MOST_BANDS`; the house band's stays 5): a saxophone, the oohs or a viola played softly read 10
+to 12 under what they are at the summit. It is measured against the bass as well (`TUNE_UNDER_BASS`): in a valley with no guitars the tune sings over the bass alone
+(Deposed Interdict's stood at −46 over a bass at −29). `tools/lift_tunes.py` gives both to a take staged before.
 
 **The kits** are the Big Rusty Drums, with sticks (`kit rusty`), with brushes (`kit brushed`) and with mallets (`kit mallets`), the same strokes on
 the same notes as the rock kit's, their levels measured as every kit's are (`levels.json`); the kick goes under their bass drum too (`KICKED`).

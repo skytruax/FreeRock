@@ -41,7 +41,9 @@ def lift(folder: Path) -> str:
         if mine:
             solos.append((int(min(note[0] for note in mine) * beat), int(max(note[0] + note[1] for note in mine) * beat)))
     parts = {}
-    for channel in ("lead", "rhythm"):
+    for channel in ("lead", "rhythm", "bass"):
+        if not (folder / (channel + ".flac")).is_file():
+            continue                                             # (a song may have no bass line; without a lead or a rhythm nothing is lifted)
         parts[channel], rate = soundfile.read(str(folder / (channel + ".flac")), dtype="float32", always_2d=True)
         if rate != RATE:
             raise RuntimeError("%s/%s.flac is at %d Hz, not %d" % (folder, channel, rate, RATE))
@@ -49,7 +51,7 @@ def lift(folder: Path) -> str:
     given = list(measured.get("tune lift") or [])
     if len(given) != len(spans):
         given = [0.0] * len(spans)
-    lifts, curve = build.tune_lift(parts, spans, int(beat), most=build.TUNE_MOST_BANDS - build.TUNE_MOST)
+    lifts, curve = build.tune_lift(parts, spans, int(beat), most=max(build.TUNE_MOST_BANDS + 3.0 - max(given, default=0.0), 4.0), bass=True)
     if curve is None or max(lifts) < 0.5:
         return "its tune stands over its rhythm"
     lifted = parts["lead"] * curve[:, None]

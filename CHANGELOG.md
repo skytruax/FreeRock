@@ -25,7 +25,8 @@ dictated, where it drove the change.
 - **The fifth round's ten** Knight Rock characters (forty families) have them: a waltz on amplified cellos, a jig, a seven, a five on a church organ, a stranger's
   trumpet over tremolo guitars, a hearse's shuffle on a saloon piano, two slow burns, and for the fights (two battles and two bosses before) a gallop and a five.
 - **The bands' amplified instruments are held together** (`muse.SQUEEZE`) and a soft lead is lifted further (`TUNE_MOST_BANDS`, `tools/lift_tunes.py`): in the first songs of
-  the new bands a valley's tune read -48 LUFS and an opening riff -40, where the house's recorded distortion never falls.
+  the new bands a valley's tune read -48 LUFS and an opening riff -40, where the house's recorded distortion never falls. The tune is measured against the bass too,
+  and a church organ plays a band's songs on its full stops.
 - **The sixth round's ten** Knight Rock characters: towns, storms, inns, camps and a night, where its songs come round most, with four bands more (a driven organ, a driven
   Wurlitzer, a harpsichord, a marimba) and moments that turn (`Character.turns`: a summit's guitars had been one colour 27 and 29 bars).
 - **Warcraft's fifth round** (thirty families): three dark inns, three towns, a night and three walks, in fives, sevens, six-eight and waltzes, verse and chorus or
