@@ -2227,6 +2227,14 @@ orchestra's summit doubles its tune an octave up with a piccolo or a glockenspie
 Twelve characters of the second round are written so, and the desk's tone for them is a separate, owed question (`how_dark.py`
 measures it): the bass driven, the guitars' top eased.
 
+*A light band's tune needs a voice with a body* (2026-11-23, evening, the first round's studies). A song for a few players (weight up to
+0.6) led by a whistle or a fiddle reads 10 dB thin in its middle and more against the liked stems, its top level or over (Sewer Alley 9.9,
+Hard Coin Song 11.1, Last Lament 13.6, over strings or an accordion's pads); a steel guitar (Dead Fire Watch +1.0, Cutthroat
+Round +1.8) or a mandolin (Ashen Street −2.4) stands where the liked leads do, and a fiddle over a heavy band does too (Wreck Gale
++0.3). Its bass reads thin with an acoustic bass (−10.8) and a picked one (−5.5), and not with a fretless (−0.9 to +0.9). So a light
+band character leads with the steel guitar, the mandolin or a low string (the viola, the cello), not with a whistle or a fiddle alone,
+and its bass is the fretless. The two that failed stay as they are; round three has new ones in their places.
+
 **Warcraft or Knight Rock.**
 
 1. Add a `C(...)` at the end of `orchestra.CHARACTERS`. A family's seed comes from its character's

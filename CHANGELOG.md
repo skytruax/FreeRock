@@ -3,6 +3,14 @@
 Newest first. Words in quotation marks are what was said while listening or playing, as typed or
 dictated, where it drove the change.
 
+## 2026-11-23, evening: the page of what is new, and what a light band is led by
+
+- The page of what is new begins with what waits for the next build and the demos, and a list of more than thirty songs is closed until it is
+  asked for: what was new today stood under the 383 songs of the last two builds.
+- The first round's studies of the light Knight Rock songs: one led by a whistle or a fiddle over a light band reads 10 to 14 dB thin in its
+  middle, one led by a steel guitar or a mandolin does not, and a fretless bass reads level where an acoustic or a picked one reads
+  thin (`docs/songwriting.md`, "A light band's tune needs a voice with a body"). The two that failed stay as they are.
+
 ## 2026-11-23, evening: twelve dark characters led low
 
 - **"make them gritty and darker"**: the first round's new Knight Rock songs, every one in minor, dorian or phrygian, measured no darker to

@@ -127,6 +127,11 @@ def builds(var: Path, state: dict) -> dict:
     return out
 
 
+# A build may bring a hundred songs and more into a player: more than these in a list are closed until they are asked for.
+# (2026-11-23: what was new today stood under 383 songs of the last builds.)
+LONG_LIST = 30
+
+
 def page(var: Path, state: dict, now: datetime.datetime) -> str:
     parts = ["<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>",
              "<title>FreeRock: Listen Now</title><style>%s</style></head><body>" % STYLE,
@@ -134,23 +139,6 @@ def page(var: Path, state: dict, now: datetime.datetime) -> str:
              "again). Other pages: <a href='new.html'>the songs of the last days</a> &middot; <a href='judges.html'>the judges</a> "
              "&middot; <a href='/player'>the player</a></p>" % now.strftime("%H:%M, %d %B")]
     labels = dict(STYLES)
-    parts.append("<h2>In the player</h2>")
-    for style, label in STYLES:
-        build = state.get(style)
-        if build is None:
-            parts.append("<h3>%s</h3><p class='sub'>no bucket</p>" % html.escape(label))
-            continue
-        if build["since"] is None:
-            said = "%d songs staged in the day before it was built" % len(build["came"])
-        else:
-            said = "%d came in with this build, %d made again (the build before it: %s)" % (
-                len(build["came"]), len(build["again"]), when(build["since"]))
-        parts.append("<h3>%s <span class='sub'>built %s, %d songs; %s</span></h3>"
-                     % (html.escape(label), when(build["built"]), len(build["tracks"]), said))
-        if build["came"]:
-            parts.append(table(var, style, build["came"]))
-        if build["again"]:
-            parts.append("<details><summary>the %d made again</summary>%s</details>" % (len(build["again"]), table(var, style, build["again"])))
     parts.append("<h2>For the next build</h2><p class='sub'>Staged since their style's bucket was built: in the player once it "
                  "is built again.</p>")
     for style, label in STYLES:
@@ -168,6 +156,25 @@ def page(var: Path, state: dict, now: datetime.datetime) -> str:
     demos = var / "listen" / "now-demos.html"
     parts.append("<h2>Demos and changes</h2>")
     parts.append(demos.read_text(encoding="utf-8") if demos.is_file() else "<p class='sub'>none written yet</p>")
+    parts.append("<h2>In the player</h2>")
+    for style, label in STYLES:
+        build = state.get(style)
+        if build is None:
+            parts.append("<h3>%s</h3><p class='sub'>no bucket</p>" % html.escape(label))
+            continue
+        if build["since"] is None:
+            said = "%d songs staged in the day before it was built" % len(build["came"])
+        else:
+            said = "%d came in with this build, %d made again (the build before it: %s)" % (
+                len(build["came"]), len(build["again"]), when(build["since"]))
+        parts.append("<h3>%s <span class='sub'>built %s, %d songs; %s</span></h3>"
+                     % (html.escape(label), when(build["built"]), len(build["tracks"]), said))
+        if len(build["came"]) > LONG_LIST:
+            parts.append("<details><summary>the %d that came in</summary>%s</details>" % (len(build["came"]), table(var, style, build["came"])))
+        elif build["came"]:
+            parts.append(table(var, style, build["came"]))
+        if build["again"]:
+            parts.append("<details><summary>the %d made again</summary>%s</details>" % (len(build["again"]), table(var, style, build["again"])))
     parts.append("</body></html>")
     return "\n".join(parts)
 
