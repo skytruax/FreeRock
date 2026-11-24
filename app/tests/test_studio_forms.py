@@ -288,7 +288,7 @@ def test_a_soft_lead_of_a_band_of_other_sounds_is_brought_up_further(tmp_path):
     spec.loader.exec_module(tool)
     folder = tmp_path / "song" / "1"
     folder.mkdir(parents=True)
-    sheet = {"tempo": 60.0, "beats": 4.0, "about": {"sounds": "saloon"}, "parts": {"lead": {"tenor sax": {"notes": [[0.0, 4.0, 60, 0.5]]}}},
+    sheet = {"tempo": 60.0, "beats": 4.0, "about": {"sounds": "saloon", "band": True}, "parts": {"lead": {"tenor sax": {"instrument": "tenor sax", "notes": [[0.0, 4.0, 60, 0.5]]}}},
              "form": [{"story": "open", "part": "open", "first": 0, "bars": 2}, {"story": "theme", "part": "first", "first": 2, "bars": 2}]}
     meta = {"bar_frames": 4.0 * rate, "sections": [{"story": "open", "bars": 2}, {"story": "theme", "bars": 2}], "measured": {"tune lift": [5.0]}}
     (folder / "sheet.json").write_text(json.dumps(sheet), encoding="utf-8")
@@ -344,3 +344,12 @@ def test_a_valley_s_tune_is_measured_against_the_bass_it_sings_over():
     assert build.tune_lift(parts, spans, rate // 4)[1] is None                        # (the house band's measure: no guitars, nothing to stand over)
     lifts, curve = build.tune_lift(parts, spans, rate // 4, most=build.TUNE_MOST_BANDS, bass=True)
     assert curve is not None and 4.0 < lifts[0] <= build.TUNE_MOST_BANDS
+
+
+def test_a_tune_that_is_not_a_distorted_guitar_s_is_lifted_further_in_any_band():
+    """(Of 414 songs the first theme stood at the desk's 5 dB in 9 of 259 led by the lead guitar, and in 30 of 60 led by a fiddle.)"""
+    spans = [(0, 100), (100, 200), (200, 300)]
+    lead = {"lead guitar": [0.5, 1.0, 5.0], "fiddle": [10.5, 11.0, 12.0], "choir": [25.0]}
+    assert build.tune_caps("", lead, spans, 10.0) == [build.TUNE_MOST, build.TUNE_MOST_BANDS, build.TUNE_MOST_BANDS]
+    assert build.tune_caps("doom", lead, spans, 10.0) == [build.TUNE_MOST_BANDS] * 3
+    assert build.tune_caps("", {}, spans, 10.0) == [build.TUNE_MOST] * 3

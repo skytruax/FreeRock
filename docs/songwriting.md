@@ -1403,9 +1403,13 @@ and sang over the tune.) A band's church organ, which the sampler plays from sof
 ones over it, 15 dB apart, is held too where it has the tune or the riff (`orchestra.HELD`): Black Spire Ward's first theme was on its soft stops, under the guitars. A
 harpsichord that stands for another instrument stands 8 dB nearer (`NEARER`).
 
-*The tune's lift* (4.1) goes to 13 dB in a band of other sounds (`build.TUNE_MOST_BANDS`; the house band's stays 5): a saxophone, the oohs or a viola played softly read 10
-to 12 under what they are at the summit. It is measured against the bass as well (`TUNE_UNDER_BASS`): in a valley with no guitars the tune sings over the bass alone
-(Deposed Interdict's stood at −46 over a bass at −29). `tools/lift_tunes.py` gives both to a take staged before.
+*The tune's lift* (4.1) goes to 13 dB in a band of other sounds (`build.TUNE_MOST_BANDS`), and in the house band's songs wherever somebody other than a distorted guitar has most
+of the tune (`build.tune_caps`; the guitar's stays 5): a saxophone, the oohs or a viola played softly read 10 to 12 under what they are at the summit, and of 414 Knight
+Rock songs the first theme's tune stood at the old limit in 9 of the 259 a lead guitar leads, 30 of 60 a fiddle does, 13 of 17 a steel guitar, 10 of 20 a harmonica, 5 of 5 an
+accordion (Regicide Banquet's trombone −44 LUFS over guitars at −26): songs led by somebody else that were heard as their guitars. In the bands of other sounds it is measured
+against the bass as well (`TUNE_UNDER_BASS`): in a valley with no guitars the tune sings over the bass alone
+(Deposed Interdict's stood at −46 over a bass at −29). `tools/lift_tunes.py` gives both to a take staged before, in its lead's
+stem alone.
 
 **The kits** are the Big Rusty Drums, with sticks (`kit rusty`), with brushes (`kit brushed`) and with mallets (`kit mallets`), the same strokes on
 the same notes as the rock kit's, their levels measured as every kit's are (`levels.json`); the kick goes under their bass drum too (`KICKED`).

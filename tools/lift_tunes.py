@@ -1,14 +1,17 @@
 """Brings a staged take's tune up over its rhythm in the parts where the desk's lift stood at its most, without making the take again (2026-11-23, 23:30: the
-first songs of the bands' own sounds were made with the house band's most, 5 dB; a saxophone or the oohs played softly wanted 10). The desk's
-own measure (`build.tune_lift`, TUNE_MOST_BANDS) taken on the staged stems, whatever the take was given counted in; the lead stem written back as it was
-staged (FLAC, 24 bits), and the lift noted in the track's measurements. A take that needs less than half a decibel anywhere, or whose band is the
-house's, is left as it is.
+first songs of the bands' own sounds were made with the house band's most, 5 dB; a saxophone or the oohs played softly wanted 10; and the house band's own songs
+whose tune is not the guitar's, 00:15, `build.tune_caps`). The desk's own measure (`build.tune_lift`) taken on the staged stems, whatever the take was given counted
+in; the lead stem written back as it was staged (FLAC, 24 bits), and the lift noted in the track's measurements. A take that needs less than
+half a decibel anywhere is left as it is.
 
-    cd app && uv run --no-sync python ../tools/lift_tunes.py knight [family/take ...]     (all the style's takes in a band of other sounds)
+    cd app && uv run --no-sync python ../tools/lift_tunes.py knight [family/take ...]     (all the style's takes)
+    ... --out FOLDER      the lifted takes written there (the other stems linked), the staged ones left as they are: to be judged
 """
 from __future__ import annotations
 
 import json
+import os
+import shutil
 import sys
 from pathlib import Path
 
@@ -21,10 +24,10 @@ VAR = Path(__file__).resolve().parents[1] / "var"
 RATE = build.RATE
 
 
-def lift(folder: Path) -> str:
+def lift(folder: Path, out: Path | None = None) -> str:
     sheet = json.loads((folder / "sheet.json").read_text(encoding="utf-8"))
-    if not sheet["about"].get("sounds"):
-        return "the house band's"
+    if not sheet["about"].get("band"):
+        return "an orchestra's"
     meta = json.loads((folder / "track.json").read_text(encoding="utf-8"))
     measured = meta.setdefault("measured", {})
     if measured.get("tune lift again"):
@@ -50,14 +53,30 @@ def lift(folder: Path) -> str:
     spans = build.sung_spans(sheet["form"], edges, solos)
     given = list(measured.get("tune lift") or [])
     if len(given) != len(spans):
-        given = [0.0] * len(spans)
-    lifts, curve = build.tune_lift(parts, spans, int(beat), most=max(build.TUNE_MOST_BANDS + 3.0 - max(given, default=0.0), 4.0), bass=True)
+        given = [build.TUNE_MOST] * len(spans)                    # (cut by another rule: as if the most were given everywhere)
+    sings: dict[str, list[float]] = {}
+    for part in sheet["parts"].get("lead", {}).values():
+        sings.setdefault(part["instrument"], []).extend(note[0] for note in part["notes"])
+    band = sheet["about"].get("sounds") or ""
+    caps = [max(cap - had, 0.0) for cap, had in zip(build.tune_caps(band, sings, spans, beat), given)]
+    lifts, curve = build.tune_lift(parts, spans, int(beat), most=caps, bass=bool(band))
     if curve is None or max(lifts) < 0.5:
         return "its tune stands over its rhythm"
     lifted = parts["lead"] * curve[:, None]
     peak = float(np.abs(lifted).max())
     if peak > 0.99:
         return "NOT DONE: the stem would clip (peak %.2f)" % peak
+    if out is not None:
+        to = out / folder.parent.parent.name / folder.parent.name / folder.name
+        to.mkdir(parents=True, exist_ok=True)
+        for each in folder.iterdir():
+            (to / each.name).unlink(missing_ok=True)
+            if each.suffix == ".flac" and each.name != "lead.flac":
+                os.link(each, to / each.name)
+            elif each.suffix != ".flac":
+                shutil.copy2(each, to / each.name)
+        soundfile.write(str(to / "lead.flac"), lifted, RATE, format="FLAC", subtype="PCM_24")
+        return "written beside, by part: %s dB" % ", ".join("%.1f" % each for each in lifts)
     scratch = folder / "lead.part.flac"
     soundfile.write(str(scratch), lifted, RATE, format="FLAC", subtype="PCM_24")
     scratch.replace(folder / "lead.flac")
@@ -68,12 +87,18 @@ def lift(folder: Path) -> str:
 
 
 def main() -> int:
-    style, names = sys.argv[1], sys.argv[2:]
+    argv = sys.argv[1:]
+    out = None
+    if "--out" in argv:
+        at = argv.index("--out")
+        out = Path(argv[at + 1])
+        argv = argv[:at] + argv[at + 2:]
+    style, names = argv[0], argv[1:]
     root = VAR / "studio" / style
     folders = [root / name for name in names] if names else sorted(path.parent for path in root.glob("*/*/sheet.json"))
     for folder in folders:
-        said = lift(folder)
-        if names or said != "the house band's":
+        said = lift(folder, out)
+        if names or said != "an orchestra's":
             print("%-40s %s" % (folder.parent.name + "/" + folder.name, said), flush=True)
     return 0
 

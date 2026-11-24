@@ -518,30 +518,49 @@ def sung_spans(form: list[dict], edges: list[int], solo_spans: list[tuple[int, i
     return sung
 
 
-def tune_lift(parts: dict[str, np.ndarray], spans: list[tuple[int, int]], ramp: int, most: float | None = None,
+def tune_caps(sounds: str, lead: dict[str, list[float]], spans: list[tuple[int, int]], beat_frames: float) -> list[float]:
+    """The most the tune is lifted in each part it sings in (`tune_lift`): TUNE_MOST where a distorted guitar has most of it, which is as loud struck softly as hard, and
+    TUNE_MOST_BANDS where anyone else does, or in a band of other sounds. `lead` is the lead channel's notes by instrument, the beat each begins on. (2026-11-24,
+    00:15: of 414 Knight Rock songs the first theme's tune stood at the 5 dB in 9 of 259 led by the lead guitar, and in 30 of 60 led by a fiddle, 13 of 17 by a steel
+    guitar, 10 of 20 by a harmonica, 5 of 5 by an accordion; Regicide Banquet's trombone read -44 LUFS over guitars at -26.)"""
+    out = []
+    for first, last in spans:
+        counted: dict[str, int] = {}
+        for instrument, ats in lead.items():
+            counted[instrument] = counted.get(instrument, 0) + sum(1 for at in ats if first <= at * beat_frames < last)
+        leader = max(sorted(counted), key=counted.__getitem__) if any(counted.values()) else ""
+        wired = not leader or (leader in INSTRUMENTS and INSTRUMENTS[leader].wired)
+        out.append(TUNE_MOST if wired and not sounds else TUNE_MOST_BANDS)
+    return out
+
+
+def tune_lift(parts: dict[str, np.ndarray], spans: list[tuple[int, int]], ramp: int, most: float | list[float] | None = None,
               bass: bool = False) -> tuple[list[float], np.ndarray | None]:
     """How far the lead channel is brought up in each part of a band's story where its tune sings (TUNE_LIFT), so that it
-    stands TUNE_OVER dB over the rhythm guitars there, and at most `most` (TUNE_MOST); nothing where it stands over them already, or
+    stands TUNE_OVER dB over the rhythm guitars there, and at most `most` (TUNE_MOST, or one for each span: `tune_caps`); nothing where it stands over them already, or
     where the lead or the guitars play little. The gain for each sample, eased from part to part over `ramp` samples. With `bass`, against the bass as
     well (TUNE_UNDER_BASS): in a valley with no guitars it is what the tune sings over."""
-    most = TUNE_MOST if most is None else most
+    caps = [TUNE_MOST if most is None else most] * len(spans) if not isinstance(most, list) else most
     least = -58.0 if bass else -50.0
     if "lead" not in parts or "rhythm" not in parts:
         return [], None
     frames = len(parts["lead"])
     db = np.zeros(frames, dtype=np.float32)
     lifts = []
-    for first, last in spans:
+    for (first, last), cap in zip(spans, caps):
         lead = analysis.loudness_lufs(parts["lead"][first:last], RATE)
         # (Further than the house band's most only against what the rhythm plays in the part, not what rings into it: Sentence March's valley has no guitars
         # and read -31 of the chord before it.)
-        since = first + min(int(4.0 * RATE), (last - first) // 4) if most > TUNE_MOST else first
-        band = analysis.loudness_lufs(parts["rhythm"][since:last], RATE)
-        if bass and "bass" in parts:
-            band = max(band, analysis.loudness_lufs(parts["bass"][since:last], RATE) - TUNE_UNDER_BASS - TUNE_OVER)
-        lift = 0.0
-        if lead > least and band > -50.0:
-            lift = max(min(band + TUNE_OVER - lead, most), 0.0)
+        since = first + min(int(4.0 * RATE), (last - first) // 4)
+        band, lift = analysis.loudness_lufs(parts["rhythm"][first:last], RATE), 0.0
+        if lead > -50.0 and band > -50.0:
+            lift = max(min(band + TUNE_OVER - lead, min(cap, TUNE_MOST)), 0.0)
+        if cap > TUNE_MOST or bass:
+            band = analysis.loudness_lufs(parts["rhythm"][since:last], RATE)
+            if bass and "bass" in parts:
+                band = max(band, analysis.loudness_lufs(parts["bass"][since:last], RATE) - TUNE_UNDER_BASS - TUNE_OVER)
+            if lead > least and band > -50.0:
+                lift = max(lift, min(band + TUNE_OVER - lead, cap))
         db[first:last] = lift
         lifts.append(round(float(lift), 2))
     if max(lifts, default=0.0) <= 0.1:
@@ -692,8 +711,12 @@ def perform(sheet: Sheet) -> dict:
     if about["band"] and TUNE_LIFT and "lead" in parts:
         # A band's tune stands over its rhythm guitars wherever it sings: every part of the story but the open, where the
         # riff is alone, and the solo, which is lifted by its own measure.
-        tune_dbs, tune_curve = tune_lift(parts, sung_spans(sheet.form, edges, solo_spans), int(60.0 / bpm * RATE),
-                                         most=TUNE_MOST_BANDS if about.get("sounds") else TUNE_MOST, bass=bool(about.get("sounds")))
+        sung = sung_spans(sheet.form, edges, solo_spans)
+        sings: dict[str, list[float]] = {}
+        for voice in voices["lead"].values():
+            sings.setdefault(voice.instrument, []).extend(note.start for note in voice.notes)
+        tune_dbs, tune_curve = tune_lift(parts, sung, int(60.0 / bpm * RATE), bass=bool(about.get("sounds")),
+                                         most=tune_caps(about.get("sounds") or "", sings, sung, 60.0 / bpm * RATE))
         if tune_curve is not None:
             parts["lead"] = parts["lead"] * tune_curve[:, None]
             lead_curve = tune_curve if lead_curve is None else lead_curve * tune_curve

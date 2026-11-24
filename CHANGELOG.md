@@ -27,6 +27,9 @@ dictated, where it drove the change.
 - **The bands' amplified instruments are held together** (`muse.SQUEEZE`) and a soft lead is lifted further (`TUNE_MOST_BANDS`, `tools/lift_tunes.py`): in the first songs of
   the new bands a valley's tune read -48 LUFS and an opening riff -40, where the house's recorded distortion never falls. The tune is measured against the bass too,
   and a church organ plays a band's songs on its full stops.
+- **A tune that is not a distorted guitar's is lifted as far as it needs** (`build.tune_caps`): the desk stopped at 5 dB, which a lead guitar's tune wanted in 9 songs of 259 and a
+  fiddle's in half, a steel guitar's in 13 of 17 and an accordion's in all: songs led by somebody else were heard as their guitars. `tools/lift_tunes.py` gives it to the
+  songs made before.
 - **The sixth round's ten** Knight Rock characters: towns, storms, inns, camps and a night, where its songs come round most, with four bands more (a driven organ, a driven
   Wurlitzer, a harpsichord, a marimba) and moments that turn (`Character.turns`: a summit's guitars had been one colour 27 and 29 bars).
 - **Warcraft's fifth round** (thirty families): three dark inns, three towns, a night and three walks, in fives, sevens, six-eight and waltzes, verse and chorus or
