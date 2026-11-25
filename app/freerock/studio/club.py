@@ -378,6 +378,7 @@ MACHINE_KICK = {"909": ("house kick", KICK_TRIM), "808": ("house kick 808", KICK
 HARD_KICK = {"909": ("house kick hard", 20.0, 0.35), "606": ("house kick hard 606", 26.0, 0.2), "808": ("house kick hard 808", 14.0, 0.5)}
 HARD_KICK_AT = 0.85
 HARD_TOPS = {"room": 1.15, "hats": 1.35}       # ...and its claps, snares and toms, and its hats, up against that kick (the channel is brought to its place by the whole of it, and the kick is most of that)
+HARD_CLAPS = {"808": 1.45}       # (the 808's claps and snares further: its songs' drums 3.5 to 8.7 dB thin in their middle against the liked stems, Dead Reckoning, Sump, Knuckle Duster and Boiler Room)
 # A hard act plays close (2026-11-24: what softened its songs, the measure of it says, was the lead, and what it went through was a dream's: an echo in dotted eighths from side to side and a hall): how much of
 # the echo its stabs and its lead have, and how far its stabs and its lead are sent to the hall.
 CLOSE = (0.35, 0.1, 0.12)
@@ -566,7 +567,7 @@ def lines(heard: Heard, seed: int, work: Path) -> tuple[dict[str, list[desk.Line
                            sounds.equalise(low_cut=30.0, bands=((170.0, 2.5, 0.9), (1100.0, 3.0, 0.8), (4000.0, 4.0, 1.2)))]
                 volume = HARD_KICK_AT
             elif heard.drive:
-                volume *= HARD_TOPS[which]                     # (what is over the kick, up with it)
+                volume *= HARD_TOPS[which] * (HARD_CLAPS.get(machine, 1.0) if which == "room" else 1.0)                     # (what is over the kick, up with it)
             out["drums"].append(desk.Line("house %s" % which, kick_template if which == "kick" else template, notes, volume=volume,
                                           send=send, effects=effects))
     # ----- the voices: each sound of each channel, its notes shared out by how bright they are asked for
