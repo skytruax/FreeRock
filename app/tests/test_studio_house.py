@@ -252,6 +252,23 @@ def test_a_lead_of_houses_own_is_played_with_accents_and_opens_over_the_drop():
     assert tied and all(after.pitch != note.pitch for note, after in tied) and len(tied) < len(notes) / 3
 
 
+def test_a_dub_chord_has_its_third():
+    # (2026-11-24: a bare fifth behind a band-pass rang as a major second and a major third over a phrygian root.)
+    from freerock.studio import club
+    from freerock.studio.score import Note
+    phrygian = {(2 + step) % 12 for step in (0, 1, 3, 5, 7, 8, 10)}                 # D
+    notes = [Note(0.0, 0.5, pitch, 0.5) for pitch in (50, 57, 62)] + [Note(1.0, 0.5, pitch, 0.5) for pitch in (51, 58, 63)] + [Note(2.0, 0.5, pitch, 0.5) for pitch in (50, 57)]
+    club.with_thirds(notes, phrygian)
+    assert [note.pitch for note in notes] == [50, 57, 65, 51, 58, 67, 50, 57]         # D minor, E flat major, and a fifth left alone
+    sheet = club.write("marsh-05", 1)
+    chords = next(part for part in sheet.parts["rhythm"].values() if part.instrument == "house stab dub")
+    struck: dict = {}
+    for note in chords.notes:
+        struck.setdefault(round(note.start * 16), []).append(note.pitch)
+    full = [sorted(chord) for chord in struck.values() if len(chord) >= 3]
+    assert len(full) > 50 and sum(any((pitch - chord[0]) % 12 in (3, 4) for pitch in chord) for chord in full) > 0.95 * len(full)
+
+
 def test_houses_own_oscillators_are_the_waves_they_say():
     # (2026-11-21, afternoon: the classic oscillator's Shape -1 is a pulse and +1 a double saw, an octave up; the designs had
     # read them the other way about.) A classic oscillator is a saw or a pulse, a triangle is the modern oscillator's, and an

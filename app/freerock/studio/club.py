@@ -199,6 +199,25 @@ def reached(instrument: str, pitch: int) -> int:
 ACCENTS, HAMMERED = (1.0, 0.9, 0.8), (1.0, 0.97, 0.95)
 
 
+# The chords that are played with their third: a dub's, a dark minor chord behind a band-pass (2026-11-24, Sump: with a root, a fifth and an octave the peak of its filter rang the fifth's third overtone and the
+# root's fifth, 13 in 100 of it a major second and 7 a major third over the root: a song in phrygian whose chords were neither, 63% in its key).
+THIRDS = ("house stab dub",)
+
+
+def with_thirds(notes: list[Note], scale: set[int]) -> list[Note]:
+    """Each chord's top note moved to its third, as the key has it, over its other notes; a chord of fewer than three notes is left as it is."""
+    struck: dict[int, list[Note]] = defaultdict(list)
+    for note in notes:
+        struck[round(note.start * 16)].append(note)
+    for chord in struck.values():
+        chord.sort(key=lambda note: note.pitch)
+        third = next((step for step in (3, 4) if (chord[0].pitch + step) % 12 in scale), None)
+        if len(chord) < 3 or third is None or any((note.pitch - chord[0].pitch) % 12 in (3, 4) for note in chord):
+            continue
+        chord[-1].pitch = chord[0].pitch + 12 + third
+    return notes
+
+
 def accented(notes: list[Note], form: list[dict], hammered: bool = False) -> None:
     """A lead of House's own played as a hand plays it: the beat's note harder than the eighth's and that than the sixteenth's, the whole harder as a drop goes
     on, so that its filter, which follows how hard it is struck, opens; and every fourth note tied to the next where they are near, so that it slides."""
@@ -814,6 +833,8 @@ def _write(name: str, take: int) -> Sheet:
                             for at, length, pitch, level, _, _ in notes])
         if channel == "lead" and MAIN_LEADS.get(instrument, instrument) in sounds.HOUSE_LEADS:
             accented(part.notes, form, hammered=track.scene is not None)
+        if instrument in THIRDS:
+            part.notes = with_thirds(part.notes, {track.changes.pitch(degree) % 12 for degree in range(7)})
         lane: list[tuple[float, float]] = []
         for at, _, _, _, _, bright in sorted(notes):
             # The drop's big synths open further than the band: the hook, whose edge is what is heard (a theme's lead

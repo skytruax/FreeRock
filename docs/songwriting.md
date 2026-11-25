@@ -1941,6 +1941,9 @@ chorus and the hall are the desk's now*.
   *Which lead is whose* (the same measure, thirteen of House's leads in one drop with everything else the same). Hardest first: sync -5, the anthem -6, the acid line -7, the throat -7, the ladder -9, the stack -9, the driven
   pluck -11, the growl -12, the factory's saw as it was -12.5, the two turning pulses -16.5, struck metal -18. A lead that rings like a bell is the sweetest thing a song can be led by, whatever it is called. Metal and the
   pulses lead no act now; the growl, dull and low, is a soft voice for a theme.
+  *A dub chord has its third* (`club.THIRDS`, `with_thirds`). A hard song's stabs are a root, a fifth and an octave; behind a band-pass whose peak stands on their overtones they were something else: Sump, in D phrygian, sounded 13 in
+  100 of a major second (the fifth's third overtone) and 7 of a major third (the root's fifth), 63% in its key, and Cold Storage 60. The dub's are a dark minor chord, as a dub's are: the octave goes to the third the key has.
+  A stab whose filter is open (the rave's, the plate's) has its overtones evenly and needs none.
   *A stroke has a pitch.* A hard-synced lead swept 22 half-steps over half a second read 19 cents flat in two songs: in a riff's short stroke there is nothing but sweep, overtones sliding at 3.97 and 4.42 times the
   note. Swept six, from a little higher, its long notes are in tune and its short ones within 5 cents.
   *How hard it sounds, measured* (`tools/hardness.py`). The judges' model that hears audio against words (LAION-CLAP, music) scores ten seconds of a drop or a theme against three pairs of descriptions
