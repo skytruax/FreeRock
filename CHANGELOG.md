@@ -35,7 +35,8 @@ dictated, where it drove the change.
   two camps, a storm, a walk).
 
 - The marching tuba has a tone of its own: held at half strength it is darker before the desk, and the stomping tuba's shutting left the first song made on it a thump (4 dB under the liked stems at 226 and 453 Hz,
-  13.6 at 894, 23.5 at 1768). Performed again through the desk with a gentler tone it stands within 4 from 57 to 894 Hz; the tone is that one, two decibels opener.
+  13.6 at 894, 23.5 at 1768). Performed again through the desk with a gentler tone it stands within 4 from 57 to 894 Hz; the tone is that one, two decibels opener. The war tuba, 7 and 22 under at the same two
+  places in the brawl's first song on it, has its own the same way. A tone is found on an instrument as it is played now, through the desk.
 - `tools/study.py` reads a take's staged music sheet, not the writer's first draft: a song retold the night before was still read at its first draft's count and marked for the revision it had had.
 ## 2026-11-24, night: a tune that is told another way each time, and calm House that is not sweet
 

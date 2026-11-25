@@ -382,6 +382,10 @@ def tamed_tone(name: str, instrument: str, band: bool = False, channel: str = ""
         # shut at 2.5 kHz: within 4 from 57 to 894 Hz and 5.7 under at 1768. Eight off, so that it stands in the middle of that.)
         if instrument == "line tuba":
             return sounds.equalise(high_cut=2500.0, bands=((340.0, -5.0, 1.0), (420.0, -10.0, 1.6), (520.0, -9.0, 1.2)), high_shelf=(500.0, -8.0))
+        # (18:35: the war tuba on the stomping one's tone, Coal-Trimmer's Dice, the brawl's first made on it: within 4 to 453 Hz, 7.2 under at 894 and 21.7 at 1768. Performed again through the desk with fourteen off
+        # from 500 Hz and shut at 1.8 kHz: -3.3, +1.5, -0.8 from 226 to 894 Hz and 9.1 under at 1768, a tuba with its note in it. Each tuba has the tone found on its own songs.)
+        if instrument == "war tuba":
+            return sounds.equalise(high_cut=1800.0, bands=((340.0, -5.0, 1.0), (420.0, -10.0, 1.6), (520.0, -9.0, 1.0)), high_shelf=(500.0, -14.0))
         return sounds.equalise(high_cut=900.0, bands=((340.0, -5.0, 1.0), (420.0, -10.0, 1.6), (520.0, -9.0, 1.0)), high_shelf=(500.0, -20.0))
     if band and channel == "bass" and instrument == "growly bass":
         # (The same day: shut at 1.9 kHz by its amplifier it had still 14 over at 900 Hz and 12 at 1.8 kHz in a storm, over the riff.)
