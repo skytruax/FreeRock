@@ -53,7 +53,8 @@ BAND_BALANCE = {"doom": {"rhythm": 1.0, "bass": 1.0, "drums": -1.0, "lead": -0.5
                 "cathedral": {"rhythm": 0.5, "texture": 1.0, "drums": -0.5}, "saloon": {"rhythm": 0.5, "drums": -1.0, "bass": -0.5},
                 "hammond": {"rhythm": 0.5, "drums": 0.5, "bass": -1.5}, "grit": {"rhythm": -0.5, "bass": 0.5}, "baroque": {"rhythm": -0.5, "texture": 0.5, "drums": -1.0},
                 "bones": {"rhythm": 1.0, "drums": -0.5}, "garage": {"rhythm": 0.5, "lead": 0.5}, "skald": {"rhythm": 1.0, "texture": 0.5, "drums": -0.5},
-                "brawl": {"rhythm": 0.5, "bass": -1.0, "drums": 0.5}}
+                "brawl": {"rhythm": 0.5, "bass": -1.0, "drums": 0.5}, "noir": {"rhythm": -1.0, "bass": 0.5, "drums": -0.5}, "jug": {"rhythm": 0.5, "lead": 0.5, "drums": -1.0},
+                "drumline": {"rhythm": 0.5, "bass": -0.5, "drums": 1.0}}
 RIDE = 0.15                    # how far each part of the story is brought up towards the loudest part (it was 0.42, which
                                # took most of the written dynamics away: "rewrite all music to be more dynamic", 2026-11-16)
 # The least each channel is played at in each part of the story, so that the story is whole
@@ -72,6 +73,9 @@ OPEN_UNDER, OPEN_MOST = 13.0, 12.0
 # ...nor is its first theme under hearing (2026-11-25: a slow burn's opening and first theme stood at -36 and -37 in Basalt Walk, at -35 and -35 in Spur-Lit Halter, and an opening goes no higher than what it leads
 # to): no further than this under the loudest part, brought up no more than this, and never over the part after it.
 FIRST_UNDER, FIRST_MOST = 11.0, 8.0
+# ...and what comes between them and a song's first arrival (its first part within ARRIVES of the loudest) is brought half way to this under it: five of nine parts of Forlorn Hope, a slow burn's four minutes, stood
+# at -37 to -31 under a moment of -22 and a summit of -19 (2026-11-25). A song that arrives with its first theme or its second has nothing between.
+EARLY_UNDER, EARLY_SHARE, ARRIVES = 10.0, 0.5, 8.0
 MUSE_WORKERS = 5               # how many parts of a piece MuseScore performs at once
 # (2026-11-16, twice. In the afternoon: "theres not much difference between quet and full, we want more ...
 # drasticness", and a calm game was given no drums and a third of the bass. Played that evening: "the abruptness
@@ -349,9 +353,15 @@ def opened(heard: list[float], lifts: list[float]) -> list[float]:
     if len(heard) < 2 or heard[0] <= -70.0:
         return lifts
     stands = [loud + lift for loud, lift in zip(heard, lifts)]
-    second = min(max(min(max(stands) - FIRST_UNDER, stands[2] - 1.0) - stands[1], 0.0), FIRST_MOST) if len(heard) > 2 and heard[1] > -70.0 else 0.0
-    first = min(max(min(max(stands) - OPEN_UNDER, stands[1] + second - 2.0) - stands[0], 0.0), OPEN_MOST)
-    return [lifts[0] + first, lifts[1] + second] + lifts[2:]
+    top, out = max(stands), list(lifts)
+    arrives = next(at for at, stood in enumerate(stands) if stood >= top - ARRIVES)
+    for at in range(2, arrives):
+        if heard[at] > -70.0:
+            out[at] += max(top - EARLY_UNDER - stands[at], 0.0) * EARLY_SHARE
+    if len(heard) > 2 and heard[1] > -70.0:
+        out[1] += min(max(min(top - FIRST_UNDER, heard[2] + out[2] - 1.0) - stands[1], 0.0), FIRST_MOST)
+    out[0] += min(max(min(top - OPEN_UNDER, heard[1] + out[1] - 2.0) - stands[0], 0.0), OPEN_MOST)
+    return out
 
 
 def stage(fam: Family, take: int) -> dict:

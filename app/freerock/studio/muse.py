@@ -143,6 +143,10 @@ PARTS: dict[str, tuple[tuple, ...]] = {
     # (two cellos and a viola, each through an amplifier)
     "riff celli": (("Violoncello", 0, 127, ""), ("Violoncello", 0, 127, "")), "muted celli": (("Violoncello", 0, 127, "pizz"), ("Violoncello", 0, 127, "pizz")),
     "fuzz viola": (("Viola", 0, 127, ""),),
+    # (the players of the eighth round's bands, each another's in a band's hands: held together, 2026-11-25)
+    "upright bass": (("Contrabasses", 0, 127, "pizz"),), "wash bass": (("Contrabasses", 0, 127, "pizz"),), "bar vibes": (("Vibraphone", 0, 127, ""),),
+    "front mandolin": (("Classical Guitar", 0, 127, "", "Muse Guitars Vol 1/Acoustic Steel Picked"),), "riff trombones": (("Trombone", 0, 127, ""),), "riff bassoons": (("Bassoon", 0, 127, ""),),
+    "line tuba": (("Tuba", 0, 127, ""),), "line euphonium": (("Tuba", 0, 127, "", "Muse Brass/Euphonium"),), "line horns": (("Horn in F", 0, 127, ""),),
     "crunch guitar": (("Rhythm Guitar", 0, 127, "", "Muse Guitars Vol 1/Electric LP - Clean"), ("Rhythm Guitar", 0, 127, "", "Muse Guitars Vol 1/Electric SC - Clean")),
     "crunch muted": (("Muted Guitar", 0, 127, "", "Muse Guitars Vol 1/Electric LP - Clean"), ("Muted Guitar", 0, 127, "", "Muse Guitars Vol 1/Electric SC - Clean")),
     "fuzz guitar": (("Rhythm Guitar", 0, 127, "", "Muse Guitars Vol 1/Electric LP - Clean"), ("Rhythm Guitar", 0, 127, "", "Muse Guitars Vol 1/Electric SC - Clean")),
@@ -698,6 +702,8 @@ SQUEEZE: dict[str, float] = {
     "fuzz viola": 0.55, "fuzz wurly": 0.5, "stomp tuba": 0.3,
     "hollow guitar": 0.55, "hollow muted": 0.6, "hollow lead": 0.55, "archtop guitar": 0.3, "riff harpa": 0.55, "riff sax": 0.5, "torn sax": 0.4, "wired erhu": 0.5, "growly bass": 0.2,
     "iron bass": 0.4, "torn bass": 0.4, "driven bass": 0.2, "lyre": 0.45, "heart lead": 0.3, "heart stab": 0.3,
+    "upright bass": 0.5, "wash bass": 0.5, "bar vibes": 0.6, "front mandolin": 0.6, "riff trombones": 0.65, "riff bassoons": 0.65, "guitar banjo": 0.5,
+    "line tuba": 0.6, "line euphonium": 0.65, "line horns": 0.5,
 }
 
 

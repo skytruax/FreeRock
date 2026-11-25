@@ -907,7 +907,7 @@ parts and their levels. This is what differs.
 
 ### 4.1 The band
 
-These are the house band's instruments; there are fourteen bands beside it, with their own (4.11).
+These are the house band's instruments; there are twenty bands beside it, with their own (4.11).
 
 | Written name | Played by | Seat and tone |
 |---|---|---|
@@ -1386,6 +1386,12 @@ night). The writer writes for the instruments of 4.1 and its notes are its own; 
 | grit | a Wurlitzer, its amplifier driven, a little tremolo | round | fuzz | rusty, brushed | oohs; wurly | alchemists' row, gin alley |
 | baroque | a harpsichord; its muted string the celli plucked | round | a viola, fuzzed | mallets, brushed | choir; harpsichord | jesters' cellar, warden's lantern |
 | bones | a marimba | round | a clarinet | mallets | oohs; marimba | bonemongers, bone fire |
+| garage | two hollow-bodied electric guitars, on the edge, one each side | a jazz bass, its amplifier driven | one of them | sticks | a Wurlitzer; an archtop | tanners' yard, squall line, smugglers' run |
+| skald | a bowed cello as a synthesiser's oscillator, driven, one each side, a tagelharpa's plucked string its stroke | a bowed double bass the same way, driven | an erhu, its amplifier driven | mallets | choir; a lyre | rainmaker's drum, scavengers' camp |
+| brawl | a baritone saxophone, driven, one each side | a tuba | a trumpet | the metal kit | the brass; a saxophone's notes as an accordion's reeds | coal exchange, avalanche |
+| noir | an archtop; its muted string the celli plucked | an upright, plucked | a baritone saxophone | a jazz drummer's | oohs; a vibraphone | rain alley, informer's walk, last tram |
+| jug | a banjo tuned as a guitar | a double bass, plucked, no higher than E3 | a fiddle | a kit through a worn microphone | an accordion; a mandolin | moonshine hollow, blood feud, graveside picking |
+| drumline | a trombone; its muted string a bassoon | a tuba | horns | a kit whose every drum is a snare | choir; a euphonium | executioner's parade, forlorn charge, black regiment |
 
 **The guitars and the basses** are Muse's clean guitars and its electric bass through an amplifier of the studio's own (`studio/jsfx/amp`, `sounds.AMPS`):
 a cut and a lift before the valve, one of five valves four times oversampled (clean, crunch, drive, fuzz, torn), an octave under (a
@@ -1510,7 +1516,12 @@ An old song is told so by a revision of its sheet (the lead's parts alone, over 
 *Three kits more* (2026-11-24, 23:10). A band is told by its drummer: fourteen had shared three kits, and fifteen snares told them apart. A Boston shop's jazz kit (six microphones to a stroke, mixed as an
 engineer does, "club"), the same through the worn vintage microphone beside them ("lofi"), and a kit whose every drum is a snare, the kick and the toms too ("unruly"): each stroke's soft layers brought half way
 up (a jazz drummer's softest is thirty dB under the hardest, where a groove is a third of the way), and each stroke of each kit brought to where the house's has it (`sounds.KIT_GAINS`, measured through the band's
-drums' bus at four strengths). The bands that will have them are to be heard first.
+drums' bus at four strengths). Whose they are was heard first (next).
+
+*The eighth round's three bands* (2026-11-25), each with one of them: the noir, the jug and the drumline. The same heavy walk and the same inn's song as every band before them, eight bars of the first theme, the
+valley and the summit. As they first came their plucked strings and their brass fell away in a valley as no held instrument does: the drumline's was at -40 LUFS, its tuba 10 dB under its own riff in the first theme; the
+jug's inn at -34. So each player has a part of its own that is held part of the way to full strength (`muse.SQUEEZE`: 0.5 to 0.65), under a name of its own, as its instrument in an orchestra keeps the whole of its
+range: the tuba came from -40 to -31 and the valley to -29. A light song by the drumline is too soft in its riff (-39 under a mix of -28): it has heavy songs only. The noir's and the jug's lightest are right as they stand.
 
 *A round bass is heard too.* The light songs of seven bands have the round bass, and it was closed at 1.8 kHz on a clean amplifier: four of one night's 8 to 10 dB thin in their middle and 32 to 36 under the liked
 stems' at their top, and the lift of 4 dB at 800 Hz a light band's bass has (`LIGHT_BAND_BASS`) is the picked and the fretless one's, by name. On its crunch, with a step of middle at 850 Hz, it is 4 to 6 dB
@@ -2186,6 +2197,9 @@ night's three places for its whole limit, 6,121 s.
 **An opening is heard** (`build.opened`, 2026-11-24). Every song of the day's seven studied opened at -37 to -41 LUFS; counted then, 169 of Warcraft's 521 stood under -36 (Knight Rock's 16 of 425), which a
 game's own sounds cover: the first minute of such a song is silence. The writer's `opens` plays the newest characters' louder; the desk now brings any opening to within 16 dB of its song's loudest
 part, by 9 dB at most, and never over the theme it leads to (13 dB and 12 from the same evening: at 16 the day's thirty songs opened at -33 to -36 still). `tools/open_up.py` gives the same ride to songs already made.
+Its first theme is heard too (`FIRST_UNDER`, 2026-11-25), and **so is what comes between it and a song's first arrival** (`EARLY_UNDER`, the same night): five of nine parts of Forlorn Hope, a slow burn, stood at -37 to -31 under
+a moment of -22 and a summit of -19, four minutes under a game's own sounds. Each part after the first theme and before the first that comes within 8 dB of the loudest is brought half way to 10 under it, so a burn still burns, each part
+under the one after it. A song that arrives with its first theme or its second has nothing between.
 
 **A drop stands over its theme** (`club.HELD_BACK`, `HELD_BACK_SOFTER`, the same day): House's in 5.7.
 

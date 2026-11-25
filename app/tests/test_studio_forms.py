@@ -500,7 +500,7 @@ def test_an_amplified_instrument_is_held_together_and_the_others_keep_their_rang
         assert all([note.loud for note in mine] == [0.25, 1.0] for _, _, mine, _ in muse.shared(written, notes))
     # ...and no band's written guitars, basses or lead guitar are left to fall away: each is held, or never falls (an organ, a harpsichord), or is
     # an acoustic instrument played by itself.
-    loose = {"organ", "harpsichord", "celli pizz", "torn organ", "upright piano", "marimba", "clarinet", "trumpet", "war tuba"}
+    loose = {"organ", "harpsichord", "celli pizz", "torn organ", "upright piano", "marimba", "clarinet", "trumpet", "war tuba", "bari sax", "fiddle"}
     for name, band in BANDS.items():
         for written in ("rhythm guitar", "single guitar", "muted guitar", "picked bass", "fretless", "lead guitar"):
             assert band[written] in muse.SQUEEZE or band[written] in loose, (name, written, band[written])
@@ -553,7 +553,7 @@ def test_a_solo_picked_up_in_the_bar_before_leaves_its_part_to_be_lifted():
 
 def test_a_song_is_heard_from_its_first_bar():
     """(169 of the 521 songs of Warcraft's library opened under -36 LUFS, the first minute of them under a game's own sounds.)"""
-    heard = [-43.0, -30.0, -33.5, -27.0, -22.0, -41.0, -27.0, -20.0, -38.0]
+    heard = [-43.0, -30.0, -29.5, -27.0, -22.0, -41.0, -27.0, -20.0, -38.0]
     lifts = [min((max(heard) - loud) * build.RIDE, 12.0) for loud in heard]
     out = build.opened(heard, lifts)
     assert abs(heard[0] + out[0] - (-20.0 - build.OPEN_UNDER)) < 1e-6 and out[1:] == lifts[1:]       # 13 dB under the summit
@@ -565,7 +565,11 @@ def test_a_song_is_heard_from_its_first_bar():
     # ...and a first theme that is under hearing is brought up as well, under what comes after it (a slow burn's: Basalt Walk's).
     burn = [-36.0, -37.0, -31.0, -27.0, -26.0, -21.0, -23.0, -20.0, -25.0]
     up = build.opened(burn, [0.0] * 9)
-    assert burn[1] + up[1] == -32.0 and burn[0] + up[0] == -34.0 and not any(up[2:])
+    assert burn[2] + up[2] == -30.5 and burn[1] + up[1] == -31.5 and burn[0] + up[0] == -33.5 and not any(up[3:])
+    # ...and all that comes before a song first arrives, half way, each part under the one after it still (Forlorn Hope's).
+    slow = [-37.0, -35.0, -33.0, -33.0, -31.0, -22.0, -24.0, -19.0, -34.0]
+    up = [loud + lift for loud, lift in zip(slow, build.opened(slow, [0.0] * 9))]
+    assert up[:5] == [-34.0, -32.0, -31.0, -31.0, -30.0] and up[5:] == slow[5:] and up[:5] == sorted(up[:5])
     assert build.opened([-36.0, -60.0] + burn[2:], [0.0] * 9)[1] == build.FIRST_MOST
     assert build.opened([-60.0] + heard[1:], [0.0] + lifts[1:])[0] == build.OPEN_MOST                # so far and no further
     loud = [-30.0] + heard[1:]

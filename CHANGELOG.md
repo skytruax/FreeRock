@@ -3,6 +3,13 @@
 Newest first. Words in quotation marks are what was said while listening or playing, as typed or
 dictated, where it drove the change.
 
+## 2026-11-25: three bands more
+
+- **"make sure were using unique bands on all genres"**, **"keep up the multiple band concept but make sure to test each bands musicality"**: the noir (an archtop, an upright, a baritone saxophone and a jazz drummer), the jug (a
+  banjo, a fiddle, a plucked double bass and a kit through a worn microphone) and the drumline (a trombone and horns over a tuba and a kit whose every drum is a snare), heard by the same two songs as every band before them,
+  each held where it fell away. Nine characters have them: two towns, a night, a camp, a fight, a battleground and three walks.
+- What comes between a song's first theme and its first arrival is heard (`build.opened`): four minutes of a slow burn had stood at -37 to -31 under a summit of -19. `tools/open_up.py` gives the same ride to songs already staged.
+
 ## 2026-11-24, night: a tune that is told another way each time, and calm House that is not sweet
 
 - **"all the knight rock songs sound like the same song"**: of 430 Knight Rock songs the middle one has 46% of its tune's bars heard before, and two of the first four slow burns 62 and 76: a song's form said its

@@ -129,7 +129,9 @@ INSTRUMENTS = {
     "war tuba": I(28, 58, 40), "bass voice": I(38, 58, 48), "archtop guitar": I(40, 84, 60, held=False), "guitar banjo": I(39, 75, 57, held=False),
     "tagelharpa": I(40, 58, 48, held=False), "hollow guitar": I(40, 76, 50, held=False, wired=True), "hollow muted": I(40, 72, 47, held=False, wired=True),
     # (A saxophone's riff no higher than G3: its recordings blown hardest scoop from 90 to 185 cents under from G sharp 3 up, and a short stroke never arrives: 2026-11-24, club.strokes_off.)
-    "hollow lead": I(52, 84, 66, wired=True), "riff harpa": I(38, 64, 46, held=False), "riff sax": I(37, 55, 46, held=False), "torn sax": I(37, 67, 52), "wired erhu": I(62, 81, 71, wired=True),
+    "hollow lead": I(52, 84, 66, wired=True), "riff harpa": I(38, 64, 46, held=False), "riff sax": I(37, 55, 46, held=False), "upright bass": I(28, 60, 40, held=False), "wash bass": I(28, 52, 38, held=False),
+    "bar vibes": I(53, 89, 70, held=False), "front mandolin": I(55, 91, 72, held=False), "riff trombones": I(40, 70, 55), "riff bassoons": I(34, 70, 50),
+    "line tuba": I(28, 55, 40), "line euphonium": I(48, 72, 60), "line horns": I(41, 74, 60), "torn sax": I(37, 67, 52), "wired erhu": I(62, 81, 71, wired=True),
     "growly bass": I(28, 60, 38, held=False), "torn bass": I(28, 47, 38, held=False), "driven bass": I(28, 60, 38, held=False),
     "heart lead": I(36, 88, 62), "heart pluck": I(36, 88, 62, held=False), "heart stab": I(36, 88, 60, held=False), "heart pad": I(36, 88, 60), "iron bass": I(28, 47, 36, held=False),
     # The big drums and what marks an arrival, found by name alone. A war drum's or a frame
@@ -1870,6 +1872,49 @@ CHARACTERS = (
       plucks=("vibes", "kalimba"), figures=("pattern", "toll"), basses=("basses slow", "celli"), kit="hands", drums=("taiko", "timpani"), grooves=("darbuka", "heat"),
       hall=(2.4, 0.27), dark=True, opens=True, lift=0.15, low=True, sounds="bronze", form="burn", grows=True,
       titles=(("Vulture", "Bone-Throned", "Sun-Judged", "Circling", "Thirst-King's", "Bleached-Robe"), ("Court", "Verdict", "Feast", "Spiral", "Tribunal", "Wake"))),
+    # --- 2026-11-25, the eighth round: three bands of their own (the noir, the jug, the drumline), each heard by the same music first: a town, a walk and a night; a walk, a fight and a camp; a town, a
+    # --- battleground and a walk.
+    C("rain alley", ("regal", "haunted", "mystic"), role="town", style="knight", band=True, modes=("minor", "dorian"), bpm=(92, 104), busy=0.45, weight=0.7,
+      leads=("subtone sax",), strong=("subtone sax", "lead guitar"), under=(), pads=("oohs",), pad_ways=("drone",), plucks=("rhythm guitar", "vibes"),
+      figures=("riff", "arp"), basses=("fretless",), kit="room", drums=(), grooves=("brushes", "shuffle"), hall=(1.4, 0.15), lift=0.1, low=True, sounds="noir", form="verses",
+      grows=True,
+      titles=(("Rain-Alley", "Neon-Ghost", "Trench-Coat", "Cigarette", "Wet-Cobble", "Doorway"), ("Stakeout", "Tail", "Alibi", "Double-Cross", "Payoff", "Frame-Up"))),
+    C("informers walk", ("regal", "coast", "marsh"), style="knight", band=True, modes=("dorian", "minor"), bpm=(112, 124), metres=("5/4",), busy=0.5, weight=0.75,
+      leads=("clarinet",), strong=("clarinet", "lead guitar"), under=(), pads=("oohs",), pad_ways=("drone",), plucks=("rhythm guitar", "single guitar"), figures=("low riff", "arp"),
+      basses=("fretless",), kit="room", drums=(), grooves=("shuffle", "brushes"), hall=(1.3, 0.14), lift=0.15, low=True, sounds="noir", form="jam", opening="bass", turns=True, grows=True,
+      titles=(("Informer's", "Stool-Pigeon", "Night-Train", "Dockside-Fog", "Two-Timer's", "Snitch"), ("Walk", "Whisper", "Getaway", "Angle", "Shadow-Step", "Meet"))),
+    C("blood feud", KINDS_ALL, role="battle", serves=(2,), style="knight", band=True, modes=("minor", "dorian"), bpm=(160, 174), busy=0.6, weight=1.0,
+      leads=("fiddle",), strong=("lead guitar", "accordion"), under=(), pads=("pipe drone",), pad_ways=("drone",), plucks=("rhythm guitar", "single guitar"), figures=("low riff", "chug"),
+      basses=("picked bass",), kit="rock", drums=("great drum",), grooves=("train", "gallows march"), hall=(1.2, 0.13), lift=0.25, low=True, sounds="jug", form="riff", grows=True,
+      titles=(("Blood-Feud", "Shotgun", "Kinfolk's", "Grudge", "Family-Plot", "Buckshot"), ("Reckoning", "Hoedown", "Ambush-Reel", "Vendetta", "Breakneck", "Eye for an Eye"))),
+    C("executioners parade", ("regal", "infernal", "desert"), role="town", style="knight", band=True, modes=("minor", "phrygian"), bpm=(96, 108), busy=0.45, weight=0.95,
+      leads=("euphonium",), strong=("lead guitar", "euphonium"), under=(), pads=("full choir",), pad_ways=("drone",), plucks=("rhythm guitar", "single guitar"),
+      figures=("low riff", "toll"), basses=("picked bass",), kit="rock", drums=("timpani",), grooves=("gallows march", "half rock"), hall=(2.0, 0.22), lift=0.15, low=True,
+      sounds="drumline", form="riff", opening="drums", turns=True, grows=True,
+      titles=(("Executioner's", "Block-and-Axe", "Public-Holiday", "Drummed-Out", "Sentence-Day", "Hooded"), ("Parade", "Cadence", "March-Past", "Verdict-Drum", "Procession-Beat", "Salute"))),
+    C("last tram", KINDS_ALL, role="night", style="knight", band=True, modes=("minor", "dorian"), bpm=(92, 104), metres=("3/4",), busy=0.4, weight=0.6,
+      leads=("english horn",), strong=("english horn", "cello"), under=(), pads=("oohs",), pad_ways=("drone",), plucks=("rhythm guitar", "vibes"), figures=("arp", "toll"),
+      basses=("fretless",), kit="room", drums=("frame drums",), grooves=("brushes", "none"), hall=(1.8, 0.2), lift=0.0, low=True, sounds="noir", form="burn", grows=True,
+      titles=(("Last-Tram", "Street-Lamp", "Empty-Platform", "Insomniac's", "Four-in-the-Morning", "Shuttered-Bar"), ("Waltz", "Transfer", "Reflection", "Passenger", "Echo", "Depot"))),
+    C("moonshine hollow", ("highland", "pastoral"), style="knight", band=True, modes=("dorian", "minor"), bpm=(124, 136), metres=("6/8",), busy=0.6, weight=0.85,
+      leads=("accordion",), strong=("lead guitar", "accordion"), under=(), pads=("pipe drone",), pad_ways=("drone",), plucks=("rhythm guitar", "single guitar"),
+      figures=("low riff", "strum"), basses=("picked bass",), kit="rock", drums=("great drum",), grooves=("swamp stomp", "train"), hall=(1.4, 0.15), lift=0.15, low=True, sounds="jug",
+      form="riff", opening="drums", turns=True, grows=True,
+      titles=(("Moonshine", "Copper-Still", "Revenuer's", "Blind-Tiger", "Corn-Liquor", "Holler"), ("Hollow", "Breakdown", "Still-Song", "Jug", "Raid", "Hundred-Proof"))),
+    C("graveside picking", ("haunted", "highland", "marsh"), role="camp", style="knight", band=True, modes=("minor", "dorian"), bpm=(100, 112), metres=("3/4",), busy=0.45, weight=0.65,
+      leads=("viola",), strong=("viola", "lead guitar"), under=(), pads=("pipe drone",), pad_ways=("drone",), plucks=("rhythm guitar", "guitar"), figures=("arp", "strum"),
+      basses=("fretless",), kit="room", drums=("frame drums",), grooves=("brushes", "shuffle"), hall=(1.8, 0.2), lift=0.0, low=True, sounds="jug", form="burn", grows=True,
+      titles=(("Graveside", "Pine-Box", "Hill-Burial", "Lonesome-Pine", "Old-Testament", "Coffin-Nail"), ("Picking", "Lament", "Hymn", "Dirt-Song", "Vigil", "Homecoming"))),
+    C("forlorn charge", KINDS_ALL, role="battleground", serves=(0, 1, 2), style="knight", band=True, modes=("minor", "phrygian"), bpm=(136, 148), metres=("6/8",), busy=0.5, weight=1.0,
+      leads=("trumpet",), strong=("lead guitar", "trumpet"), under=(), pads=("full choir",), pad_ways=("drone",), plucks=("rhythm guitar", "single guitar"), figures=("low riff", "chug"),
+      basses=("picked bass",), kit="rock", drums=("taiko",), grooves=("gallows march", "black toms"), hall=(1.5, 0.16), lift=0.25, low=True, sounds="drumline", form="riff", opening="drums",
+      turns=True, grows=True,
+      titles=(("Forlorn-Hope", "Bugle", "Colours-Down", "Bayonet", "Broken-Square", "Last-Cartridge"), ("Charge", "Advance", "Rally-Drum", "Onset", "Stand-Fast", "Bombardment"))),
+    C("black regiment", ("highland", "regal", "frozen"), style="knight", band=True, modes=("minor", "dorian"), bpm=(104, 116), metres=("6/8",), busy=0.5, weight=0.9,
+      leads=("trombone",), strong=("lead guitar", "trombone"), under=(), pads=("full choir",), pad_ways=("drone", "pad"), plucks=("rhythm guitar", "single guitar"),
+      figures=("low riff", "riff"), basses=("picked bass",), kit="rock", drums=("timpani",), grooves=("gallows march", "swamp stomp"), hall=(1.9, 0.21), lift=0.2, low=True,
+      sounds="drumline", form="verses", opening="drums", turns=True, grows=True,
+      titles=(("Black-Regiment", "Conscript's", "Standard-Bearer's", "Ration-Cart", "Sapper's", "Veteran's"), ("Step", "Route-March", "Bivouac-Song", "Roll-Call", "Column", "Retreat-Beat"))),
 )
 
 METRES = {"4/4": (4.0, (2.0, 2.0)), "3/4": (3.0, (3.0,)), "6/8": (3.0, (1.5, 1.5)), "5/4": (5.0, (3.0, 2.0)),
@@ -2397,6 +2442,14 @@ BANDS: dict[str, dict[str, str]] = {
               "lead guitar": "wired erhu", "kit rock": "kit felt alder", "kit room": "kit felt alder", "rock organ": "full choir", "clean guitar": "lyre"},
     "brawl": {"rhythm guitar": "riff sax", "single guitar": "riff sax", "muted guitar": "riff sax", "picked bass": "war tuba", "fretless": "war tuba",
               "lead guitar": "trumpet", "kit rock": "kit metal", "kit room": "kit metal", "rock organ": "brass", "clean guitar": "saxcordion"},
+    # (the eighth round's, with the kits that came that day: an archtop and a baritone saxophone over an upright bass and a jazz drummer; a banjo, a fiddle and a plucked double bass over a kit through a worn
+    # microphone; a line of trombones and horns over a tuba and drums that are snares, every one)
+    "noir": {"rhythm guitar": "archtop guitar", "single guitar": "archtop guitar", "muted guitar": "celli pizz", "picked bass": "upright bass", "fretless": "upright bass",
+             "lead guitar": "bari sax", "kit rock": "kit club", "kit room": "kit club", "rock organ": "oohs", "clean guitar": "bar vibes"},
+    "jug": {"rhythm guitar": "guitar banjo", "single guitar": "guitar banjo", "muted guitar": "guitar banjo", "picked bass": "wash bass", "fretless": "wash bass",
+            "lead guitar": "fiddle", "kit rock": "kit lofi", "kit room": "kit lofi", "rock organ": "accordion", "clean guitar": "front mandolin"},
+    "drumline": {"rhythm guitar": "riff trombones", "single guitar": "riff trombones", "muted guitar": "riff bassoons", "picked bass": "line tuba", "fretless": "line tuba",
+                 "lead guitar": "line horns", "kit rock": "kit unruly", "kit room": "kit unruly", "rock organ": "full choir", "clean guitar": "line euphonium"},
 }
 # What strums and who sings in a band that plays a song written for the house's (a cover, or a fresh family's: `borrowed`). (2026-11-24, the bands' test: the same
 # inn's song by all fourteen read the same to a decibel, its riff's attack 3.0 to 3.4 and its tune a third under the riff in every one: what a light song strums is a
@@ -2407,12 +2460,14 @@ STRUMS: dict[str, tuple[str, ...]] = {
     "doom": ("chime guitar", "bells"), "stoner": ("chime guitar", "wurly"), "tweed": ("crunch guitar", "wurly"), "chop": ("chop guitar", "wurly"), "shanty": ("accordion", "mandolin"),
     "twang": ("twang guitar", "dulcimer"), "lounge": ("rhodes", "vibes"), "cellos": ("celli pizz", "cello"), "cathedral": ("harp", "handbells"), "saloon": ("upright piano", "dulcimer"),
     "hammond": ("wurly", "rhodes"), "grit": ("fuzz wurly", "wurly"), "baroque": ("harpsichord", "celli pizz"), "bones": ("marimba", "kalimba"),
-    "garage": ("archtop guitar", "wurly"), "skald": ("lyre", "koto"), "brawl": ("saxcordion", "vibes")}
+    "garage": ("archtop guitar", "wurly"), "skald": ("lyre", "koto"), "brawl": ("saxcordion", "vibes"),
+    "noir": ("archtop guitar", "bar vibes"), "jug": ("guitar banjo", "front mandolin"), "drumline": ("xylophone", "marimba")}
 SINGS: dict[str, tuple[str, ...]] = {
     "doom": ("english horn", "cello"), "stoner": ("bass flute", "trombone"), "tweed": ("alto sax", "viola", "clarinet"), "chop": ("tenor sax", "trombone"), "shanty": ("mandolin", "clarinet", "fiddle"),
     "twang": ("trumpet", "viola", "harmonica"), "lounge": ("bari sax", "bass flute", "tenor sax"), "cellos": ("viola", "cello"), "cathedral": ("horns", "english horn"),
     "saloon": ("clarinet", "tenor sax", "fiddle"), "hammond": ("trombone", "alto sax"), "grit": ("bari sax", "english horn"), "baroque": ("recorder", "viola", "oboe"), "bones": ("clarinet", "bass flute", "ocarina"),
-    "garage": ("subtone sax", "harmonica"), "skald": ("erhu", "euphonium"), "brawl": ("torn sax", "trumpet")}
+    "garage": ("subtone sax", "harmonica"), "skald": ("erhu", "euphonium"), "brawl": ("torn sax", "trumpet"),
+    "noir": ("subtone sax", "english horn"), "jug": ("fiddle", "accordion"), "drumline": ("euphonium", "trumpet")}
 
 
 def borrowed(fam: "Family") -> bool:
@@ -3276,6 +3331,9 @@ SETTINGS_OF: dict[str, tuple[str, ...]] = {
     "drowned bells": ("water", "ruins"), "sand wall": ("wastes",), "poachers fire": ("woods", "fields"), "gallows ale": ("settlement", "graves"),
     "mourning court": ("fort", "settlement"), "leech road": ("water", "road"), "wreckers light": ("water", "heights"), "blind oracle": ("sacred", "ruins"),
     "black harvest": ("fields", "graves"), "vulture court": ("wastes", "ruins"),
+    # The eighth round's (2026-11-25).
+    "rain alley": ("settlement",), "informers walk": ("settlement", "water"), "last tram": ("settlement", "road"), "moonshine hollow": ("heights", "woods"), "blood feud": ("heights", "fields"),
+    "graveside picking": ("graves", "woods"), "executioners parade": ("settlement", "fort"), "forlorn charge": ("fields", "fort"), "black regiment": ("road", "heights"),
     "barroom blues": ("settlement",), "dwarf hall": ("settlement", "heights"), "road camp": ("road", "woods"),
     "midnight ride": ("road",), "downpour run": ("road",), "field storm": ("fields",), "monsoon": ("woods", "water"),
     "witch storm": ("graves", "woods"),
