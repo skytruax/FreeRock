@@ -346,6 +346,10 @@ def tamed_tone(name: str, instrument: str, band: bool = False, channel: str = ""
         # (The band's lead guitar, fiddle and whistles, 10 to 20 dB over: the liked band's lead is a guitar through a cabinet,
         # falling away above 5 kHz, where ours fizzed. Its bite at 1 to 3 kHz is kept.)
         return sounds.equalise(high_cut=6000.0, high_shelf=(3500.0, -6.0))
+    if band and channel == "bass" and instrument.endswith("tuba"):
+        # (2026-11-25: three bands' bass is a tuba, whose fourth to eighth overtones are nearly all of it: the octave from 320 Hz at -4 to -7 dB of the whole where the liked stems have it at -26, the basses of Deep
+        # Mine, Charge Song and the press gang's songs 11 to 13 over in their middle, where the riff and the tune are. Its note is left.)
+        return sounds.equalise(bands=((450.0, -8.0, 0.8),), high_shelf=(1400.0, -4.0))
     if band and light and instrument in ("picked bass", "fretless") and LIGHT_BAND_BASS:
         # (2026-11-22, night: the light bands' bass, MuseScore's electric bass played softly in the walks, inns, camps and
         # nights, 3.7 to 13 dB thin in its middle in the day's studies of the new families, where the heavy band's sits within

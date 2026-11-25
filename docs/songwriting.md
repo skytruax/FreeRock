@@ -1417,6 +1417,10 @@ against the bass as well (`TUNE_UNDER_BASS`): in a valley with no guitars the tu
 (Deposed Interdict's stood at −46 over a bass at −29). `tools/lift_tunes.py` gives both to a take staged before, in its lead's
 stem alone.
 
+*A bass is a bass, whoever it is* (2026-11-25, five songs of one night with theirs 10 to 14 dB over the liked stems' in the middle). The garage's jazz bass, its roundwounds through an open amplifier, stood at -12 to -18 dB of the whole from
+320 Hz to 2.5 kHz where the liked stand at -26 to -48, and 6 dB thin under 80: its amplifier is shut at 1.9 kHz, its middle let down and its bottom up (`sounds.AMPS`), and it still growls, 6 to 11 over. A tuba's fourth to eighth
+overtones are nearly all of it: three bands' basses (the shanty's, the brawl's, the drumline's) have 8 dB taken out at 450 Hz (`build.tamed_tone`), an orchestra's none.
+
 **The kits** are the Big Rusty Drums, with sticks (`kit sticks`), with brushes (`kit swept`) and with mallets (`kit felt`), the same strokes on
 the same notes as the rock kit's, their levels measured as every kit's are (`levels.json`).
 

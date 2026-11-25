@@ -2237,6 +2237,10 @@ def test_a_light_bands_bass_is_given_presence(monkeypatch):
     assert build.tamed_tone("bass", "fretless", band=True, channel="bass", light=True) == light
     assert build.tamed_tone("picked bass", "picked bass", band=True, channel="bass", light=False) is None
     assert build.tamed_tone("bass", "fretless", band=False, channel="bass", light=True) is None
+    # (2026-11-25: a tuba that is a band's bass has its overtones let down; an orchestra's is its own.)
+    for tuba in ("stomp tuba", "war tuba", "line tuba"):
+        assert build.tamed_tone("picked bass", tuba, band=True, channel="bass") and build.tamed_tone("picked bass", tuba, band=False, channel="bass") is None
+        assert tuba in {each["picked bass"] for each in orchestra.BANDS.values()}, tuba
     monkeypatch.setattr(build, "LIGHT_BAND_BASS", 0.0)
     assert build.tamed_tone("picked bass", "picked bass", band=True, channel="bass", light=True) is None
 
