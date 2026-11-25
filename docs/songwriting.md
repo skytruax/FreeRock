@@ -1514,7 +1514,9 @@ given the other theme's figure, in every moment of sixteen bars or more.
 its leaps filled. The library's middle is 46% for Knight Rock and 32% for Warcraft. Where a character grows, the next statement of a theme anywhere in the song is the next of six ways: the tune; its leaps
 filled; the same question with another answer (its second half told upside down, its rhythm kept, home as before: `turned`); as a player adds to it who knows it; another question with the answer it had; that
 answer and that player together. The summit has the tune as it was first heard. On nine songs made already it took 10 to 28 points off; the seventh round's twenty-six characters stand at 21 to 50%, the middle
-one 32. Only families with no take have it: the new characters, and the house band's and the orchestra's past their fourth.
+one 32. Only families with no take have it: the new characters, the house band's and the orchestra's past their fourth, and since 2026-11-25 every family that had none that night (`build.TOLD_ONCE` names the 624 that had:
+seventeen of one night's new songs, the fourth families of characters written before, had 50 to 66% of their tune's bars heard before. On 52 families still to be made the middle one goes from 48 to 33% in Knight Rock and from 37 to 26 in
+Warcraft).
 An old song is told so by a revision of its sheet (the lead's parts alone, over the same band: 2026-11-24, the twenty-two most repeated, 50 to 76% to 32 to 60).
 
 *Three kits more* (2026-11-24, 23:10). A band is told by its drummer: fourteen had shared three kits, and fifteen snares told them apart. A Boston shop's jazz kit (six microphones to a stroke, mixed as an

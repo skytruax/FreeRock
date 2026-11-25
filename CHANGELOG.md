@@ -12,6 +12,7 @@ dictated, where it drove the change.
 - **"house is a little better keep iterating"**: a riff cut up stroke by stroke among three synths, who hammers, who turns and who answers changing every eight bars (`club.cut_up`); five leads of another kind (a talker, a chip, a
   scream, a fold, a reese) and their acts (chopshop, arcade, kennel, quarry, tunnel); thirteen families more: two towns, two caves, a storm and five walks by them, and a camp, a night and an inn by the mortuary and the switchyard.
 - A valley that had gone under hearing is brought half way back (`build.LOW_UNDER`).
+- Every family that has no take yet, some seven hundred, tells its themes another way each time they come back (`build.TOLD_ONCE` names those that had one).
 - The garage band's bass and the three bands' tubas, 10 to 14 dB over the liked stems' bass in their middle, are basses again.
 - **The ninth round's twenty characters**: Knight Rock's ten by the bands that sound furthest from the house's (two inns, two storms, two caves, a town, a camp, two walks), Warcraft's ten by its companies (four towns, two inns,
   two camps, a storm, a walk).

@@ -19,6 +19,7 @@ import random
 import sys
 import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from dataclasses import replace
 from pathlib import Path
 
 import numpy as np
@@ -123,6 +124,9 @@ def _shapes_last(character) -> list[int]:
 # beyond the plan's own (`plan`), by style: each one more song for its kind of place. 0 (or no entry): the plan's own, as
 # before. (That night Knight Rock, the music they play, was given a second round: Warcraft had 210 first takes still to make.)
 MORE_FAMILIES = {"knight": 2, "warcraft": 2}
+# The families that had a take before 2026-11-25: their themes come back as they were first told. In every other a theme is told another way each time (`Character.grows`): of 430 Knight Rock songs the middle one had 46% of
+# its tune's bars heard before, and seventeen of one night's new ones 50 to 66, the fourth families of characters that were written before it was.
+TOLD_ONCE = frozenset((Path(__file__).parent / "told_once.txt").read_text(encoding="utf-8").split())
 
 
 # House's titles (house.PLAN's, the test keeps them the same), written out here so that the plan, which the study and the lanes
@@ -187,7 +191,8 @@ def plan() -> list[tuple[Family, int]]:
         place = character.kinds[0] if len(character.kinds) < 5 else "anywhere"
         name = "%s-%s-%d" % (place, character.name.replace(" ", "-"), number + 1)
         # (A house band's character's families past its third are another band's songs: orchestra.fresh.)
-        out.append((family(fresh(character, number), seed, name, title), takes))
+        made = fresh(character, number)
+        out.append((family(made if made.grows or name in TOLD_ONCE else replace(made, grows=True), seed, name, title), takes))
 
     later, camps, last = [], [], []
     for index, character in enumerate(CHARACTERS):

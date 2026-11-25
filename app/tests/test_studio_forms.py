@@ -221,7 +221,8 @@ def test_a_family_past_a_house_band_character_s_third_is_another_band_s_song():
     for fam, _ in build.plan():
         if fam.character.name in house:
             (old if int(fam.name.rsplit("-", 1)[1]) <= orchestra.FRESH_FROM else new).append(fam)
-    assert old and all(fam.character == house[fam.character.name] for fam in old), "a family made before is changed"
+    assert old and all(fam.character == house[fam.character.name] for fam in old if fam.name in build.TOLD_ONCE), "a family made before is changed"
+    assert all(replace(fam.character, grows=False) == house[fam.character.name] for fam in old if not house[fam.character.name].grows), "...and one not made yet tells its themes another way, no more"
     assert len(new) >= 40 and all(fam.character.sounds in BANDS and fam.character.form in ("",) + tuple(FORMS) for fam in new)
     fourth = [fam for fam in new if fam.name.endswith("-4")]
     bands = [fam.character.sounds for fam in fourth]
@@ -394,6 +395,13 @@ def test_only_a_family_that_has_no_take_yet_is_told_another_way():
     court = next(character for character in CHARACTERS if not character.band and not character.sounds)
     for character in (plain, court):
         assert [orchestra.fresh(character, number).grows for number in range(6)] == [False, False, False, False, True, True]
+    # ...and whoever's a family is, one that had no take on 2026-11-25 (build.TOLD_ONCE): seventeen of one night's new songs had 50 to 66% of their tune's bars heard before.
+    planned = {fam.name: fam.character for fam, _ in build.plan()}
+    assert build.TOLD_ONCE <= set(planned) and 600 <= len(build.TOLD_ONCE) < len(planned) - 400
+    assert all(character.grows for name, character in planned.items() if name not in build.TOLD_ONCE)
+    assert not planned["pastoral-banner-ride-1"].grows and not planned["regal-five-black-kings-4"].grows
+    written = {character.name: character.grows for character in CHARACTERS}
+    assert sum(1 for name, character in planned.items() if name not in build.TOLD_ONCE and not written[character.name]) >= 300
 
 
 def test_a_band_s_instruments_play_within_their_ranges():
