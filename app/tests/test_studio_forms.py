@@ -488,11 +488,14 @@ def test_a_solo_picked_up_in_the_bar_before_leaves_its_part_to_be_lifted():
 
 def test_a_song_is_heard_from_its_first_bar():
     """(169 of the 521 songs of Warcraft's library opened under -36 LUFS, the first minute of them under a game's own sounds.)"""
-    heard = [-43.0, -33.0, -33.5, -27.0, -22.0, -41.0, -27.0, -20.0, -38.0]
+    heard = [-43.0, -30.0, -33.5, -27.0, -22.0, -41.0, -27.0, -20.0, -38.0]
     lifts = [min((max(heard) - loud) * build.RIDE, 12.0) for loud in heard]
     out = build.opened(heard, lifts)
-    assert abs(heard[0] + out[0] - (-20.0 - build.OPEN_UNDER)) < 1e-6 and out[1:] == lifts[1:]       # 16 dB under the summit
+    assert abs(heard[0] + out[0] - (-20.0 - build.OPEN_UNDER)) < 1e-6 and out[1:] == lifts[1:]       # 13 dB under the summit
     assert heard[0] + out[0] < heard[1] + lifts[1] - 1.9                                             # and under the theme it leads to
+    low = [heard[0], -36.0] + heard[2:]                                                              # (which holds it down where it is soft itself)
+    eased = [min((max(low) - loud) * build.RIDE, 12.0) for loud in low]
+    assert abs(low[0] + build.opened(low, eased)[0] - (low[1] + eased[1] - 2.0)) < 1e-6
     assert build.opened([-60.0] + heard[1:], [0.0] + lifts[1:])[0] == build.OPEN_MOST                # so far and no further
     loud = [-30.0] + heard[1:]
     assert build.opened(loud, lifts) == lifts                                                        # one that is heard is left

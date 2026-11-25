@@ -124,7 +124,9 @@ ACTS: dict[str, Act] = {
     "bazaar": Act("sitar", "shenai", "koto", ("dulcimer",), ("house bass fm",), ("house pad hollow",), "808"),
     # (of the instruments found on 2026-11-24: a cello's and a double bass's bows as a synthesiser's oscillators, all of it; a saxophone torn by an amplifier and a jazz bass, driven)
     "cyborg": Act("heart lead", "house lead squelch", "heart pluck", ("heart stab",), ("iron bass",), ("heart pad",), "909", drive=0.7),
-    "junkyard": Act("torn sax", "house lead hoover", "subtone sax", ("house stab clang",), ("driven bass",), ("house pad hollow",), "808", drive=0.7),
+    # (The junkyard's lead was a baritone saxophone torn by an amplifier, over a jazz bass: 2026-11-24, 21:20, read stroke by stroke: its long notes are in tune and its short ones, from G sharp 3 up, scoop from
+    # 90 to 185 cents under and are over before they arrive: three songs. It has the squelch now; the saxophone is kept for long notes.)
+    "junkyard": Act("house lead squelch", "house lead hoover", "house lead reed", ("house stab clang",), ("house bass grind",), ("house pad drone",), "808", drive=0.7),
 }
 # The acts a moment may have, in the order they are given out (a calm one's lead is soft).
 # (2026-11-24, 19:35: every act measured on one song, hard against sweet: the hard ones +9 to -2, warehouse's acid line far the hardest, and the soft ones -13 to -21, as sweet as the sweetest old songs, on a dark
@@ -971,6 +973,27 @@ def held_back(sections: list[tuple[str, int, int]], channel: str, frames: int, o
     return (np.resize(eased, frames) * over).astype(np.float32)
 
 
+STROKE_OFF = 45.0           # cents: a lead whose strokes on one note stand this far from it is out of tune there
+
+
+def strokes_off(notes: list[Note], audio: np.ndarray, beat_frames: float, span: tuple[float, float], most: int = 120) -> dict[int, float]:
+    """How far a lead's strokes sound from what is written, in cents, for each pitch struck eight times or more in a span of beats: each stroke by the harmonic sum of its own first quarter of a beat, three
+    half-steps either way, and the median of them. (2026-11-24: three songs' leads, a saxophone's short strokes, sounded 90 to 185 cents flat; the channel heard as a whole read 12 in one of them and passed the
+    others, and the instrument's long notes, by which it was tuned, are in tune.)"""
+    mono, found = audio.mean(axis=1), defaultdict(list)
+    cents, size = np.arange(-300.0, 301.0, 5.0), 1 << 17
+    for note in sorted((each for each in notes if span[0] <= each.start < span[1]), key=lambda each: each.start)[:most]:
+        piece = mono[int((note.start + 0.02) * beat_frames):int((note.start + 0.95 * min(note.length, 0.24)) * beat_frames)]
+        if len(piece) < 2000 or float(np.sqrt(np.mean(piece ** 2))) < 1e-4:
+            continue
+        power = np.concatenate([[0.0], np.cumsum(np.abs(np.fft.rfft(piece * np.hanning(len(piece)), size)) ** 2)])
+        written = 440.0 * 2.0 ** ((note.pitch - 69) / 12.0) * size / RATE
+        at = np.round(written * np.arange(1, 9)[:, None] * 2.0 ** (cents[None, :] / 1200.0)).astype(int)
+        at = np.clip(at, 4, size // 2 - 4)
+        found[note.pitch].append(float(cents[int(np.argmax(np.sqrt(power[at + 4] - power[at - 3]).sum(axis=0)))]))
+    return {pitch: float(np.median(each)) for pitch, each in sorted(found.items()) if len(each) >= 8}
+
+
 def stage(name: str, take: int) -> dict:
     """Writes one take of a house family as its sheet and performs it (`write`, `perform`). A take whose sheet a musician has
     revised is performed from its sheet (`sheet.revised_of`)."""
@@ -1117,6 +1140,16 @@ def _perform(sheet: Sheet) -> dict:
                       "MckAudio's TR-8 drum-machine recordings (CC0) and, in some songs, Karoryfer's and others' recordings (CC0) in the sfizz "
                       "sampler, put together by studio.club.")
     found = house.measure(meta, parts)
+    if "lead" in parts and sheet.parts.get("lead") and not about["calm"]:
+        # The riff, stroke by stroke (strokes_off): of the voice that has the most of the drops, in the first of them.
+        drops = [(first * 4.0, (first + count) * 4.0) for story, first, count in sections if story == "moment"]
+        big = max(sheet.parts["lead"].values(), key=lambda part: sum(any(a <= note.start < b for a, b in drops) for note in part.notes))
+        off = strokes_off(big.notes, parts["lead"], house.BAR_FRAMES / 4.0, drops[0])
+        found["strokes"] = off
+        wrong = {pitch: cents for pitch, cents in off.items() if abs(cents) > STROKE_OFF}
+        if wrong:
+            found["problems"] = list(found.get("problems") or []) + ["the lead's strokes are out of tune (%s): %s" % (
+                big.instrument, ", ".join("%d by %+.0f cents" % each for each in wrong.items()))]
     folder = stage_root(VAR, "house") / name / str(take)
     write_track(folder, meta, parts)
     sheet.save(folder / "sheet.json")

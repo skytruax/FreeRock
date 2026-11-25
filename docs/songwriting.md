@@ -1941,6 +1941,10 @@ chorus and the hall are the desk's now*.
   *Which lead is whose* (the same measure, thirteen of House's leads in one drop with everything else the same). Hardest first: sync -5, the anthem -6, the acid line -7, the throat -7, the ladder -9, the stack -9, the driven
   pluck -11, the growl -12, the factory's saw as it was -12.5, the two turning pulses -16.5, struck metal -18. A lead that rings like a bell is the sweetest thing a song can be led by, whatever it is called. Metal and the
   pulses lead no act now; the growl, dull and low, is a soft voice for a theme.
+  *A riff is heard stroke by stroke* (`club.strokes_off`, in every song's own checks). An instrument tuned by its long notes may be out of tune on its short ones: the baritone saxophone's strokes from G sharp 3 up
+  scoop from 90 to 185 cents under and are over before they arrive. The channel heard as a whole read 12 cents in one of its songs, 63% in the key in another and nothing in the third. Each stroke of the first drop's riff is
+  read for itself now, the median for each pitch; of thirty-six songs three were out, all three the saxophone's (its recordings blown hardest are the ones that scoop: at a third of its strength it is in tune). It is kept for long
+  notes, and for riffs no higher than G3; the junkyard has the squelch.
   *A dub chord has its third* (`club.THIRDS`, `with_thirds`). A hard song's stabs are a root, a fifth and an octave; behind a band-pass whose peak stands on their overtones they were something else: Sump, in D phrygian, sounded 13 in
   100 of a major second (the fifth's third overtone) and 7 of a major third (the root's fifth), 63% in its key, and Cold Storage 60. The dub's are a dark minor chord, as a dub's are: the octave goes to the third the key has.
   A stab whose filter is open (the rave's, the plate's) has its overtones evenly and needs none.
@@ -2161,7 +2165,7 @@ night's three places for its whole limit, 6,121 s.
 
 **An opening is heard** (`build.opened`, 2026-11-24). Every song of the day's seven studied opened at -37 to -41 LUFS; counted then, 169 of Warcraft's 521 stood under -36 (Knight Rock's 16 of 425), which a
 game's own sounds cover: the first minute of such a song is silence. The writer's `opens` plays the newest characters' louder; the desk now brings any opening to within 16 dB of its song's loudest
-part, by 9 dB at most, and never over the theme it leads to.
+part, by 9 dB at most, and never over the theme it leads to (13 dB and 12 from the same evening: at 16 the day's thirty songs opened at -33 to -36 still). `tools/open_up.py` gives the same ride to songs already made.
 
 **A drop stands over its theme** (`club.HELD_BACK`, `HELD_BACK_SOFTER`, the same day): House's in 5.7.
 

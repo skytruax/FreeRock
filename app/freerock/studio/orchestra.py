@@ -128,7 +128,8 @@ INSTRUMENTS = {
     "erhu": I(62, 81, 71), "lyre": I(64, 84, 73, held=False), "growl sax": I(37, 67, 50), "subtone sax": I(37, 67, 51), "saxcordion": I(57, 91, 68, level=0.8),
     "war tuba": I(28, 58, 40), "bass voice": I(38, 58, 48), "archtop guitar": I(40, 84, 60, held=False), "guitar banjo": I(39, 75, 57, held=False),
     "tagelharpa": I(40, 58, 48, held=False), "hollow guitar": I(40, 76, 50, held=False, wired=True), "hollow muted": I(40, 72, 47, held=False, wired=True),
-    "hollow lead": I(52, 84, 66, wired=True), "riff harpa": I(38, 64, 46, held=False), "riff sax": I(37, 66, 46, held=False), "torn sax": I(37, 67, 52), "wired erhu": I(62, 81, 71, wired=True),
+    # (A saxophone's riff no higher than G3: its recordings blown hardest scoop from 90 to 185 cents under from G sharp 3 up, and a short stroke never arrives: 2026-11-24, club.strokes_off.)
+    "hollow lead": I(52, 84, 66, wired=True), "riff harpa": I(38, 64, 46, held=False), "riff sax": I(37, 55, 46, held=False), "torn sax": I(37, 67, 52), "wired erhu": I(62, 81, 71, wired=True),
     "growly bass": I(28, 60, 38, held=False), "torn bass": I(28, 47, 38, held=False), "driven bass": I(28, 60, 38, held=False),
     "heart lead": I(36, 88, 62), "heart pluck": I(36, 88, 62, held=False), "heart stab": I(36, 88, 60, held=False), "heart pad": I(36, 88, 60), "iron bass": I(28, 47, 36, held=False),
     # The big drums and what marks an arrival, found by name alone. A war drum's or a frame

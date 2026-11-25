@@ -66,8 +66,9 @@ DUCK = {"bass": 0.56, "texture": 0.8, "rhythm": 0.8, "lead": 0.9}
 DRUMS_UP = 6.0                 # dB: the most the drums are ever turned up to reach their place
 # A song is heard from its first bar (2026-11-24, the day's seven Warcraft songs studied: every one opened at -37 to -41 LUFS; then counted: 169 of the 521 songs of Warcraft's
 # library under -36, which a game's own sounds cover: the first minute of them is not heard at all. The characters that `opens` are written louder there, and they are the
-# newest alone). An opening stands no further than this under its song's loudest part, and is brought up no more than this for it.
-OPEN_UNDER, OPEN_MOST = 16.0, 9.0
+# newest alone). An opening stands no further than this under its song's loudest part, and is brought up no more than this for it. (16 and 9 dB at first, the same evening: the
+# thirty songs of the day stand at -17 to -21 at their loudest, so that an opening of -43 came up to -36 and was not heard still; three or four under the first theme is an opening.)
+OPEN_UNDER, OPEN_MOST = 13.0, 12.0
 MUSE_WORKERS = 5               # how many parts of a piece MuseScore performs at once
 # (2026-11-16, twice. In the afternoon: "theres not much difference between quet and full, we want more ...
 # drasticness", and a calm game was given no drums and a third of the bass. Played that evening: "the abruptness

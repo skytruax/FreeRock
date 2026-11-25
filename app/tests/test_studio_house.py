@@ -252,6 +252,28 @@ def test_a_lead_of_houses_own_is_played_with_accents_and_opens_over_the_drop():
     assert tied and all(after.pitch != note.pitch for note, after in tied) and len(tied) < len(notes) / 3
 
 
+def test_a_leads_strokes_are_heard_one_by_one():
+    # (2026-11-24: a saxophone whose long notes are in tune and whose short ones sound nearly two half-steps flat.)
+    from freerock.studio import RATE, club
+    from freerock.studio.score import Note
+    beat = RATE * 60.0 / 128.0
+    notes = [Note(step * 0.5, 0.24, 57 if step % 2 else 62, 0.8) for step in range(48)]
+
+    def played(cents: dict[int, float]) -> np.ndarray:
+        out = np.zeros((int(26 * beat), 2), dtype=np.float32)
+        for note in notes:
+            hz = 440.0 * 2.0 ** ((note.pitch - 69 + cents.get(note.pitch, 0.0) / 100.0) / 12.0)
+            t = np.arange(int(0.24 * beat)) / RATE
+            out[int(note.start * beat):int(note.start * beat) + len(t)] += sum(np.sin(2 * np.pi * hz * k * t) / k for k in range(1, 9)).astype(np.float32)[:, None] * 0.1
+        return out
+    level = club.strokes_off(notes, played({}), beat, (0.0, 24.0))
+    assert set(level) == {57, 62} and all(abs(cents) <= 10.0 for cents in level.values())
+    flat = club.strokes_off(notes, played({57: -150.0}), beat, (0.0, 24.0))
+    assert abs(flat[57] + 150.0) <= 15.0 and abs(flat[62]) <= 10.0 and abs(flat[57]) > club.STROKE_OFF
+    assert club.strokes_off(notes[:6], played({}), beat, (0.0, 24.0)) == {}               # too few of any to say
+    assert "torn sax" not in {act.big for act in club.ACTS.values()}
+
+
 def test_a_dub_chord_has_its_third():
     # (2026-11-24: a bare fifth behind a band-pass rang as a major second and a major third over a phrygian root.)
     from freerock.studio import club
