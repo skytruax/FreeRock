@@ -1527,6 +1527,13 @@ valley and the summit. As they first came their plucked strings and their brass 
 jug's inn at -34. So each player has a part of its own that is held part of the way to full strength (`muse.SQUEEZE`: 0.5 to 0.65), under a name of its own, as its instrument in an orchestra keeps the whole of its
 range: the tuba came from -40 to -31 and the valley to -29. A light song by the drumline is too soft in its riff (-39 under a mix of -28): it has heavy songs only. The noir's and the jug's lightest are right as they stand.
 
+*The ninth round's ten for Knight Rock* (the same night) are the bands' that sound furthest from the house's, by measure (`tools/sameness.py`: of 179 songs any two are alike by 0.77, the house band's 126 by 0.80 to one
+another; the fifty-three new ones by 0.75 among themselves and 0.745 to those; a song of the harpsichord's, the marimba's, the saxophones', the torn harp's or the church organ's by 0.68 to 0.71, one of the fuzz's, the crunch's or
+the tuba's by 0.78): two inns (skittle alley, a jam in five on a marimba; masked supper, a waltz on a harpsichord), two storms (steeple lightning on a church organ, hull breach in seven on amplified cellos), two caves (drowned nave,
+an organ's slow burn; clockwork deep, a marimba's riff in seven), a town (auction block, a saloon's verses), a camp (prizefighters' fire, a jam of saxophones) and two walks (burnt harvest, an erhu over a torn harp; harbour chain, a
+drawbar organ's). *Warcraft's ten* are its companies': four towns (ship breakers, plague cloister, lampblack lane, side show), two inns (reed cutters' rest, singing bowl), two camps (silk tent, drum vigil), a storm (thunder
+battery) and a walk among graves (kings' graves).
+
 *A round bass is heard too.* The light songs of seven bands have the round bass, and it was closed at 1.8 kHz on a clean amplifier: four of one night's 8 to 10 dB thin in their middle and 32 to 36 under the liked
 stems' at their top, and the lift of 4 dB at 800 Hz a light band's bass has (`LIGHT_BAND_BASS`) is the picked and the fretless one's, by name. On its crunch, with a step of middle at 850 Hz, it is 4 to 6 dB
 darker than the liked bass and no more: the round one still.
@@ -1996,7 +2003,7 @@ chorus and the hall are the desk's now*.
   *Five voices of another kind* (`patches.DESIGNS`): the talker (two formants opened by each stroke), the chip (an eight-bit ramp whose bits turn over as it is struck), the scream (a filter resonating on the note's own fourth
   overtone, broken up), the fold (a saw and a square folded over on themselves) and the reese (saws that beat, a notch going through them). Their acts: chopshop, arcade and kennel, cut up; quarry and tunnel, one voice. On one song,
   hard against sweet, drop and theme: tunnel +10 and +6 (the darkest drop of any), arcade +5 and 0, chopshop +5 and +4, kennel +5 and +2, beside warehouse's +9 and +7; not cut up arcade's drop stood at +1, chopshop's at +4 and
-  kennel's at +5. (A fold of two sines rang as a bell: -1.) Every stroke of every voice is in tune.
+  kennel's at +5. (A fold of two sines rang as a bell, -1, and a saw's and a square's stood no higher over an FM bass and a pad: the quarry has the wide bass, the drone and the 808.) Every stroke of every voice is in tune.
   *A stroke has a pitch.* A hard-synced lead swept 22 half-steps over half a second read 19 cents flat in two songs: in a riff's short stroke there is nothing but sweep, overtones sliding at 3.97 and 4.42 times the
   note. Swept six, from a little higher, its long notes are in tune and its short ones within 5 cents.
   *How hard it sounds, measured* (`tools/hardness.py`). The judges' model that hears audio against words (LAION-CLAP, music) scores ten seconds of a drop or a theme against three pairs of descriptions

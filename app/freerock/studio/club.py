@@ -144,7 +144,7 @@ ACTS: dict[str, Act] = {
                   cut=("house lead acid", "house lead sync")),
     "kennel": Act("house lead scream", "house lead fifth", "house lead vox", ("house stab clang",), ("house bass acid",), ("house pad drone",), "808", drive=0.75,
                   cut=("house lead talk", "house lead razor")),
-    "quarry": Act("house lead fold", "house lead ladder", "house lead growl", ("house stab slab",), ("house bass fm",), ("house pad hollow",), "909", drive=0.7),
+    "quarry": Act("house lead fold", "house lead ladder", "house lead growl", ("house stab slab",), ("house bass wide",), ("house pad drone",), "808", drive=0.75),
     "tunnel": Act("house lead reese", "house lead sync", "house lead reed", ("house stab dub",), ("house bass wide",), ("house pad drone",), "606", drive=0.7),
 }
 # The acts a moment may have, in the order they are given out (a calm one's lead is soft).
