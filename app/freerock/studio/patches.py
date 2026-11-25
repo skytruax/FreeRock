@@ -402,6 +402,13 @@ DESIGNS: dict[str, tuple[dict, dict]] = {
                         "a_filter1_keytrack": 0.3, "a_ws_type": WS_SOFT, "a_ws_drive": 7.0, "a_lfo6_shape": 0, "a_lfo6_rate": rate(0.15), "a_lfo6_trigmode": 0,
                         **env(2, 0.002, 0.2, 0.15, 0.3), **env(1, 0.002, 0.4, 0.25, 0.45), "polylimit": 12},
                        {"a_filter1_cutoff": [("scene lfo1", 7.0), ("velocity", 10.0)]}),
+    # The drone (2026-11-24, 19:25: two hard acts had the supersaw pad still, and were the two whose songs measured least dark): a saw and a narrow pulse an octave apart, beating slowly, shut low and
+    # driven, a slow sine moving the filter: a machine's hum and not a pad.
+    "house pad drone": ({**osc(1, octave=-1, voices=2, detune=0.1), **osc(2, shape=PULSE, width=0.25, pitch=0.07, level=0.55), **osc(3, shape=PULSE, octave=-1, width=0.4, pitch=-0.05, level=0.5),
+                         "a_filter1_type": LP24, "a_filter1_subtype": 0, "a_filter1_cutoff": hz(420.0), "a_filter1_resonance": 0.35,
+                         "a_filter1_keytrack": 0.4, "a_ws_type": WS_SOFT, "a_ws_drive": 12.0, "a_lfo6_shape": 0, "a_lfo6_rate": rate(0.07), "a_lfo6_trigmode": 0,
+                         **env(1, 0.6, 1.0, 0.9, 1.4), "polylimit": 12},
+                        {"a_filter1_cutoff": [("scene lfo1", 9.0)]}),
     # Basses. The acid's: the acid lead's ladder an octave down, its resonance less, so that its low end stays.
     "house bass acid": ({**osc(1), **osc(2, shape=PULSE, pitch=0.03, level=0.35), "a_filter1_type": LADDER, "a_filter1_subtype": 3, "a_filter1_cutoff": hz(220.0),
                          "a_filter1_resonance": 0.62, "a_filter1_envmod": 36.0, "a_filter1_keytrack": 0.3, "a_ws_type": WS_SOFT, "a_ws_drive": 9.0,

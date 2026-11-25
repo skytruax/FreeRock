@@ -609,7 +609,7 @@ HOUSE_LEADS: dict[str, tuple[tuple[str, float], ...]] = {
 }
 # A hard song's stabs and basses (2026-11-24; patches.DESIGNS), in the same way.
 HEARTS = ("heart lead", "heart pluck", "heart stab", "heart pad")          # (the bowed synthesiser's, programs.PROGRAMS: shaped in it, as these are in theirs)
-HOUSE_HARD = ("house stab rave", "house stab clang", "house stab dub", "house bass acid", "house bass grind")
+HOUSE_HARD = ("house stab rave", "house stab clang", "house stab dub", "house bass acid", "house bass grind", "house pad drone")
 
 
 def _surge_player(patch: str) -> str:
