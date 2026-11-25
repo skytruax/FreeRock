@@ -1499,6 +1499,23 @@ two storms (thunderhead, six-eight; black hail, seven, on cellos), two inns (jes
 dig-in (4.5 and after) draws one of three ways, two of which play on as written, and needs 24 bars. A character that turns has the stretch from the moment's half rung or
 given the other theme's figure, in every moment of sixteen bars or more.
 
+*A theme is told another way each time it comes back* (`Character.grows`, `orchestra.retold`). Two of the first four songs of the burn's form had 62 and 76% of their tune's bars heard before
+(Spur-Lit Halter, Keyholder's Round), and of the verses' Deposed Interdict 68: a form says its first theme at three or four strengths, and each was the same pair of statements, the tune and the tune with
+its leaps filled. The library's middle is 46% for Knight Rock and 32% for Warcraft. Where a character grows, the next statement of a theme anywhere in the song is the next of six ways: the tune; its leaps
+filled; the same question with another answer (its second half told upside down, its rhythm kept, home as before: `turned`); as a player adds to it who knows it; another question with the answer it had; that
+answer and that player together. The summit has the tune as it was first heard. On nine songs made already it took 10 to 28 points off; the seventh round's twenty-six characters stand at 21 to 50%, the middle
+one 32. Only families with no take have it: the new characters, and the house band's and the orchestra's past their fourth.
+An old song is told so by a revision of its sheet (the lead's parts alone, over the same band: 2026-11-24, the twenty-two most repeated, 50 to 76% to 32 to 60).
+
+*Three kits more* (2026-11-24, 23:10). A band is told by its drummer: fourteen had shared three kits, and fifteen snares told them apart. A Boston shop's jazz kit (six microphones to a stroke, mixed as an
+engineer does, "club"), the same through the worn vintage microphone beside them ("lofi"), and a kit whose every drum is a snare, the kick and the toms too ("unruly"): each stroke's soft layers brought half way
+up (a jazz drummer's softest is thirty dB under the hardest, where a groove is a third of the way), and each stroke of each kit brought to where the house's has it (`sounds.KIT_GAINS`, measured through the band's
+drums' bus at four strengths). The bands that will have them are to be heard first.
+
+*A round bass is heard too.* The light songs of seven bands have the round bass, and it was closed at 1.8 kHz on a clean amplifier: four of one night's 8 to 10 dB thin in their middle and 32 to 36 under the liked
+stems' at their top, and the lift of 4 dB at 800 Hz a light band's bass has (`LIGHT_BAND_BASS`) is the picked and the fretless one's, by name. On its crunch, with a step of middle at 850 Hz, it is 4 to 6 dB
+darker than the liked bass and no more: the round one still.
+
 *Warcraft's fifth round* (thirty families): three inns, where one song of fifty-one was heavy (cardsharps den in five, wake house a waltz that only rises, mutineers hold
 in seven), three towns (quarantine gate, five, a burn; wreckage quay, six-eight; ash ward, seven), a night (hour of wolves, five) and three walks (last redoubt, a
 burn; tide of teeth, five; burnt orchard, a waltz, a burn). An orchestra's verse-and-chorus has the second theme from its strong players each time it comes, the
@@ -1950,7 +1967,10 @@ chorus and the hall are the desk's now*.
   A stab whose filter is open (the rave's, the plate's) has its overtones evenly and needs none.
   *Every act, measured* (the same short song by each, `tools/hardness.py`). The hard ones on hard music: warehouse +9 (an acid line over an acid bass), signal +2, foundry +1, junkyard +0.5, monolith 0, undercroft -1, cyborg -2; before
   their own kick. The soft ones on a dark song: strobe -13, vesper and chamber -16, bazaar -17, velvet and brass -21: as sweet as the sweetest of the old songs, though nothing in what is written is: the instruments are the sweetness.
-  They play inns, camps and nights and the light songs, where softness is the place's; a dark walk, a town and a cave are the hard acts' (`club.ACTS_FOR`). Every act is in tune and its lead over its band.
+  They play inns, camps and nights and the light songs, where softness is the place's; a dark walk, a town and a cave are the hard acts' (`club.ACTS_FOR`). (The same night: a dark calm song is four acts' that are not soft, `ACTS_FOR["after"]`: cellar, a smoking
+  reed, a contrabass flute and driven tines over a tube; gallows, a foghorn, a baritone saxophone's long notes and plucked celli over a fretless bass; switchyard, a worn tape, a saxophone under its breath and dub
+  chords; mortuary, a bow near the bridge, a saxophone's growl and a dry knock over a double bass. On Dead Hours their themes stand at -7 to -9 where the soft acts' do at -13 and -14; a first mortuary, with a bassoon and a
+  parlour's piano, stood at -16. Their drive is the drums' and the bass's alone: a calm song's stabs keep their room.) Every act is in tune and its lead over its band.
   *What the first nineteen still do* (read by the meter the same evening). In twelve of them the drums were one groove for sixteen bars, the second half of a theme (Chain Gang's twenty-six): a hard theme's fourth eight bars, and a
   long one's last, have the toms of its drops, softer. An after-hours song's chords and bass never turned (Dead Hours' chords the same 22 bars, its bass one colour for 52): its chords take their second figure and its bass its
   other one at the half of a theme and of a moment. *The squelch*: the acid line's other voice, a square through the same ladder, is the second synth of the foundry and of cyborg.

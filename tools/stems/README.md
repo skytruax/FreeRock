@@ -116,6 +116,8 @@ cut to begin at their stroke, named by note, strength and turn, under `var/sampl
 | `ganjo` | A six-string banjo (itsclipping) | guitar banjo | CC0 |
 | `legato_vocal_tutorial` | A bass voice's "a", sliding from note to note (from Hadzi-Fia) | bass voice (not given to anyone yet: two of its notes are a third of a semitone out) | CC0 |
 | `DrumGizmo.MuldjordKit` | Lars Muldjord's Tama Superstar, sixteen microphones to a stroke | kit metal | CC BY 4.0 (Lars Muldjord, DrumGizmo; mapped by kinwie) |
+| `virtuosity_drums` | A Boston shop's jazz kit (Virtuosity Musical Instruments; Austin McMahon), six microphones to a stroke, mixed to one, and through its worn vintage microphone | kit club, kit lofi | CC0 |
+| `karoryfer.unruly-drums` | A kit whose every drum is a snare, the kick too | kit unruly | CC0 |
 | `karoryfer-bigcat.cello`, `karoryfer.emilyguitar`, `karoryfer.cowsynth`, `karoryfer.caveman-cosmonaut`, `karoryfer.squidpipes`, `jlearman.SteelDrum`, `body_percussion`, `zamenhof_stickmusterstuch_error`, `karoryfer.272-merry-orks`, `karoryfer.pastabass`, `karoryfer.meatbass`, `karoryfer.big-little-bass`, `karoryfer.ergo`, `dsmolken.double-bass`, `karoryfer.gogodze-phu-vol-i`, `karoryfer.gogodze-phu-vol-ii` | A cello, a clean guitar, strange synths, a squid's bagpipes, a steel drum, stomps and claps, glitches, a death metal choir, basses, Ghanaian drums | nothing yet | CC0 |
 
 `studio/samples.py` reads a folder of single notes into zones (measuring each recording's pitch),

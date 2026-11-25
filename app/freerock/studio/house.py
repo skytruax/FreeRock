@@ -108,6 +108,8 @@ LOOPS = {
     "H3": ("minor", 4, ((0, ""), (3, ""))),
     "H4": ("phrygian", 4, ((0, ""), (0, ""))),
     "H5": ("dorian", 2, ((0, ""), (0, ""), (0, ""), (6, ""))),
+    "H6": ("minor", 2, ((0, ""), (0, ""), (5, ""), (0, ""))),          # (the same night: the sixth under it; and the phrygian's second as soon as it can be)
+    "H7": ("phrygian", 2, ((0, ""), (1, ""), (0, ""), (0, ""))),
     "P1": ("phrygian", 2, ((0, ""), (1, ""), (0, ""), (6, ""))),
     "P2": ("phrygian", 2, ((0, ""), (1, ""), (2, ""), (1, ""))),
     "P3": ("phrygian dominant", 2, ((0, ""), (1, ""), (0, ""), (6, ""))),
@@ -725,15 +727,31 @@ PLAN: tuple[Family, ...] = (
     Family("camp-15", "Rust Water", ("coast", "jungle", "mystic", "haunted"), "camp", S01, False, 8, "H2", (8, 16, 8, 16, 8), "broken", 0.1, "707", "after-hours", "velvet", 102),
     Family("ember-14", "Closing Time", ("coast", "marsh", "frozen"), "ember", S01, False, 11, "H5", (8, 16, 8, 16, 8), "half", 0.12, "808", "after-hours", "chamber", 100),
     Family("ember-15", "Smoke Break", ("haunted", "desert", "jungle", "mystic"), "ember", S01, False, 4, "H3", (8, 16, 8, 16, 8), "broken", 0.1, "606", "after-hours", "vesper", 104),
-    Family("night-14", "Graveyard Shift", ("pastoral", "coast", "frozen"), "night", S01, False, 9, "H1", (16, 24, 8, 24, 8), "broken3", 0.1, "808", "after-hours", "chamber", 108),
-    Family("night-15", "Insomnia", ("desert", "jungle", "mystic", "highland"), "night", S01, False, 2, "H2", (16, 16, 8, 24, 16), "four", 0.06, "707", "after-hours", "velvet", 109),
+    Family("night-14", "Graveyard Shift", ("pastoral", "coast", "frozen"), "night", S01, False, 9, "H1", (16, 24, 8, 24, 8), "broken3", 0.1, "808", "after-hours", "gallows", 108),
+    Family("night-15", "Insomnia", ("desert", "jungle", "mystic", "highland"), "night", S01, False, 2, "H2", (16, 16, 8, 24, 16), "four", 0.06, "606", "after-hours", "cellar", 109),
     Family("storm-11", "Short Circuit", ("pastoral", "regal", "mystic", "jungle"), "storm", S01, False, 3, "H1", (8, 8, 8, 24, 8), "four", 0.0, "909", "hard", "monolith", 132),
     Family("depths-13", "Crawlspace", ("pastoral", "coast", "regal", "jungle", "desert"), "depths", S01, False, 6, "H4", (8, 24, 8, 16, 8), "broken", 0.14, "606", "hard-slow", "foundry", 118),
     Family("pastoral-09", "Barbed Wire", ("pastoral",), W, S01, False, 8, "H2", (8, 16, 4, 24, 8), "four", 0.0, "808", "hard", "junkyard", 124),
     Family("coast-08", "Dry Dock", ("coast",), W, S01, False, 5, "H5", (16, 16, 8, 16, 8), "broken2", 0.1, "909", "hard-broken", "foundry", 122),
     Family("marsh-06", "Backwater", ("marsh", "jungle"), W, S01, False, 0, "H1", (8, 24, 8, 16, 8), "broken3", 0.16, "808", "hard-broken", "cyborg", 119),
     Family("frozen-07", "Black Frost", ("frozen", "mystic"), W, S01, False, 11, "H3", (8, 16, 8, 24, 8), "four", 0.06, "909", "hard", "signal", 126),
+    # (The fourth set, 22:10 the same night, where House is heard most per song still: its towns, camps, nights, inns and storms, the calm ones by the two acts that are not sweet (club.ACTS: cellar, gallows);
+    # and the walks that have the fewest. From here on a riff has other cells and a drop two other shapes to draw from: LATER.)
+    Family("town-13", "Lock-Up", ("regal", "highland", "desert"), "town", S01, False, 7, "H6", (8, 16, 8, 16, 8), "broken3", 0.12, "808", "hard-broken", "junkyard", 121),
+    Family("town-14", "Toll Booth", ("coast", "jungle", "infernal"), "town", S01, False, 1, "H1", (8, 16, 8, 16, 8), "four", 0.1, "909", "hard", "warehouse", 124),
+    Family("camp-16", "Cold Ashes", ("pastoral", "highland", "frozen"), "camp", S01, False, 4, "H4", (8, 16, 8, 16, 8), "half", 0.1, "808", "after-hours", "gallows", 96),
+    Family("camp-17", "Oil Drum", ("desert", "jungle", "infernal"), "camp", S01, False, 11, "H2", (8, 16, 8, 16, 8), "broken", 0.12, "606", "after-hours", "cellar", 105),
+    Family("ember-16", "Basement Bar", ("pastoral", "regal", "highland"), "ember", S01, False, 6, "H5", (8, 16, 8, 16, 8), "broken2", 0.14, "606", "after-hours", "cellar", 110),
+    Family("ember-17", "Bad Debt", ("infernal", "haunted", "marsh", "desert"), "ember", S01, False, 9, "H7", (8, 16, 8, 16, 8), "half", 0.08, "808", "after-hours", "gallows", 99),
+    Family("night-16", "Last Bus", ("regal", "coast", "pastoral"), "night", S01, False, 3, "H6", (16, 24, 8, 24, 8), "four", 0.1, "606", "after-hours", "cellar", 109),
+    Family("night-17", "Hanging Tree", ("haunted", "frozen", "jungle"), "night", S01, False, 8, "H4", (16, 24, 8, 24, 8), "broken3", 0.06, "808", "after-hours", "gallows", 101),
+    Family("storm-12", "Brownout", ("haunted", "marsh", "frozen", "coast"), "storm", S01, False, 10, "H7", (8, 8, 8, 24, 8), "broken2", 0.08, "808", "hard-broken", "junkyard", 127),
+    Family("coast-09", "Bilge Pump", ("coast",), W, S01, False, 2, "H6", (8, 16, 4, 24, 8), "four", 0.0, "909", "hard", "warehouse", 125),
+    Family("pastoral-10", "Grain Silo", ("pastoral", "highland"), W, S01, False, 5, "H7", (8, 24, 8, 16, 8), "broken", 0.14, "909", "hard-broken", "monolith", 122),
+    Family("highland-09", "Rockfall", ("highland",), W, S01, False, 0, "H3", (16, 16, 8, 24, 8), "four", 0.06, "909", "hard", "signal", 128),
+    Family("frozen-08", "Ice Drill", ("frozen",), W, S01, False, 6, "H1", (8, 16, 8, 24, 8), "broken3", 0.1, "606", "hard-broken", "foundry", 124),
 )
+LATER = tuple(each.name for each in PLAN)[[each.name for each in PLAN].index("town-13"):]          # (the families from the fourth set of hard ones on: HAMMERS_LATER, SCENES_LATER)
 TAKES = (1, 2, 3)
 NUMERALS = {1: "I", 2: "II", 3: "III", 4: "IV", 5: "V"}
 
@@ -773,6 +791,9 @@ RIFF_CELLS = True
 # first eight bars a phrase at a time, every four bars from the fifth (Take.lead). Not a fight's (its hook is there from
 # the first bar) nor a calm piece's. False: the hook from halfway, as on 11-18.
 THEME_SINGS = True
+# (2026-11-24, 22:30: the hard songs' drops measure +1 to +13 and their themes, which are most of what is heard, -7 to +1: a theme's hook is the act's soft lead's.) A later hard song's (LATER) theme
+# says its riff in the big lead's own voice, softly, coming up.
+THEME_MAIN = True          # (on two songs, hard against sweet, the theme +4.0 and +4.8 with the soft lead's and +4.5 and +5.9 with the big one's, the drops no lower: in)
 RIFFS = (
     ((0, 2), (3, 2), (6, 2), (9, 2), (12, 2), (14, 2), (16, 2), (19, 2), (22, 2), (25, 2), (28, 4)),
     ((0, 1), (3, 1), (6, 1), (8, 1), (11, 1), (14, 1), (16, 1), (19, 1), (22, 1), (24, 1), (27, 1), (30, 2)),
@@ -783,6 +804,8 @@ RIFFS = (
 # hammered, two bars of it, and three or four of its strokes somewhere else: the step over it, the step under it, the octave. A bar each, "x" a stroke, "-" the
 # stroke held; the second bar of the two is the first's, or another's.
 HAMMERS = ("x..x..x...x.x...", "x.xx..x.x.xx..x.", "x---x.xxx---x.x.", "xx.x.xx.x.x.xx..", "x.x.x.x.x.x.xxxx", "..x...x...x.x.xx", "x..xx..xx..xx.x.", "x-.x-.x-.x-.x.xx", "x.......x..x..x.")
+# (...and the later families' (LATER): fifty hard songs on nine cells would have come round.)
+HAMMERS_LATER = ("x..x.x..x..x.x..", "x.x..x.x..x.x..x", "x---..x.x---..xx", ".x.x..x..x.x..x.", "xxx...xxx...xx..", "x.....x.x.....x.", "x.xxx.x.x.xxx.x.", "x-.xx-.xx-.xx-.x")
 FLOWS = (
     ((0, 2), (2, 2), (4, 2), (6, 2), (8, 4), (12, 2), (14, 2), (16, 2), (18, 2), (20, 2), (22, 2), (24, 6)),
     ((0, 1), (1, 1), (2, 2), (4, 2), (6, 2), (8, 6), (16, 1), (17, 1), (18, 2), (20, 2), (22, 2), (24, 6)),
@@ -988,7 +1011,7 @@ class Tune:
         """A hard song's tune (HAMMERS): one note hammered for two bars and turned at their end, said again; another rhythm of it a third or a fourth up for two bars;
         the first again with its last half bar left out, for the breath. Its second eight bars put the octave where the first had the step."""
         rng = self.rng
-        shapes = rng.sample(HAMMERS, 3)
+        shapes = rng.sample(HAMMERS + HAMMERS_LATER if self.changes.family.name in LATER else HAMMERS, 3)
         moves = rng.choice(((1, -1, 7), (1, 7, 1), (-1, 2, 1), (7, 1, -1), (2, 1, -2), (-2, -1, 1)))       # where its few strokes go, by turns
         away = sorted(rng.sample(range(1, 8), 3))                                                         # and which of the phrase's strokes those are, of eight
 
@@ -1119,6 +1142,12 @@ HARD_SCENES: dict[str, dict] = {
     "answered": dict(first=("CA", "CAT", "LS"), last=("CA", "CAU", "sBT", "LS", "CAH", "LSHT"), rise="stab", stabs=0, bass=8),
     "lone": dict(first=("L", "LU", "LS"), last=("L", "LUT", "BT", "LSB", "LH", "LsHT"), rise="machine", stabs=24, bass=0),
 }
+# (The later families' drops have two shapes more: the riff kept back until the first drop's last eight bars; the second synth there before it.)
+SCENES_LATER: dict[str, dict] = {
+    "late": dict(first=("SB", "SBT", "L"), last=("L", "LS", "LSU", "BT", "LSH", "LsHT"), rise="hammer", stabs=8, bass=0),
+    "shadow": dict(first=("U", "LU", "LUS"), last=("LS", "UT", "LU", "sB", "LSH", "LsHT"), rise="stab", stabs=16, bass=0),
+}
+WAITS = ("held", "late", "shadow")                # the shapes whose riff is not there from their first drop's first bar: no fight's and no storm's
 THREES = ((0, 2.0), (3, 2.0), (6, 2.0), (9, 2.0), (12, 2.0), (14, 1.5))
 # Bass figures for one bar: (sixteenth, how long, which note of the chord).
 BASSES = {
@@ -1214,7 +1243,8 @@ class Take:
         # A hard song's arrangement (HARD_SCENES); a fight's and a storm's riff is there from its drop's first bar.
         self.scene: dict | None = None
         if low and fam.role not in CALM_ROLES:
-            self.scene = HARD_SCENES[self.pick("scene", tuple(each for each in HARD_SCENES if each != "held" or not (fam.hard or fam.role == "storm")))]
+            scenes = {**HARD_SCENES, **SCENES_LATER} if fam.name in LATER else HARD_SCENES
+            self.scene = scenes[self.pick("scene", tuple(each for each in scenes if each not in WAITS or not (fam.hard or fam.role == "storm")))]
 
     # --- what a take is made of ----------------------------------------------------------------
     def rng(self, what: str) -> random.Random:
@@ -1742,8 +1772,12 @@ class Take:
                     for index, inside in enumerate(range(4, half - 1, 4)):
                         say(cut(tune.notes, 32 * (index % 4), 32 * (index % 4) + 32), first + inside, soft, 0.34, 0.5)
                 for index, inside in enumerate(range(half, count - 1, 4)):
-                    say(cut(tune.notes, 32 * (index % 2), 32 * (index % 2) + 32) if index < 2 else cut(tune.notes, 96, 128),
-                        first + inside, soft if not fam.hard else main, 0.42, 0.6)
+                    hook = cut(tune.notes, 32 * (index % 2), 32 * (index % 2) + 32) if index < 2 else cut(tune.notes, 96, 128)
+                    if THEME_MAIN and self.scene and fam.name in LATER and not fam.hard:
+                        along = (inside - half) / max(count - half, 1)
+                        say(hook, first + inside, main, 0.4 + 0.12 * along, 0.34 + 0.22 * along)
+                        continue
+                    say(hook, first + inside, soft if not fam.hard else main, 0.42, 0.6)
             elif story == "rise" and self.scene:
                 # A hard song's does not give its riff away: its one note hammered, opening up, or nothing of it (HARD_SCENES).
                 if self.scene["rise"] == "hammer":

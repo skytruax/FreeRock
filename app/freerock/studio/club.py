@@ -115,7 +115,7 @@ ACTS: dict[str, Act] = {
     "undercroft": Act("house lead ladder", "house lead fifth", "house lead growl", ("house stab dub",), ("house bass wide",), ("house pad hollow",), "808", drive=0.7),
     "foundry": Act("house lead razor", "house lead squelch", "house lead reed", ("house stab clang",), ("house bass fm", "house bass grind"), ("house pad hollow",), "606", drive=0.8),
     "signal": Act("house lead sync", "house lead fifth", "house lead vox", ("house stab rave",), ("house bass square",), ("house pad drone",), "909", drive=0.6),
-    "monolith": Act("house lead hoover", "house lead fifth", "house lead vox", ("house stab rave", "brass"), ("house bass grind",), ("house pad drone",), "909", drive=0.7),
+    "monolith": Act("house lead hoover", "house lead fifth", "house lead vox", ("house stab slab",), ("house bass grind",), ("house pad drone",), "909", drive=0.7),
     "vesper": Act("house lead vox", "house lead reed", "bass clarinet", ("electric piano",), ("house bass fm",), ("choir",), "707"),
     "velvet": Act("house lead reed", "house lead vox", "wurly", ("rhodes", "electric piano"), ("house bass pluck",), ("house pad warm",), "707"),
     "strobe": Act("house lead pluck", "house lead stack", "house pluck", ("house pluck",), ("house bass fm",), ("house pad super",), "606"),
@@ -127,6 +127,14 @@ ACTS: dict[str, Act] = {
     # (The junkyard's lead was a baritone saxophone torn by an amplifier, over a jazz bass: 2026-11-24, 21:20, read stroke by stroke: its long notes are in tune and its short ones, from G sharp 3 up, scoop from
     # 90 to 185 cents under and are over before they arrive: three songs. It has the squelch now; the saxophone is kept for long notes.)
     "junkyard": Act("house lead squelch", "house lead hoover", "house lead reed", ("house stab clang",), ("house bass grind",), ("house pad drone",), "808", drive=0.7),
+    # (2026-11-24, 22:00: the soft acts measured -13 to -21, as sweet as the sweetest old songs; what is left of a night when the hard ones have gone home: a smoking reed, a contrabass flute and driven tines
+    # over a tube; a foghorn, a baritone saxophone's long notes and plucked celli over a fretless bass and a machine's hum.)
+    "cellar": Act("house lead smoke", "house lead reed", "contrabass flute", ("house keys ash",), ("house bass tube",), ("house pad breath",), "606", drive=0.3),
+    "gallows": Act("house lead horn", "house lead vox", "bari sax", ("celli pizz",), ("fretless",), ("house pad drone",), "808", drive=0.35),
+    # (...a bow near the bridge, a saxophone's growl, a dry knock over a double bass; a worn tape, a saxophone played under its breath, dub chords. On Dead Hours, hard against sweet, theme and drop: switchyard -7
+    # and -6, gallows -8 and -7 (the darkest of all, +6.5 on that axis), cellar -9 and -12, beside vesper's -13 and -4 and velvet's -14 and -13; the mortuary's first writing, a bassoon and a parlour's piano, -16.)
+    "mortuary": Act("house lead bow", "house lead growl", "growl sax", ("house keys bone",), ("acoustic bass",), ("house pad breath", "house pad hollow"), "606", drive=0.35),
+    "switchyard": Act("house lead tape", "house lead smoke", "subtone sax", ("house stab dub",), ("house bass wide",), ("house pad hollow",), "808", drive=0.3),
 }
 # The acts a moment may have, in the order they are given out (a calm one's lead is soft).
 # (2026-11-24, 19:35: every act measured on one song, hard against sweet: the hard ones +9 to -2, warehouse's acid line far the hardest, and the soft ones -13 to -21, as sweet as the sweetest old songs, on a dark
@@ -134,13 +142,16 @@ ACTS: dict[str, Act] = {
 ACTS_FOR = {"calm": ("velvet", "vesper", "strobe", "chamber", "bazaar"), "fight": ("foundry", "warehouse", "undercroft", "monolith", "signal", "cyborg", "junkyard"),
             "town": ("warehouse", "signal", "junkyard", "undercroft", "cyborg"), "depths": ("undercroft", "foundry", "cyborg", "monolith"),
             "light": ("strobe", "velvet", "bazaar", "vesper", "chamber", "brass"),
-            "heavy": ("warehouse", "undercroft", "monolith", "foundry", "signal", "cyborg", "junkyard")}
+            "heavy": ("warehouse", "undercroft", "monolith", "foundry", "signal", "cyborg", "junkyard"),
+            "after": ("cellar", "gallows", "switchyard", "mortuary")}
 # A family's first take is House's own act; its other takes, every take of the families planned after ACTS_AFTER, and of those that had no take yet when the acts
 # came in (ACTS_ALSO), another's.
 ACTS_AFTER = "depths-09"
 ACTS_ALSO = frozenset(("ember-05", "ember-06", "ember-07", "ember-08", "camp-05", "camp-06", "camp-07", "camp-08", "depths-05", "depths-06", "depths-07", "depths-08",
                        "boss-04", "boss-05", "boss-06", "night-05", "night-06", "night-07", "night-08", "town-04", "desert-05", "jungle-02", "jungle-04", "jungle-05",
                        "boss-02", "battleground-02"))
+# (...and of the dark calm ones that had no take when the acts that are not sweet came in, every take one of those.)
+ACTS_AFTER_HOURS = frozenset(("camp-07", "camp-11", "camp-12", "ember-11", "ember-12", "night-07", "night-11", "night-12"))
 # House's own two big leads made anew: what is played where a sheet names the first.
 MAIN_LEADS: dict[str, str] = {}
 
@@ -152,8 +163,10 @@ def act_of(fam: house.Family, take: int) -> str:
     names = [each.name for each in house.PLAN]
     at = names.index(fam.name) if fam.name in names else 0
     if fam.act:                        # a hard song's other takes are other hard acts'
-        kin = ACTS_FOR["fight" if fam.act in ACTS_FOR["fight"] else "calm"]
+        kin = ACTS_FOR[next(each for each in ("fight", "after", "calm") if fam.act in ACTS_FOR[each])]
         return kin[(kin.index(fam.act) + take - 1) % len(kin)]
+    if fam.name in ACTS_AFTER_HOURS:
+        return ACTS_FOR["after"][(at + take) % len(ACTS_FOR["after"])]
     if take <= 1 and fam.name not in ACTS_ALSO and at <= names.index(ACTS_AFTER):
         return ""
     kind = ("calm" if fam.role in house.CALM_ROLES else "fight" if fam.role in ("battle", "boss", "storm", "battleground") else fam.role if fam.role in ACTS_FOR
@@ -379,7 +392,10 @@ MACHINE_KICK = {"909": ("house kick", KICK_TRIM), "808": ("house kick 808", KICK
 # the same height than the kick before it, and is to be a decibel over it).
 HARD_KICK = {"909": ("house kick hard", 20.0, 0.35), "606": ("house kick hard 606", 26.0, 0.2), "808": ("house kick hard 808", 14.0, 0.5)}
 HARD_KICK_AT = 0.85
-HARD_TOPS = {"room": 1.15, "hats": 1.35}       # ...and its claps, snares and toms, and its hats, up against that kick (the channel is brought to its place by the whole of it, and the kick is most of that)
+# ...and its claps, snares and toms, and its hats, up against that kick (the channel is brought to its place by the whole of it, and the kick is most of that). (1.15 at first: in eight of one night's songs the
+# middle of the drums stood 4 to 8 dB under the liked stems', and what is struck on two and four no higher between 350 Hz and 2.5 kHz than the kick's own click on one and three; up 2.9 dB, on two songs, the
+# measure of hard against sweet moved 0.4 either way: 1.7.)
+HARD_TOPS = {"room": 1.4, "hats": 1.35}
 HARD_CLAPS = {"808": 1.45}       # (the 808's claps and snares further: its songs' drums 3.5 to 8.7 dB thin in their middle against the liked stems, Dead Reckoning, Sump, Knuckle Duster and Boiler Room)
 # A hard act plays close (2026-11-24: what softened its songs, the measure of it says, was the lead, and what it went through was a dream's: an echo in dotted eighths from side to side and a hall): how much of
 # the echo its stabs and its lead have, and how far its stabs and its lead are sent to the hall.

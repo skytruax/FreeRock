@@ -247,13 +247,22 @@ KIT_STROKES["bobobo"].update({"conga": _BOBO + "tenor_l_vl*.wav", "conga low": _
 _MULD = "merged/muldjord/"
 KIT_STROKES["metal"] = {"boom": _MULD + "kick/*.flac", **{stroke: _MULD + stroke + "/*.flac" for stroke in ("snare", "clack", "hat", "hat open", "ride", "bell", "crash", "crash2", "tom", "tom low",
                                                                                                    "tom high")}}
-KIT_LEVEL = {"sticks": 5.0, "felt": 1.0, "swept": 1.0, "metal": 4.0}          # dB for the whole set beside the kick that goes with it
+# Three more of that day's (23:10), every microphone mixed to one recording to a stroke, their soft layers brought half way up (a jazz drummer's softest is thirty dB under the hardest, where a groove is a
+# third of the way): the Virtuosity Drums (a Boston shop's house kit; CC0) as an engineer mixes one, "club", and through the worn vintage microphone it was recorded by as well, "lofi"; and Unruly Drums
+# (Karoryfer; CC0), every drum of it a snare, the kick and the toms with their wires on.
+KIT_STROKES.update({kit: {"boom": "merged/%s/boom/*.flac" % kit, **{stroke: "merged/%s/%s/*.flac" % (kit, stroke) for stroke in ("snare", "clack", "hat", "hat open", "ride", "bell", "crash", "crash2", "tom",
+                                                                                                                    "tom low", "tom high")}} for kit in ("club", "lofi", "unruly")})
+KIT_LEVEL = {"sticks": 5.0, "felt": 1.0, "swept": 1.0, "metal": 4.0, "club": 5.0, "lofi": 6.0, "unruly": 7.0}          # dB for the whole set beside the kick that goes with it
 KIT_GAINS: dict[str, dict[str, float]] = {
     "sticks": {"snare": 1.5, "hat": 1.5, "hat open": -5.0, "ride": -1.0, "bell": -0.5, "tom": -0.5, "tom low": 1.0, "tom high": -4.0, "crash": 1.5, "crash2": -2.0},
     "felt": {"snare": -2.0, "clack": -3.0, "hat": -3.0, "hat open": -8.0, "ride": -6.0, "bell": -5.5, "tom high": -4.5, "crash": 1.5, "crash2": -1.5},
     "swept": {"snare": 1.5, "clack": -5.0, "hat open": -9.0, "ride": 7.5, "bell": 8.0, "tom": 9.0, "tom low": 8.5, "tom high": 1.5, "crash": 15.0, "crash2": 7.0,
               "swish": 13.0},
-    "metal": {"snare": -1.0, "clack": 2.0, "hat": 9.5, "hat open": 6.5, "ride": 6.0, "bell": 3.0, "tom": 4.0, "tom low": 2.0, "tom high": -1.0, "crash": 2.5, "crash2": -3.0}}
+    "metal": {"snare": -1.0, "clack": 2.0, "hat": 9.5, "hat open": 6.5, "ride": 6.0, "bell": 3.0, "tom": 4.0, "tom low": 2.0, "tom high": -1.0, "crash": 2.5, "crash2": -3.0},
+    # (every stroke of the three at four strengths through the band's drums' bus, as those were: brought to where the house's rock kit has each)
+    "club": {"snare": 0.5, "clack": -3.5, "hat": 3.5, "hat open": -7.5, "ride": -1.5, "bell": -4.0, "tom": -1.5, "tom low": -4.0, "tom high": -5.0, "crash": -8.5, "crash2": -7.5},
+    "lofi": {"snare": -2.5, "clack": -4.0, "hat": -5.0, "hat open": -10.5, "ride": -11.5, "bell": -10.5, "tom low": -1.5, "tom high": -3.0, "crash": -10.5, "crash2": -10.5},
+    "unruly": {"snare": -4.5, "clack": -2.5, "hat": -1.0, "hat open": -6.5, "ride": 3.0, "bell": -4.5, "tom": 1.5, "tom low": 1.0, "tom high": -5.0, "crash": -5.0, "crash2": -7.5}}
 # ...and how many dB each stands at for its strokes to be where the kit's own snare is, at the strength of a groove (the mallets' is 2 dB softer than the sticks'). The rest of
 # such a kit is the kit's it is in, and so is its level (`level`).
 SNARES = {"poplar": -5.0, "birch": -2.5, "maple": -1.5, "steel": -3.0, "mahogany": 3.0, "shell": -1.0, "thud": -4.0, "ziggurat": -2.5, "aluminium": -0.5, "ash": 0.5, "flyer": -6.0, "wrenches": -1.5,
@@ -263,7 +272,7 @@ KIT_STROKES.update({name: dict(KIT_STROKES[kit], snare="merged/snares/%s/*.flac"
 KIT_LEVEL.update({name: KIT_LEVEL[kit] for name, kit in KIT_BASE.items()})
 KIT_GAINS.update({name: dict(KIT_GAINS[kit], snare=SNARES[name.split(" ")[1]]) for name, kit in KIT_BASE.items()})
 KIT_CUTS = {"swept": {"swish": (0.5, 1.35, 2.2, 3.05, 3.9)}}
-OWN_BOOM = ("sticks", "felt", "swept", "metal") + tuple(KIT_BASE)
+OWN_BOOM = ("sticks", "felt", "swept", "metal", "club", "lofi", "unruly") + tuple(KIT_BASE)
 
 
 # Big drums made of several drums struck by several players (studio.sfz.layered): name -> (the
@@ -419,7 +428,7 @@ KIT_PLUGS: dict[str, tuple[str, dict[str, int]]] = {
 # The kits whose bass-drum stroke ("boom") has the kick with it, beside the kit's own drum. A band's kits have a
 # bass drum that is meant to be heard (Red Zeppelin's is 26 inches across and booms): the kick goes with it at half
 # the strength, for the stroke and the bottom that drum does not have.
-KICKED = ("orchestra", "march", "folk", "wood", "rock", "room", "rusty", "brushed", "mallets", "sticks", "felt", "swept", "metal") + tuple(KIT_BASE)
+KICKED = ("orchestra", "march", "folk", "wood", "rock", "room", "rusty", "brushed", "mallets", "sticks", "felt", "swept", "metal", "club", "lofi", "unruly") + tuple(KIT_BASE)
 SOUNDS: dict[str, Sound] = {
     "violins": _bowed("violins", -0.4), "violins slow": _bowed("violins", -0.4, "slow"),
     "violas": _bowed("violas", 0.12), "celli": _bowed("celli", 0.3), "celli slow": _bowed("celli", 0.3, "slow"),
@@ -605,11 +614,13 @@ HOUSE_LEADS: dict[str, tuple[tuple[str, float], ...]] = {
     "house lead pwm": (("pwm", 0.0), ("bite", -12.0)), "house lead vox": (("vox", 0.0), ("width", -11.0)), "house lead metal": (("metal", 0.0),),
     "house lead acid": (("acid", 0.0),), "house lead growl": (("growl", 0.0), ("bite", -12.0)), "house lead pluck": (("pluck", 0.0), ("width", -10.0)),
     "house lead hoover": (("hoover", 0.0),), "house lead reed": (("reed", 0.0),), "house lead fifth": (("fifth", 0.0), ("bite", -12.0)),
-    "house lead razor": (("razor", 0.0),), "house lead squelch": (("squelch", 0.0),),
+    "house lead razor": (("razor", 0.0),), "house lead squelch": (("squelch", 0.0),), "house lead smoke": (("smoke", 0.0),), "house lead horn": (("horn", 0.0),),
+    "house lead bow": (("bow", 0.0),), "house lead tape": (("tape", 0.0),),
 }
 # A hard song's stabs and basses (2026-11-24; patches.DESIGNS), in the same way.
 HEARTS = ("heart lead", "heart pluck", "heart stab", "heart pad")          # (the bowed synthesiser's, programs.PROGRAMS: shaped in it, as these are in theirs)
-HOUSE_HARD = ("house stab rave", "house stab clang", "house stab dub", "house bass acid", "house bass grind", "house pad drone")
+HOUSE_HARD = ("house stab rave", "house stab clang", "house stab dub", "house bass acid", "house bass grind", "house pad drone",
+              "house keys ash", "house keys bone", "house pad breath", "house bass tube", "house stab slab")      # (...and the calm ones', the same evening; and the monolith's)
 
 
 def _surge_player(patch: str) -> str:
@@ -1607,12 +1618,17 @@ AMPS: dict[str, Amp] = {
     # (House's two, at its level: at a rock band's the sub that goes under a House bass stood 17 dB under it, Scrap Yard's 40 to 80 Hz at -19 dB of the whole; and the bowed one without an amplifier
     # was the sub and nothing over it, Meat Locker's 320 Hz up 23 dB down.)
     # (The bowed synthesiser's lead and stabs, 2026-11-24, 17:30: alone they were the dullest things in House, 30 dB down by 2.5 kHz, and Meat Locker the softest of the hard songs: torn.)
-    "heart lead": Amp(3, 24.0, bass=0.0, middle=3.0, treble=4.0, at=1000.0, top=6800.0, seats=(0.0,), tight=90.0, bright=10.0, presence=5.0, hand=0.5, level=-32.9),
+    # (The bowed synthesiser's lead, through a fuzz with its top pushed into it and its middle at 1 kHz, had its fifth, ninth and tenth overtones over its own note: Power Cut II's riff, in F minor, was heard as
+    # 26 in 100 of an A, 55% in its key. Six settings on F3 and C sharp 3, 2026-11-24, 22:30: through the torn valve, its middle at 450, the note is 4 to 6 dB over its fifth and 10 over what lies past it.)
+    "heart lead": Amp(4, 22.0, bass=0.0, middle=4.0, treble=1.0, at=450.0, top=5200.0, seats=(0.0,), tight=90.0, bright=3.0, presence=3.0, hand=0.5, level=-29.9),
     "heart stab": Amp(3, 22.0, bass=1.0, middle=2.0, treble=4.0, at=1100.0, top=7000.0, seats=(0.0,), tight=120.0, bright=10.0, presence=5.0, hand=0.5, level=-18.7),
     "driven bass": Amp(1, 18.0, bass=3.0, middle=2.0, treble=0.0, at=700.0, top=4200.0, tight=25.0, bright=4.0, level=-16.0),
     "iron bass": Amp(1, 20.0, bass=2.0, middle=3.0, treble=0.0, at=700.0, top=4200.0, tight=25.0, bright=5.0, level=-8.0),
     "torn bass": Amp(1, 16.0, bass=3.0, middle=2.0, treble=-1.0, at=700.0, top=3600.0, tight=25.0, bright=4.0, level=-2.5, hand=1.5),
-    "round bass": Amp(0, 4.0, bass=3.0, middle=-1.0, treble=-12.0, at=400.0, top=1800.0, tight=25.0, level=-4.5),
+    # (Clean and closed at 1.8 kHz it had nothing over its second overtone: four light songs of one night 8 to 10 dB thin in their middle and 32 to 36 under the liked stems' at their top, and the lift a light
+    # band's bass has at 800 Hz is the picked and the fretless one's. On its crunch, a step's middle at 850: -24, -37 and -43 in the octaves from 320, 640 and 1250 Hz where the liked stand at -26, -33 and -38,
+    # and it was at -29, -47 and -52; 2026-11-24, 23:20. Darker than they are still: it is the round one.)
+    "round bass": Amp(1, 8.0, bass=3.0, middle=4.0, treble=-5.0, at=850.0, top=2800.0, tight=25.0, level=-10.5),
 }
 
 

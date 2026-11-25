@@ -171,6 +171,10 @@ KITS = {
     # (five bobobo drums of Ghana, found the same day, for a company's hands)
     "bobobo": dict(_STROKES, boom=64, snare=63, crash=55, crash2=49, tamb=54, ting=80, clack=62, shake=70, jingle=69),
     "metal": dict(_STROKES, boom=36, snare=38, crash=49, crash2=57, tamb=54, ting=81, clack=37),
+    # (three more of the same day's, 23:10: a Boston shop's jazz kit, the same heard through a worn vintage microphone, and a kit whose every drum is a snare, the kick too)
+    "club": dict(_STROKES, boom=36, snare=38, crash=49, crash2=57, tamb=54, ting=81, clack=37),
+    "lofi": dict(_STROKES, boom=36, snare=38, crash=49, crash2=57, tamb=54, ting=81, clack=37),
+    "unruly": dict(_STROKES, boom=36, snare=38, crash=49, crash2=57, tamb=54, ting=81, clack=37),
 }
 # A snare of its own for each band (2026-11-24: fourteen bands shared three kits, and a band is told by its drummer too): fifteen snares of Frankensnare's, each in the kit its band
 # had, struck on the same notes (what plays them: sounds.SNARES).
@@ -222,6 +226,9 @@ class Character:
     form: str = ""                                         # the shape of its songs (FORMS); "": the story in nine parts
     opening: str = ""                                      # who opens a band's song: "" the guitars on their riff; "drums" or "bass" alone, the riff at the half
     turns: bool = False                                    # its long moments turn, every one of them (Take.dig_turn)
+    # (2026-11-24, 22:00: two of the burn form's four songs had 62 and 76% of their tune's bars heard before, the library's middle 46: the form says its first
+    # theme at three strengths, and it was the same two statements every time.)
+    grows: bool = False                                    # its themes are told another way each time they come back (`retold`)
 
 
 C = Character
@@ -1731,6 +1738,138 @@ CHARACTERS = (
       plucks=("harp", "pizzicato"), figures=("arp", "toll"), basses=("celli slow", "basses slow"), kit="folk", drums=("timpani",), grooves=("none", "drip"),
       hall=(3.0, 0.33), dark=True, opens=True, lift=0.0, low=True, form="verses",
       titles=(("Wolf", "Yellow-Eyed", "Howling", "Pack", "Scentless", "Gaunt"), ("Hour", "Vigil", "Silence", "Trail", "Frost", "Circle"))),
+    # --- 2026-11-24, night, the seventh round: Knight Rock's towns, storms, inns, camps and caves, heard 2.1 to 3.0 times each still, and the walks with the fewest; by the bands that have had a song or
+    # --- two (the garage's hollow guitars, the skald's torn harp, the brawl's saxophones, the saloon's piano, a church organ, a harpsichord, a marimba), in odd metres, every theme told another way each
+    # --- time it comes back (grows).
+    C("tanners yard", ("pastoral", "highland", "coast", "marsh"), role="town", style="knight", band=True, modes=("minor", "dorian"), bpm=(120, 132),
+      metres=("3/4",), busy=0.5, weight=0.85, leads=("subtone sax",), strong=("lead guitar", "subtone sax"), under=(), pads=("rock organ",), pad_ways=("drone",),
+      plucks=("rhythm guitar", "single guitar"), figures=("low riff", "strum"), basses=("picked bass",), kit="rock", drums=("great drum",),
+      grooves=("swamp stomp", "tom rock"), hall=(1.4, 0.15), lift=0.1, low=True, sounds="garage", form="riff", opening="bass", turns=True, grows=True,
+      titles=(("Tanner's", "Hide-Scraper's", "Vat", "Flayer's", "Curing", "Rawhide"), ("Yard", "Reek", "Trestle", "Scrape", "Pickle", "Wash"))),
+    C("knife guild", ("regal", "haunted", "mystic"), role="town", style="knight", band=True, modes=("minor", "phrygian"), bpm=(126, 138), metres=("7/8",),
+      busy=0.5, weight=0.85, leads=("viola",), strong=("lead guitar", "viola"), under=(), pads=("choir",), pad_ways=("drone",), plucks=("rhythm guitar", "single guitar"),
+      figures=("low riff", "arp"), basses=("picked bass",), kit="room", drums=("timpani",), grooves=("half rock", "gallows march"), hall=(1.8, 0.2), lift=0.1,
+      low=True, sounds="baroque", form="verses", turns=True, grows=True,
+      titles=(("Knife-Guild", "Poisoner's", "Whispered", "Oath-Bound", "Silk-Gloved", "Two-Faced"), ("Contract", "Parlour", "Pact", "Mark", "Ledger", "Antidote"))),
+    C("coal exchange", ("infernal", "desert", "highland", "frozen"), role="town", style="knight", band=True, modes=("minor", "dorian"), bpm=(92, 104), busy=0.45,
+      weight=0.95, leads=("trombone",), strong=("lead guitar", "trombone"), under=(), pads=("choir",), pad_ways=("drone",), plucks=("rhythm guitar", "single guitar"),
+      figures=("low riff", "riff"), basses=("picked bass",), kit="rock", drums=("great drum",), grooves=("swamp stomp", "half rock"), hall=(1.5, 0.16), lift=0.15,
+      low=True, sounds="brawl", form="riff", opening="drums", turns=True, grows=True,
+      titles=(("Pit-Head", "Black-Lung", "Slag-Town", "Shift-Bell", "Company-Store", "Colliers'"), ("Exchange", "Whistle", "Strike", "Wages", "Picket", "Lockout"))),
+    C("rainmakers drum", KINDS_ALL, role="storm", serves=(0, 1), style="knight", band=True, modes=("phrygian", "minor"), bpm=(140, 152), metres=("5/4",), busy=0.5, weight=1.0,
+      leads=("euphonium",), strong=("lead guitar", "euphonium"), under=(), pads=("choir",), pad_ways=("tremolo", "drone"), plucks=("rhythm guitar", "muted guitar"),
+      figures=("low riff", "chug"), basses=("picked bass",), kit="rock", drums=("taiko",), grooves=("black toms", "gallows march"), hall=(2.2, 0.24), lift=0.25,
+      low=True, sounds="skald", form="riff", opening="drums", turns=True, grows=True,
+      titles=(("Rain-Maker's", "Flood-Called", "Levee-Breaking", "Torrent", "Cloud-Seer's", "Drenched"), ("Drum", "Curse", "Summons", "Dance", "Deluge", "Bargain"))),
+    C("squall line", KINDS_ALL, role="storm", serves=(0, 1), style="knight", band=True, modes=("minor", "phrygian"), bpm=(152, 166), busy=0.55, weight=1.0,
+      leads=("tenor sax",), strong=("tenor sax", "lead guitar"), under=(), pads=("choir",), pad_ways=("tremolo", "drone"), plucks=("rhythm guitar", "muted guitar"),
+      figures=("low riff", "chug"), basses=("picked bass",), kit="rock", drums=("timpani",), grooves=("train", "tom rock"), hall=(1.8, 0.2), lift=0.25, low=True,
+      sounds="garage", form="verses", opening="drums", turns=True, grows=True,
+      titles=(("Squall-Line", "Whitecap", "Gale-Force", "Cyclone", "Falling-Glass", "Lee-Shore"), ("Wail", "Breaker", "Sprint", "Siren", "Scream", "Riptide"))),
+    C("back stairs", KINDS_ALL, role="ember", style="knight", band=True, modes=("dorian", "minor"), bpm=(104, 116), metres=("7/8",), busy=0.55, weight=0.65,
+      leads=("clarinet",), strong=("clarinet", "lead guitar"), under=(), pads=("oohs",), pad_ways=("drone",), plucks=("rhythm guitar", "vibes"), figures=("riff", "arp"),
+      basses=("fretless",), kit="room", drums=(), grooves=("brushes", "shuffle"), hall=(1.1, 0.12), lift=0.0, low=True, sounds="saloon", form="jam", turns=True, grows=True,
+      titles=(("Back-Stairs", "Scullery", "Lock-In", "Barrel-Room", "Tallow-End", "Chalked-Up"), ("Session", "Groove", "Tab", "Argument", "Tumble", "Last Round"))),
+    C("drovers rest", ("pastoral", "highland", "desert", "jungle"), role="ember", style="knight", band=True, modes=("minor", "dorian"), bpm=(88, 98), metres=("6/8",), busy=0.45,
+      weight=0.6, leads=("cello",), strong=("cello", "lead guitar"), under=(), pads=("oohs",), pad_ways=("drone",), plucks=("twang guitar", "guitar"), figures=("arp", "strum"),
+      basses=("fretless",), kit="room", drums=("frame drums",), grooves=("brushes", "shuffle"), hall=(1.6, 0.18), lift=0.0, low=True, sounds="twang", form="verses", grows=True,
+      titles=(("Drover's", "Trail-Worn", "Cattle-Thief's", "Dry-Creek", "Long-Haul", "Branding"), ("Rest", "Stew", "Tally", "Blanket", "Bottle", "Lament"))),
+    C("scavengers camp", KINDS_ALL, role="camp", style="knight", band=True, modes=("minor", "phrygian"), bpm=(84, 94), metres=("5/4",), busy=0.4, weight=0.75,
+      leads=("euphonium",), strong=("viola", "euphonium"), under=(), pads=("full choir",), pad_ways=("drone",), plucks=("single guitar", "guitar"), figures=("arp", "toll"),
+      basses=("fretless",), kit="room", drums=("frame drums",), grooves=("brushes", "gallows march"), hall=(2.0, 0.22), lift=0.0, low=True, sounds="skald", form="burn",
+      turns=True, grows=True,
+      titles=(("Scavenger's", "Carrion", "Picked-Clean", "Boot-Stealer's", "After-Battle", "Crow-Shared"), ("Camp", "Pickings", "Share", "Haul", "Fire", "Reckoning"))),
+    C("bone mill", KINDS_ALL, role="depths", serves=(0, 1), style="knight", band=True, modes=("minor", "phrygian"), bpm=(82, 94), metres=("3/4",), busy=0.4, weight=0.85,
+      leads=("bari sax",), strong=("lead guitar", "bari sax"), under=(), pads=("choir",), pad_ways=("drone",), plucks=("muted guitar", "single guitar"), figures=("chug", "low riff"),
+      basses=("picked bass",), kit="rock", drums=("great drum",), grooves=("black toms", "half rock"), hall=(2.8, 0.3), lift=0.0, low=True, sounds="bones", form="riff",
+      opening="drums", turns=True, grows=True,
+      titles=(("Bone-Mill", "Grinding", "Skull-Paved", "Deep-Quarried", "Meal-Dust", "Millstone"), ("Wheel", "Hopper", "Chute", "Sluice", "Race", "Grist"))),
+    C("tithe collectors", ("regal", "pastoral"), style="knight", band=True, modes=("minor", "phrygian"), bpm=(100, 112), busy=0.45, weight=0.95, leads=("trombone",),
+      strong=("trombone", "lead guitar"), under=(), pads=("choir",), pad_ways=("drone", "pad"), plucks=("rhythm guitar", "single guitar"), figures=("low riff", "toll"),
+      basses=("picked bass",), kit="rock", drums=("timpani",), grooves=("gallows march", "half rock"), hall=(2.6, 0.28), lift=0.15, low=True, sounds="cathedral",
+      form="riff", turns=True, grows=True,
+      titles=(("Tithe", "Toll-Road", "Bailiff's", "Writ-Bearer's", "Seized", "Tax-Day"), ("Collector", "Knock", "Distraint", "Summons", "Levy-Drum", "Foreclosure"))),
+    C("smugglers run", ("coast", "marsh"), style="knight", band=True, modes=("minor", "phrygian"), bpm=(134, 146), busy=0.55, weight=0.9, leads=("trumpet",),
+      strong=("trumpet", "lead guitar"), under=(), pads=("choir",), pad_ways=("drone",), plucks=("rhythm guitar", "single guitar"), figures=("low riff", "arp"),
+      basses=("picked bass",), kit="rock", drums=(), grooves=("train", "tom rock"), hall=(1.6, 0.18), lift=0.2, low=True, sounds="garage", form="riff", opening="drums",
+      turns=True, grows=True,
+      titles=(("Smuggler's", "False-Light", "Contraband", "Customs-Man's", "Sunken-Cask", "Muffled-Oar"), ("Run", "Cove", "Drop", "Chase", "Cargo", "Getaway"))),
+    C("avalanche", ("highland", "frozen"), style="knight", band=True, modes=("minor", "dorian"), bpm=(112, 124), metres=("7/8",), busy=0.5, weight=1.0, leads=("horns",),
+      strong=("horns", "lead guitar"), under=(), pads=("choir",), pad_ways=("drone",), plucks=("rhythm guitar", "single guitar"), figures=("low riff", "riff"),
+      basses=("picked bass",), kit="rock", drums=("taiko",), grooves=("rock ride", "swamp stomp"), hall=(1.8, 0.2), lift=0.2, low=True, sounds="brawl", form="riff",
+      opening="bass", turns=True, grows=True,
+      titles=(("Avalanche", "Ice-Axe", "Ridge-Runner's", "Scree", "Snow-Blind", "Rope-Parted"), ("Roar", "Plunge", "Slide", "Debris", "Cornice", "Aftershock"))),
+    C("glass furnace", ("desert", "infernal"), style="knight", band=True, modes=("phrygian", "minor"), bpm=(104, 116), metres=("3/4",), busy=0.4, weight=0.85,
+      leads=("english horn",), strong=("viola", "english horn"), under=(), pads=("oohs",), pad_ways=("drone", "pad"), plucks=("rhythm guitar", "single guitar"),
+      figures=("low riff", "arp"), basses=("picked bass",), kit="rock", drums=("taiko",), grooves=("desert rock", "half rock"), hall=(2.2, 0.24), lift=0.2, low=True,
+      sounds="grit", form="burn", turns=True, grows=True,
+      titles=(("Glass-Furnace", "Shimmering", "Kiln-Born", "Sun-Forged", "Cracked-Lens", "Fused-Sand"), ("Vision", "Breath", "Crucible-Song", "Haze", "Heat-Song", "Burn"))),
+    # (Warcraft's seventh: three towns, two storms, a camp, an inn and six walks, each a company's of its own, in the shapes and the metres.)
+    C("salt market", ("desert", "coast", "marsh"), role="town", modes=("phrygian", "minor"), bpm=(96, 108), metres=("5/4",), busy=0.45, weight=0.8,
+      leads=("english horn", "bass clarinet"), strong=("horns", "cello"), under=("celli", "bassoon"), pads=("strings slow", "tremolo"), pad_ways=("drone", "tremolo"),
+      plucks=("dulcimer", "guitar"), figures=("pattern", "pulse"), basses=("celli", "basses"), kit="hands", drums=("taiko",), grooves=("darbuka", "caravan"),
+      hall=(2.0, 0.22), dark=True, opens=True, lift=0.15, low=True, sounds="caravan", form="verses", grows=True,
+      titles=(("Salt", "Brine-Pan", "Weigh-Master's", "Crusted", "White-Cart", "Evaporation"), ("Market", "Rake", "Measure", "Haggling", "Caravanserai", "Duty"))),
+    C("debtors prison", ("regal", "haunted", "pastoral"), role="town", modes=("minor", "dorian"), bpm=(96, 108), metres=("3/4",), busy=0.4, weight=0.75,
+      leads=("viola", "clarinet"), strong=("cello", "viola"), under=("bass clarinet",), pads=("strings slow", "oohs"), pad_ways=("drone", "tremolo"),
+      plucks=("pizzicato", "piano"), figures=("pulse", "toll"), basses=("celli", "basses"), kit="folk", drums=("timpani",), grooves=("tick", "dirge"),
+      hall=(1.8, 0.2), dark=True, opens=True, lift=0.15, low=True, sounds="quartet", form="burn", grows=True,
+      titles=(("Debtor's", "Barred-Window", "Pawned", "Turnkey's", "Hollow-Purse", "Promissory"), ("Prison", "Plea", "Arrears", "Waltz", "Interest", "Visitor"))),
+    C("foundry gate", ("highland", "infernal", "frozen"), role="town", modes=("minor", "phrygian"), bpm=(100, 112), busy=0.5, weight=0.95,
+      leads=("horns", "trombone"), strong=("brass", "horns"), under=("tuba", "trombone"), pads=("choir", "basses slow"), pad_ways=("drone", "tremolo"),
+      plucks=("dulcimer", "strings"), figures=("hammer", "pulse"), basses=("basses", "celli"), kit="march", drums=("timpani", "great drum"), grooves=("anvil", "march"),
+      hall=(2.2, 0.24), dark=True, opens=True, lift=0.2, low=True, sounds="iron brass", form="verses", grows=True,
+      titles=(("Foundry-Gate", "Ingot", "Casting-Floor", "Crane", "Riveter's", "Bellows-Boy's"), ("Muster", "Pour", "Gantry", "Shift", "Tapping", "Parade"))),
+    C("drowned bells", ("marsh", "coast", "mystic"), role="storm", modes=("minor", "phrygian"), bpm=(150, 164), metres=("6/8",), busy=0.5, weight=1.0,
+      leads=("bass flute", "viola"), strong=("horns", "full choir"), under=("trombone", "tuba"), pads=("tremolo", "choir"), pad_ways=("tremolo", "drone"),
+      plucks=("bells", "pizzicato"), figures=("gallop", "pattern"), basses=("basses", "celli"), kit="orchestra", drums=("timpani",), grooves=("hunt", "battle"),
+      hall=(2.8, 0.3), dark=True, opens=True, lift=0.25, low=True, sounds="crypt", form="verses", grows=True,
+      titles=(("Drowned-Bell", "Steeple-Deep", "Tolling", "Surf-Buried", "Sexton-Tide", "Flooded-Nave"), ("Tempest", "Peal", "Warning", "Surge", "Knell", "Breach"))),
+    C("sand wall", ("desert", "infernal", "jungle"), role="storm", modes=("phrygian", "minor"), bpm=(132, 144), metres=("7/8",), busy=0.5, weight=1.0,
+      leads=("horns", "bassoon"), strong=("brass", "horns"), under=("tuba", "trombone"), pads=("choir", "tremolo"), pad_ways=("tremolo", "drone"),
+      plucks=("marimba", "strings"), figures=("pattern", "gallop"), basses=("basses", "celli"), kit="hands", drums=("taiko", "great drum"), grooves=("war camp", "darbuka"),
+      hall=(2.2, 0.24), dark=True, opens=True, lift=0.25, low=True, sounds="horde", form="verses", grows=True,
+      titles=(("Sand-Wall", "Sky-Eating", "Flensing", "Scouring", "Dune-Walker's", "Simoom"), ("Advance", "Stampede", "Choke", "Rampart", "Onslaught", "Blindness"))),
+    C("poachers fire", ("pastoral", "highland", "jungle"), role="camp", modes=("dorian", "minor"), bpm=(82, 94), metres=("5/4",), busy=0.4, weight=0.55,
+      leads=("viola", "bass clarinet"), strong=("viola", "cello"), under=("bassoon",), pads=("strings slow",), pad_ways=("drone", "pad"), plucks=("guitar", "harp"),
+      figures=("arp", "rock"), basses=("celli pizz", "acoustic bass"), kit="hands", drums=("frame drums",), grooves=("bones", "none"), hall=(2.0, 0.23), dark=True,
+      opens=True, lift=0.0, low=True, sounds="consort", form="burn", grows=True,
+      titles=(("Poacher's", "Snare-Set", "Gamekeeper's", "Night-Netted", "Blooded", "Hushed"), ("Fire", "Share", "Wire", "Moonrise", "Supper", "Oath"))),
+    C("gallows ale", KINDS_ALL, role="ember", modes=("dorian", "minor"), bpm=(116, 128), metres=("7/8",), busy=0.5, weight=0.75, leads=("clarinet", "bassoon"),
+      strong=("clarinet", "horns"), under=("tuba",), pads=("oohs", "celli slow"), pad_ways=("drone", "pad"), plucks=("piano", "dulcimer"), figures=("oompah", "pulse"),
+      basses=("acoustic bass", "basses pizz"), kit="wood", drums=(), grooves=("claps", "tick"), hall=(1.4, 0.16), dark=True, opens=True, lift=0.0, low=True, sounds="carnival",
+      form="verses", grows=True,
+      titles=(("Gallows-Ale", "Hangman's", "Last-Wish", "Blindfold", "Crowd-Pleaser's", "Rope-Maker's"), ("Pour", "Round", "Jest", "Toast", "Stagger", "Encore"))),
+    C("mourning court", ("regal", "frozen"), modes=("minor",), bpm=(88, 100), metres=("3/4",), busy=0.4, weight=0.8, leads=("english horn", "cello"),
+      strong=("violins", "horns"), under=("bass clarinet", "celli"), pads=("strings slow", "oohs"), pad_ways=("drone", "tremolo"), plucks=("harp", "harpsichord"),
+      figures=("toll", "arp"), basses=("celli", "basses"), kit="folk", drums=("timpani",), grooves=("dirge", "tick"), hall=(2.6, 0.28), dark=True, opens=True,
+      lift=0.15, low=True, sounds="silk", form="burn", grows=True,
+      titles=(("Mourning", "Black-Veiled", "Empty-Throne", "Half-Mast", "Dowager's", "Embalmer's"), ("Court", "Procession", "Audience", "Ring", "Corridor", "Veil"))),
+    C("leech road", ("marsh", "haunted"), modes=("phrygian", "minor"), bpm=(88, 100), metres=("5/4",), busy=0.45, weight=0.85, leads=("bassoon", "bass clarinet"),
+      strong=("horns", "clarinet"), under=("tuba", "bassoon"), pads=("tremolo", "celli slow"), pad_ways=("tremolo", "drone"), plucks=("marimba", "pizzicato"),
+      figures=("pattern", "pulse"), basses=("basses", "celli"), kit="wood", drums=("great drum",), grooves=("bog", "bones"), hall=(2.2, 0.25), dark=True, opens=True,
+      lift=0.2, low=True, sounds="winds", form="verses", grows=True,
+      titles=(("Leech", "Ague-Ridden", "Plank-Road", "Bloated", "Sucking-Mud", "Fen-Doctor's"), ("Road", "Wade", "Jar", "Toll", "Crossing", "Remedy"))),
+    C("wreckers light", ("coast",), modes=("minor", "dorian"), bpm=(104, 116), metres=("6/8",), busy=0.5, weight=0.9, leads=("horns", "viola"),
+      strong=("horns", "full choir"), under=("euphonium", "trombone"), pads=("choir", "strings slow"), pad_ways=("drone", "pad"), plucks=("dulcimer", "mandolin"),
+      figures=("rock", "gallop"), basses=("basses", "celli"), kit="folk", drums=("great drum",), grooves=("hunt", "claps"), hall=(2.2, 0.25), dark=True, opens=True,
+      lift=0.2, low=True, sounds="mead hall", form="verses", grows=True,
+      titles=(("Wrecker's", "Cliff-Fire", "Lured", "Foundering", "Cold-Harbour", "Rock-Torn"), ("Light", "Lie", "Plunder", "Reef", "Chorus", "Watch"))),
+    C("blind oracle", ("mystic", "regal"), modes=("phrygian", "minor"), bpm=(88, 100), metres=("7/8",), busy=0.4, weight=0.8, leads=("cello", "english horn"),
+      strong=("choir", "cello"), under=("full choir",), pads=("organ", "oohs"), pad_ways=("drone", "pad"), plucks=("handbells", "harp"), figures=("toll", "pattern"),
+      basses=("basses", "celli"), kit="orchestra", drums=("timpani",), grooves=("dirge", "stately"), hall=(3.0, 0.33), dark=True, opens=True, lift=0.15, low=True,
+      sounds="monastery", form="burn", grows=True,
+      titles=(("Blind", "Third-Eye", "Entranced", "Smoke-Drunk", "Veiled-Seer's", "Foretold"), ("Oracle", "Answer", "Rite", "Tongue", "Prophecy", "Cavern"))),
+    C("black harvest", ("pastoral", "haunted"), modes=("minor", "dorian"), bpm=(108, 120), metres=("6/8",), busy=0.5, weight=0.85, leads=("viola", "horns"),
+      strong=("violins", "horns"), under=("euphonium", "celli"), pads=("pipe drone", "strings slow"), pad_ways=("drone",), plucks=("mandolin", "pizzicato"),
+      figures=("rock", "strum"), basses=("acoustic bass", "celli"), kit="folk", drums=("great drum",), grooves=("claps", "hunt"), hall=(1.8, 0.2), dark=True, opens=True,
+      lift=0.2, low=True, sounds="highland", form="verses", grows=True,
+      titles=(("Black-Harvest", "Blighted", "Sickle", "Scythe-Song", "Rotting-Sheaf", "Reaper-Moon"), ("Reel", "Gathering", "Threshing-Song", "Famine", "Barn", "Tithe-Dance"))),
+    C("vulture court", ("desert", "infernal"), modes=("phrygian", "minor"), bpm=(96, 108), metres=("5/4",), busy=0.4, weight=0.85,
+      leads=("bass flute", "cello"), strong=("horns", "cello"), under=("bass clarinet", "celli"), pads=("tremolo", "oohs"), pad_ways=("drone", "tremolo"),
+      plucks=("vibes", "kalimba"), figures=("pattern", "toll"), basses=("basses slow", "celli"), kit="hands", drums=("taiko", "timpani"), grooves=("darbuka", "heat"),
+      hall=(2.4, 0.27), dark=True, opens=True, lift=0.15, low=True, sounds="bronze", form="burn", grows=True,
+      titles=(("Vulture", "Bone-Throned", "Sun-Judged", "Circling", "Thirst-King's", "Bleached-Robe"), ("Court", "Verdict", "Feast", "Spiral", "Tribunal", "Wake"))),
 )
 
 METRES = {"4/4": (4.0, (2.0, 2.0)), "3/4": (3.0, (3.0,)), "6/8": (3.0, (1.5, 1.5)), "5/4": (5.0, (3.0, 2.0)),
@@ -2392,7 +2531,7 @@ def fresh(character: Character, number: int) -> Character:
         names = COMPANY_FOR.get(ground(character), tuple(COMPANIES))
         at = ours.index(character) + (number - FRESH_FROM) * 2
         modes = tuple(each for each in character.modes if each.startswith(FRESH_MODES)) or ("minor", "dorian")
-        return replace(character, sounds=names[at % len(names)], modes=modes, dark=True, opens=True, low=True)
+        return replace(character, sounds=names[at % len(names)], modes=modes, dark=True, opens=True, low=True, grows=number > FRESH_FROM)
     fight = character.role in FIGHTS or character.role == "storm"
     kind = "fight" if fight else "light" if character.light or character.weight < 0.7 else "heavy"
     houses = [each for each in CHARACTERS if each.band and not each.sounds]
@@ -2410,7 +2549,7 @@ def fresh(character: Character, number: int) -> Character:
                    # (take 1's first theme is the second of these; its summit's too in every other song, the guitar's in the rest)
                    leads=(others[0], lead) + others[1:] if others else (lead,), strong=(character.strong[0], lead) if at % 2 else character.strong,
                    grooves=character.grooves if character.role in ("night", "depths") else (character.grooves[0], groove), modes=modes,
-                   dark=True, opens=True, low=True, turns=character.weight >= 0.8)
+                   dark=True, opens=True, low=True, turns=character.weight >= 0.8, grows=number > FRESH_FROM)
 
 
 def band_of(fam: "Family", take: int) -> str:
@@ -2899,6 +3038,35 @@ def answer(rng: random.Random, fam: Family, chords: list[Chord], tune: Line) -> 
     return line
 
 
+def turned(rng: random.Random, line: Line, chords: list[Chord], beats: float, first: int, last: int) -> Line:
+    """A tune with the bars from `first` up to `last` told upside down: their rhythm as it was, each bar from another note of its chord (the same one where there is
+    no other near) and its steps the other way, its long notes on the chord."""
+    out = Line()
+    for bar, chord in enumerate(chords):
+        notes = line.cut(bar * beats, (bar + 1) * beats).notes
+        if not first <= bar < last or not notes:
+            out.notes += [(bar * beats + start, length, step, weight) for start, length, step, weight in notes]
+            continue
+        on_chord = {step % 7 for step in chord.steps}
+        near = [step for step in range(notes[0][2] - 4, notes[0][2] + 5) if step % 7 in on_chord and step != notes[0][2]]
+        begins = rng.choice(sorted(near, key=lambda step: (abs(step - notes[0][2]), step))[:2]) if near else notes[0][2]
+        for start, length, step, weight in notes:
+            told = begins - (step - notes[0][2])
+            if length >= 1.0 and told % 7 not in on_chord:
+                told += 1 if (told + 1) % 7 in on_chord else -1
+            out.notes.append((bar * beats + start, length, told, weight))
+    out.notes = _singable(out.notes, beats, chords)
+    return out
+
+
+def retold(rng: random.Random, line: Line, again: Line, adorned: Line, chords: list[Chord], beats: float) -> list[Line]:
+    """The ways a theme is told, in the order a song that says it again and again goes through them (Character.grows): as it is; its leaps filled; the same question with
+    another answer; as a player adds to it who knows it well; another question with the answer it had; that answer's and that player's together. Each comes home as the first does."""
+    bars = len(chords)
+    answer, question = turned(rng, line, chords, beats, bars // 2, bars - 1), turned(rng, line, chords, beats, 0, bars // 2 - 1)
+    return [line, again, answer, adorned, question, decorated(rng, answer)]
+
+
 def recast(line: Line, chords: list[Chord], beats: float) -> Line:
     """A tune made to fit other chords than the ones it was written over. Bar by bar it is
     moved the least it can be for the bar's first note to be a note of the new chord (never
@@ -3100,6 +3268,14 @@ SETTINGS_OF: dict[str, tuple[str, ...]] = {
     "cardsharps den": ("settlement",), "wake house": ("settlement", "graves"), "mutineers hold": ("water", "settlement"),
     "quarantine gate": ("settlement", "fort"), "wreckage quay": ("water", "settlement"), "ash ward": ("settlement", "works"),
     "last redoubt": ("fort", "heights"), "tide of teeth": ("water",), "burnt orchard": ("fields", "ruins"), "hour of wolves": ("woods", "wastes"),
+    # The seventh round's (2026-11-24, night).
+    "tanners yard": ("settlement", "works"), "knife guild": ("settlement", "fort"), "coal exchange": ("settlement", "works"), "rainmakers drum": ("fields", "wastes"),
+    "squall line": ("water", "heights"), "back stairs": ("settlement",), "drovers rest": ("settlement", "road"), "scavengers camp": ("wastes", "graves"),
+    "bone mill": ("works", "graves"), "tithe collectors": ("road", "settlement"), "smugglers run": ("water", "road"), "avalanche": ("heights",),
+    "glass furnace": ("wastes", "works"), "salt market": ("settlement", "water"), "debtors prison": ("settlement", "fort"), "foundry gate": ("settlement", "works"),
+    "drowned bells": ("water", "ruins"), "sand wall": ("wastes",), "poachers fire": ("woods", "fields"), "gallows ale": ("settlement", "graves"),
+    "mourning court": ("fort", "settlement"), "leech road": ("water", "road"), "wreckers light": ("water", "heights"), "blind oracle": ("sacred", "ruins"),
+    "black harvest": ("fields", "graves"), "vulture court": ("wastes", "ruins"),
     "barroom blues": ("settlement",), "dwarf hall": ("settlement", "heights"), "road camp": ("road", "woods"),
     "midnight ride": ("road",), "downpour run": ("road",), "field storm": ("fields",), "monsoon": ("woods", "water"),
     "witch storm": ("graves", "woods"),
@@ -4195,6 +4371,17 @@ class Take:
         else:
             chorus["second"] = chorus["first"]
         whole, half = period * beats, period // 2 * beats
+        # (Character.grows) The next way a theme is told, where the song does so; as each place has it written where it does not.
+        own = random.Random(fam.seed * 17 + self.take * 3 + 11)                        # its own draws: the take's are as they were
+        ways = {"first": retold(own, tune, again, adorned, first_chords, beats), "second": retold(own, tune_b, again_b, chorus["second"][0][2] if ch.form else decorated(own, tune_b),
+                                                                                                 second_chords, beats)} if ch.grows else {}
+        said = {"first": 0, "second": 0}
+
+        def next_of(whose: str, as_it_was: Line) -> Line:
+            if not ways:
+                return as_it_was
+            said[whose] += 1
+            return ways[whose][(said[whose] - 1) % len(ways[whose])]
 
         def turns(bars: int) -> list[tuple[int, bool]]:
             """The statements of a theme that a part of the story has room for: the bar each
@@ -4252,6 +4439,7 @@ class Take:
                 # player does.
                 for index, (bar, full) in enumerate(turns(bars)):
                     caller, line = ((solo, tune), (mate, again))[index % 2] if section.part == "first" else ((mate, again), (solo, adorned))[index % 2]
+                    line = next_of("first", line)
                     loud = self.hard(self.level(section, bar + period // 2))
                     begin = 0 if full else period // 2
                     for phrase in range(begin, period, 4):
@@ -4282,22 +4470,23 @@ class Take:
                 # (A form's second verse, "again", sets out where the first left off.)
                 for index, (bar, full) in enumerate(turns(bars), start=1 if part == "again" else 0):
                     loud = self.hard(self.level(section, bar + period // 2))
+                    told = next_of("first", again if not full or index % 4 == 1 else tune)
                     if not full:
-                        sing(third if third != solo else mate, again.cut(half, whole), bar, loud * 0.9)
+                        sing(third if third != solo else mate, told.cut(half, whole), bar, loud * 0.9)
                     elif index % 4 == 0:
-                        sing(solo, tune, bar, loud)
+                        sing(solo, told, bar, loud)
                     elif index % 4 == 1:
-                        sing(mate, again, bar, loud)
+                        sing(mate, told, bar, loud)
                     elif index % 4 == 2:
                         # A conversation: the question from one player, the answer from another (2026-11-17, night: in the
                         # orchestral scores studied, who is playing changes every two bars or so; here it changed only
                         # from one statement of a theme to the next).
                         answering = solo if solo != third else mate
-                        sing(third, tune.cut(0, half), bar, loud)
-                        sing(answering, tune.cut(half, whole), bar + period // 2, loud)
+                        sing(third, told.cut(0, half), bar, loud)
+                        sing(answering, told.cut(half, whole), bar + period // 2, loud)
                     else:
-                        sing(solo, tune, bar, loud)
-                        sing(mate, again, bar, loud * 0.9, octave=1 if mate != solo else -1)
+                        sing(solo, told, bar, loud)
+                        sing(mate, told if ways else again, bar, loud * 0.9, octave=1 if mate != solo else -1)
                     if full and index >= 1 and not ch.band and ch.under:
                         # From its second statement the theme has a slower line under it (2026-11-16, played: "not
                         # enough instruments in each track"): it is stated alone once, then the band fills in.
@@ -4310,17 +4499,18 @@ class Take:
                 partner = next((name for name in (mate, third, solo) if name != other), other)
                 for index, (bar, full) in enumerate(turns(bars)):
                     loud = self.hard(self.level(section, bar + period // 2), 0.95)
+                    told = next_of("second", again_b if full and index % 3 == 1 else tune_b)
                     if not full:
-                        sing(other, tune_b.cut(half, whole), bar, loud * 0.9)
+                        sing(other, told.cut(half, whole), bar, loud * 0.9)
                     elif index % 3 == 0:
-                        sing(other, tune_b, bar, loud)
+                        sing(other, told, bar, loud)
                     elif index % 3 == 1:
-                        sing(partner, again_b, bar, loud)
+                        sing(partner, told, bar, loud)
                         if INSTRUMENTS[other].held and other != partner:
                             sing(other, under_b, bar, loud * 0.7, tag=" under")
                     else:
-                        sing(other, tune_b, bar, loud)
-                        sing(partner, again_b, bar, loud * 0.9, octave=1 if partner != other else -1)
+                        sing(other, told, bar, loud)
+                        sing(partner, told if ways else again_b, bar, loud * 0.9, octave=1 if partner != other else -1)
                     already = index % 3 == 1 and INSTRUMENTS[other].held and other != partner
                     if full and index >= 1 and not already and not ch.band and ch.under:
                         below = ch.under[(index + 1) % len(ch.under)]
@@ -4349,7 +4539,8 @@ class Take:
                 joiners = [name for name in dict.fromkeys((solo, mate)) if name not in strong[:2]] \
                     if CALM_ARRIVAL_JOINS and not ch.band and calm(ch.role, ch.busy) else []
                 for index, (bar, full) in enumerate(turns(bars)):
-                    use = sung_first[index % 3] if full else sung_first[0].cut(half, whole)
+                    use = next_of(section.whose if ch.form else "first", sung_first[index % 3 if full else 0])
+                    use = use if full else use.cut(half, whole)
                     loud = self.hard(section.level[0])
                     sing(strong[0], use, bar, loud)
                     for name in (joiners if index == 0 else ()):
@@ -4375,12 +4566,13 @@ class Take:
                     hush, echo = ("guitar" if name == "lead guitar" else name for name in (hush, echo))
                 for index, (bar, full) in enumerate(turns(bars)):
                     loud = self.hard(self.level(section, bar + period // 2), 0.9)
+                    told = next_of(section.whose, sung_again if full and index % 2 else sung)
                     if not full:
-                        sing(hush, sung.cut(half, whole), bar, loud * 0.9)
+                        sing(hush, told.cut(half, whole), bar, loud * 0.9)
                     elif index % 2 == 0:
-                        sing(hush, sung, bar, loud)
+                        sing(hush, told, bar, loud)
                     else:
-                        sing(echo, sung_again, bar, loud * 0.95)
+                        sing(echo, told, bar, loud * 0.95)
             elif part == "climb":
                 # The climb. First the second theme's opening, handed from one player to another
                 # and back; then the first theme's first bar, higher each time and closer

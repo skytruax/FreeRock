@@ -69,6 +69,9 @@ DRUMS_UP = 6.0                 # dB: the most the drums are ever turned up to re
 # newest alone). An opening stands no further than this under its song's loudest part, and is brought up no more than this for it. (16 and 9 dB at first, the same evening: the
 # thirty songs of the day stand at -17 to -21 at their loudest, so that an opening of -43 came up to -36 and was not heard still; three or four under the first theme is an opening.)
 OPEN_UNDER, OPEN_MOST = 13.0, 12.0
+# ...nor is its first theme under hearing (2026-11-25: a slow burn's opening and first theme stood at -36 and -37 in Basalt Walk, at -35 and -35 in Spur-Lit Halter, and an opening goes no higher than what it leads
+# to): no further than this under the loudest part, brought up no more than this, and never over the part after it.
+FIRST_UNDER, FIRST_MOST = 11.0, 8.0
 MUSE_WORKERS = 5               # how many parts of a piece MuseScore performs at once
 # (2026-11-16, twice. In the afternoon: "theres not much difference between quet and full, we want more ...
 # drasticness", and a calm game was given no drums and a third of the bass. Played that evening: "the abruptness
@@ -118,32 +121,34 @@ MORE_FAMILIES = {"knight": 2, "warcraft": 2}
 # read without the House synthesiser's numba, need not import house (2026-11-22: it did for an afternoon, and every study of a
 # Knight or Warcraft take stopped on "No module named 'numba'").
 HOUSE_TITLES = (
-    'Ambush', 'Ash Bucket', 'Ash Wind', 'Back Room', 'Backwater', 'Banners', 'Barbed Wire', 'Bedroll Sky',
-    'Bellows and Sparks', 'Bells under the Hill', 'Black Frost', 'Black Market', 'Black Rain', 'Black Water', 'Blackout',
-    'Blades', 'Blast Furnace', 'Boiler Room', 'Bone Procession', 'Bone Saw', 'Breakers', 'Breakwater', 'Bullfrog Bass',
-    'Buried Machine', 'Burn Barrel', 'By the Fire', 'Cairn Wind', 'Cannonade', 'Canopy', 'Capture the Flag',
-    'Caravan at Noon', 'Cellar Door', 'Chain Gang', 'Charge', 'Cinder Bloom', 'Closing Time', 'Cold Iron', 'Cold Stars',
-    'Cold Storage', 'Cool of the Evening', 'Crawlspace', 'Curfew Bell', 'Customs Wall', 'Dead Hours', 'Dead Radio',
-    'Dead Reckoning', 'Desert Nocturne', 'Dewfall', 'Dim Lamp Alley', 'Driftwood Hearth', 'Dripstone', 'Drop Shaft',
-    'Drowned Halls', 'Drowned King', 'Dry Dock', 'Dunes at Dawn', 'Eclipse Gate', 'Embers under Stars', 'Empty Throne',
-    'Fireflies', 'Fishmarket', 'Frostbite', 'Frozen Echoes', 'Furnace Psalm', 'Gallows Meadow', 'Gaslight', 'Ghostfire',
-    'Gilded Halls', 'Glade at Dusk', 'Glowworm Hollow', 'Gravel Pit', 'Graveyard Shift', 'Guildhall Steps',
-    "Gull's Morning", 'Hammerfall', 'Harbour Lights', 'Hay Bale Sunset', 'Heat Haze', 'Hoarfrost', 'Hold the Line',
-    'Hollow Road', 'Hushed Parlour', 'Ice Bridge', 'Ice Fang', 'Ice Fishing', 'Insomnia', 'Iron Lung', 'Keelhaul',
-    'Knife Bazaar', 'Knuckle Duster', 'Lanterns in the Fog', 'Lanterns on the Square', 'Larks over the Ridge',
-    'Last Candle', 'Last Stand', 'Lodestone', 'Long Road Home', 'Low Ceiling', 'Low Rafters', 'Market Day', 'Meat Locker',
-    'Mended Nets', 'Mill Stream', 'Mint Tea', 'Mirage', 'Monsoon Drums', 'Moonless', 'Moonlit Ebb', 'Moonwell',
-    'Morning on the Hill', 'Moth Wings', 'Night Prowl', 'Night Shift', 'No Fire Tonight', 'Nomad Fire', 'Northern Lights',
-    'Oasis', 'Ossuary', 'Owl Light', 'Parrots', 'Pawn Shop', 'Peat Smoke', 'Power Cut', 'Rail Yard', 'Rain on the Roofs',
-    'Red Moon', 'Red Rock', 'Reedlight', 'Riot Line', 'River Drums', 'Rust Water', 'Salt Caravan', 'Sandblast',
-    'Sandstone Hollow', 'Scarecrow Road', 'Scrap Yard', 'Seaspray', 'Short Circuit', 'Siege Bells', 'Sleepless Shift',
-    'Smog Quarter', 'Smoke Break', 'Snowglobe', 'Snowmelt', 'Speakeasy', 'Squall', 'Stand Fast', 'Standing Dead',
-    'Starfall', 'Stone and Sky', 'Strangler Fig', 'Strip Mine', 'Sump', 'Sunken Grotto', 'Sunlit Fields', 'The Dark Hall',
+    'Ambush', 'Ash Bucket', 'Ash Wind', 'Back Room', 'Backwater', 'Bad Debt', 'Banners', 'Barbed Wire', 'Basement Bar',
+    'Bedroll Sky', 'Bellows and Sparks', 'Bells under the Hill', 'Bilge Pump', 'Black Frost', 'Black Market',
+    'Black Rain', 'Black Water', 'Blackout', 'Blades', 'Blast Furnace', 'Boiler Room', 'Bone Procession', 'Bone Saw',
+    'Breakers', 'Breakwater', 'Brownout', 'Bullfrog Bass', 'Buried Machine', 'Burn Barrel', 'By the Fire',
+    'Cairn Wind', 'Cannonade', 'Canopy', 'Capture the Flag', 'Caravan at Noon', 'Cellar Door', 'Chain Gang', 'Charge',
+    'Cinder Bloom', 'Closing Time', 'Cold Ashes', 'Cold Iron', 'Cold Stars', 'Cold Storage', 'Cool of the Evening',
+    'Crawlspace', 'Curfew Bell', 'Customs Wall', 'Dead Hours', 'Dead Radio', 'Dead Reckoning', 'Desert Nocturne',
+    'Dewfall', 'Dim Lamp Alley', 'Driftwood Hearth', 'Dripstone', 'Drop Shaft', 'Drowned Halls', 'Drowned King',
+    'Dry Dock', 'Dunes at Dawn', 'Eclipse Gate', 'Embers under Stars', 'Empty Throne', 'Fireflies', 'Fishmarket',
+    'Frostbite', 'Frozen Echoes', 'Furnace Psalm', 'Gallows Meadow', 'Gaslight', 'Ghostfire', 'Gilded Halls',
+    'Glade at Dusk', 'Glowworm Hollow', 'Grain Silo', 'Gravel Pit', 'Graveyard Shift', 'Guildhall Steps',
+    "Gull's Morning", 'Hammerfall', 'Hanging Tree', 'Harbour Lights', 'Hay Bale Sunset', 'Heat Haze', 'Hoarfrost',
+    'Hold the Line', 'Hollow Road', 'Hushed Parlour', 'Ice Bridge', 'Ice Drill', 'Ice Fang', 'Ice Fishing', 'Insomnia',
+    'Iron Lung', 'Keelhaul', 'Knife Bazaar', 'Knuckle Duster', 'Lanterns in the Fog', 'Lanterns on the Square',
+    'Larks over the Ridge', 'Last Bus', 'Last Candle', 'Last Stand', 'Lock-Up', 'Lodestone', 'Long Road Home',
+    'Low Ceiling', 'Low Rafters', 'Market Day', 'Meat Locker', 'Mended Nets', 'Mill Stream', 'Mint Tea', 'Mirage',
+    'Monsoon Drums', 'Moonless', 'Moonlit Ebb', 'Moonwell', 'Morning on the Hill', 'Moth Wings', 'Night Prowl',
+    'Night Shift', 'No Fire Tonight', 'Nomad Fire', 'Northern Lights', 'Oasis', 'Oil Drum', 'Ossuary', 'Owl Light',
+    'Parrots', 'Pawn Shop', 'Peat Smoke', 'Power Cut', 'Rail Yard', 'Rain on the Roofs', 'Red Moon', 'Red Rock',
+    'Reedlight', 'Riot Line', 'River Drums', 'Rockfall', 'Rust Water', 'Salt Caravan', 'Sandblast', 'Sandstone Hollow',
+    'Scarecrow Road', 'Scrap Yard', 'Seaspray', 'Short Circuit', 'Siege Bells', 'Sleepless Shift', 'Smog Quarter',
+    'Smoke Break', 'Snowglobe', 'Snowmelt', 'Speakeasy', 'Squall', 'Stand Fast', 'Standing Dead', 'Starfall',
+    'Stone and Sky', 'Strangler Fig', 'Strip Mine', 'Sump', 'Sunken Grotto', 'Sunlit Fields', 'The Dark Hall',
     'The Deep Road', 'The Forge at Rest', "The Headsman's Walk", 'The High Moor', 'The Kind Ghost', "The King's Road",
     'The Leviathan', 'The Long Wait', 'The Long Watch', 'The Old Swamp', 'The Usurper', 'Throne of Ash', 'Thunderhead',
-    'Tide Camp', 'Tidepools', 'Trench Line', 'Under the Mountain', "Undertaker's Table", 'Voltage', 'Vulture Sky',
-    'Wet Powder', 'Whispering Boughs', 'White Grave', "Will-o'-the-Wisp", 'Willow Lanterns', 'Wind over the Pass',
-    "Wreckers' Lantern",
+    'Tide Camp', 'Tidepools', 'Toll Booth', 'Trench Line', 'Under the Mountain', "Undertaker's Table", 'Voltage',
+    'Vulture Sky', 'Wet Powder', 'Whispering Boughs', 'White Grave', "Will-o'-the-Wisp", 'Willow Lanterns',
+    'Wind over the Pass', "Wreckers' Lantern",
 )
 
 
@@ -340,12 +345,13 @@ def tamed_tone(name: str, instrument: str, band: bool = False, channel: str = ""
 
 
 def opened(heard: list[float], lifts: list[float]) -> list[float]:
-    """How far each part of a song is brought up (`lifts`, dB), its opening so far that it is heard (OPEN_UNDER), and never over what comes after it."""
+    """How far each part of a song is brought up (`lifts`, dB), its opening and its first theme so far that they are heard (OPEN_UNDER, FIRST_UNDER), and never over what comes after them."""
     if len(heard) < 2 or heard[0] <= -70.0:
         return lifts
     stands = [loud + lift for loud, lift in zip(heard, lifts)]
-    more = min(max(min(max(stands) - OPEN_UNDER, stands[1] - 2.0) - stands[0], 0.0), OPEN_MOST)
-    return [lifts[0] + more] + lifts[1:]
+    second = min(max(min(max(stands) - FIRST_UNDER, stands[2] - 1.0) - stands[1], 0.0), FIRST_MOST) if len(heard) > 2 and heard[1] > -70.0 else 0.0
+    first = min(max(min(max(stands) - OPEN_UNDER, stands[1] + second - 2.0) - stands[0], 0.0), OPEN_MOST)
+    return [lifts[0] + first, lifts[1] + second] + lifts[2:]
 
 
 def stage(fam: Family, take: int) -> dict:

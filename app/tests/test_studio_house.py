@@ -162,7 +162,8 @@ def test_a_hard_song_has_nothing_sweet_in_it_and_goes_at_its_own_pace():
     assert len(hard) >= 10 and len({fam.bpm for fam in hard}) >= 6 and all(118 <= fam.bpm <= 132 for fam in hard)
     assert all(fam.loop.startswith("H") and not fam.light and club.ACTS[fam.act].drive for fam in hard)
     late = [fam for fam in house.PLAN if fam.palette == "after-hours"]
-    assert late and all(fam.role in house.CALM_ROLES and fam.loop.startswith("H") and fam.bpm <= 110 and fam.act in club.ACTS_FOR["calm"] for fam in late)
+    calm = club.ACTS_FOR["calm"] + club.ACTS_FOR["after"]
+    assert late and all(fam.role in house.CALM_ROLES and fam.loop.startswith("H") and fam.bpm <= 110 and fam.act in calm for fam in late)
     assert all(fam.bpm == 110 and not fam.act for fam in house.PLAN if fam not in hard and fam not in late)
     for fam in late:
         sheet = club.write(fam.name, 1)
@@ -170,7 +171,8 @@ def test_a_hard_song_has_nothing_sweet_in_it_and_goes_at_its_own_pace():
         assert not set(sheet.parts["drums"]) & {"maracas", "snap", "chime", "tambourine", "cabasa"}, (fam.name, set(sheet.parts["drums"]))
         sung = [note.pitch for part in sheet.parts["lead"].values() for note in part.notes]
         assert sung and sum(sung) / len(sung) < 66, (fam.name, sum(sung) / len(sung))
-        assert club.act_of(fam, 2) != fam.act and club.act_of(fam, 2) in club.ACTS_FOR["calm"]
+        kin = club.ACTS_FOR["after" if fam.act in club.ACTS_FOR["after"] else "calm"]
+        assert club.act_of(fam, 2) != fam.act and club.act_of(fam, 2) in kin
     before = (house.BPM, house.BEAT, house.STEP, house.BAR, house.BAR_FRAMES, club.BEAT)
     for fam in hard[::4]:
         sheet = club.write(fam.name, 1)
@@ -202,6 +204,48 @@ def test_a_hard_song_has_nothing_sweet_in_it_and_goes_at_its_own_pace():
         # Its chords stand low, a root and its fifth.
         stabs = [note.pitch for part in sheet.parts["rhythm"].values() for note in part.notes]
         assert stabs and max(stabs) <= 79 and sum(stabs) / len(stabs) < 62, (fam.name, max(stabs), sum(stabs) / len(stabs))
+
+
+def test_the_dark_calm_songs_are_played_by_the_acts_that_are_not_sweet():
+    """(2026-11-24: the soft acts measured as sweet as the sweetest old songs, on a dark song as on a light one.)"""
+    from freerock.studio import club, sounds
+    after = club.ACTS_FOR["after"]
+    assert len(after) >= 2 and not set(after) & {act for kind, acts in club.ACTS_FOR.items() if kind != "after" for act in acts}
+    for name in after:
+        act = club.ACTS[name]
+        assert 0.0 < act.drive <= 0.5 and act.machine in ("808", "606")
+        assert not {act.big, act.late, act.soft, *act.keys, *act.pad} & {"house pluck", "house pad warm", "house pad super", "house bell", "house glass", "rhodes", "electric piano"}
+    for name in club.ACTS_AFTER_HOURS:
+        fam = house.family(name)
+        assert fam.role in house.CALM_ROLES and not fam.light and name in house.GRIM
+        assert {club.act_of(fam, take) for take in (1, 2)} <= set(after) and club.act_of(fam, 1) != club.act_of(fam, 2)
+        assert club.write(name, 1).about["sounds"] == club.act_of(fam, 1)
+    # ...and a calm song's desk is not a hard one's: its act's drive is the drums' and the bass's alone.
+    heard = club.heard_from(club.write("night-13", 1))
+    assert heard.drive == 0.0 and set(sounds.HOUSE_HARD) >= {"house keys ash", "house pad breath", "house bass tube"}
+
+
+def test_the_later_hard_songs_have_shapes_and_cells_of_their_own():
+    """(Fifty hard songs on nine cells and four shapes would have come round.)"""
+    assert set(house.LATER) <= {fam.name for fam in house.PLAN} and house.PLAN[-1].name in house.LATER and "frozen-07" not in house.LATER
+    scenes = {**house.HARD_SCENES, **house.SCENES_LATER}
+    assert len(scenes) == len(house.HARD_SCENES) + len(house.SCENES_LATER) >= 6
+    for name, scene in scenes.items():
+        assert len(scene["first"]) == 3 and len(scene["last"]) == 6 and scene["rise"] in ("hammer", "machine", "stab"), name
+        assert all(set(block) <= set("LCUHSAsBT") for block in scene["first"] + scene["last"]) and {"L"} <= set("".join(scene["last"])), name
+        assert name in house.WAITS or set("LC") & set(scene["first"][0]), name
+    assert len(set(house.HAMMERS + house.HAMMERS_LATER)) == len(house.HAMMERS) + len(house.HAMMERS_LATER)
+    for cell in house.HAMMERS + house.HAMMERS_LATER:
+        assert len(cell) == 16 and set(cell) <= set("x-.") and cell.count("x") >= 3 and not cell.startswith("-"), cell
+    drawn = {}
+    for fam in house.PLAN:
+        if fam.palette.startswith("hard"):
+            for take in (1, 2, 3):
+                made = house.Take(fam, take)
+                drawn.setdefault(fam.name in house.LATER, set()).add(next(name for name, scene in scenes.items() if scene is made.scene))
+                if fam.role in ("battle", "boss", "battleground", "storm"):
+                    assert next(name for name, scene in scenes.items() if scene is made.scene) not in house.WAITS, fam.name
+    assert drawn[False] == set(house.HARD_SCENES) and len(drawn[True]) >= 5
 
 
 def test_a_dark_song_of_tonight_has_nothing_sweet_struck_in_it():

@@ -62,7 +62,14 @@ def needs(meta: dict, parts: dict[str, np.ndarray], rate: int) -> tuple[float, l
     edges = edges_of(meta)
     mix = sum(parts.values())
     heard = [analysis.loudness_lufs(mix[a:b], rate) for a, b in zip(edges, edges[1:])]
-    return round(build.opened(heard, [0.0] * len(heard))[0], 1), heard
+    return round(alone(heard), 1), heard
+
+
+def alone(heard: list[float]) -> float:
+    """How far an opening is brought up by itself, its first theme where it is (build.opened brings that up as well, as it is mixed)."""
+    if len(heard) < 2 or heard[0] <= -70.0:
+        return 0.0
+    return min(max(min(max(heard) - build.OPEN_UNDER, heard[1] - 2.0) - heard[0], 0.0), build.OPEN_MOST)
 
 
 def lay(folder: Path, meta: dict, parts: dict[str, np.ndarray], rate: int, db: float) -> None:
@@ -111,7 +118,7 @@ def main(argv: list[str] | None = None) -> int:
         for path in sorted((VAR / "studio" / args.all).glob("*/*/track.json")):
             meta = json.loads(path.read_text(encoding="utf-8"))
             said = meta.get("measured", {}).get("sections")
-            if meta.get("opened") is None and isinstance(said, list) and len(said) > 2 and build.opened([float(each) for each in said], [0.0] * len(said))[0] >= args.least:
+            if meta.get("opened") is None and isinstance(said, list) and len(said) > 2 and alone([float(each) for each in said]) >= args.least:
                 takes.append("/".join(path.parts[-4:-1]))
     done, wrong = 0, []
     for take in takes:

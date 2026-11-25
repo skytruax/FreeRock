@@ -408,6 +408,13 @@ DESIGNS: dict[str, tuple[dict, dict]] = {
                         "a_filter1_keytrack": 0.3, "a_ws_type": WS_SOFT, "a_ws_drive": 7.0, "a_lfo6_shape": 0, "a_lfo6_rate": rate(0.15), "a_lfo6_trigmode": 0,
                         **env(2, 0.002, 0.2, 0.15, 0.3), **env(1, 0.002, 0.4, 0.25, 0.45), "polylimit": 12},
                        {"a_filter1_cutoff": [("scene lfo1", 7.0), ("velocity", 10.0)]}),
+    # The slab (2026-11-24, 22:38: the monolith's second stab was a brass section's, and a fifth of it sounded its own overtone, a major second, as loud as the root: Boiler Room II's 63% in the key of it):
+    # saws and a square an octave under, shut at 420 Hz, opened two octaves by the stroke for a tenth of a second: a weight put down, little of it over 1.5 kHz.
+    "house stab slab": ({**osc(1, voices=3, detune=0.12), **osc(2, shape=PULSE, octave=-1, level=0.7), **osc(3, shape=PULSE, width=0.3, pitch=-0.06, level=0.4),
+                         "a_filter1_type": LP24, "a_filter1_subtype": 1, "a_filter1_cutoff": hz(420.0), "a_filter1_resonance": 0.14, "a_filter1_envmod": 24.0,
+                         "a_filter1_keytrack": 0.35, "a_ws_type": WS_SOFT, "a_ws_drive": 11.0, "a_filter2_type": LP12, "a_filter2_subtype": 0, "a_filter2_cutoff": hz(2600.0),
+                         **env(2, 0.001, 0.1, 0.05, 0.12), **env(1, 0.001, 0.32, 0.1, 0.16), "polylimit": 12},
+                        {"a_filter1_cutoff": [("velocity", 12.0)]}),
     # The drone (2026-11-24, 19:25: two hard acts had the supersaw pad still, and were the two whose songs measured least dark): a saw and a narrow pulse an octave apart, beating slowly, shut low and
     # driven, a slow sine moving the filter: a machine's hum and not a pad.
     "house pad drone": ({**osc(1, octave=-1, voices=2, detune=0.1), **osc(2, shape=PULSE, width=0.25, pitch=0.07, level=0.55), **osc(3, shape=PULSE, octave=-1, width=0.4, pitch=-0.05, level=0.5),
@@ -432,6 +439,59 @@ DESIGNS: dict[str, tuple[dict, dict]] = {
                           "a_filter1_keytrack": 0.6, "a_ws_type": WS_SOFT, "a_ws_drive": 5.0,
                           **env(2, 0.001, 0.26, 0.06, 0.25), **env(1, 0.001, 0.55, 0.25, 0.3), "polylimit": 8},
                          {"a_filter1_cutoff": [("velocity", 20.0)]}),
+    # ----- the calm ones' (2026-11-24, 22:00: the soft acts measured as sweet as the sweetest old songs, -13 to -21, on a dark song as on a light one). An inn's, a camp's and a night's: low, worn, close,
+    # and no bell, pluck or glass among them. Smoke: a narrow reed with a breath over it and a triangle an octave under, shut low; its tied notes slide slowly.
+    "house lead smoke": ({**osc(1, shape=PULSE, width=0.18), **triangle(2, octave=-1, level=0.6), **osc(3, shape=PULSE, width=0.3, pitch=-0.07, level=0.35),
+                          "a_level_noise": 0.1, "a_mute_noise": 0, "a_noisecol": -0.35,
+                          "a_filter1_type": LP24, "a_filter1_subtype": 1, "a_filter1_cutoff": hz(640.0), "a_filter1_resonance": 0.3, "a_filter1_envmod": 10.0,
+                          "a_filter1_keytrack": 0.6, "a_filter2_type": HP12, "a_filter2_subtype": 0, "a_filter2_cutoff": hz(110.0), "a_ws_type": WS_HARD, "a_ws_drive": 11.0,
+                          **env(2, 0.03, 0.4, 0.5, 0.3), **env(1, 0.02, 0.5, 0.9, 0.2), **VIBRATO, **MONO, "a_portamento": seconds(0.09)},
+                         {"a_filter1_cutoff": [("velocity", 12.0)], "a_pitch": [("lfo1", 0.14)]}),
+    # A foghorn: two saws, a square an octave under, a low-pass that takes a breath to open and never opens far.
+    "house lead horn": ({**osc(1, voices=2, detune=0.06), **osc(2, shape=PULSE, octave=-1, width=0.4, level=0.8), **triangle(3, level=0.4),
+                         "a_filter1_type": LP24, "a_filter1_subtype": 1, "a_filter1_cutoff": hz(360.0), "a_filter1_resonance": 0.28, "a_filter1_envmod": 20.0,
+                         "a_filter1_keytrack": 0.5, "a_ws_type": WS_SOFT, "a_ws_drive": 12.0,
+                         **env(2, 0.14, 0.6, 0.45, 0.5), **env(1, 0.03, 0.6, 0.92, 0.28), **VIBRATO, **MONO},
+                        {"a_filter1_cutoff": [("velocity", 10.0)], "a_pitch": [("lfo1", 0.08)]}),
+    # A bow drawn near the bridge: a saw and a thread of a pulse, hiss on it, thin under 220 Hz, clipped; it takes a twentieth of a second to speak.
+    "house lead bow": ({**osc(1, voices=2, detune=0.05), **osc(2, shape=PULSE, width=0.08, level=0.5), **osc(3, octave=-1, level=0.4),
+                        "a_level_noise": 0.07, "a_mute_noise": 0, "a_noisecol": 0.2,
+                        "a_filter1_type": LP24, "a_filter1_subtype": 1, "a_filter1_cutoff": hz(1050.0), "a_filter1_resonance": 0.35, "a_filter1_envmod": 8.0,
+                        "a_filter1_keytrack": 0.6, "a_filter2_type": HP12, "a_filter2_subtype": 0, "a_filter2_cutoff": hz(220.0), "a_ws_type": WS_HARD, "a_ws_drive": 10.0,
+                        **env(2, 0.08, 0.5, 0.6, 0.3), **env(1, 0.05, 0.5, 0.92, 0.22), **VIBRATO, **MONO},
+                       {"a_filter1_cutoff": [("velocity", 12.0)], "a_pitch": [("lfo1", 0.12)]}),
+    # A worn tape: a triangle and a sine an octave under that will not stay still (a slow wow and a quick flutter), dull, a little hiss.
+    "house lead tape": ({**triangle(1), **sine(2, feedback=0.2, octave=-1, level=0.5), **osc(3, shape=PULSE, level=0.25),
+                         "a_level_noise": 0.04, "a_mute_noise": 0, "a_noisecol": -0.5,
+                         "a_filter1_type": LP24, "a_filter1_subtype": 0, "a_filter1_cutoff": hz(860.0), "a_filter1_resonance": 0.15, "a_filter1_envmod": 8.0,
+                         "a_filter1_keytrack": 0.6, "a_ws_type": WS_SOFT, "a_ws_drive": 7.0, "a_lfo6_shape": 0, "a_lfo6_rate": rate(0.55), "a_lfo6_trigmode": 0,
+                         "a_lfo7_shape": 0, "a_lfo7_rate": rate(5.8), "a_lfo7_trigmode": 0, **env(2, 0.01, 0.5, 0.5, 0.3), **env(1, 0.015, 0.6, 0.85, 0.3), **MONO},
+                        {"a_filter1_cutoff": [("velocity", 12.0)], "a_pitch": [("scene lfo1", 0.1), ("scene lfo2", 0.03)]}),
+    # Ash: an electric piano's tines struck low and driven, the strike dull, the note left to die.
+    "house keys ash": ({**fm2(1, m1=0.2, r1=1, m2=0.1, r2=3, feedback=0.08), **fm2(2, m1=0.14, r1=1, octave=-1, level=0.5),
+                        "a_filter1_type": LP24, "a_filter1_subtype": 1, "a_filter1_cutoff": hz(1100.0), "a_filter1_resonance": 0.12, "a_filter1_envmod": 16.0,
+                        "a_filter1_keytrack": 0.4, "a_ws_type": WS_HARD, "a_ws_drive": 12.0,
+                        **env(2, 0.001, 0.4, 0.1, 0.4), **env(1, 0.002, 1.6, 0.0, 0.5), "polylimit": 12},
+                       {"a_osc1_param0": [("filter env", 0.08), ("velocity", 0.05)], "a_filter1_cutoff": [("velocity", 12.0)]}),
+    # Bone: a dry knock with a note in it, a quarter of a second of it (the mortuary's, whose parlour piano measured as sweet as any: its theme -16).
+    "house keys bone": ({**fm2(1, m1=0.17, r1=4, m2=0.12, r2=1, feedback=0.06), **triangle(2, octave=-1, level=0.75),
+                         "a_filter1_type": LP24, "a_filter1_subtype": 1, "a_filter1_cutoff": hz(700.0), "a_filter1_resonance": 0.16, "a_filter1_envmod": 26.0,
+                         "a_filter1_keytrack": 0.4, "a_ws_type": WS_SOFT, "a_ws_drive": 10.0,
+                         **env(2, 0.001, 0.07, 0.0, 0.08), **env(1, 0.001, 0.36, 0.0, 0.22), "polylimit": 12},
+                        {"a_osc1_param0": [("filter env", 0.09), ("velocity", 0.04)], "a_filter1_cutoff": [("velocity", 12.0)]}),
+    # Breath: wind across a pipe at the note's own pitch (noise through a band that follows the key), a low triangle and a thread of reed beside it.
+    "house pad breath": ({**triangle(1, voices=2, detune=0.06), **osc(2, shape=PULSE, width=0.14, octave=-1, voices=2, detune=0.08, level=0.7),
+                          "a_level_noise": 0.45, "a_mute_noise": 0, "a_noisecol": 0.0, "a_fb_config": 3, "a_route_noise": 0, "a_route_o1": 2, "a_route_o2": 2,
+                          "a_filter1_type": BP12, "a_filter1_subtype": 0, "a_filter1_cutoff": hz(523.25), "a_filter1_resonance": 0.82, "a_filter1_keytrack": 1.0,
+                          "a_filter2_type": LP24, "a_filter2_subtype": 0, "a_filter2_cutoff": hz(560.0), "a_filter2_resonance": 0.2, "a_filter2_keytrack": 0.5,
+                          "a_lfo6_shape": 0, "a_lfo6_rate": rate(0.09), "a_lfo6_trigmode": 0, **env(1, 1.0, 1.0, 0.9, 1.8), "polylimit": 12},
+                         {"a_filter2_cutoff": [("scene lfo1", 8.0)]}),
+    # A tube's bass: a sine leaned toward a saw and clipped, a triangle beside it, nothing of it over 2 kHz.
+    "house bass tube": ({**sine(1, feedback=0.3), **triangle(2, level=0.5), "a_osc2_retrigger": 1,
+                         "a_filter1_type": LP24, "a_filter1_subtype": 1, "a_filter1_cutoff": hz(420.0), "a_filter1_resonance": 0.12, "a_filter1_envmod": 14.0,
+                         "a_filter1_keytrack": 0.4, "a_ws_type": WS_HARD, "a_ws_drive": 9.0, "a_filter2_type": LP12, "a_filter2_subtype": 0, "a_filter2_cutoff": hz(1800.0),
+                         **env(2, 0.001, 0.22, 0.2, 0.12), **env(1, 0.003, 0.6, 0.85, 0.09), "polylimit": 4},
+                        {"a_filter1_cutoff": [("velocity", 8.0)]}),
 }
 
 

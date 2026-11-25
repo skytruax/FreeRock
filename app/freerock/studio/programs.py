@@ -35,6 +35,7 @@ class Program:
     high: int
     key: int = 0                                    # from the note it sounds to the key that plays it, in semitones
     tune: float = 0.0                               # cents to add, to bring it to the band's A
+    groups: tuple[tuple[int, float], ...] = ()      # ...and to one of its groups of keys besides: (the group's lowest key, cents)
     held: bool = False                              # whether its held notes swell (controller 1)
     cc: tuple[tuple[int, float], ...] = ()          # what its controllers start at, where not as it comes
     switch: int | None = None                       # its way of playing, by the key that chooses it
@@ -70,8 +71,10 @@ PROGRAMS: dict[str, Program] = {
     # A bass voice's one vowel, sliding from note to note where it is one line: D#2 to A#3.
     "bass voice": Program("legato_vocal_tutorial/Programs/09-complete_original_legato_a.sfz", "voice", 38, 58, key=12, tune=-3.0, held=True,
                           cc=((21, 20.0), (100, 0.0), (105, 0.0), (107, 30.0)), slurred=((21, 30.0), (100, 0.0), (105, 127.0), (107, 30.0)), early=0.02, cut=60.0, depth=0.6),
-    # A jazz bass with new roundwound strings, both pickups up: as it came from its jack.
-    "growly bass": Program(_KARO + "growlybass/growlybass_clean.sfz", "bass", 25, 64, key=12, tune=-3.0, cut=28.0, depth=0.1),
+    # A jazz bass with new roundwound strings, both pickups up: as it came from its jack. (2026-11-24, 22:15, every key, short and long, soft and hard: its low E 16 to 24 cents sharp,
+    # G sharp to C sharp 10 to 30 flat on a stroke, F to G an octave and a half up 10 flat: each of its groups of three keys brought to the middle of what it plays.)
+    "growly bass": Program(_KARO + "growlybass/growlybass_clean.sfz", "bass", 25, 64, key=12, tune=-3.0, cut=28.0, depth=0.1,
+                           groups=((39, -19.0), (41, 2.0), (44, 12.0), (47, 10.0), (50, 2.0), (53, 1.0), (56, -4.0), (59, -6.0), (62, 2.0), (65, 10.0), (68, 5.0))),
     # A cello's and a double bass's bowed notes as the oscillators of a synthesiser (its filter, its envelopes, its bow's screech), five ways. (Its controllers: 94 how
     # many voices, five from 64 to 95 and none over it; 102 its low-pass, 120 Hz and seven octaves of the rest; 104 how far each note throws it open, 106 for how long, of two
     # seconds; 80, 82, 83 and 84 its attack of half a second, its decay of ten, its sustain and its release of five.)
@@ -117,6 +120,11 @@ def text_of(name: str, slurs: bool = False) -> tuple[Path, str]:
             if first is None:
                 raise ValueError("%s has nothing in it to tune" % path)
             text = text[:first.start()] + "<global>\ntune=%g\n" % mine.tune + text[first.start():]
+    for key, cents in mine.groups:
+        # (A group's own tuning stands in the place of the program's: both in one.)
+        text, changed = re.subn(r"<group>(?=[^<]*?\blokey\s*=\s*%d\b)" % key, "<group>\ntune=%g" % (mine.tune + cents), text)
+        if not changed:
+            raise ValueError("%s has no group of keys from %d" % (path, key))
     return path, "// A program as it came, with the studio's lines (studio/programs.py).\n" + text
 
 
@@ -124,7 +132,8 @@ def wrapper(name: str, slurs: bool = False) -> Path:
     """The file the sampler plays an instrument from, beside the program it is made from (whose own files are beside it). Written only where it is not there as it
     should be: a sampler whose file changes while it renders stops dead."""
     path, text = text_of(name, slurs)
-    out = path.with_name("freerock %s%s.sfz" % (name, " line" if slurs else ""))
+    # (One whose groups are tuned has a file of its own name: the one it had may be playing.)
+    out = path.with_name("freerock %s%s%s.sfz" % (name, " line" if slurs else "", " tuned" if PROGRAMS[name].groups else ""))
     data = text.encode("latin-1")
     if not out.is_file() or out.read_bytes() != data:
         fresh = out.with_name("%s.%d.part" % (out.name, os.getpid()))

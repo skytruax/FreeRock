@@ -1,6 +1,8 @@
 """The shapes a song can have (orchestra.FORMS), the metres a riff moves in, and the bands that play them."""
 import json
+import random
 import statistics
+from dataclasses import replace
 
 import pytest
 
@@ -284,7 +286,8 @@ def test_every_company_is_players_the_desk_knows_and_none_is_another_genre_s():
 
 
 def test_a_fourth_family_of_an_orchestra_s_is_a_company_s_song_and_the_first_three_stay():
-    fams = [(fam, takes) for fam, takes in build.plan() if fam.character.style == "warcraft"]
+    own = {character.name for character in CHARACTERS if character.sounds}              # (a character that names its company has it from its first family)
+    fams = [(fam, takes) for fam, takes in build.plan() if fam.character.style == "warcraft" and fam.character.name not in own]
     old = [fam for fam, _ in fams if int(fam.name.rsplit("-", 1)[1]) <= orchestra.FRESH_FROM]
     new = [fam for fam, _ in fams if int(fam.name.rsplit("-", 1)[1]) > orchestra.FRESH_FROM]
     assert old and not any(fam.character.sounds for fam in old) and len(new) >= 150
@@ -329,6 +332,68 @@ def test_a_long_moment_turns_where_a_character_turns():
     assert ways == {"ring", "swap"}
     plain = [character for character in CHARACTERS if character.band and not character.turns][:20]
     assert all(Take(made(character), 0).dig_way in ("up", "ring", "plain") for character in plain)
+
+
+def told_before(take):
+    """How much of a take's tune is a bar heard before."""
+    by = {}
+    for voice in take.voices["lead"].values():
+        for note in voice.notes:
+            by.setdefault(int(round(note.start * 12) / 12 // take.beats), set()).add((round(note.start % take.beats, 2), note.pitch))
+    seen, again = set(), 0
+    for bar in sorted(by):
+        each = tuple(sorted(by[bar]))
+        again += each in seen
+        seen.add(each)
+    return again / max(len(by), 1)
+
+
+def test_a_theme_is_told_another_way_each_time_it_comes_back_where_a_character_grows():
+    """(2026-11-24: two of the burn's four songs had 62 and 76% of their tune's bars heard before, the library's middle 46.)"""
+    growing = [character for character in CHARACTERS if character.grows]
+    assert len(growing) >= 20 and {character.form for character in growing} >= {"riff", "verses", "jam", "burn"}
+    heard = [told_before(Take(made(character), 0)) for character in growing]
+    assert statistics.median(heard) <= 0.4 and max(heard) <= 0.6, sorted(heard)
+    less = []
+    for character in growing[::3]:
+        plain = replace(character, grows=False)
+        fam = made(character)
+        was, now = Take(replace(fam, character=plain), 0), Take(fam, 0)
+        less.append(told_before(was) - told_before(now))
+        # The first time it is told it is the tune as it is, whoever has it; and what is not a tune is played as it was.
+        section, first, _ = span(now, "first")
+        until = first + fam.period * now.beats / 2
+        if section.sings in ("first", "again", "valley"):
+            assert [(round(note.start, 3), note.pitch) for note in lead_notes(now, first, until)] == [(round(note.start, 3), note.pitch) for note in lead_notes(was, first, until)]
+        assert all(len(now.voices[channel][name].notes) == len(voice.notes) for channel in ("bass",) for name, voice in was.voices[channel].items())
+    assert statistics.mean(less) >= 0.08, less
+
+
+def test_a_phrase_turned_upside_down_keeps_its_rhythm_and_comes_home():
+    fam = made(next(character for character in CHARACTERS if character.grows and character.form == "burn"))
+    chords = next(section for section in fam.sections if section.whose == "first").chords
+    take = Take(fam, 0)
+    home = next(chords_ for section, _, _, chords_ in take.spans if section.whose == "first")[:fam.period]
+    rng = random.Random(7)
+    tune = orchestra.theme(rng, fam, home, 0.5)
+    for first, last in ((0, fam.period // 2 - 1), (fam.period // 2, fam.period - 1)):
+        told = orchestra.turned(random.Random(3), tune, home, fam.beats, first, last)
+        assert [(start, length) for start, length, _, _ in told.notes] == [(start, length) for start, length, _, _ in tune.notes]
+        for bar in range(fam.period):
+            now, was = told.cut(bar * fam.beats, (bar + 1) * fam.beats).notes, tune.cut(bar * fam.beats, (bar + 1) * fam.beats).notes
+            if first <= bar < last and now:
+                assert now[0][2] % 7 in {step % 7 for step in home[bar].steps}
+        assert told.notes[-1][2] % 7 == tune.notes[-1][2] % 7 and told.top - told.bottom <= 14          # (home, or the octave of it that is nearer)
+    ways = orchestra.retold(random.Random(5), tune, orchestra.varied(random.Random(1), tune), orchestra.decorated(random.Random(2), tune), home, fam.beats)
+    assert len(ways) == 6 and ways[0] is tune and len({tuple(way.notes) for way in ways}) >= 5 and chords
+
+
+def test_only_a_family_that_has_no_take_yet_is_told_another_way():
+    """(Never change a family that has takes: the house band's and the orchestra's characters past their fourth family.)"""
+    plain = next(character for character in CHARACTERS if character.band and not character.sounds)
+    court = next(character for character in CHARACTERS if not character.band and not character.sounds)
+    for character in (plain, court):
+        assert [orchestra.fresh(character, number).grows for number in range(6)] == [False, False, False, False, True, True]
 
 
 def test_a_band_s_instruments_play_within_their_ranges():
@@ -495,10 +560,17 @@ def test_a_song_is_heard_from_its_first_bar():
     assert heard[0] + out[0] < heard[1] + lifts[1] - 1.9                                             # and under the theme it leads to
     low = [heard[0], -36.0] + heard[2:]                                                              # (which holds it down where it is soft itself)
     eased = [min((max(low) - loud) * build.RIDE, 12.0) for loud in low]
-    assert abs(low[0] + build.opened(low, eased)[0] - (low[1] + eased[1] - 2.0)) < 1e-6
+    brought = build.opened(low, eased)
+    assert abs(low[0] + brought[0] - (low[1] + brought[1] - 2.0)) < 1e-6
+    # ...and a first theme that is under hearing is brought up as well, under what comes after it (a slow burn's: Basalt Walk's).
+    burn = [-36.0, -37.0, -31.0, -27.0, -26.0, -21.0, -23.0, -20.0, -25.0]
+    up = build.opened(burn, [0.0] * 9)
+    assert burn[1] + up[1] == -32.0 and burn[0] + up[0] == -34.0 and not any(up[2:])
+    assert build.opened([-36.0, -60.0] + burn[2:], [0.0] * 9)[1] == build.FIRST_MOST
     assert build.opened([-60.0] + heard[1:], [0.0] + lifts[1:])[0] == build.OPEN_MOST                # so far and no further
     loud = [-30.0] + heard[1:]
     assert build.opened(loud, lifts) == lifts                                                        # one that is heard is left
     soft = [-43.0, -42.0, -20.0]
-    assert build.opened(soft, [0.0, 0.0, 0.0]) == [0.0, 0.0, 0.0]                                    # (never over what comes after it)
+    assert build.opened(soft, [0.0, 0.0, 0.0]) == [7.0, 8.0, 0.0]                                    # (the theme as far as it goes, the opening never over it)
+    assert build.opened([-43.0, -42.0], [0.0, 0.0]) == [0.0, 0.0]
     assert build.opened([-80.0] + heard[1:], lifts) == lifts and build.opened([-40.0], [0.0]) == [0.0]

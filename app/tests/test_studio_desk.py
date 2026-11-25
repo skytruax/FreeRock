@@ -298,9 +298,14 @@ def test_every_sound_a_band_has_is_one_the_desk_can_play():
     # No two sets have the same guitar, bass and kit; and the characters of the third and fourth rounds have one each, and not all the same.
     kinds = {(band["rhythm guitar"], band["picked bass"], band["kit rock"]) for band in orchestra.BANDS.values()}
     assert len(kinds) == len(orchestra.BANDS)
-    sets = [character.sounds for character in orchestra.CHARACTERS if character.sounds]
+    sets = [character.sounds for character in orchestra.CHARACTERS if character.sounds and character.band]
     assert len(sets) >= 20 and len(set(sets)) >= 7 and max(sets.count(each) for each in set(sets)) <= 6, sets
     assert all(each in orchestra.BANDS for each in sets)
+    # (An orchestra's character that names one names a company, one that belongs where it plays: the seventh round's, 2026-11-24.)
+    named = [character for character in orchestra.CHARACTERS if character.sounds and not character.band]
+    assert len(named) >= 10 and len({character.sounds for character in named}) >= 10
+    for character in named:
+        assert character.sounds in orchestra.COMPANIES and (len(character.kinds) >= 5 or character.sounds in orchestra.COMPANY_FOR[character.kinds[0]]), character.name
 
 
 def test_a_band_s_kit_is_held_to_the_house_s(monkeypatch):
@@ -359,6 +364,15 @@ def test_an_instrument_that_came_with_a_program_is_played_by_it(tmp_path, monkey
     assert said.index("set_cc82=16") < said.index("set_cc82=14") < said.index("#include")
     before = made.stat().st_mtime_ns
     assert programs.wrapper("horn") == made and made.stat().st_mtime_ns == before                      # not written again: a sampler may be playing it
+    # A group of keys that is out where the others are not is tuned alone, over the program's own tuning, in a file of its own name (the other may be playing).
+    (folder / "bass.sfz").write_bytes(b"\n<group>\nlokey=33\nhikey=38\n<region>\nsample=a.wav\n<group> lokey=39 hikey=40\n<region>\nsample=b.wav\n")
+    monkeypatch.setitem(programs.PROGRAMS, "bass", programs.Program("horn/Programs/bass.sfz", "bass", 28, 60, key=12, tune=-3.0, groups=((39, -19.0),)))
+    tuned = programs.wrapper("bass")
+    said = tuned.read_text(encoding="latin-1")
+    assert tuned.name == "freerock bass tuned.sfz" and "<group>\ntune=-22 lokey=39" in said and "<global>\ntune=-3" in said and said.count("tune=") == 2
+    monkeypatch.setitem(programs.PROGRAMS, "odd", programs.Program("horn/Programs/bass.sfz", "bass", 28, 60, groups=((77, 5.0),)))
+    with pytest.raises(ValueError):
+        programs.wrapper("odd")
     monkeypatch.setitem(sounds.SOUNDS, "horn", sounds.Sound((sounds.Player("horn", seat=0.1),)))
     monkeypatch.setattr(sounds, "level", lambda name: {"before": 2.0, "after": -1.0})
     monkeypatch.setattr(sounds, "_written", {})

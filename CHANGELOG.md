@@ -3,6 +3,21 @@
 Newest first. Words in quotation marks are what was said while listening or playing, as typed or
 dictated, where it drove the change.
 
+## 2026-11-24, night: a tune that is told another way each time, and calm House that is not sweet
+
+- **"all the knight rock songs sound like the same song"**: of 430 Knight Rock songs the middle one has 46% of its tune's bars heard before, and two of the first four slow burns 62 and 76: a song's form said its
+  theme again and again in the same two statements. `Character.grows` (`orchestra.retold`) tells it another way each time it comes back, and the summit as it was first heard; 10 to 28 points fewer, on
+  the same songs. Families that have no take yet only.
+- **The seventh round's twenty-six characters**: Knight Rock's thirteen (three towns, two storms, two inns, a camp, a cave and four walks) for the bands that had a song or two (the garage, the skald, the brawl,
+  the saloon, the cathedral, the baroque, the bones, the grit), in 3/4, 5/4, 6/8 and 7/8; Warcraft's thirteen (three towns, two storms, a camp, an inn and six walks), each a company's of its own.
+- **"house is a little better keep iterating"**: the soft acts had measured as sweet as the sweetest old songs. Four calm acts that are not (cellar, gallows, switchyard, mortuary) on seven sounds of the
+  studio's own (a smoking reed, a foghorn, a bow near the bridge, a worn tape, driven tines, wind across a pipe, a tube's bass); thirteen more hard and after-hours families; two more shapes of drop and
+  eight more riff cells for them, and two more loops of one chord and its shadow.
+- A House lead is read stroke by stroke (`club.strokes_off`): three songs' saxophone had sounded 90 to 185 cents flat on its short notes while the channel as a whole read as in tune. The found jazz bass is
+  tuned group by group (`programs.Program.groups`): its low E had stood 19 cents sharp and its G sharp to C sharp 10 to 30 flat.
+- Three kits (a jazz kit, the same through a worn microphone, and one whose every drum is a snare), for bands to come. The round bass of seven bands is heard in its middle. The bowed synthesiser's lead has its own note over its overtones, and the monolith's stabs are its own.
+- Openings, and first themes, that were under hearing are brought up (`build.opened`, `tools/open_up.py` for songs already staged).
+
 ## 2026-11-23, night: twenty dark characters for where songs come round most, and a riff that is a line
 
 - **"we want to not hear the same music much ... make more options in all genres, make them gritty and darker"**, **"make sure to switch up the
