@@ -1944,6 +1944,9 @@ chorus and the hall are the desk's now*.
   *A dub chord has its third* (`club.THIRDS`, `with_thirds`). A hard song's stabs are a root, a fifth and an octave; behind a band-pass whose peak stands on their overtones they were something else: Sump, in D phrygian, sounded 13 in
   100 of a major second (the fifth's third overtone) and 7 of a major third (the root's fifth), 63% in its key, and Cold Storage 60. The dub's are a dark minor chord, as a dub's are: the octave goes to the third the key has.
   A stab whose filter is open (the rave's, the plate's) has its overtones evenly and needs none.
+  *Every act, measured* (the same short song by each, `tools/hardness.py`). The hard ones on hard music: warehouse +9 (an acid line over an acid bass), signal +2, foundry +1, junkyard +0.5, monolith 0, undercroft -1, cyborg -2; before
+  their own kick. The soft ones on a dark song: strobe -13, vesper and chamber -16, bazaar -17, velvet and brass -21: as sweet as the sweetest of the old songs, though nothing in what is written is: the instruments are the sweetness.
+  They play inns, camps and nights and the light songs, where softness is the place's; a dark walk, a town and a cave are the hard acts' (`club.ACTS_FOR`). Every act is in tune and its lead over its band.
   *A stroke has a pitch.* A hard-synced lead swept 22 half-steps over half a second read 19 cents flat in two songs: in a riff's short stroke there is nothing but sweep, overtones sliding at 3.97 and 4.42 times the
   note. Swept six, from a little higher, its long notes are in tune and its short ones within 5 cents.
   *How hard it sounds, measured* (`tools/hardness.py`). The judges' model that hears audio against words (LAION-CLAP, music) scores ten seconds of a drop or a theme against three pairs of descriptions

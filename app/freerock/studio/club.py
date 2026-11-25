@@ -127,10 +127,12 @@ ACTS: dict[str, Act] = {
     "junkyard": Act("torn sax", "house lead hoover", "subtone sax", ("house stab clang",), ("driven bass",), ("house pad hollow",), "808", drive=0.7),
 }
 # The acts a moment may have, in the order they are given out (a calm one's lead is soft).
-ACTS_FOR = {"calm": ("velvet", "vesper", "strobe", "chamber", "brass", "bazaar"), "fight": ("foundry", "warehouse", "undercroft", "monolith", "signal", "cyborg", "junkyard"),
-            "town": ("brass", "velvet", "strobe", "chamber", "signal"), "depths": ("undercroft", "foundry", "vesper", "cyborg"),
+# (2026-11-24, 19:35: every act measured on one song, hard against sweet: the hard ones +9 to -2, warehouse's acid line far the hardest, and the soft ones -13 to -21, as sweet as the sweetest old songs, on a dark
+# song as on a light one: brass -21, velvet -21, bazaar -17, vesper and chamber -16, strobe -13. The soft ones play inns, camps and nights, and light songs; a dark walk, a town and a cave are the hard ones'.)
+ACTS_FOR = {"calm": ("velvet", "vesper", "strobe", "chamber", "bazaar"), "fight": ("foundry", "warehouse", "undercroft", "monolith", "signal", "cyborg", "junkyard"),
+            "town": ("warehouse", "signal", "junkyard", "undercroft", "cyborg"), "depths": ("undercroft", "foundry", "cyborg", "monolith"),
             "light": ("strobe", "velvet", "bazaar", "vesper", "chamber", "brass"),
-            "heavy": ("warehouse", "undercroft", "chamber", "monolith", "foundry", "brass", "signal", "bazaar", "cyborg", "junkyard")}
+            "heavy": ("warehouse", "undercroft", "monolith", "foundry", "signal", "cyborg", "junkyard")}
 # A family's first take is House's own act; its other takes, every take of the families planned after ACTS_AFTER, and of those that had no take yet when the acts
 # came in (ACTS_ALSO), another's.
 ACTS_AFTER = "depths-09"
