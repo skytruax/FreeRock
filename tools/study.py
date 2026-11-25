@@ -46,37 +46,58 @@ def story_loudness(meta: dict, parts: dict[str, np.ndarray], rate: int) -> list[
 
 
 def written(style: str, name: str, take: int) -> dict:
-    """From the writer: instruments at once in each part, the tune's repeated bars, the spread of registers."""
+    """From the take's music sheet: instruments at once in each part, the tune's repeated bars, the spread of registers.
+
+    The staged sheet is read, not the writer asked again (2026-11-25: Keg Clamour, retold the night before to 51% of its
+    tune's bars heard before, was still read at the first draft's 69 and marked for a revision it had had: a revised sheet
+    is what the song is). A take with no sheet (staged before the sheets were) is written again, as it was."""
     if style == "house":
         return {}
-    from freerock.studio import build, orchestra
-    fam = next(fam for fam, _ in build.plan() if fam.name == name)
-    w = orchestra.Take(fam, take)
-    beats = fam.beats
-    at, out = 0.0, {"at_once": [], "spread": []}
+    from freerock.studio import sheet as sheets
+    from freerock.studio.score import Sheet
+    path = sheets.path_of("%s/%s/%d" % (style, name, take))
+    if path.is_file():
+        sheet = Sheet.load(path)
+        beats = float(sheet.beats)
+        spans = [(part["part"], part["first"] * beats, (part["first"] + part["bars"]) * beats) for part in sheet.form]
+        # (What the desk stacks on a moment, a kick under the kit's, a sub under the bass, a bell, doubles what is there: it is not one more playing.)
+        voices = {channel: [(voice, channel == "drums" or voice.drums) for tag, voice in sheet.parts.get(channel, {}).items() if not tag.endswith(" at the moments")]
+                  for channel in CHANNELS}
+    else:
+        from freerock.studio import build, orchestra
+        fam = next(fam for fam, _ in build.plan() if fam.name == name)
+        w = orchestra.Take(fam, take)
+        beats = fam.beats
+        spans, at = [], 0.0
+        for section in fam.sections:
+            spans.append((section.part, at, at + section.bars * beats))
+            at += section.bars * beats
+        voices = {channel: [(voice, voice.drums) for voice in w.voices[channel].values()] for channel in orchestra.CHANNELS}
+    out = {"at_once": [], "spread": []}
     lead_bars: list[bool] = []
-    for section in fam.sections:
-        span = (at, at + section.bars * beats)
+    for part, first, last in spans:
         playing = collections.Counter()
         low, high = 127, 0
-        for channel in orchestra.CHANNELS:
-            for tag, voice in w.voices[channel].items():
-                inside = [note for note in voice.notes if span[0] <= note.start < span[1]]
+        for channel, each in voices.items():
+            for voice, drums in each:
+                inside = [note for note in voice.notes if first <= note.start < last]
                 if not inside:
                     continue
                 playing[channel] += 1
-                if not voice.drums:
+                if not drums:
                     low, high = min(low, min(n.pitch for n in inside)), max(high, max(n.pitch for n in inside))
-        out["at_once"].append((section.part, sum(playing.values())))
-        out["spread"].append((section.part, (high - low) if high >= low else 0))
-        at = span[1]
+        out["at_once"].append((part, sum(playing.values())))
+        out["spread"].append((part, (high - low) if high >= low else 0))
     # How much of the tune is a bar heard before: through time, each bar of the lead channel (all its voices together)
     # against every bar before it. (Until 2026-11-17 every voice's bars were pooled, so a tune doubled by a second
     # instrument counted as half heard before: 58 to 80% where through time it is 28 to 54%.)
+    # (A staged sheet's notes are where the player put them, a little off the line: each is heard at the nearest twelfth of a beat,
+    # as a revision's own count is, tools' recipes.)
     by_bar = collections.defaultdict(set)
-    for tag, voice in w.voices["lead"].items():
+    for voice, _ in voices.get("lead", []):
         for note in voice.notes:
-            by_bar[int(note.start // beats)].add((round(note.start % beats, 3), note.pitch))
+            at = round(note.start * 12.0) / 12.0
+            by_bar[int((at + 1e-6) // beats)].add((round((at % beats) * 12), note.pitch))
     seen: set = set()
     for bar in sorted(by_bar):
         signature = tuple(sorted(by_bar[bar]))

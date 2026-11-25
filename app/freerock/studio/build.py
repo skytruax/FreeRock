@@ -377,8 +377,11 @@ def tamed_tone(name: str, instrument: str, band: bool = False, channel: str = ""
         # own recordings. The marching tuba the same, with its own dip at 950.)
         # (17:15: the recordings it was tried on had the two bells in them already: Fish-Quay Slab's project has 340 Hz at -5 and 520 at -9 on its tuba. What was heard level is those and this together, so both
         # are here.)
+        # (18:10, the first song made on it, Casemate Fallout: the stomping tuba's tone on the marching one, which is held at half strength since the same day (muse.HELD_AT), left 4 under the liked stems at 226 and
+        # 453 Hz, 13.6 under at 894 and 23.5 at 1768, a thump with no note in it: the shutting had been tried on its recordings at full strength. Performed again through the desk with ten off from 500 Hz and
+        # shut at 2.5 kHz: within 4 from 57 to 894 Hz and 5.7 under at 1768. Eight off, so that it stands in the middle of that.)
         if instrument == "line tuba":
-            return sounds.equalise(high_cut=900.0, bands=((340.0, -5.0, 1.0), (420.0, -10.0, 1.6), (520.0, -9.0, 1.2)), high_shelf=(500.0, -20.0))
+            return sounds.equalise(high_cut=2500.0, bands=((340.0, -5.0, 1.0), (420.0, -10.0, 1.6), (520.0, -9.0, 1.2)), high_shelf=(500.0, -8.0))
         return sounds.equalise(high_cut=900.0, bands=((340.0, -5.0, 1.0), (420.0, -10.0, 1.6), (520.0, -9.0, 1.0)), high_shelf=(500.0, -20.0))
     if band and channel == "bass" and instrument == "growly bass":
         # (The same day: shut at 1.9 kHz by its amplifier it had still 14 over at 900 Hz and 12 at 1.8 kHz in a storm, over the riff.)

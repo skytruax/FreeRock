@@ -2240,8 +2240,12 @@ def test_a_light_bands_bass_is_given_presence(monkeypatch):
     # (2026-11-25: a tuba that is a band's bass has its overtones let down, and is shut at 900 Hz. An orchestra's or a company's low reeds and brass in the bass have a lighter tone of their own (the same afternoon:
     # three songs 7 to 10 dB over from 450 Hz up); its string basses have none, and neither has a reed that sings.)
     for tuba in ("stomp tuba", "war tuba", "line tuba"):
-        assert "900" in build.tamed_tone("picked bass", tuba, band=True, channel="bass")
+        assert " 900 " in build.tamed_tone("picked bass", tuba, band=True, channel="bass") or tuba == "line tuba"
         assert tuba in {each["picked bass"] for each in orchestra.BANDS.values()}, tuba
+    # (The marching tuba, held at half strength, is darker before the desk: the stomping one's tone left it a thump, 13.6 dB under the liked stems at 894 Hz and 23.5 at 1768 in the first song made on it. Its own is
+    # the same three bells, eight off from 500 Hz and shut at 2.5 kHz.)
+    marching = build.tamed_tone("picked bass", "line tuba", band=True, channel="bass")
+    assert " 2500 " in marching and " 900 " not in marching and marching.rstrip().split("\n")[1].split()[13:15] == ["500", "-8"]
     reeds = {build.tamed_tone("basses", each, band=False, channel="bass") for each in build.REED_BASSES}
     assert len(reeds) == 1 and None not in reeds and reeds != {build.tamed_tone("picked bass", "war tuba", band=True, channel="bass")}
     assert {"contrabassoon", "tuba", "war tuba"} <= set(build.REED_BASSES) and all(each in orchestra.INSTRUMENTS for each in build.REED_BASSES)

@@ -1536,7 +1536,7 @@ drums' bus at four strengths). Whose they are was heard first (next).
 valley and the summit. As they first came their plucked strings and their brass fell away in a valley as no held instrument does: the drumline's was at -40 LUFS, its tuba 10 dB under its own riff in the first theme; the
 jug's inn at -34. So each player has a part of its own that is held part of the way to full strength (`muse.SQUEEZE`: 0.5 to 0.65), under a name of its own, as its instrument in an orchestra keeps the whole of its
 range: the tuba came from -40 to -31 and the valley to -29. (Held near full strength it was all brass: in the drumline's first three songs, the same night, its bass stood 14 to 15 dB over the liked stems' in its middle
-and 25 at its top. It is held as evenly at half strength, `muse.HELD_AT`, and shut at 1.8 kHz; the other two tubas and the garage's growl have more taken off them between 450 Hz and 1.8 kHz, `build.tamed_tone`.) A light song by the drumline is too soft in its riff (-39 under a mix of -28): it has heavy songs only. The noir's and the jug's lightest are right as they stand.
+and 25 at its top. It is held as evenly at half strength, `muse.HELD_AT`, and shut at 1.8 kHz; the other two tubas and the garage's growl have more taken off them between 450 Hz and 1.8 kHz, `build.tamed_tone`. The other two were then shut at 900 Hz with twenty off from 500, found on their recordings; the same on the marching one, softer by then, left Casemate Fallout a thump, 13.6 dB under at 894 Hz and 23.5 at 1768. A tone is tried on a recording made as the instrument is played now, and through the desk: it has three bells, eight off from 500 Hz and is shut at 2.5 kHz.) A light song by the drumline is too soft in its riff (-39 under a mix of -28): it has heavy songs only. The noir's and the jug's lightest are right as they stand.
 
 *The ninth round's ten for Knight Rock* (the same night) are the bands' that sound furthest from the house's, by measure (`tools/sameness.py`: of 179 songs any two are alike by 0.77, the house band's 126 by 0.80 to one
 another; the fifty-three new ones by 0.75 among themselves and 0.745 to those; a song of the harpsichord's, the marimba's, the saxophones', the torn harp's or the church organ's by 0.68 to 0.71, one of the fuzz's, the crunch's or
@@ -2352,9 +2352,14 @@ missing, and nothing is ever added to it (*the studio's own recordings must neve
 ### 7.3 tools/study.py
 
 For each staged track: the loudness of each part and the story's swing (loudest minus quietest);
-from the writer, how many lines play in each part, the spread of their pitches and how much of the
+from its music sheet, how many lines play in each part, the spread of their pitches and how much of the
 tune is a bar heard before; against the liked stems of its style and channel, how far its middle
 (160 Hz to 1.25 kHz) and top (2.5 to 10 kHz) are off. Then the set's averages.
+
+The sheet read is the staged one, each note at the nearest twelfth of a beat (where the player put it), and what the desk
+stacks on a moment (a kick, a sub, a bell) is not counted as one more playing. Until 2026-11-25 the writer was asked
+again, which is the first draft: Keg Clamour, retold the night before to 51% of its tune's bars heard before, was read
+at 69 and marked for the revision it had had. A take staged before the sheets were is still written again.
 
     uv run --no-sync python ../tools/study.py warcraft pastoral-morning-fields-1/1 haunted-requiem-1/1
 
