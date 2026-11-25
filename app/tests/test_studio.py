@@ -2237,10 +2237,16 @@ def test_a_light_bands_bass_is_given_presence(monkeypatch):
     assert build.tamed_tone("bass", "fretless", band=True, channel="bass", light=True) == light
     assert build.tamed_tone("picked bass", "picked bass", band=True, channel="bass", light=False) is None
     assert build.tamed_tone("bass", "fretless", band=False, channel="bass", light=True) is None
-    # (2026-11-25: a tuba that is a band's bass has its overtones let down; an orchestra's is its own.)
+    # (2026-11-25: a tuba that is a band's bass has its overtones let down, and is shut at 900 Hz. An orchestra's or a company's low reeds and brass in the bass have a lighter tone of their own (the same afternoon:
+    # three songs 7 to 10 dB over from 450 Hz up); its string basses have none, and neither has a reed that sings.)
     for tuba in ("stomp tuba", "war tuba", "line tuba"):
-        assert build.tamed_tone("picked bass", tuba, band=True, channel="bass") and build.tamed_tone("picked bass", tuba, band=False, channel="bass") is None
+        assert "900" in build.tamed_tone("picked bass", tuba, band=True, channel="bass")
         assert tuba in {each["picked bass"] for each in orchestra.BANDS.values()}, tuba
+    reeds = {build.tamed_tone("basses", each, band=False, channel="bass") for each in build.REED_BASSES}
+    assert len(reeds) == 1 and None not in reeds and reeds != {build.tamed_tone("picked bass", "war tuba", band=True, channel="bass")}
+    assert {"contrabassoon", "tuba", "war tuba"} <= set(build.REED_BASSES) and all(each in orchestra.INSTRUMENTS for each in build.REED_BASSES)
+    assert all(build.tamed_tone("basses", each, band=False, channel="bass") is None for each in ("basses", "celli", "acoustic bass", "basses pizz"))
+    assert build.tamed_tone("bassoon", "bassoon", band=False, channel="lead") is None
     # ...the marching one's furthest, and played softer than its brass; a growling bass guitar's growl as well.
     assert build.tamed_tone("picked bass", "line tuba", band=True, channel="bass") != build.tamed_tone("picked bass", "war tuba", band=True, channel="bass")
     assert muse.held_together("line tuba", 0.95) < 0.72 and muse.held_together("line tuba", 0.2) > 0.35 and muse.held_together("line euphonium", 0.3) > 0.7 and muse.held_together("tuba", 0.3) == 0.3

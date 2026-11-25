@@ -1554,7 +1554,10 @@ camp (peat wake), a storm (reef gale, the winds in seven), a cave (bell foundry,
 *A tuba that is a band's bass is shut* (2026-11-25, afternoon). Three bands' bass is a tuba, and four of their songs in a row read 10 to 13 dB over the liked stems in the bass's middle after two bells on its
 overtones (Split-Lip Long Count 15 at 450 Hz; Fish-Quay Slab 17 to 29 from 450 Hz to the top). A bell does not make a tuba a bass through a cabinet. Tried on the recordings themselves, no render: shut at 900 Hz, twenty
 off from 500 and ten at 420, both stand within 4 dB of the liked stems in every octave (`build.tamed_tone`). The songs made before it are played again; a tuba song's family waits for that before its others. The garage's growly bass
-the same way (Hoop-Iron Round, 11 over at 450 Hz): ten at 450 and eight off from 1200. A tone is found on the recording, against the liked stems, before a song is rendered to hear it.
+the same way (Hoop-Iron Round, 11 over at 450 Hz): ten at 450 and eight off from 1200. A tone is found on the recording, against the liked stems, before a song is rendered to hear it; and what the recording
+has in it already is counted (the tuba's first two bells were in the recordings the shutting was tried on: the tone is those and the shutting together). *A company's bass is its own reed or tuba* (the
+same afternoon): the winds' contrabassoon, the horde's tuba, an orchestra's reeds and trombone where they double its line stood 7 to 10 dB over the liked stems from 450 Hz to 7 kHz in three songs, where bowed
+and plucked basses stand within 3: eight at 450, ten off from 900 and shut at 3 kHz for those in the bass (`build.REED_BASSES`), and nothing for the strings.
 
 *The twelfth round's twenty* (the same day), where Knight Rock's dark songs were one song still: of its 82 dark characters 46 play the low riff first, 59 are in minor first, 34 keep time on the brushes or the stomp, and
 none had been led by a bass clarinet or a steel guitar. Ten for the bands with the fewest, each a moment its band had none for, on the patterns no dark song had kept time on (the tavern's, the toms', the anvil's, the desert's,

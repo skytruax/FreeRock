@@ -320,6 +320,9 @@ LIGHT_BAND_BASS = 4.0
 HARP_LEAD: tuple[float, float, float, float] | None = None
 
 
+REED_BASSES = ("contrabassoon", "bassoon", "bass clarinet", "contrabass flute", "tuba", "war tuba", "trombone")      # an orchestra's or a company's low reeds and brass, where they play in the bass
+
+
 def tamed_tone(name: str, instrument: str, band: bool = False, channel: str = "", light: bool = False) -> str | None:
     """The top of a voice that comes out bright against the liked stems, taken down (2026-11-17, midday, the morning's
     storms, inns, bosses and battles: the brass stabs and the tubular bells at the moments had the accompaniment 12 to
@@ -358,6 +361,11 @@ def tamed_tone(name: str, instrument: str, band: bool = False, channel: str = ""
         # (The band's lead guitar, fiddle and whistles, 10 to 20 dB over: the liked band's lead is a guitar through a cabinet,
         # falling away above 5 kHz, where ours fizzed. Its bite at 1 to 3 kHz is kept.)
         return sounds.equalise(high_cut=6000.0, high_shelf=(3500.0, -6.0))
+    if not band and channel == "bass" and instrument in REED_BASSES:
+        # (2026-11-25: a company's bass is its own reed or tuba, the winds' contrabassoon, the horde's and the carnival's tuba, and an orchestra's reeds and trombone double its line at the moments: Spindrift
+        # Landfall, Sharpened-Stake Judgement and Waterfall Ledge stood 7 to 10 dB over the liked stems from 450 Hz to 7 kHz, where Clan-Feud Fine's bowed and plucked basses stand within 3. Tried on the three
+        # recordings: eight at 450, ten off from 900 and shut at 3 kHz, within 5 in every octave. A string bass has none of it.)
+        return sounds.equalise(high_cut=3000.0, bands=((450.0, -8.0, 1.6),), high_shelf=(900.0, -10.0))
     if band and channel == "bass" and instrument.endswith("tuba"):
         # (2026-11-25: three bands' bass is a tuba, whose fourth to eighth overtones are nearly all of it: the octave from 320 Hz at -4 to -7 dB of the whole where the liked stems have it at -26, the basses of Deep
         # Mine, Charge Song and the press gang's songs 11 to 13 over in their middle, where the riff and the tune are. Its note is left.)
@@ -367,9 +375,11 @@ def tamed_tone(name: str, instrument: str, band: bool = False, channel: str = ""
         # (The same afternoon, two songs made on those tones: the brawl's camp 15 over at 450 Hz and 12 at 900 still, the shanty's town 17 to 29 over from 450 Hz to the top, its stomping tuba's breath and valves
         # and all. No bell on its overtones levels a tuba with a bass through a cabinet: it is shut at 900 Hz with twenty off from 500, and then both stand within 4 of the liked stems in every octave, on their
         # own recordings. The marching tuba the same, with its own dip at 950.)
+        # (17:15: the recordings it was tried on had the two bells in them already: Fish-Quay Slab's project has 340 Hz at -5 and 520 at -9 on its tuba. What was heard level is those and this together, so both
+        # are here.)
         if instrument == "line tuba":
-            return sounds.equalise(high_cut=900.0, bands=((420.0, -10.0, 1.6), (950.0, -6.0, 1.0)), high_shelf=(500.0, -20.0))
-        return sounds.equalise(high_cut=900.0, bands=((420.0, -10.0, 1.6),), high_shelf=(500.0, -20.0))
+            return sounds.equalise(high_cut=900.0, bands=((340.0, -5.0, 1.0), (420.0, -10.0, 1.6), (520.0, -9.0, 1.2)), high_shelf=(500.0, -20.0))
+        return sounds.equalise(high_cut=900.0, bands=((340.0, -5.0, 1.0), (420.0, -10.0, 1.6), (520.0, -9.0, 1.0)), high_shelf=(500.0, -20.0))
     if band and channel == "bass" and instrument == "growly bass":
         # (The same day: shut at 1.9 kHz by its amplifier it had still 14 over at 900 Hz and 12 at 1.8 kHz in a storm, over the riff.)
         # (An inn's jam the same afternoon, Hoop-Iron Round: 11 over at 450 Hz and 7 to 8 from 900 to 1.8 kHz with that dip in it. Ten at 450 and eight off from 1200 over the dip, tried on its recording: within 4
