@@ -351,6 +351,12 @@ DESIGNS: dict[str, tuple[dict, dict]] = {
                          "a_filter1_envmod": 44.0, "a_filter1_keytrack": 0.25, "a_ws_type": WS_SOFT, "a_ws_drive": 11.0,
                          **env(2, 0.002, 0.2, 0.0, 0.1), **env(1, 0.002, 0.5, 0.7, 0.06), **MONO},
                         {"a_filter1_cutoff": [("velocity", 18.0)]}),
+    # The squelch (2026-11-24: of every act on one song warehouse, the acid one, stood 8 to 11 over the others): the acid line's other voice, a square through the same ladder, duller, driven harder:
+    # what joins two other acts' leads.
+    "house lead squelch": ({**osc(1, shape=PULSE), "a_filter1_type": LADDER, "a_filter1_subtype": 3, "a_filter1_cutoff": hz(240.0), "a_filter1_resonance": 0.78,
+                            "a_filter1_envmod": 38.0, "a_filter1_keytrack": 0.3, "a_ws_type": WS_SOFT, "a_ws_drive": 14.0,
+                            **env(2, 0.002, 0.16, 0.0, 0.1), **env(1, 0.002, 0.45, 0.7, 0.06), **MONO},
+                           {"a_filter1_cutoff": [("velocity", 20.0)]}),
     # The growl: saws and squares driven hard, a low-pass opened and shut on the eighths.
     "house lead growl": ({**osc(1, voices=2, detune=0.12), **osc(2, shape=PULSE, voices=2, detune=0.07, pitch=-0.03, octave=-1, level=0.7),
                           "a_filter1_type": LP24, "a_filter1_subtype": 1, "a_filter1_cutoff": hz(520.0), "a_filter1_resonance": 0.35, "a_filter1_envmod": 18.0,

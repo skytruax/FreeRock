@@ -1947,6 +1947,9 @@ chorus and the hall are the desk's now*.
   *Every act, measured* (the same short song by each, `tools/hardness.py`). The hard ones on hard music: warehouse +9 (an acid line over an acid bass), signal +2, foundry +1, junkyard +0.5, monolith 0, undercroft -1, cyborg -2; before
   their own kick. The soft ones on a dark song: strobe -13, vesper and chamber -16, bazaar -17, velvet and brass -21: as sweet as the sweetest of the old songs, though nothing in what is written is: the instruments are the sweetness.
   They play inns, camps and nights and the light songs, where softness is the place's; a dark walk, a town and a cave are the hard acts' (`club.ACTS_FOR`). Every act is in tune and its lead over its band.
+  *What the first nineteen still do* (read by the meter the same evening). In twelve of them the drums were one groove for sixteen bars, the second half of a theme (Chain Gang's twenty-six): a hard theme's fourth eight bars, and a
+  long one's last, have the toms of its drops, softer. An after-hours song's chords and bass never turned (Dead Hours' chords the same 22 bars, its bass one colour for 52): its chords take their second figure and its bass its
+  other one at the half of a theme and of a moment. *The squelch*: the acid line's other voice, a square through the same ladder, is the second synth of the foundry and of cyborg.
   *A stroke has a pitch.* A hard-synced lead swept 22 half-steps over half a second read 19 cents flat in two songs: in a riff's short stroke there is nothing but sweep, overtones sliding at 3.97 and 4.42 times the
   note. Swept six, from a little higher, its long notes are in tune and its short ones within 5 cents.
   *How hard it sounds, measured* (`tools/hardness.py`). The judges' model that hears audio against words (LAION-CLAP, music) scores ten seconds of a drop or a theme against three pairs of descriptions

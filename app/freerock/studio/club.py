@@ -113,7 +113,7 @@ class Act:
 ACTS: dict[str, Act] = {
     "warehouse": Act("house lead acid", "house lead ladder", "house lead growl", ("house stab rave",), ("house bass saw", "house bass acid"), ("house pad hollow",), "909", drive=0.8),
     "undercroft": Act("house lead ladder", "house lead fifth", "house lead growl", ("house stab dub",), ("house bass wide",), ("house pad hollow",), "808", drive=0.7),
-    "foundry": Act("house lead razor", "house lead sync", "house lead reed", ("house stab clang",), ("house bass fm", "house bass grind"), ("house pad hollow",), "606", drive=0.8),
+    "foundry": Act("house lead razor", "house lead squelch", "house lead reed", ("house stab clang",), ("house bass fm", "house bass grind"), ("house pad hollow",), "606", drive=0.8),
     "signal": Act("house lead sync", "house lead fifth", "house lead vox", ("house stab rave",), ("house bass square",), ("house pad drone",), "909", drive=0.6),
     "monolith": Act("house lead hoover", "house lead fifth", "house lead vox", ("house stab rave", "brass"), ("house bass grind",), ("house pad drone",), "909", drive=0.7),
     "vesper": Act("house lead vox", "house lead reed", "bass clarinet", ("electric piano",), ("house bass fm",), ("choir",), "707"),
@@ -123,7 +123,7 @@ ACTS: dict[str, Act] = {
     "brass": Act("trumpet", "trombone", "clarinet", ("rhodes", "wurly"), ("house bass pluck",), ("house pad warm",), "707"),
     "bazaar": Act("sitar", "shenai", "koto", ("dulcimer",), ("house bass fm",), ("house pad hollow",), "808"),
     # (of the instruments found on 2026-11-24: a cello's and a double bass's bows as a synthesiser's oscillators, all of it; a saxophone torn by an amplifier and a jazz bass, driven)
-    "cyborg": Act("heart lead", "house lead fifth", "heart pluck", ("heart stab",), ("iron bass",), ("heart pad",), "909", drive=0.7),
+    "cyborg": Act("heart lead", "house lead squelch", "heart pluck", ("heart stab",), ("iron bass",), ("heart pad",), "909", drive=0.7),
     "junkyard": Act("torn sax", "house lead hoover", "subtone sax", ("house stab clang",), ("driven bass",), ("house pad hollow",), "808", drive=0.7),
 }
 # The acts a moment may have, in the order they are given out (a calm one's lead is soft).

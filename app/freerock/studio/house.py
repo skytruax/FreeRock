@@ -1409,9 +1409,11 @@ class Take:
                         figure(first_perc, bar, 0.34 * (0.6 + 0.4 * energy), -0.35)
                     if second_on and not out_bar:
                         figure(second_perc, bar, 0.32 * (0.6 + 0.4 * energy), 0.4)
-                    if self.scene and story == "moment" and "T" in self.layers(inside, count, first) and not out_bar and not filling:
+                    if self.scene and not out_bar and not filling and ((story == "moment" and "T" in self.layers(inside, count, first))
+                                                                       or (story == "theme" and ((inside // 8) % 4 == 3 or (count >= 40 and inside >= count - 8)))):
+                        # (A theme's fourth eight bars, and a long one's last, have them too: 2026-11-24, the first nineteen read: in twelve the second half of a theme was one groove of sixteen bars.)
                         for step, sound, loud in HARD_TOMS[inside % 2]:
-                            hit(wet, sound, bar, step, 0.42 * loud, {"tom_mid": -0.25, "tom_low": 0.2}[sound])
+                            hit(wet, sound, bar, step, (0.42 if story == "moment" else 0.34) * loud, {"tom_mid": -0.25, "tom_low": 0.2}[sound])
                     if filling:
                         if this_fill == "snare":
                             for index, step in enumerate((12, 13, 14, 15)):
@@ -1541,8 +1543,8 @@ class Take:
                 if (story in ("theme", "moment") and not self.broken(story, first)) or (fam.hard and story in ("open", "close")) \
                         or (story == "close" and self.kick_plays(story, inside, count, first)):
                     notes = figure
-                    if scene and story == "moment" and "B" in self.layers(inside, count, first):
-                        notes = other                          # (HARD_SCENES)
+                    if (scene and story == "moment" and "B" in self.layers(inside, count, first)) or (self.palette.get("low") and not scene and inside >= count // 2):
+                        notes = other                          # (HARD_SCENES; and an after-hours song's bass turns at the half of a theme and of a moment: Dead Hours' was one colour for 52 bars)
                     elif story == "theme" and inside < 4 and style in ("rolling", "synco", "tresillo"):
                         notes = BASSES["offbeat"]              # it starts plainly and fills in
                     elif (THEME_BASS_TURNS and story == "theme" and count >= 32 and inside >= count // 2 and style not in ("long", "dub")
@@ -1584,6 +1586,7 @@ class Take:
         through_rise = self.pick("keys-rise", (True, False, True))
         scene = self.scene
         second = self.rng("stabs-second").choice([each for each in STABS if each is not stabs])
+        turned = self.rng("arp-second").choice([each for each in ARPS if each != arp])
         one = next((at for story, at, _ in self.sections if story == "theme"), None)           # where the first theme begins
         voiced: list[int] | None = None
         spread, low = self.palette["voicing"], bool(self.palette.get("low"))      # (a hard song's chords are an octave under the others')
@@ -1612,7 +1615,9 @@ class Take:
                     continue
                 if self.dropped_out(story, inside, count):
                     continue                                   # the drop-out: the last chord rings on in the echo and the hall
-                struck = stabs
+                struck, way = stabs, arp
+                if self.palette.get("low") and not scene and story in ("theme", "moment") and inside >= count // 2:
+                    struck, way = second, turned               # (an after-hours song's chords turn at the half: the same 22 bars in Dead Hours)
                 if scene:
                     # A hard song's stabs come and go (HARD_SCENES): they wait in the first theme, leave the rise unless it is theirs, and have a second figure, the breakdown's too.
                     now = self.layers(inside, count, first) if story == "moment" else ""
@@ -1661,14 +1666,14 @@ class Take:
                     every = 2 if style == "broken" or thin else 1
                     for number, step in enumerate(range(0, 16, every)):
                         turn = number + (inside % 2) * (16 // every)
-                        if arp == "up":
+                        if way == "up":
                             pitch = pool[turn % len(pool)]
-                        elif arp == "down":
+                        elif way == "down":
                             pitch = pool[-1 - turn % len(pool)]
-                        elif arp == "updown":
+                        elif way == "updown":
                             wave = turn % (2 * len(pool) - 2) if len(pool) > 1 else 0
                             pitch = pool[wave if wave < len(pool) else 2 * len(pool) - 2 - wave]
-                        elif arp == "pedal":
+                        elif way == "pedal":
                             pitch = pool[-1] if turn % 2 else pool[(turn // 2) % (len(pool) - 1)]
                         else:
                             pitch = pool[(turn * 2) % len(pool)]

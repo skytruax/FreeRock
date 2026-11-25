@@ -20,6 +20,7 @@ import argparse
 import datetime
 import html
 import json
+import os
 import sys
 from pathlib import Path
 from urllib.parse import quote
@@ -198,10 +199,10 @@ def main(argv: list[str] | None = None) -> int:
     path = var / "listen" / "now-state.json"
     state = builds(var, json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {})
     out = var / "listen" / "now.html"
-    written = out.with_name(out.name + ".new")
+    written = out.with_name("%s.%d.new" % (out.name, os.getpid()))          # (two builds ending at once wrote to one: 2026-11-24)
     written.write_text(page(var, state, datetime.datetime.now()), encoding="utf-8")
     written.replace(out)
-    kept = path.with_name(path.name + ".new")
+    kept = path.with_name("%s.%d.new" % (path.name, os.getpid()))
     kept.write_text(json.dumps(state), encoding="utf-8")
     kept.replace(path)
     print("%s: %s" % (out, ", ".join("%s %d new in the player" % (style, len(build["came"])) for style, build in state.items())))
