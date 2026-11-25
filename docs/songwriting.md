@@ -1415,7 +1415,9 @@ Rock songs the first theme's tune stood at the old limit in 9 of the 259 a lead 
 accordion (Regicide Banquet's trombone −44 LUFS over guitars at −26): songs led by somebody else that were heard as their guitars. In the bands of other sounds it is measured
 against the bass as well (`TUNE_UNDER_BASS`): in a valley with no guitars the tune sings over the bass alone
 (Deposed Interdict's stood at −46 over a bass at −29). `tools/lift_tunes.py` gives both to a take staged before, in its lead's
-stem alone.
+stem alone. *And the riff gives way* (`build.riff_gives`, 2026-11-25): an amplified riff plays a valley as loud as a verse, and who sings there may be a solo cello at a quarter of its strength: Sleet-Blind Salvo's riff was at −25 over
+a tune at −39, lifted by thirteen already, and Choked Level's themes 2 and 3 under theirs. What the lift leaves the tune under, the rhythm comes down by, 9 dB at the most, in that part alone, as a guitarist turns down for the singer.
+The tool gives it too, in the rhythm's stem.
 
 *A bass is a bass, whoever it is* (2026-11-25, five songs of one night with theirs 10 to 14 dB over the liked stems' in the middle). The garage's jazz bass, its roundwounds through an open amplifier, stood at -12 to -18 dB of the whole from
 320 Hz to 2.5 kHz where the liked stand at -26 to -48, and 6 dB thin under 80: its amplifier is shut at 1.9 kHz, its middle let down and its bottom up (`sounds.AMPS`), and it still growls, 6 to 11 over. A tuba's fourth to eighth
@@ -1986,7 +1988,7 @@ chorus and the hall are the desk's now*.
   scoop from 90 to 185 cents under and are over before they arrive. The channel heard as a whole read 12 cents in one of its songs, 63% in the key in another and nothing in the third. Each stroke of the first drop's riff is
   read for itself now, the median for each pitch; of thirty-six songs three were out, all three the saxophone's (its recordings blown hardest are the ones that scoop: at a third of its strength it is in tune). It is kept for long
   notes, and for riffs no higher than G3; the junkyard has the squelch.
-  *A dub chord has its third* (`club.THIRDS`, `with_thirds`). A hard song's stabs are a root, a fifth and an octave; behind a band-pass whose peak stands on their overtones they were something else: Sump, in D phrygian, sounded 13 in
+  *A dub chord has its third* (`club.THIRDS`, `with_thirds`; on its fifth as well, 2026-11-25: five songs' chords of a fifth, its root and its fifth again had the third of the fifth, 64 to 69% in their keys). A hard song's stabs are a root, a fifth and an octave; behind a band-pass whose peak stands on their overtones they were something else: Sump, in D phrygian, sounded 13 in
   100 of a major second (the fifth's third overtone) and 7 of a major third (the root's fifth), 63% in its key, and Cold Storage 60. The dub's are a dark minor chord, as a dub's are: the octave goes to the third the key has.
   A stab whose filter is open (the rave's, the plate's) has its overtones evenly and needs none.
   *Every act, measured* (the same short song by each, `tools/hardness.py`). The hard ones on hard music: warehouse +9 (an acid line over an acid bass), signal +2, foundry +1, junkyard +0.5, monolith 0, undercroft -1, cyborg -2; before

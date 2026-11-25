@@ -44,6 +44,12 @@ def counts(sheet: Sheet) -> dict[str, tuple[int, float]]:
     return out
 
 
+def played(sheet: Sheet) -> dict[str, tuple]:
+    """What each part is played by and every note of it, to see that a change is one though it leaves the count of notes and their strength as they were (a chord's third, 2026-11-25; a voice)."""
+    return {"%s: %s" % (channel, name): (voice.instrument, tuple((round(note.start, 4), round(note.length, 4), note.pitch, round(note.loud, 4)) for note in voice.notes))
+            for channel, parts in sheet.parts.items() for name, voice in parts.items() if voice.notes}
+
+
 def before_of(track: str) -> Path:
     return VAR / "studio-demo" / "before-revise" / track
 
@@ -51,15 +57,17 @@ def before_of(track: str) -> Path:
 def revised(track: str, recipe) -> tuple[Sheet, str, str, list[str]]:
     """The song's sheet with the recipe's change in it (nothing saved), what it is, why, and the parts it moved."""
     sheet = Sheet.load(sheets.path_of(track))
-    had = counts(sheet)
+    had, was = counts(sheet), played(sheet)
     what, why = recipe(sheet)
     sheet.revised(what, why, by="the musician")
-    now = counts(sheet)
+    now, plays = counts(sheet), played(sheet)
     moved = []
     for name in sorted(set(had) | set(now)):
         a, b = had.get(name, (0, 0.0)), now.get(name, (0, 0.0))
         if a[0] != b[0] or abs(a[1] - b[1]) > 1e-9:
             moved.append("%-34s %d notes at %.2f -> %d notes at %.2f" % (name, a[0], a[1], b[0], b[1]))
+        elif was.get(name) != plays.get(name):
+            moved.append("%-34s %d notes, other pitches or another voice" % (name, b[0]))
     if not moved:
         raise ValueError("The recipe changed nothing in %s" % track)
     return sheet, what, why, moved

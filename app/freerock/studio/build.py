@@ -535,6 +535,9 @@ TUNE_MOST = 5.0
 # close the lift stood at its 5 and the tune was still 4 dB under the piano).
 TUNE_MOST_BANDS = 13.0
 TUNE_UNDER_BASS = 1.0    # dB the bass may stand over where the tune is measured against it, in those bands (Deposed Interdict's valley: no guitars, the bass at -29)
+# ...and where a tune lifted as far as it goes still stands under that, the riff gives way, this far at the most (2026-11-25, Sleet-Blind Salvo's valley: cellos through amplifiers, which play as loud softly as hard, at -25 over a
+# solo cello at -39; Choked Level's themes 2 and 3 dB under their riff): in a band of other sounds, as a guitarist turns down for the singer.
+RIFF_GIVES = 9.0
 
 
 def solo_lift(parts: dict[str, np.ndarray], span: tuple[int, int], ramp: int) -> tuple[float, np.ndarray | None]:
@@ -643,6 +646,29 @@ def tune_lift(parts: dict[str, np.ndarray], spans: list[tuple[int, int]], ramp: 
         if high - low > 1:
             db[low:high] = np.linspace(db[low], db[high - 1], high - low, dtype=np.float32)
     return lifts, (10.0 ** (db / 20.0)).astype(np.float32)
+
+
+def riff_gives(parts: dict[str, np.ndarray], spans: list[tuple[int, int]], ramp: int) -> tuple[list[float], np.ndarray | None]:
+    """How far the rhythm channel is taken down in each part where the tune, lifted as it is by now, stands under TUNE_OVER dB over it (RIFF_GIVES at the most): the dB for each, and the gain for each sample,
+    eased over `ramp` samples at the joins; nothing where the tune stands over it, or where either plays next to nothing."""
+    if "lead" not in parts or "rhythm" not in parts:
+        return [], None
+    frames = len(parts["rhythm"])
+    db, downs = np.zeros(frames, dtype=np.float32), []
+    for first, last in spans:
+        since = first + min(int(4.0 * RATE), (last - first) // 4)
+        lead, band = analysis.loudness_lufs(parts["lead"][first:last], RATE), analysis.loudness_lufs(parts["rhythm"][since:last], RATE)
+        lack = band + TUNE_OVER - lead
+        down = -min(lack, RIFF_GIVES) if lead > -62.0 and band > -50.0 and lack > 0.5 else 0.0
+        db[first:last] = down
+        downs.append(round(float(down), 2))
+    if min(downs, default=0.0) >= -0.5:
+        return [0.0] * len(downs), None
+    for edge in sorted({edge for span in spans for edge in span}):
+        low, high = max(edge - ramp, 0), min(edge + ramp, frames)
+        if high - low > 1:
+            db[low:high] = np.linspace(db[low], db[high - 1], high - low, dtype=np.float32)
+    return downs, (10.0 ** (db / 20.0)).astype(np.float32)
 
 
 def perform(sheet: Sheet) -> dict:
@@ -787,6 +813,12 @@ def perform(sheet: Sheet) -> dict:
         if tune_curve is not None:
             parts["lead"] = parts["lead"] * tune_curve[:, None]
             lead_curve = tune_curve if lead_curve is None else lead_curve * tune_curve
+    riff_dbs: list[float] = []
+    if tune_dbs and about.get("sounds"):
+        riff_dbs, riff_curve = riff_gives(parts, sung, int(60.0 / bpm * RATE))
+        if riff_curve is not None:
+            parts["rhythm"] = parts["rhythm"] * riff_curve[:, None]
+            alone["rhythm"] = desk.ride_points(riff_curve)
     if lead_curve is not None:
         alone["lead"] = desk.ride_points(lead_curve)
     # The story keeps its shape but not its extremes: music behind a game cannot drop to a
@@ -844,6 +876,8 @@ def perform(sheet: Sheet) -> dict:
         meta["measured"]["solo lift"] = solo_db            # dB the lead was brought up where its solo plays
     if any(tune_dbs):
         meta["measured"]["tune lift"] = tune_dbs           # dB the lead was brought up in each part where its tune sings
+    if any(riff_dbs):
+        meta["measured"]["riff gives"] = riff_dbs          # dB the rhythm was taken down in each of those parts, where the tune was under it still
     folder = folder_at(sheet.style, sheet.family, take)
     write_track(folder, meta, parts)
     sheet.save(folder / "sheet.json")

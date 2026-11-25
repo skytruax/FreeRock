@@ -56,6 +56,18 @@ def lift(folder: Path, out: Path | None = None) -> str:
     band = sheet["about"].get("sounds") or ""
     caps = [max(cap - had, 0.0) for cap, had in zip(build.tune_caps(band, sings, spans, beat), given)]
     lifts, curve = build.tune_lift(parts, spans, int(beat), most=caps, bass=bool(band))
+    if band and not measured.get("riff gives"):
+        # (2026-11-25: and where the tune, lifted as far as it goes, stands under its riff still, the riff gives way: build.riff_gives, in the rhythm's stem.)
+        now = dict(parts, lead=parts["lead"] * curve[:, None]) if curve is not None and "lead" in parts else parts
+        downs, gives = build.riff_gives(now, spans, int(beat))
+        if gives is not None and out is None:
+            scratch = folder / "rhythm.part.flac"
+            soundfile.write(str(scratch), parts["rhythm"] * gives[:, None], RATE, format="FLAC", subtype="PCM_24")
+            scratch.replace(folder / "rhythm.flac")
+            measured["riff gives"] = downs
+            (folder / "track.json").write_text(json.dumps(meta, indent=1), encoding="utf-8")
+            if curve is None or max(lifts) < 0.5:
+                return "its riff gives way by part: %s dB" % ", ".join("%.1f" % each for each in downs)
     if curve is None or max(lifts) < 0.5:
         return "its tune stands over its rhythm"
     lifted = parts["lead"] * curve[:, None]

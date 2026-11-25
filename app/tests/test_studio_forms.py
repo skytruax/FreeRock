@@ -539,6 +539,24 @@ def test_a_valley_s_tune_is_measured_against_the_bass_it_sings_over():
     assert curve is not None and 4.0 < lifts[0] <= build.TUNE_MOST_BANDS
 
 
+def test_a_riff_gives_way_to_a_tune_that_is_under_it_still():
+    """(Sleet-Blind Salvo's valley: a held riff at -25 over a solo cello at -39, lifted by thirteen already.)"""
+    import numpy as np
+    rate = build.RATE
+    t = np.arange(rate * 24) / rate
+    tone = lambda hz, db: ((np.sin(2 * np.pi * hz * t) * 10 ** (db / 20)).astype(np.float32))[:, None].repeat(2, axis=1)      # noqa: E731
+    spans = [(0, 8 * rate), (8 * rate, 16 * rate), (16 * rate, 24 * rate)]
+    lead, rhythm = tone(880.0, -20.0), tone(880.0, -26.0)
+    lead[8 * rate:16 * rate] *= 10 ** (-24.0 / 20.0)
+    lead[16 * rate:] *= 10 ** (-8.0 / 20.0)
+    downs, curve = build.riff_gives({"lead": lead, "rhythm": rhythm}, spans, rate // 4)
+    assert downs[0] == 0.0 and downs[1] == -build.RIFF_GIVES and abs(downs[2] + 4.0) < 0.3, downs       # (6 over is left; 18 under as far as it goes; 2 under to 2 over)
+    assert abs(20 * np.log10(curve[12 * rate]) + build.RIFF_GIVES) < 0.01 and curve[4 * rate] == 1.0 and (np.diff(curve) > -1e-3).all()
+    assert build.riff_gives({"lead": tone(880.0, -20.0), "rhythm": rhythm}, spans, rate // 4)[1] is None
+    assert build.riff_gives({"lead": tone(880.0, -80.0), "rhythm": rhythm}, spans, rate // 4)[1] is None      # (nobody sings: the riff is the music)
+    assert build.riff_gives({"lead": lead}, spans, rate // 4) == ([], None)
+
+
 def test_a_tune_that_is_not_a_distorted_guitar_s_is_lifted_further_in_any_band():
     """(Of 414 songs the first theme stood at the desk's 5 dB in 9 of 259 led by the lead guitar, and in 30 of 60 led by a fiddle.)"""
     spans = [(0, 100), (100, 200), (200, 300)]

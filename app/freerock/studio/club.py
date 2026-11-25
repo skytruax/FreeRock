@@ -239,10 +239,15 @@ def with_thirds(notes: list[Note], scale: set[int]) -> list[Note]:
         struck[round(note.start * 16)].append(note)
     for chord in struck.values():
         chord.sort(key=lambda note: note.pitch)
-        third = next((step for step in (3, 4) if (chord[0].pitch + step) % 12 in scale), None)
-        if len(chord) < 3 or third is None or any((note.pitch - chord[0].pitch) % 12 in (3, 4) for note in chord):
+        if len(chord) < 3:
             continue
-        chord[-1].pitch = chord[0].pitch + 12 + third
+        # (Its root is the note that has its fifth in the chord, and that may be under it: 2026-11-25, Third Rail's B, E and B were given the third of B, and a D over E's own fifth rang an F sharp in E phrygian, 64% in the key.)
+        has = {note.pitch % 12 for note in chord}
+        root = next((note.pitch for note in chord if (note.pitch + 7) % 12 in has), chord[0].pitch)
+        third = next((step for step in (3, 4) if (root + step) % 12 in scale), None)
+        if third is None or any((note.pitch - root) % 12 in (3, 4) for note in chord):
+            continue
+        chord[-1].pitch = root + 12 + third
     return notes
 
 
