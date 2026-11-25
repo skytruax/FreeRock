@@ -354,7 +354,8 @@ def tamed_tone(name: str, instrument: str, band: bool = False, channel: str = ""
     if band and channel == "bass" and instrument.endswith("tuba"):
         # (2026-11-25: three bands' bass is a tuba, whose fourth to eighth overtones are nearly all of it: the octave from 320 Hz at -4 to -7 dB of the whole where the liked stems have it at -26, the basses of Deep
         # Mine, Charge Song and the press gang's songs 11 to 13 over in their middle, where the riff and the tune are. Its note is left.)
-        return sounds.equalise(bands=((450.0, -8.0, 0.8),), high_shelf=(1400.0, -4.0))
+        # (Eight at 450 Hz took half a decibel of it in Company-Store Wages, whose line lies a third higher: five at 340 and eight at 560.)
+        return sounds.equalise(bands=((340.0, -5.0, 1.0), (560.0, -8.0, 0.8)), high_shelf=(1400.0, -4.0))
     if band and light and instrument in ("picked bass", "fretless") and LIGHT_BAND_BASS:
         # (2026-11-22, night: the light bands' bass, MuseScore's electric bass played softly in the walks, inns, camps and
         # nights, 3.7 to 13 dB thin in its middle in the day's studies of the new families, where the heavy band's sits within
@@ -535,6 +536,11 @@ TUNE_MOST = 5.0
 # close the lift stood at its 5 and the tune was still 4 dB under the piano).
 TUNE_MOST_BANDS = 13.0
 TUNE_UNDER_BASS = 1.0    # dB the bass may stand over where the tune is measured against it, in those bands (Deposed Interdict's valley: no guitars, the bass at -29)
+# ...and an orchestra's (2026-11-25): its lead has its place by the summit, where it stands 4 or 5 dB over the accompaniment, and its themes are scored softly: in four songs of ten of sixty read part by part a theme's tune
+# stood 2 to 14 under what accompanies it (Forgotten Lullaby's second 14, Watchful Nocturne's 11, Dripping Tunnels' first 8). How far over it stands at the least where it is sung, and where it is struck or plucked (an attack is
+# heard through more); the most it is brought up; and how far the bass may stand over it where they are alone (Golden Run's valley, 20). (Half a decibel over, by nine at the most, the judges were split: a horn and a cello's
+# cave up on two of three, a celesta's dance and a soft choir's nocturne down.) ORCHESTRA_MOST 0: as it was.
+ORCHESTRA_OVER, ORCHESTRA_STRUCK, ORCHESTRA_MOST, ORCHESTRA_UNDER_BASS = -1.5, -5.0, 6.0, 4.0
 # ...and where a tune lifted as far as it goes still stands under that, the riff gives way, this far at the most (2026-11-25, Sleet-Blind Salvo's valley: cellos through amplifiers, which play as loud softly as hard, at -25 over a
 # solo cello at -39; Choked Level's themes 2 and 3 dB under their riff): in a band of other sounds, as a guitarist turns down for the singer.
 RIFF_GIVES = 9.0
@@ -609,33 +615,47 @@ def tune_caps(sounds: str, lead: dict[str, list[float]], spans: list[tuple[int, 
     return out
 
 
+def tune_overs(lead: dict[str, list[tuple[float, float]]], spans: list[tuple[int, int]], beat_frames: float) -> list[float]:
+    """How far over its accompaniment an orchestra's tune stands at the least in each part it sings in: ORCHESTRA_OVER, or ORCHESTRA_STRUCK where who has most of it there is struck or plucked. `lead` is the lead channel's
+    notes by instrument: the beat each begins on and its length in beats."""
+    out = []
+    for first, last in spans:
+        sounding: dict[str, float] = {}
+        for instrument, notes in lead.items():
+            sounding[instrument] = sounding.get(instrument, 0.0) + sum(length for start, length in notes if first <= start * beat_frames < last)
+        leader = max(sorted(sounding), key=sounding.__getitem__) if any(sounding.values()) else ""
+        out.append(ORCHESTRA_STRUCK if leader in INSTRUMENTS and not INSTRUMENTS[leader].held else ORCHESTRA_OVER)
+    return out
+
+
 def tune_lift(parts: dict[str, np.ndarray], spans: list[tuple[int, int]], ramp: int, most: float | list[float] | None = None,
-              bass: bool = False) -> tuple[list[float], np.ndarray | None]:
+              bass: bool = False, over: float | list[float] = TUNE_OVER, under_bass: float = TUNE_UNDER_BASS) -> tuple[list[float], np.ndarray | None]:
     """How far the lead channel is brought up in each part of a band's story where its tune sings (TUNE_LIFT), so that it
-    stands TUNE_OVER dB over the rhythm guitars there, and at most `most` (TUNE_MOST, or one for each span: `tune_caps`); nothing where it stands over them already, or
+    stands `over` dB over the rhythm guitars there (an orchestra's accompaniment), and at most `most` (TUNE_MOST, or one for each span: `tune_caps`); nothing where it stands over them already, or
     where the lead or the guitars play little. The gain for each sample, eased from part to part over `ramp` samples. With `bass`, against the bass as
-    well (TUNE_UNDER_BASS): in a valley with no guitars it is what the tune sings over."""
+    well (`under_bass`): in a valley with no guitars it is what the tune sings over."""
     caps = [TUNE_MOST if most is None else most] * len(spans) if not isinstance(most, list) else most
+    overs = over if isinstance(over, list) else [over] * len(spans)
     least = -58.0 if bass else -50.0
     if "lead" not in parts or "rhythm" not in parts:
         return [], None
     frames = len(parts["lead"])
     db = np.zeros(frames, dtype=np.float32)
     lifts = []
-    for (first, last), cap in zip(spans, caps):
+    for (first, last), cap, over in zip(spans, caps, overs):
         lead = analysis.loudness_lufs(parts["lead"][first:last], RATE)
         # (Further than the house band's most only against what the rhythm plays in the part, not what rings into it: Sentence March's valley has no guitars
         # and read -31 of the chord before it.)
         since = first + min(int(4.0 * RATE), (last - first) // 4)
         band, lift = analysis.loudness_lufs(parts["rhythm"][first:last], RATE), 0.0
         if lead > -50.0 and band > -50.0:
-            lift = max(min(band + TUNE_OVER - lead, min(cap, TUNE_MOST)), 0.0)
+            lift = max(min(band + over - lead, min(cap, TUNE_MOST)), 0.0)
         if cap > TUNE_MOST or bass:
             band = analysis.loudness_lufs(parts["rhythm"][since:last], RATE)
             if bass and "bass" in parts:
-                band = max(band, analysis.loudness_lufs(parts["bass"][since:last], RATE) - TUNE_UNDER_BASS - TUNE_OVER)
+                band = max(band, analysis.loudness_lufs(parts["bass"][since:last], RATE) - under_bass - over)
             if lead > least and band > -50.0:
-                lift = max(lift, min(band + TUNE_OVER - lead, cap))
+                lift = max(lift, min(band + over - lead, cap))
         db[first:last] = lift
         lifts.append(round(float(lift), 2))
     if max(lifts, default=0.0) <= 0.1:
@@ -819,6 +839,16 @@ def perform(sheet: Sheet) -> dict:
         if riff_curve is not None:
             parts["rhythm"] = parts["rhythm"] * riff_curve[:, None]
             alone["rhythm"] = desk.ride_points(riff_curve)
+    if not about["band"] and ORCHESTRA_MOST and "lead" in parts:
+        # (...and an orchestra's tune over its accompaniment, in every part it sings in.)
+        sung = sung_spans(sheet.form, edges, solo_spans)
+        notes: dict[str, list[tuple[float, float]]] = {}
+        for voice in voices["lead"].values():
+            notes.setdefault(voice.instrument, []).extend((note.start, note.length) for note in voice.notes)
+        tune_dbs, tune_curve = tune_lift(parts, sung, int(60.0 / bpm * RATE), most=ORCHESTRA_MOST, bass=True, over=tune_overs(notes, sung, 60.0 / bpm * RATE), under_bass=ORCHESTRA_UNDER_BASS)
+        if tune_curve is not None:
+            parts["lead"] = parts["lead"] * tune_curve[:, None]
+            lead_curve = tune_curve if lead_curve is None else lead_curve * tune_curve
     if lead_curve is not None:
         alone["lead"] = desk.ride_points(lead_curve)
     # The story keeps its shape but not its extremes: music behind a game cannot drop to a

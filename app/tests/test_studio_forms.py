@@ -557,6 +557,48 @@ def test_a_riff_gives_way_to_a_tune_that_is_under_it_still():
     assert build.riff_gives({"lead": lead}, spans, rate // 4) == ([], None)
 
 
+def test_an_orchestra_s_tune_stands_over_its_accompaniment(tmp_path, monkeypatch):
+    """(Of sixty songs read part by part a theme's tune stood 2 to 14 dB under what accompanies it in four of ten: Forgotten Lullaby's second, Watchful Nocturne's.)"""
+    import importlib.util
+    from pathlib import Path
+
+    import numpy as np
+    import soundfile
+    rate = build.RATE
+    t = np.arange(rate * 24) / rate
+    tone = lambda hz, db: ((np.sin(2 * np.pi * hz * t) * 10 ** (db / 20)).astype(np.float32))[:, None].repeat(2, axis=1)      # noqa: E731
+    spans = [(0, 8 * rate), (8 * rate, 16 * rate), (16 * rate, 24 * rate)]
+    lead, rhythm, bass = tone(880.0, -26.0), tone(880.0, -26.0), tone(880.0, -40.0)
+    lead[:8 * rate] *= 10 ** (-5.0 / 20.0)
+    lead[16 * rate:] *= 10 ** (-20.0 / 20.0)
+    lifts, _ = build.tune_lift({"lead": lead, "rhythm": rhythm, "bass": bass}, spans, rate // 4, most=6.0, bass=True, over=[-1.5, -1.5, -5.0], under_bass=4.0)
+    assert abs(lifts[0] - 3.5) < 0.3 and lifts[1] == 0.0 and lifts[2] == 6.0, lifts               # (5 under: to 1.5 under; level: as it is; 20 under: as far as it goes)
+    low, _ = build.tune_lift({"lead": tone(880.0, -40.0), "rhythm": tone(880.0, -60.0), "bass": tone(880.0, -31.0)}, spans, rate // 4, most=6.0, bass=True, over=-1.5, under_bass=4.0)
+    assert all(abs(each - 5.0) < 0.4 for each in low), low                            # (in a valley the bass may stand four dB over it, no more)
+    # Who leads says how far: what is struck or plucked is heard through more.
+    notes = {"flute": [(0.0, 4.0), (9.0, 1.0)], "celesta": [(0.0, 1.0), (8.0, 6.0)]}
+    assert build.tune_overs(notes, [(0, 8 * rate), (8 * rate, 16 * rate)], float(rate)) == [build.ORCHESTRA_OVER, build.ORCHESTRA_STRUCK] and build.ORCHESTRA_STRUCK < build.ORCHESTRA_OVER
+    # ...and a song staged before is brought up in its lead's stem, once.
+    monkeypatch.setattr(build, "ORCHESTRA_MOST", 6.0)
+    path = Path(__file__).resolve().parents[2] / "tools" / "lift_tunes.py"
+    spec = importlib.util.spec_from_file_location("lift_tunes", path)
+    tool = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(tool)
+    folder = tmp_path / "song" / "1"
+    folder.mkdir(parents=True)
+    sheet = {"tempo": 60.0, "beats": 4.0, "about": {"sounds": "", "band": False}, "parts": {"lead": {"flute": {"instrument": "flute", "notes": [[0.0, 4.0, 72, 0.5]]}}},
+             "form": [{"story": "open", "part": "open", "first": 0, "bars": 2}, {"story": "theme", "part": "first", "first": 2, "bars": 2}]}
+    meta = {"bar_frames": 4.0 * rate, "sections": [{"story": "open", "bars": 2}, {"story": "theme", "bars": 2}], "measured": {}}
+    (folder / "sheet.json").write_text(json.dumps(sheet), encoding="utf-8")
+    (folder / "track.json").write_text(json.dumps(meta), encoding="utf-8")
+    for channel, db in (("lead", -32.0), ("rhythm", -26.0), ("bass", -40.0)):
+        soundfile.write(str(folder / (channel + ".flac")), tone(880.0, db), rate, subtype="PCM_24")
+    assert tool.lift(folder).startswith("brought up by part")
+    after, _ = soundfile.read(str(folder / "lead.flac"), dtype="float32", always_2d=True)
+    assert abs(20 * np.log10(np.abs(after[12 * rate:15 * rate]).max()) + 27.5) < 0.4 and abs(20 * np.log10(np.abs(after[rate:6 * rate]).max()) + 32.0) < 0.2
+    assert abs(json.loads((folder / "track.json").read_text(encoding="utf-8"))["measured"]["tune lift"][0] - 4.5) < 0.4 and tool.lift(folder).startswith("already")
+
+
 def test_a_tune_that_is_not_a_distorted_guitar_s_is_lifted_further_in_any_band():
     """(Of 414 songs the first theme stood at the desk's 5 dB in 9 of 259 led by the lead guitar, and in 30 of 60 led by a fiddle.)"""
     spans = [(0, 100), (100, 200), (200, 300)]

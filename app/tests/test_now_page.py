@@ -85,6 +85,28 @@ def test_a_first_build_shows_the_songs_of_the_day_before_it_and_what_waits(tmp_p
     assert state["knight"]["came"] == ["knight/fresh-gate-1/1"] and state["knight"]["since"] is None
 
 
+def test_a_song_says_who_plays_it(tmp_path):
+    """(2026-11-25: the page said where a song is heard, at length, and not whose it is.)"""
+    now_page = _tool()
+    var = tmp_path / "var"
+    for track, about in (("knight/fresh-gate-1/1", {"sounds": "garage", "metre": "3/4", "shape": "riff", "tonic": "D minor"}), ("warcraft/old-hall-1/1", {"sounds": "", "metre": "4/4", "tonic": "E dorian"}),
+                         ("house/pit-1/1", {"sounds": "kennel", "meta": {"tonic": "C# phrygian"}})):
+        _stage(var, track, track.split("/")[1], BUILT + HOUR)
+        (var / "studio" / track / "sheet.json").write_text(json.dumps({"about": about}), encoding="utf-8")
+    _stage(var, "knight/no-sheet-1/1", "No Sheet", BUILT + HOUR)
+    _build(var, "knight", [], BUILT)
+    _build(var, "warcraft", [], BUILT)
+    _build(var, "house", [], BUILT)
+    path = var / "studio" / "knight" / "fresh-gate-1" / "1" / "track.json"
+    path.write_text(json.dumps(dict(json.loads(path.read_text(encoding="utf-8")), moods=list("abcdefghij"))), encoding="utf-8")
+    os.utime(path, (BUILT + HOUR, BUILT + HOUR))
+    now_page.main(["--var", str(var)])
+    page = (var / "listen" / "now.html").read_text(encoding="utf-8")
+    assert "by the garage, D minor, in 3/4, a riff song" in page and "by the orchestra, E dorian<" in page and "by the kennel, C# phrygian" in page
+    assert "fresh-gate-1, take 1: wander, anywhere" in page and "old-hall-1, take 1: wander, pastoral" in page
+    assert now_page.who(var, "knight/no-sheet-1/1", {}) == ""
+
+
 def test_a_long_list_of_what_came_in_is_closed_and_a_short_one_is_open(tmp_path):
     now_page = _tool()
     var = tmp_path / "var"

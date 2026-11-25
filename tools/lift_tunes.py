@@ -26,8 +26,7 @@ RATE = build.RATE
 
 def lift(folder: Path, out: Path | None = None) -> str:
     sheet = json.loads((folder / "sheet.json").read_text(encoding="utf-8"))
-    if not sheet["about"].get("band"):
-        return "an orchestra's"
+    orchestra = not sheet["about"].get("band")
     meta = json.loads((folder / "track.json").read_text(encoding="utf-8"))
     measured = meta.setdefault("measured", {})
     if measured.get("tune lift again"):
@@ -53,9 +52,18 @@ def lift(folder: Path, out: Path | None = None) -> str:
     sings: dict[str, list[float]] = {}
     for part in sheet["parts"].get("lead", {}).values():
         sings.setdefault(part["instrument"], []).extend(note[0] for note in part["notes"])
-    band = sheet["about"].get("sounds") or ""
-    caps = [max(cap - had, 0.0) for cap, had in zip(build.tune_caps(band, sings, spans, beat), given)]
-    lifts, curve = build.tune_lift(parts, spans, int(beat), most=caps, bass=bool(band))
+    band = "" if orchestra else sheet["about"].get("sounds") or ""
+    if orchestra:
+        # (2026-11-25: an orchestra's tune over its accompaniment, build.ORCHESTRA_OVER; none was brought up before.)
+        caps = [max(build.ORCHESTRA_MOST - had, 0.0) for had in (given if measured.get("tune lift") else [0.0] * len(spans))]
+        notes: dict[str, list[tuple[float, float]]] = {}
+        for part in sheet["parts"].get("lead", {}).values():
+            notes.setdefault(part["instrument"], []).extend((note[0], note[1]) for note in part["notes"])
+        lifts, curve = build.tune_lift(parts, spans, int(beat), most=caps, bass=True, over=build.tune_overs(notes, spans, beat), under_bass=build.ORCHESTRA_UNDER_BASS)
+        given = given if measured.get("tune lift") else [0.0] * len(spans)
+    else:
+        caps = [max(cap - had, 0.0) for cap, had in zip(build.tune_caps(band, sings, spans, beat), given)]
+        lifts, curve = build.tune_lift(parts, spans, int(beat), most=caps, bass=bool(band))
     if band and not measured.get("riff gives"):
         # (2026-11-25: and where the tune, lifted as far as it goes, stands under its riff still, the riff gives way: build.riff_gives, in the rhythm's stem.)
         now = dict(parts, lead=parts["lead"] * curve[:, None]) if curve is not None and "lead" in parts else parts
@@ -106,8 +114,7 @@ def main() -> int:
     folders = [root / name for name in names] if names else sorted(path.parent for path in root.glob("*/*/sheet.json"))
     for folder in folders:
         said = lift(folder, out)
-        if names or said != "an orchestra's":
-            print("%-40s %s" % (folder.parent.name + "/" + folder.name, said), flush=True)
+        print("%-40s %s" % (folder.parent.name + "/" + folder.name, said), flush=True)
     return 0
 
 

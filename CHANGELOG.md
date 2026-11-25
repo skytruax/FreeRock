@@ -12,6 +12,8 @@ dictated, where it drove the change.
 - **"house is a little better keep iterating"**: a riff cut up stroke by stroke among three synths, who hammers, who turns and who answers changing every eight bars (`club.cut_up`); five leads of another kind (a talker, a chip, a
   scream, a fold, a reese) and their acts (chopshop, arcade, kennel, quarry, tunnel); thirteen families more: two towns, two caves, a storm and five walks by them, and a camp, a night and an inn by the mortuary and the switchyard.
 - A valley that had gone under hearing is brought half way back (`build.LOW_UNDER`).
+- An orchestra's tune is brought up to its accompaniment in every part it sings in (`build.ORCHESTRA_OVER`): in four songs of ten a theme's tune stood 2 to 14 dB under it. `tools/lift_tunes.py` gives songs staged before the same.
+- The page of what is new says who plays each song, in what key, metre and shape.
 - A band's riff gives way where its tune, lifted as far as it goes, stands under it still (`build.riff_gives`); a dub chord on its fifth has its own third.
 - Every family that has no take yet, some seven hundred, tells its themes another way each time they come back (`build.TOLD_ONCE` names those that had one).
 - The garage band's bass and the three bands' tubas, 10 to 14 dB over the liked stems' bass in their middle, are basses again.

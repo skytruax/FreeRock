@@ -427,12 +427,13 @@ DESIGNS: dict[str, tuple[dict, dict]] = {
                            "a_ws_type": WS_HARD, "a_ws_drive": 14.0, "a_filter2_type": LP12, "a_filter2_subtype": 0, "a_filter2_cutoff": hz(4600.0),
                            **env(2, 0.002, 0.2, 0.3, 0.1), **env(1, 0.002, 0.5, 0.9, 0.08), **MONO},
                           {"a_ws_drive": [("velocity", 6.0)]}),
-    # The reese: five saws that beat against one another, an octave's two under them, a notch going through them, clipped and shut low.
-    "house lead reese": ({**osc(1, voices=3, detune=0.12), **osc(2, octave=-1, voices=2, detune=0.06, level=0.8), **osc(3, pitch=0.06, level=0.6),
-                          "a_filter1_type": NOTCH12, "a_filter1_subtype": 0, "a_filter1_cutoff": hz(700.0), "a_filter1_resonance": 0.3, "a_lfo6_shape": 0, "a_lfo6_rate": rate(0.9),
-                          "a_lfo6_trigmode": 0, "a_ws_type": WS_HARD, "a_ws_drive": 13.0, "a_filter2_type": LP24, "a_filter2_subtype": 1, "a_filter2_cutoff": hz(1900.0),
-                          "a_filter2_envmod": 18.0, **env(2, 0.002, 0.2, 0.3, 0.1), **env(1, 0.002, 0.5, 0.9, 0.09), **MONO},
-                         {"a_filter1_cutoff": [("scene lfo1", 16.0)], "a_filter2_cutoff": [("velocity", 12.0)]}),
+    # The reese: saws that beat slowly against one another, a thread of one an octave under, a notch going through them, clipped. (Its octave at 0.8 and its saws a fifth of a half-step apart, the hardest and the darkest drop
+    # of any act, and the least liked of nine by every judge: the bottom of a lead in the bass's own octave, 2026-11-25.)
+    "house lead reese": ({**osc(1, voices=3, detune=0.08), **osc(2, octave=-1, level=0.4), **osc(3, pitch=0.05, level=0.6),
+                          "a_filter1_type": NOTCH12, "a_filter1_subtype": 0, "a_filter1_cutoff": hz(900.0), "a_filter1_resonance": 0.25, "a_lfo6_shape": 0, "a_lfo6_rate": rate(0.5),
+                          "a_lfo6_trigmode": 0, "a_ws_type": WS_HARD, "a_ws_drive": 11.0, "a_filter2_type": LP24, "a_filter2_subtype": 1, "a_filter2_cutoff": hz(2300.0),
+                          "a_filter2_envmod": 16.0, **env(2, 0.002, 0.2, 0.3, 0.1), **env(1, 0.002, 0.5, 0.9, 0.09), **MONO},
+                         {"a_filter1_cutoff": [("scene lfo1", 12.0)], "a_filter2_cutoff": [("velocity", 12.0)]}),
     # Stabs. The rave's: five saws and a pulse an octave under, driven, thrown open and shut within an eighth.
     "house stab rave": ({**osc(1, voices=5, detune=0.2), **osc(2, shape=PULSE, octave=-1, level=0.6), **osc(3, octave=1, voices=3, detune=0.15, level=0.3),
                          "a_filter1_type": LADDER, "a_filter1_subtype": 3, "a_filter1_cutoff": hz(420.0), "a_filter1_resonance": 0.28, "a_filter1_envmod": 40.0,

@@ -469,7 +469,8 @@ HARD_KICK_AT = 0.85
 # middle of the drums stood 4 to 8 dB under the liked stems', and what is struck on two and four no higher between 350 Hz and 2.5 kHz than the kick's own click on one and three; up 2.9 dB, on two songs, the
 # measure of hard against sweet moved 0.4 either way: 1.7.)
 HARD_TOPS = {"room": 1.4, "hats": 1.35}
-HARD_CLAPS = {"808": 1.45}       # (the 808's claps and snares further: its songs' drums 3.5 to 8.7 dB thin in their middle against the liked stems, Dead Reckoning, Sump, Knuckle Duster and Boiler Room)
+HARD_CLAPS = {"808": 1.9}        # (the 808's claps and snares further: its songs' drums 3.5 to 8.7 dB thin in their middle against the liked stems, Dead Reckoning, Sump, Knuckle Duster and Boiler
+                                 # Room; at 1.45 three of the next thirteen's 5 to 7, 2026-11-25)
 # A hard act plays close (2026-11-24: what softened its songs, the measure of it says, was the lead, and what it went through was a dream's: an echo in dotted eighths from side to side and a hall): how much of
 # the echo its stabs and its lead have, and how far its stabs and its lead are sent to the hall.
 CLOSE = (0.35, 0.1, 0.12)

@@ -890,6 +890,12 @@ arrive is owed a narrower fix.
   strength, a lean into notes of a second or more, a fall at a phrase's end. A line of single notes
   is slurred (`sounds._slurred`).
 
+**An orchestra's tune stands over its accompaniment** (`build.ORCHESTRA_OVER`, 2026-11-25). Its lead channel has its place by the summit, where it stands 4 or 5 dB over the accompaniment, and a theme is scored softly: a solo flute
+or a clarinet at a third of its strength over a harp's arpeggio. Read part by part, in four songs of ten of sixty a theme's tune stood 2 to 14 dB under what accompanies it (Forgotten Lullaby's second 14, Watchful Nocturne's 11,
+Dripping Tunnels' first 8), and in a valley up to 20 under its bass (Golden Run). In every part it sings in the lead is brought up to a decibel and a half under the accompaniment, by 6 dB at the most, to 5 under where who has the tune is
+struck or plucked (its attack is heard through more), and the bass is no more than 4 over it (half a decibel over, by nine, split the judges: a horn's and a cello's cave up, a celesta's dance and a soft choir's nocturne down);
+`tools/lift_tunes.py warcraft` gives a song staged before the same, in its lead's stem, and the track keeps the dB.
+
 ### 3.10 Humanising
 
 `build.stage` runs `score.humanise` on every voice: each note moved by a normal spread of 4 ms
@@ -1421,7 +1427,7 @@ The tool gives it too, in the rhythm's stem.
 
 *A bass is a bass, whoever it is* (2026-11-25, five songs of one night with theirs 10 to 14 dB over the liked stems' in the middle). The garage's jazz bass, its roundwounds through an open amplifier, stood at -12 to -18 dB of the whole from
 320 Hz to 2.5 kHz where the liked stand at -26 to -48, and 6 dB thin under 80: its amplifier is shut at 1.9 kHz, its middle let down and its bottom up (`sounds.AMPS`), and it still growls, 6 to 11 over. A tuba's fourth to eighth
-overtones are nearly all of it: three bands' basses (the shanty's, the brawl's, the drumline's) have 8 dB taken out at 450 Hz (`build.tamed_tone`), an orchestra's none.
+overtones are nearly all of it: three bands' basses (the shanty's, the brawl's, the drumline's) have 5 dB taken out at 340 Hz and 8 at 560 (`build.tamed_tone`), an orchestra's none.
 
 **The kits** are the Big Rusty Drums, with sticks (`kit sticks`), with brushes (`kit swept`) and with mallets (`kit felt`), the same strokes on
 the same notes as the rock kit's, their levels measured as every kit's are (`levels.json`).

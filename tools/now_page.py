@@ -29,7 +29,7 @@ VAR = Path(__file__).resolve().parent.parent / "var"
 STYLES = (("knight", "Knight Rock"), ("warcraft", "Warcraft"), ("house", "Progressive House"))
 DAY = 24 * 3600.0
 STYLE = ("body{font:15px/1.5 sans-serif;margin:16px;background:#16181c;color:#e8e8e8;max-width:980px}"
-         "a{color:#ffd76a}h1{margin-bottom:2px}h2{margin-top:28px}h3{margin:18px 0 4px}.sub{color:#9aa0a6;font-size:13px}.wait{color:#c9a227}"
+         "a{color:#ffd76a}h1{margin-bottom:2px}h2{margin-top:28px}h3{margin:18px 0 4px}.sub{color:#9aa0a6;font-size:13px}.wait{color:#c9a227}.who{color:#b9c4cf;font-size:13px}"
          "table{border-collapse:collapse;width:100%;margin:8px 0 14px}td{padding:8px;border-bottom:1px solid #333;vertical-align:top}"
          "audio{width:100%;max-width:360px;height:32px}summary{cursor:pointer;color:#9aa0a6;margin:6px 0}"
          # The songs' columns are given their widths: left to the browser, a song's long list of places took the whole row and
@@ -86,7 +86,26 @@ def staged_since(var: Path, style: str, since: float) -> list[str]:
 
 
 def what(meta: dict) -> str:
-    return "%s, %s%s" % (meta.get("role", ""), " and ".join(meta.get("moods") or []) or "anywhere", ", light" if meta.get("light") else "")
+    moods = meta.get("moods") or []
+    return "%s, %s%s" % (meta.get("role", ""), " and ".join(moods) if 0 < len(moods) < 9 else "anywhere", ", light" if meta.get("light") else "")
+
+
+# Who plays a song that names nobody on its sheet, and what a song's shape is called (orchestra.FORMS).
+OWN = {"knight": "the house band", "warcraft": "the orchestra", "house": "House's own act"}
+SHAPES = {"verses": "verses and choruses", "riff": "a riff song", "jam": "a jam", "burn": "a slow burn"}
+
+
+def who(var: Path, track: str, meta: dict) -> str:
+    """Who plays it, its key, its metre where that is not four, and its shape, from its sheet ("" where it has none) (2026-11-25: the page said where a song is heard and not whose it is)."""
+    style, family, take = track.split("/")
+    path = var / "studio" / style / family / take / "sheet.json"
+    if not path.is_file():
+        return ""
+    about = json.loads(path.read_text(encoding="utf-8")).get("about") or {}
+    sounds, metre, shape = about.get("sounds") or "", about.get("metre") or "", SHAPES.get(about.get("shape") or "", "")
+    by = ("the " + sounds) if sounds else OWN.get(style, "")
+    return "by %s" % ", ".join(each for each in (by, str(about.get("tonic") or (about.get("meta") or {}).get("tonic") or meta.get("tonic") or ""),
+                                                 "in " + metre if metre and metre != "4/4" else "", shape) if each)
 
 
 def table(var: Path, style: str, tracks: list[str]) -> str:
@@ -102,8 +121,9 @@ def table(var: Path, style: str, tracks: list[str]) -> str:
         name = file_of(meta)
         play = ("<audio controls preload='none' src='%s/%s'></audio>" % (style, quote(name))
                 if (var / "listen" / style / name).is_file() else "<span class='wait'>its file is being written</span>")
-        rows.append((at, "<tr><td><b>%s</b><br><span class='sub'>%s, take %s: %s</span></td><td class='sub'>%s</td><td>%s</td></tr>"
-                     % (html.escape(meta["title"]), html.escape(meta["family"]), html.escape(str(meta["take"])),
+        whose = who(var, track, meta)
+        rows.append((at, "<tr><td><b>%s</b>%s<br><span class='sub'>%s, take %s: %s</span></td><td class='sub'>%s</td><td>%s</td></tr>"
+                     % (html.escape(meta["title"]), " <span class='who'>%s</span>" % html.escape(whose) if whose else "", html.escape(meta["family"]), html.escape(str(meta["take"])),
                         html.escape(what(meta)), datetime.datetime.fromtimestamp(at).strftime("%d %b %H:%M"), play)))
     rows.sort(key=lambda row: row[0], reverse=True)
     return "<table class='songs'><colgroup><col><col class='made'><col class='play'></colgroup>%s</table>" % "".join(row for _, row in rows)
