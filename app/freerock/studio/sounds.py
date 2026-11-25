@@ -1616,7 +1616,9 @@ AMPS: dict[str, Amp] = {
     "riff sax": Amp(1, 20.0, bass=1.0, middle=2.0, treble=1.0, at=900.0, top=5600.0, seats=(-0.45, 0.45), tight=60.0, bright=2.0, presence=2.0, level=-18.0),
     "torn sax": Amp(2, 16.0, bass=0.0, middle=2.0, treble=1.0, at=900.0, top=5600.0, seats=(0.0,), tight=60.0, bright=2.0, presence=2.0, spring=0.1, level=-15.0),
     "wired erhu": Amp(2, 22.0, bass=1.0, middle=2.0, treble=-2.0, at=900.0, top=4600.0, spring=0.15, echo=0.2, tight=120.0, level=-23.9),
-    "growly bass": Amp(1, 18.0, bass=3.0, middle=2.0, treble=0.0, at=700.0, top=4200.0, tight=25.0, bright=4.0, level=1.3, hand=1.5),
+    # (Its first songs' basses stood 10 and 14 dB over the liked stems' in their middle and 21 and 30 at their top, 6 thin under 80 Hz: a clank where a bass should be, 2026-11-25. Shut at 1.9 kHz, its middle let down and its
+    # bottom up, it stands 6 to 11 over from 320 Hz to 1.2 kHz, which is the growl, and level under that.)
+    "growly bass": Amp(1, 12.0, bass=8.0, middle=-5.0, treble=-8.0, at=800.0, top=1900.0, tight=25.0, bright=0.0, level=5.0, hand=1.5),
     # (House's two, at its level: at a rock band's the sub that goes under a House bass stood 17 dB under it, Scrap Yard's 40 to 80 Hz at -19 dB of the whole; and the bowed one without an amplifier
     # was the sub and nothing over it, Meat Locker's 320 Hz up 23 dB down.)
     # (The bowed synthesiser's lead and stabs, 2026-11-24, 17:30: alone they were the dullest things in House, 30 dB down by 2.5 kHz, and Meat Locker the softest of the hard songs: torn.)
