@@ -147,18 +147,22 @@ ACTS: dict[str, Act] = {
     "quarry": Act("house lead fold", "house lead ladder", "house lead growl", ("house stab slab",), ("house bass wide",), ("house pad drone",), "808", drive=0.75),
     "tunnel": Act("house lead reese", "house lead sync", "house lead reed", ("house stab dub",), ("house bass wide",), ("house pad drone",), "606", drive=0.7),
     # (2026-11-25: ten led by what was found in the synthesiser's own wavetables, and two calm ones; patches.DESIGNS says how they were chosen. What joins each, its stabs, its bass and its pad are no two of them alike.)
-    "drydock": Act("house lead chain", "house lead fifth", "house lead droid", ("house stab bone",), ("house bass jaw",), ("house pad drone",), "909", drive=0.75),
+    # (The same day, 16:06, the contest: "use all the different leads have tunejury decide". Forty-two leads on six songs' drops and moments (a hard walk, a town, a storm, a calmer walk, a night, a camp), each song
+    # on its own scale: the jaw first on none and never under the upper half (+1.6), then the tape, the metal and the reese; the gremlin, the shard, the slide and the chain at the foot of every song, the charge and
+    # the maw near it (var/passes/contest-leads-summary.txt). What led the drops of the drydock, the icehouse, the faultline, the powerhouse, the catacomb and the pumphouse was one of those: each has one the judge
+    # put in the upper half, and no two acts have one lead still.)
+    "drydock": Act("house lead growl", "house lead fifth", "house lead droid", ("house stab bone",), ("house bass jaw",), ("house pad drone",), "909", drive=0.75),
     "smelter": Act("house lead sweep", "house lead ladder", "house lead jaw", ("house stab slab",), ("house bass crust",), ("house pad drone",), "606", drive=0.75),
     "brickyard": Act("house lead brick", "house lead hoover", "house lead growl", ("house stab clang",), ("house bass rasp",), ("house pad hollow",), "808", drive=0.75),
-    "catacomb": Act("house lead gullet", "house lead gremlin", "house lead vox", ("house stab dub",), ("house bass wide",), ("house pad crypt",), "808", drive=0.7),
-    "icehouse": Act("house lead shard", "house lead sync", "house lead reed", ("house stab shard",), ("house bass square",), ("house pad hollow",), "606", drive=0.65),
-    "faultline": Act("house lead maw", "house lead razor", "house lead droid", ("house stab rave",), ("house bass grind",), ("house pad drone",), "909", drive=0.7),
-    "powerhouse": Act("house lead charge", "house lead squelch", "house lead jaw", ("house stab chain",), ("house bass acid",), ("house pad drone",), "909", drive=0.75),
+    "catacomb": Act("house lead fifth", "house lead murmur", "house lead vox", ("house stab dub",), ("house bass wide",), ("house pad crypt",), "808", drive=0.7),
+    "icehouse": Act("house lead stack", "house lead sync", "house lead reed", ("house stab shard",), ("house bass square",), ("house pad hollow",), "606", drive=0.65),
+    "faultline": Act("house lead metal", "house lead razor", "house lead talk", ("house stab rave",), ("house bass grind",), ("house pad drone",), "909", drive=0.7),
+    "powerhouse": Act("house lead jaw", "house lead squelch", "house lead smoke", ("house stab chain",), ("house bass acid",), ("house pad drone",), "909", drive=0.75),
     "sluice": Act("house lead croak", "house lead fold", "house lead growl", ("house stab bone",), ("house bass rasp",), ("house pad crypt",), "808", drive=0.7),
-    "pressroom": Act("house lead shift", "house lead gremlin", "house lead reed", ("house stab chain",), ("house bass crust",), ("house pad hollow",), "606", drive=0.7),
+    "pressroom": Act("house lead shift", "house lead pluck", "house lead reed", ("house stab chain",), ("house bass crust",), ("house pad hollow",), "606", drive=0.7),
     "millrace": Act("house lead wobble", "house lead croak", "house lead droid", ("house stab shard",), ("house bass jaw",), ("house pad drone",), "909", drive=0.7),
     "flophouse": Act("house lead murmur", "house lead smoke", "tenor sax", ("upright piano",), ("upright bass",), ("house pad crypt",), "606", drive=0.3),
-    "pumphouse": Act("house lead slide", "house lead horn", "contrabassoon", ("fuzz wurly",), ("round bass",), ("house pad drone",), "808", drive=0.35),
+    "pumphouse": Act("house lead pwm", "house lead horn", "contrabassoon", ("fuzz wurly",), ("round bass",), ("house pad drone",), "808", drive=0.35),
 }
 # The acts a moment may have, in the order they are given out (a calm one's lead is soft).
 # (2026-11-24, 19:35: every act measured on one song, hard against sweet: the hard ones +9 to -2, warehouse's acid line far the hardest, and the soft ones -13 to -21, as sweet as the sweetest old songs, on a dark
@@ -434,7 +438,8 @@ def _loud(levels: list[float]) -> list[float]:
 
 SPAN = 4            # bars: a voice's level is read four at a time (a house phrase is eight, every part a whole number of them)
 UNDER = 0.6         # a note written under this part of the loudest in its four bars is a line under the tune: a doubling, an echo
-SUBBED = ("house bass pluck", "house bass saw", "iron bass", "driven bass", "house bass grind", "house bass jaw", "house bass crust", "house bass rasp")      # the basses that are heard more than felt: a sine goes under them
+# The basses that are heard more than felt: a sine goes under them. (The acid bass since 2026-11-25: Loan Shark I's, all resonance, stood 9 dB over the liked stems in its middle with less under 200 Hz than over.)
+SUBBED = ("house bass pluck", "house bass saw", "iron bass", "driven bass", "house bass grind", "house bass jaw", "house bass crust", "house bass rasp", "house bass acid")
 # The basses with a sawtooth growl under them, closed above 900 Hz (`voices`): the sub, and the factory FM bass, which had no
 # middle of its own. House's own FM bass has one, and the growl under it is not heard: taken away in three songs, the bass moved
 # 1 dB or less in every octave and the judges stayed level (2026-11-22; Sunlit Fields II's bass, 7 dB over the liked stems at
@@ -1105,13 +1110,20 @@ def held_back(sections: list[tuple[str, int, int]], channel: str, frames: int, o
 STROKE_OFF = 45.0           # cents: a lead whose strokes on one note stand this far from it is out of tune there
 
 
-def strokes_off(notes: list[Note], audio: np.ndarray, beat_frames: float, span: tuple[float, float], most: int = 120) -> dict[int, float]:
+def strokes_off(notes: list[Note], audio: np.ndarray, beat_frames: float, span: tuple[float, float], most: int = 120, beside: list[Note] | tuple = ()) -> dict[int, float]:
     """How far a lead's strokes sound from what is written, in cents, for each pitch struck eight times or more in a span of beats: each stroke by the harmonic sum of its own first quarter of a beat, three
     half-steps either way, and the median of them. (2026-11-24: three songs' leads, a saxophone's short strokes, sounded 90 to 185 cents flat; the channel heard as a whole read 12 in one of them and passed the
-    others, and the instrument's long notes, by which it was tuned, are in tune.)"""
+    others, and the instrument's long notes, by which it was tuned, are in tune.) A stroke is heard where it sounds alone: one under which another note of its channel sounds (`beside`: everything the channel
+    plays; an octave or a unison apart is no other note) is left out. (2026-11-25: Red Rock II's riff read 100 cents flat at E5 and was in tune: a C sharp of the same channel sounded under nineteen of its
+    thirty-eight strokes there, and the meter found that.)"""
     mono, found = audio.mean(axis=1), defaultdict(list)
     cents, size = np.arange(-300.0, 301.0, 5.0), 1 << 17
-    for note in sorted((each for each in notes if span[0] <= each.start < span[1]), key=lambda each: each.start)[:most]:
+
+    def alone(note: Note) -> bool:
+        since, until = note.start + 0.02, note.start + 0.95 * min(note.length, 0.24)
+        return not any((other.pitch - note.pitch) % 12 and other.start < until and other.start + other.length > since for other in beside)
+
+    for note in sorted((each for each in notes if span[0] <= each.start < span[1] and alone(each)), key=lambda each: each.start)[:most]:
         piece = mono[int((note.start + 0.02) * beat_frames):int((note.start + 0.95 * min(note.length, 0.24)) * beat_frames)]
         if len(piece) < 2000 or float(np.sqrt(np.mean(piece ** 2))) < 1e-4:
             continue
@@ -1275,7 +1287,8 @@ def _perform(sheet: Sheet) -> dict:
         big = max(sheet.parts["lead"], key=lambda each: sum(any(a <= note.start < b for a, b in drops) for note in sheet.parts["lead"][each].notes))
         for each in [big] + [name for name in sorted(sheet.parts["lead"]) if name != big and name.endswith(CUT_NAMES[1:])]:
             part = sheet.parts["lead"][each]
-            off = strokes_off(part.notes, parts["lead"], house.BAR_FRAMES / 4.0, drops[0] if each == big else (drops[0][0], drops[-1][1]))
+            off = strokes_off(part.notes, parts["lead"], house.BAR_FRAMES / 4.0, drops[0] if each == big else (drops[0][0], drops[-1][1]),
+                              beside=[note for other in sheet.parts["lead"].values() for note in other.notes])
             found.setdefault("strokes", {}).update(off if each == big else {"%s %d" % (part.instrument, pitch): cents for pitch, cents in off.items()})
             wrong = {pitch: cents for pitch, cents in off.items() if abs(cents) > STROKE_OFF}
             if wrong:

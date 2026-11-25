@@ -457,18 +457,26 @@ def test_a_leads_strokes_are_heard_one_by_one():
     beat = RATE * 60.0 / 128.0
     notes = [Note(step * 0.5, 0.24, 57 if step % 2 else 62, 0.8) for step in range(48)]
 
-    def played(cents: dict[int, float]) -> np.ndarray:
+    def played(cents: dict[int, float], with_them: tuple = ()) -> np.ndarray:
         out = np.zeros((int(26 * beat), 2), dtype=np.float32)
-        for note in notes:
+        for note in list(notes) + list(with_them):
             hz = 440.0 * 2.0 ** ((note.pitch - 69 + cents.get(note.pitch, 0.0) / 100.0) / 12.0)
             t = np.arange(int(0.24 * beat)) / RATE
-            out[int(note.start * beat):int(note.start * beat) + len(t)] += sum(np.sin(2 * np.pi * hz * k * t) / k for k in range(1, 9)).astype(np.float32)[:, None] * 0.1
+            out[int(note.start * beat):int(note.start * beat) + len(t)] += sum(np.sin(2 * np.pi * hz * k * t) / k for k in range(1, 9)).astype(np.float32)[:, None] * 0.1 * note.loud / 0.8
         return out
     level = club.strokes_off(notes, played({}), beat, (0.0, 24.0))
     assert set(level) == {57, 62} and all(abs(cents) <= 10.0 for cents in level.values())
     flat = club.strokes_off(notes, played({57: -150.0}), beat, (0.0, 24.0))
     assert abs(flat[57] + 150.0) <= 15.0 and abs(flat[62]) <= 10.0 and abs(flat[57]) > club.STROKE_OFF
     assert club.strokes_off(notes[:6], played({}), beat, (0.0, 24.0)) == {}               # too few of any to say
+    # (2026-11-25: Red Rock II's riff read 100 cents flat at E5 and was in tune: another note of its channel sounded under half of its strokes there.) A stroke is heard where it sounds alone.
+    under = [Note(note.start, 0.24, note.pitch - 3, 1.6) for index, note in enumerate(each for each in notes if each.pitch == 62) if index % 8 >= 3]      # under fifteen of its twenty-four, and louder
+    crowded = played({}, with_them=under)
+    assert abs(club.strokes_off(notes, crowded, beat, (0.0, 24.0))[62]) > club.STROKE_OFF                       # as it was heard: the other note's pitch
+    heard = club.strokes_off(notes, crowded, beat, (0.0, 24.0), beside=notes + under)
+    assert set(heard) == {57, 62} and all(abs(cents) <= 10.0 for cents in heard.values())
+    octaves = [Note(note.start, 0.24, note.pitch + 12, 0.8) for note in notes if note.pitch == 57]
+    assert set(club.strokes_off(notes, played({}, with_them=octaves), beat, (0.0, 24.0), beside=notes + octaves)) == {57, 62}      # an octave over it is no other note
     assert "torn sax" not in {act.big for act in club.ACTS.values()}
 
 

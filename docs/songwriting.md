@@ -1551,6 +1551,11 @@ chase, the noir's riff in five), a camp (prospectors' camp, the Wurlitzer's slow
 it owed (sleepless ward, a quartet in five; hunters' moon, the consort in six), two towns (clan feud, the highland's; war chief's gate, the horde's in five), two inns (fever caravanserai; widow's parlour, a quartet's waltz), a
 camp (peat wake), a storm (reef gale, the winds in seven), a cave (bell foundry, bronze in five) and a walk in the desert (waterless march, in seven).
 
+*A tuba that is a band's bass is shut* (2026-11-25, afternoon). Three bands' bass is a tuba, and four of their songs in a row read 10 to 13 dB over the liked stems in the bass's middle after two bells on its
+overtones (Split-Lip Long Count 15 at 450 Hz; Fish-Quay Slab 17 to 29 from 450 Hz to the top). A bell does not make a tuba a bass through a cabinet. Tried on the recordings themselves, no render: shut at 900 Hz, twenty
+off from 500 and ten at 420, both stand within 4 dB of the liked stems in every octave (`build.tamed_tone`). The songs made before it are played again; a tuba song's family waits for that before its others. The garage's growly bass
+the same way (Hoop-Iron Round, 11 over at 450 Hz): ten at 450 and eight off from 1200. A tone is found on the recording, against the liked stems, before a song is rendered to hear it.
+
 *The twelfth round's twenty* (the same day), where Knight Rock's dark songs were one song still: of its 82 dark characters 46 play the low riff first, 59 are in minor first, 34 keep time on the brushes or the stomp, and
 none had been led by a bass clarinet or a steel guitar. Ten for the bands with the fewest, each a moment its band had none for, on the patterns no dark song had kept time on (the tavern's, the toms', the anvil's, the desert's,
 the ride): two inns (stokers' mess, the brawl's saxophones in three under a bass clarinet; ratcatcher's arms, the doom's slow blues in six under a baritone), two towns (stilt market, the cellos in five; flagellants' row, the
@@ -2045,6 +2050,20 @@ chorus and the hall are the desk's now*.
   falls away before it; *cold*, a storm's: the riff in a drop of eight bars after four, and the theme after that; *tool*, no builds at all: the floor, what it holds, the floor taken away for a phrase and put back. A family that
   has takes keeps its two waves. And six loops more for hard songs: one that turns every bar (i, i, bII, bvii), a lament's fall to its fourth, a sixth leaned on for four bars, the dorian's fourth, the dominant's second over a
   major third, a chord and its fifth.
+
+  *The leads are cast by a judge* (2026-11-25, "use all the different leads have tunejury decide"). Forty-two leads, each in turn the lead of six songs' drops and moments (a hard walk, a town, a storm, a calmer walk,
+  a night, a camp): twenty seconds of each mix at one loudness to TuneJury, under House's brief and a hard one, at three fixed crops (its own crop is drawn by chance and moves a score a tenth). Each song is read on
+  its own scale: a town's song scores twice a walk's whatever leads it. Two songs agree on the order of the leads only loosely (0.2 to 0.47 between the hard ones, 0.57 to 0.66 between the calm ones): a lead suits a
+  kind of song. The jaw is first on none and never under the upper half; then the tape, the metal and the reese. The chip, the sync, the brick and the squelch each win a song and lose another, and stay with the acts
+  whose songs they win. The gremlin, the shard, the slide and the chain stand at the foot of every song, the charge and the maw near it: the six acts whose drops they led have a lead from the upper half, and no two
+  acts have one lead still (`club.ACTS`; the whole table is var/passes/contest-leads-summary.txt). The meter had said so of two of them before the judge did: the maw and the slide read 73 to 78% in key in four of
+  the day's songs. *The twelfth round's fifteen* are cast from it: two desert walks and two regal, two caves, a storm, a town, a battle and a boss, two inns, two nights and a camp, each hard one with a riff and a
+  shape of its own (of 95 hard and after-hours families 70 hammered one note and 84 kept two waves).
+
+  *What the day's first takes said of the players* (the same day). A table lead low in its register sounds its own major third: the sweep read 69% in key on a line written wholly in F minor (Threshing Floor I), an
+  octave under the riff on which it read 85; its line is cast higher or the lead darker (owed). The acid bass is all resonance, 9 dB over the liked stems in its middle with less under 200 Hz than over (Loan Shark
+  I): a sine goes under it, as under the other basses that are heard more than felt (`club.SUBBED`). And a lead's strokes are measured where they sound alone (`club.strokes_off`, `beside`): Red Rock II's riff
+  read 100 cents flat at E5 and was in tune, another note of its channel sounding under half of its strokes there.
   *Leads out of wavetables* (`patches.table`, `waves`, `_scanned`, the same day: "find more instruments!"). Seven hundred tables came with the synthesiser and none had been played; a design names one, and thirty-two of
   its waves, each brought to one loudness with nothing under it, go with the patch. Thirty-six were given one riff in one drop, the rest of the song the same. *The hardest were hardly notes*: gone all the way through by
   every stroke, a torn saxophone's table stood at +10.9 with 54% of what it sounds in the key, dragged chains +10.2 with 61%, a scraped brick +9.3 with 60%; the acid line is +11.0 with 72%, and seven notes of twelve by

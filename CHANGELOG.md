@@ -27,6 +27,10 @@ dictated, where it drove the change.
 - **The eleventh round's twenty characters**: ten for the Knight Rock bands and ten for the Warcraft companies that had the fewest, two of them the dark nights Warcraft owed.
 - **The twelfth round's twenty characters**: Knight Rock's ten on the drum patterns, the figures and the leads its dark songs had least (a bass clarinet, a steel guitar, a storm in three), Warcraft's ten where its dark music
   was thinnest (two caves, two storms, a night).
+- **House's leads are cast by a judge**: forty-two leads on six songs' drops, each song on its own scale. The six acts whose drops were led by the leads at the foot of every song have one from the upper half
+  (the jaw, the metal, the pulse, the stack, the growl, the fifths). **The twelfth round's fifteen House songs** are cast from it, each hard one with a riff and a shape of its own.
+- A band's tuba is shut at 900 Hz and the garage's growly bass has a tone of its own, both found on the recordings against the liked stems before anything was rendered; the acid bass has a sine under it; a lead's
+  strokes are measured for tuning only where they sound alone in their channel.
 - **The ninth round's twenty characters**: Knight Rock's ten by the bands that sound furthest from the house's (two inns, two storms, two caves, a town, a camp, two walks), Warcraft's ten by its companies (four towns, two inns,
   two camps, a storm, a walk).
 

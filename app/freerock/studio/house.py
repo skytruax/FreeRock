@@ -826,6 +826,23 @@ PLAN: tuple[Family, ...] = (
     Family("camp-21", "Tyre Fire", ("desert", "jungle", "haunted"), "camp", S01, False, 6, "H9", (8, 16, 8, 16, 8), "half", 0.12, "606", "after-hours", "mortuary", 99),
     Family("ember-20", "Split Lip", ("highland", "infernal", "mystic"), "ember", S01, False, 1, "HB", (8, 16, 8, 16, 8), "broken2", 0.12, "808", "after-hours", "switchyard", 104),
     Family("night-20", "Empty Platform", ("coast", "marsh", "frozen"), "night", S01, False, 11, "HD", (16, 24, 8, 24, 8), "broken", 0.1, "606", "after-hours", "pumphouse", 102),
+    # (The eighth set, the same day, the twelfth round, cast by the lead contest (club.ACTS): where the hard and the after-hours songs were fewest (two desert walks and three regal, seven caves, eight inns and
+    # nights), every hard one with a riff and a shape of its own (70 of 95 hammered one note and 84 kept two waves), and two fights.)
+    Family("desert-10", "Salt Flat", ("desert",), W, S01, False, 4, "HB", (8, 16, 8, 16, 8), "breaks", 0.12, "707", "hard-tribal", "brickyard", 122, "toll", "thrice"),
+    Family("desert-11", "Dry Wash", ("desert", "infernal"), W, S01, False, 9, "H8", (16, 16, 8, 16, 8), "step", 0.18, "808", "hard-slow", "arcade", 119, "glide", "arc"),
+    Family("regal-11", "Paper Trail", ("regal",), W, S01, False, 0, "HC", (8, 16, 8, 16, 8), "broken3", 0.14, "909", "hard-broken", "pressroom", 125, "call", "tool"),
+    Family("regal-12", "Hush Money", ("regal", "haunted"), W, S01, False, 7, "HA", (8, 16, 8, 16, 8), "four", 0.06, "606", "hard", "powerhouse", 121, "odd", "thrice"),
+    Family("depths-18", "Flood Gate", ("marsh", "coast", "desert", "haunted"), "depths", S01, False, 3, "HD", (16, 16, 8, 16, 8), "half", 0.2, "808", "hard-slow", "catacomb", 118, "toll", "arc"),
+    Family("depths-19", "Cable Tunnel", ("jungle", "pastoral", "marsh"), "depths", S01, False, 10, "H9", (8, 16, 8, 16, 8), "breaks", 0.14, "707", "hard-tribal", "tunnel", 120, "line", "tool"),
+    Family("storm-18", "Pressure Drop", ("jungle", "mystic", "marsh"), "storm", S01, False, 6, "HB", (8, 8, 8, 24, 8), "four", 0.0, "909", "hard-gallop", "faultline", 131, "power", "cold"),
+    Family("town-21", "Pawn Ticket", ("frozen", "jungle", "marsh", "mystic"), "town", S01, False, 1, "H8", (8, 16, 8, 16, 8), "step", 0.2, "606", "hard-broken", "icehouse", 123, "odd", "thrice"),
+    Family("battle-08", "Riot Shield", ANY, "battle", S2, False, 5, "H9", (4, 16, 8, 24, 8), "four", 0.0, "909", "hard-gallop", "drydock", 132, "power"),
+    Family("boss-08", "Pile Driver", ANY, "boss", S2, False, 3, "HC", (4, 16, 4, 24, 4), "four", 0.0, "808", "hard", "kennel", 130, "toll"),
+    Family("ember-21", "Pilot Light", ("desert", "frozen", "haunted"), "ember", S01, False, 8, "H6", (8, 16, 8, 16, 8), "broken2", 0.12, "808", "after-hours", "switchyard", 103),
+    Family("ember-22", "Dead Air", ("jungle", "marsh", "regal"), "ember", S01, False, 5, "H3", (8, 16, 8, 16, 8), "half", 0.1, "606", "after-hours", "flophouse", 98),
+    Family("night-21", "Night Bus", ("infernal", "haunted", "jungle"), "night", S01, False, 2, "HA", (16, 24, 8, 24, 8), "broken", 0.08, "808", "after-hours", "mortuary", 100),
+    Family("night-22", "Sodium Lamp", ("marsh", "mystic", "pastoral"), "night", S01, False, 11, "H7", (16, 24, 8, 24, 8), "broken3", 0.1, "606", "after-hours", "pumphouse", 104),
+    Family("camp-22", "Dead Battery", ("mystic", "pastoral", "regal"), "camp", S01, False, 4, "HC", (8, 16, 8, 16, 8), "half", 0.12, "707", "after-hours", "cellar", 96),
 )
 LATER = tuple(each.name for each in PLAN)[[each.name for each in PLAN].index("town-13"):]          # (the families from the fourth set of hard ones on: HAMMERS_LATER, SCENES_LATER)
 TAKES = (1, 2, 3)

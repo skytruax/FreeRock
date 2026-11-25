@@ -133,40 +133,43 @@ TOLD_ONCE = frozenset((Path(__file__).parent / "told_once.txt").read_text(encodi
 # read without the House synthesiser's numba, need not import house (2026-11-22: it did for an afternoon, and every study of a
 # Knight or Warcraft take stopped on "No module named 'numba'").
 HOUSE_TITLES = (
-    'Ambush', 'Ash Bucket', 'Ash Wind', 'Back Room', 'Backwater', 'Bad Debt', 'Banners', 'Barbed Wire', 'Basement Bar',
-    'Bedroll Sky', 'Bellows and Sparks', 'Bells under the Hill', 'Bilge Pump', 'Black Frost', 'Black Ice',
-    'Black Market', 'Black Rain', 'Black Van', 'Black Water', 'Blackout', 'Blades', 'Blast Door', 'Blast Furnace',
-    'Boiler Room', 'Bone Procession', 'Bone Saw', 'Breakers', 'Breakwater', 'Brownout', 'Bullfrog Bass',
-    'Buried Machine', 'Burn Barrel', 'By the Fire', 'Cairn Wind', 'Cannonade', 'Canopy', 'Capture the Flag',
-    'Caravan at Noon', 'Cellar Door', 'Chain Gang', 'Chain Hoist', 'Charge', 'Cinder Block', 'Cinder Bloom',
-    'Closing Time', 'Coal Chute', 'Coal Smoke', 'Cold Ashes', 'Cold Chisel', 'Cold Iron', 'Cold Stars', 'Cold Storage',
-    'Cool of the Evening', 'Crawlspace', 'Crowbar', 'Curfew Bell', 'Customs Wall', 'Dead Hours', 'Dead Lift',
-    'Dead Pixel', 'Dead Radio', 'Dead Reckoning', 'Debt Collector', 'Desert Nocturne', 'Dewfall', 'Dim Lamp Alley',
-    'Downed Wire', 'Driftwood Hearth', 'Dripstone', 'Drop Shaft', 'Drowned Halls', 'Drowned King', 'Dry Dock',
-    'Dunes at Dawn', 'Dust Siren', 'Eclipse Gate', 'Embers under Stars', 'Empty Platform', 'Empty Throne', 'Fireflies',
-    'Fishmarket', 'Flat Beer', 'Fog Signal', 'Frostbite', 'Frozen Echoes', 'Furnace Psalm', 'Gallows Meadow',
-    'Gaslight', 'Ghostfire', 'Gilded Halls', 'Glade at Dusk', 'Glowworm Hollow', 'Grain Silo', 'Gravel Pit',
-    'Graveyard Shift', 'Grease Trap', 'Guard Dog', 'Guildhall Steps', "Gull's Morning", 'Hammerfall', 'Hanging Tree',
-    'Harbour Lights', 'Hay Bale Sunset', 'Heat Haze', 'Hoarfrost', 'Hold the Line', 'Hollow Road', 'Hushed Parlour',
-    'Ice Bridge', 'Ice Drill', 'Ice Fang', 'Ice Fishing', 'Insomnia', 'Iron Lung', 'Keelhaul', 'Knife Bazaar',
-    'Knuckle Duster', 'Lanterns in the Fog', 'Lanterns on the Square', 'Larks over the Ridge', 'Last Bus',
-    'Last Candle', 'Last Stand', 'Lightning Rod', 'Loading Bay', 'Loan Shark', 'Lock-Up', 'Lodestone', 'Long Road Home',
-    'Low Ceiling', 'Low Rafters', 'Market Day', 'Meat Locker', 'Mended Nets', 'Mill Stream', 'Mint Tea', 'Mirage',
-    'Monsoon Drums', 'Moonless', 'Moonlit Ebb', 'Moonwell', 'Morning on the Hill', 'Moth Wings', 'Night Prowl',
-    'Night Shift', 'Night Watchman', 'No Fire Tonight', 'Nomad Fire', 'Northern Lights', 'Oasis', 'Oil Drum',
-    'Open Cast', 'Ossuary', 'Owl Light', 'Parrots', 'Pawn Shop', 'Peat Smoke', 'Pit Boss', 'Power Cut', 'Rail Yard',
-    'Rain on the Roofs', 'Rat Trap', 'Red Moon', 'Red Rock', 'Reedlight', 'Rendering Plant', 'Riot Line', 'River Drums',
-    'Rock Crusher', 'Rockfall', 'Rope Walk', 'Rust Water', 'Salt Caravan', 'Sandblast', 'Sandstone Hollow',
-    'Scarecrow Road', 'Scrap Yard', 'Seaspray', 'Short Circuit', 'Siege Bells', 'Signal Box', 'Slag Heap',
-    'Sleepless Shift', 'Slot Machine', 'Smog Quarter', 'Smoke Break', 'Snowglobe', 'Snowmelt', 'Speakeasy', 'Split Lip',
-    'Squall', 'Stand Fast', 'Standing Dead', 'Starfall', 'Static Field', 'Stone and Sky', 'Strangler Fig', 'Stray Dogs',
+    'Ambush', 'Ash Bucket', 'Ash Wind', 'Back Room', 'Backwater', 'Bad Debt', 'Banners', 'Barbed Wire',
+    'Basement Bar', 'Bedroll Sky', 'Bellows and Sparks', 'Bells under the Hill', 'Bilge Pump', 'Black Frost',
+    'Black Ice', 'Black Market', 'Black Rain', 'Black Van', 'Black Water', 'Blackout', 'Blades', 'Blast Door',
+    'Blast Furnace', 'Boiler Room', 'Bone Procession', 'Bone Saw', 'Breakers', 'Breakwater', 'Brownout',
+    'Bullfrog Bass', 'Buried Machine', 'Burn Barrel', 'By the Fire', 'Cable Tunnel', 'Cairn Wind', 'Cannonade',
+    'Canopy', 'Capture the Flag', 'Caravan at Noon', 'Cellar Door', 'Chain Gang', 'Chain Hoist', 'Charge',
+    'Cinder Block', 'Cinder Bloom', 'Closing Time', 'Coal Chute', 'Coal Smoke', 'Cold Ashes', 'Cold Chisel',
+    'Cold Iron', 'Cold Stars', 'Cold Storage', 'Cool of the Evening', 'Crawlspace', 'Crowbar', 'Curfew Bell',
+    'Customs Wall', 'Dead Air', 'Dead Battery', 'Dead Hours', 'Dead Lift', 'Dead Pixel', 'Dead Radio',
+    'Dead Reckoning', 'Debt Collector', 'Desert Nocturne', 'Dewfall', 'Dim Lamp Alley', 'Downed Wire',
+    'Driftwood Hearth', 'Dripstone', 'Drop Shaft', 'Drowned Halls', 'Drowned King', 'Dry Dock', 'Dry Wash',
+    'Dunes at Dawn', 'Dust Siren', 'Eclipse Gate', 'Embers under Stars', 'Empty Platform', 'Empty Throne',
+    'Fireflies', 'Fishmarket', 'Flat Beer', 'Flood Gate', 'Fog Signal', 'Frostbite', 'Frozen Echoes', 'Furnace Psalm',
+    'Gallows Meadow', 'Gaslight', 'Ghostfire', 'Gilded Halls', 'Glade at Dusk', 'Glowworm Hollow', 'Grain Silo',
+    'Gravel Pit', 'Graveyard Shift', 'Grease Trap', 'Guard Dog', 'Guildhall Steps', "Gull's Morning", 'Hammerfall',
+    'Hanging Tree', 'Harbour Lights', 'Hay Bale Sunset', 'Heat Haze', 'Hoarfrost', 'Hold the Line', 'Hollow Road',
+    'Hush Money', 'Hushed Parlour', 'Ice Bridge', 'Ice Drill', 'Ice Fang', 'Ice Fishing', 'Insomnia', 'Iron Lung',
+    'Keelhaul', 'Knife Bazaar', 'Knuckle Duster', 'Lanterns in the Fog', 'Lanterns on the Square',
+    'Larks over the Ridge', 'Last Bus', 'Last Candle', 'Last Stand', 'Lightning Rod', 'Loading Bay', 'Loan Shark',
+    'Lock-Up', 'Lodestone', 'Long Road Home', 'Low Ceiling', 'Low Rafters', 'Market Day', 'Meat Locker',
+    'Mended Nets', 'Mill Stream', 'Mint Tea', 'Mirage', 'Monsoon Drums', 'Moonless', 'Moonlit Ebb', 'Moonwell',
+    'Morning on the Hill', 'Moth Wings', 'Night Bus', 'Night Prowl', 'Night Shift', 'Night Watchman',
+    'No Fire Tonight', 'Nomad Fire', 'Northern Lights', 'Oasis', 'Oil Drum', 'Open Cast', 'Ossuary', 'Owl Light',
+    'Paper Trail', 'Parrots', 'Pawn Shop', 'Pawn Ticket', 'Peat Smoke', 'Pile Driver', 'Pilot Light', 'Pit Boss',
+    'Power Cut', 'Pressure Drop', 'Rail Yard', 'Rain on the Roofs', 'Rat Trap', 'Red Moon', 'Red Rock', 'Reedlight',
+    'Rendering Plant', 'Riot Line', 'Riot Shield', 'River Drums', 'Rock Crusher', 'Rockfall', 'Rope Walk',
+    'Rust Water', 'Salt Caravan', 'Salt Flat', 'Sandblast', 'Sandstone Hollow', 'Scarecrow Road', 'Scrap Yard',
+    'Seaspray', 'Short Circuit', 'Siege Bells', 'Signal Box', 'Slag Heap', 'Sleepless Shift', 'Slot Machine',
+    'Smog Quarter', 'Smoke Break', 'Snowglobe', 'Snowmelt', 'Sodium Lamp', 'Speakeasy', 'Split Lip', 'Squall',
+    'Stand Fast', 'Standing Dead', 'Starfall', 'Static Field', 'Stone and Sky', 'Strangler Fig', 'Stray Dogs',
     'Street Sweeper', 'Strip Mine', 'Sump', 'Sump Pump', 'Sunken Grotto', 'Sunlit Fields', 'Switchback',
     'The Dark Hall', 'The Deep Road', 'The Forge at Rest', "The Headsman's Walk", 'The High Moor', 'The Kind Ghost',
-    "The King's Road", 'The Leviathan', 'The Long Wait', 'The Long Watch', 'The Old Swamp', 'The Usurper', 'Third Rail',
-    'Threshing Floor', 'Throne of Ash', 'Thunderhead', 'Tide Camp', 'Tidepools', 'Tin Roof', 'Toll Booth',
-    'Trench Line', 'Tyre Fire', 'Under the Mountain', "Undertaker's Table", 'Voltage', 'Vulture Sky', 'Weigh Station',
-    'Wet Concrete', 'Wet Powder', 'Whispering Boughs', 'White Grave', "Will-o'-the-Wisp", 'Willow Lanterns',
-    'Wind over the Pass', "Wreckers' Lantern", 'Wrecking Ball',
+    "The King's Road", 'The Leviathan', 'The Long Wait', 'The Long Watch', 'The Old Swamp', 'The Usurper',
+    'Third Rail', 'Threshing Floor', 'Throne of Ash', 'Thunderhead', 'Tide Camp', 'Tidepools', 'Tin Roof',
+    'Toll Booth', 'Trench Line', 'Tyre Fire', 'Under the Mountain', "Undertaker's Table", 'Voltage', 'Vulture Sky',
+    'Weigh Station', 'Wet Concrete', 'Wet Powder', 'Whispering Boughs', 'White Grave', "Will-o'-the-Wisp",
+    'Willow Lanterns', 'Wind over the Pass', "Wreckers' Lantern", 'Wrecking Ball',
 )
 
 
@@ -361,12 +364,17 @@ def tamed_tone(name: str, instrument: str, band: bool = False, channel: str = ""
         # (Eight at 450 Hz took half a decibel of it in Company-Store Wages, whose line lies a third higher: five at 340 and eight at 560.)
         # (Those two left the brawl's storm 16 over at 450 Hz and 13 at 900, and the drumline's marching tuba, held near full strength, 18 to 25 over from 450 Hz to 7 kHz in three songs of three, 2026-11-25: deeper, and the
         # marching one shut as well, and played softer (muse.SQUEEZE).)
+        # (The same afternoon, two songs made on those tones: the brawl's camp 15 over at 450 Hz and 12 at 900 still, the shanty's town 17 to 29 over from 450 Hz to the top, its stomping tuba's breath and valves
+        # and all. No bell on its overtones levels a tuba with a bass through a cabinet: it is shut at 900 Hz with twenty off from 500, and then both stand within 4 of the liked stems in every octave, on their
+        # own recordings. The marching tuba the same, with its own dip at 950.)
         if instrument == "line tuba":
-            return sounds.equalise(high_cut=1800.0, bands=((340.0, -5.0, 1.0), (520.0, -9.0, 1.2), (950.0, -6.0, 1.0)), high_shelf=(800.0, -10.0))
-        return sounds.equalise(bands=((340.0, -5.0, 1.0), (520.0, -9.0, 1.0)), high_shelf=(850.0, -8.0))
+            return sounds.equalise(high_cut=900.0, bands=((420.0, -10.0, 1.6), (950.0, -6.0, 1.0)), high_shelf=(500.0, -20.0))
+        return sounds.equalise(high_cut=900.0, bands=((420.0, -10.0, 1.6),), high_shelf=(500.0, -20.0))
     if band and channel == "bass" and instrument == "growly bass":
         # (The same day: shut at 1.9 kHz by its amplifier it had still 14 over at 900 Hz and 12 at 1.8 kHz in a storm, over the riff.)
-        return sounds.equalise(bands=((1100.0, -6.0, 1.4),))
+        # (An inn's jam the same afternoon, Hoop-Iron Round: 11 over at 450 Hz and 7 to 8 from 900 to 1.8 kHz with that dip in it. Ten at 450 and eight off from 1200 over the dip, tried on its recording: within 4
+        # of the liked stems in every octave.)
+        return sounds.equalise(bands=((450.0, -10.0, 1.6), (1100.0, -6.0, 1.4)), high_shelf=(1200.0, -8.0))
     if band and light and instrument in ("picked bass", "fretless") and LIGHT_BAND_BASS:
         # (2026-11-22, night: the light bands' bass, MuseScore's electric bass played softly in the walks, inns, camps and
         # nights, 3.7 to 13 dB thin in its middle in the day's studies of the new families, where the heavy band's sits within
