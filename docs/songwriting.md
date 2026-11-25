@@ -1545,6 +1545,24 @@ an organ's slow burn; clockwork deep, a marimba's riff in seven), a town (auctio
 drawbar organ's). *Warcraft's ten* are its companies': four towns (ship breakers, plague cloister, lampblack lane, side show), two inns (reed cutters' rest, singing bowl), two camps (silk tent, drum vigil), a storm (thunder
 battery) and a walk among graves (kings' graves).
 
+*The eleventh round's twenty* (2026-11-25) go to the bands and the companies that had two or three characters, where the music is heard most per song. Knight Rock's ten: two towns (fish quay, the shanty's in six; bear pit, the
+skald's in five), two inns that are jams (coopers' cellar, the garage's in seven; revival tent, the drawbar organ's in six), two storms (dust bowl, the jug's riff in six; powder magazine, the drumline's in seven), a cave (sewer
+chase, the noir's riff in five), a camp (prospectors' camp, the Wurlitzer's slow burn in three) and two walks (runaway wagon, the saloon's at a gallop; sleeping giant, the fuzz's in three). Warcraft's ten: two dark nights, which
+it owed (sleepless ward, a quartet in five; hunters' moon, the consort in six), two towns (clan feud, the highland's; war chief's gate, the horde's in five), two inns (fever caravanserai; widow's parlour, a quartet's waltz), a
+camp (peat wake), a storm (reef gale, the winds in seven), a cave (bell foundry, bronze in five) and a walk in the desert (waterless march, in seven).
+
+*The twelfth round's twenty* (the same day), where Knight Rock's dark songs were one song still: of its 82 dark characters 46 play the low riff first, 59 are in minor first, 34 keep time on the brushes or the stomp, and
+none had been led by a bass clarinet or a steel guitar. Ten for the bands with the fewest, each a moment its band had none for, on the patterns no dark song had kept time on (the tavern's, the toms', the anvil's, the desert's,
+the ride): two inns (stokers' mess, the brawl's saxophones in three under a bass clarinet; ratcatcher's arms, the doom's slow blues in six under a baritone), two towns (stilt market, the cellos in five; flagellants' row, the
+organ's hammer in six under a bassoon), two storms (lee shore, the shanty's in a fast three; levee break, the tweed's in five), a cave (the oubliette, a harpsichord tolling under a bass flute), a camp (strikers' picket, a steel
+guitar in seven) and two walks (charcoal burners, the marimbas' jam in seven under a cello, who takes its first solo: a jam's two solos are two players', and a euphonium takes none; beak doctors, the Wurlitzer's in five under a trumpet). Warcraft's ten: of its 53 dark characters one was a cave's, three the
+night's and four a storm's. Two caves (ossuary stair, the crypt's bass clarinet over a music box in seven; beast pens, the horde's trombone at a trudge in four), two storms (torn canvas, the carnival's waltz; moor gale, the
+highland's jig), a night (night office, the monastery in three), a camp (sappers' trench, the iron brass alone), an inn (whalers' hall, the mead hall's viola over a lyre), two towns (dyers' quarter, the silk's; ferryman's
+landing, the winds') and a walk (lamplighters' round, a quartet in seven). What a character names is sung by its company's own, and a name's place among its kind picks the player (`company_table`): the carnival's euphonium
+is asked for as a bassoon. Five rules the suite holds a new character or family to, each broken once by these two rounds: a company belongs to the first kind of ground its character names (`COMPANY_FOR`), a song that opens on
+its bass has the low riff among its figures, a hard House song goes at 118 to 132, a jam's lead is one of those who take a solo (`SOLOISTS_LOW`), and a town, an inn or a cave of weight 0.8 or more names no frame
+drums (they strike its moments, and the big drums are a walk's and a fight's).
+
 *A round bass is heard too.* The light songs of seven bands have the round bass, and it was closed at 1.8 kHz on a clean amplifier: four of one night's 8 to 10 dB thin in their middle and 32 to 36 under the liked
 stems' at their top, and the lift of 4 dB at 800 Hz a light band's bass has (`LIGHT_BAND_BASS`) is the picked and the fretless one's, by name. On its crunch, with a step of middle at 850 Hz, it is 4 to 6 dB
 darker than the liked bass and no more: the round one still.
@@ -2022,6 +2040,11 @@ chorus and the hall are the desk's now*.
   with the floor between; *an odd cell*, three, five or seven sixteenths over the four, beginning again every two bars. A riff of few strokes has nothing to hammer a rise with, and has the machine's rise or the stab's.
   A family that has takes keeps the hammer. The second synth of these is the voice that is heard in the drops alone (`club.parts_of_the_lead`, `outside`): counted by notes, what answers and doubles a riff had been
   taken for it in four songs of thirteen.
+  *A House story has five shapes* (`house.FORMS_OF`, `Family.form`, 2026-11-25). Three hundred and forty songs had one: an intro, a theme, a build, a drop, a breakdown, a build, a longer drop. Besides those two waves: *thrice*,
+  a third wave, the breath between its drops eight bars, its middle drop arranged as the last one begins; *arc*, a theme three times as long, one long rise and one long drop with all of the arrangement in it, nothing that
+  falls away before it; *cold*, a storm's: the riff in a drop of eight bars after four, and the theme after that; *tool*, no builds at all: the floor, what it holds, the floor taken away for a phrase and put back. A family that
+  has takes keeps its two waves. And six loops more for hard songs: one that turns every bar (i, i, bII, bvii), a lament's fall to its fourth, a sixth leaned on for four bars, the dorian's fourth, the dominant's second over a
+  major third, a chord and its fifth.
   *Leads out of wavetables* (`patches.table`, `waves`, `_scanned`, the same day: "find more instruments!"). Seven hundred tables came with the synthesiser and none had been played; a design names one, and thirty-two of
   its waves, each brought to one loudness with nothing under it, go with the patch. Thirty-six were given one riff in one drop, the rest of the song the same. *The hardest were hardly notes*: gone all the way through by
   every stroke, a torn saxophone's table stood at +10.9 with 54% of what it sounds in the key, dragged chains +10.2 with 61%, a scraped brick +9.3 with 60%; the acid line is +11.0 with 72%, and seven notes of twelve by
@@ -2031,7 +2054,7 @@ chorus and the hall are the desk's now*.
   bass and second synth; two calm ones (flophouse, a hummed "ah" with a tenor saxophone, an upright piano and an upright bass; pumphouse, a trombone that buzzes with a contrabassoon and a fuzzed electric piano); three
   stabs, three basses and a pad beside them.
   *A played bass is left open* (`club.lines`, the same day): a calm act's fretless was 6 and 13 dB thin in its middle in two songs (Cold Ashes, Bad Debt): the desk shut it at 1.8 kHz as it shuts a synthesiser's. A bass
-  that is a player's is shut from 4.5 kHz, with 4 dB at 650 Hz.
+  that is a player's is shut from 4.5 kHz, with 4 dB at 650 Hz, and held four to one: an upright's plucked notes ring into one another where they come quickly, and Cinder Block's rise stood 7 dB over its moment.
   *A stroke has a pitch.* A hard-synced lead swept 22 half-steps over half a second read 19 cents flat in two songs: in a riff's short stroke there is nothing but sweep, overtones sliding at 3.97 and 4.42 times the
   note. Swept six, from a little higher, its long notes are in tune and its short ones within 5 cents.
   *How hard it sounds, measured* (`tools/hardness.py`). The judges' model that hears audio against words (LAION-CLAP, music) scores ten seconds of a drop or a theme against three pairs of descriptions

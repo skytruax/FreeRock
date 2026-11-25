@@ -110,6 +110,13 @@ LOOPS = {
     "H5": ("dorian", 2, ((0, ""), (0, ""), (0, ""), (6, ""))),
     "H6": ("minor", 2, ((0, ""), (0, ""), (5, ""), (0, ""))),          # (the same night: the sixth under it; and the phrygian's second as soon as it can be)
     "H7": ("phrygian", 2, ((0, ""), (1, ""), (0, ""), (0, ""))),
+    # (2026-11-25, the eleventh round's: one that turns every bar, a lament's fall to its fourth, the sixth leaned on for a whole phrase, the dorian's fourth, the dominant's second, a chord and its fifth.)
+    "H8": ("phrygian", 1, ((0, ""), (0, ""), (1, ""), (6, ""))),
+    "H9": ("minor", 2, ((0, ""), (6, ""), (5, ""), (3, ""))),
+    "HA": ("minor", 4, ((0, ""), (5, ""))),
+    "HB": ("dorian", 2, ((0, ""), (3, ""), (0, ""), (2, ""))),
+    "HC": ("phrygian dominant", 2, ((0, ""), (0, ""), (1, ""), (0, ""))),
+    "HD": ("minor", 2, ((0, ""), (4, ""), (0, ""), (3, ""))),
     "P1": ("phrygian", 2, ((0, ""), (1, ""), (0, ""), (6, ""))),
     "P2": ("phrygian", 2, ((0, ""), (1, ""), (2, ""), (1, ""))),
     "P3": ("phrygian dominant", 2, ((0, ""), (1, ""), (0, ""), (6, ""))),
@@ -465,6 +472,7 @@ class Family:
     act: str = ""                  # whose instruments its first take has (club.ACTS), where it says
     bpm: int = BPM                 # how fast it goes (`at`)
     hook: str = ""                 # how a hard song's riff is made (HOOKS_OF); "" hammered
+    form: str = ""                 # the shape of its story (FORMS_OF); "" in two waves
 
     @property
     def mode(self) -> str:
@@ -493,10 +501,23 @@ class Family:
         a first drop; then a breakdown on the theme, the rise again, and the last drop at twice its length; the outro.
         Every part a whole number of eight-bar phrases, as the family's shape has them."""
         opening, theme, rise, moment, close = self.sections
+        if self.form == "thrice":
+            return (("open", opening), ("theme", 2 * theme), ("rise", rise), ("moment", moment), ("theme", theme), ("rise", rise), ("moment", moment),
+                    ("theme", 8), ("rise", rise), ("moment", 2 * moment), ("close", close))
+        if self.form == "arc":
+            return (("open", opening), ("theme", 3 * theme), ("rise", 2 * rise), ("moment", 3 * moment), ("close", close))
+        if self.form == "cold":
+            return (("open", 4), ("moment", 8), ("theme", 2 * theme), ("rise", rise), ("moment", moment), ("theme", theme), ("rise", rise), ("moment", 2 * moment), ("close", close))
+        if self.form == "tool":
+            return (("open", opening), ("theme", 2 * theme), ("moment", moment), ("theme", theme), ("moment", moment), ("theme", 8), ("moment", 2 * moment), ("close", close))
         return (("open", opening), ("theme", 2 * theme), ("rise", rise), ("moment", moment), ("theme", theme), ("rise", rise),
                 ("moment", 2 * moment), ("close", close))
 
 
+# The shapes of a House story (2026-11-25: three hundred and forty songs and one shape, an intro, a theme, a build, a drop, a breakdown, a build, a longer drop). Besides the two waves: "thrice", a third wave, its breath eight
+# bars; "arc", one long rise to one long drop and nothing that falls away before it; "cold", the drop's riff after four bars and the theme after that; "tool", no builds at all: the floor, what the floor holds, the floor
+# taken away for a phrase and put back.
+FORMS_OF = ("", "thrice", "arc", "cold", "tool")
 # The dark families that had no take when the hard ones were written (2026-11-24): a dark palette's percussion is a light one's still (chimes in the haunted, shakers in the caves, a
 # cowbell in the infernal), and an act plays what is written for it. These have none of it. Those that were made keep theirs.
 GRIM = frozenset(("camp-07", "depths-05", "depths-06", "depths-07", "depths-08", "boss-04", "boss-05", "boss-06", "night-07", "night-08", "town-08", "town-09", "ember-11", "ember-12", "camp-11", "camp-12",
@@ -789,6 +810,22 @@ PLAN: tuple[Family, ...] = (
     Family("camp-20", "Coal Smoke", ("coast", "marsh", "mystic"), "camp", S01, False, 8, "H3", (8, 16, 8, 16, 8), "broken2", 0.12, "808", "after-hours", "pumphouse", 101),
     Family("ember-19", "Grease Trap", ("pastoral", "coast", "jungle"), "ember", S01, False, 10, "H2", (8, 16, 8, 16, 8), "broken", 0.12, "808", "after-hours", "pumphouse", 106),
     Family("night-19", "Street Sweeper", ("regal", "highland", "desert"), "night", S01, False, 5, "H5", (16, 24, 8, 24, 8), "broken3", 0.08, "606", "after-hours", "flophouse", 105),
+    # (The seventh set, the same day, the eleventh round: other shapes than two waves (FORMS_OF) and other loops, by the acts that have had the fewest songs.)
+    Family("town-19", "Loan Shark", ("pastoral", "marsh", "haunted"), "town", S01, False, 2, "HD", (8, 16, 8, 16, 8), "step", 0.22, "909", "hard-gallop", "powerhouse", 123, "power", "tool"),
+    Family("town-20", "Rat Trap", ("mystic", "highland", "regal"), "town", S01, False, 7, "HC", (8, 16, 8, 16, 8), "broken3", 0.14, "606", "hard-tribal", "pressroom", 120, "odd", "thrice"),
+    Family("storm-16", "Downed Wire", ("pastoral", "coast", "regal", "mystic"), "storm", S01, False, 10, "H8", (8, 8, 8, 24, 8), "four", 0.0, "909", "hard-gallop", "faultline", 132, "line", "cold"),
+    Family("storm-17", "Dust Siren", ("desert", "infernal", "highland"), "storm", S01, False, 3, "HC", (8, 8, 8, 24, 8), "breaks", 0.1, "808", "hard-tribal", "brickyard", 127, "call", "cold"),
+    Family("depths-17", "Dead Lift", ("pastoral", "coast", "mystic", "jungle"), "depths", S01, False, 8, "HA", (16, 16, 8, 16, 8), "step", 0.2, "808", "hard-slow", "sluice", 118, "glide", "arc"),
+    Family("pastoral-12", "Threshing Floor", ("pastoral",), W, S01, False, 5, "H9", (8, 16, 8, 16, 8), "four", 0.08, "606", "hard", "smelter", 124, "line", "thrice"),
+    Family("coast-12", "Rope Walk", ("coast",), W, S01, False, 0, "HB", (8, 16, 8, 16, 8), "broken2", 0.16, "909", "hard-broken", "icehouse", 121, "odd", "tool"),
+    Family("jungle-10", "Wet Concrete", ("jungle", "marsh"), W, S01, False, 6, "H8", (8, 16, 8, 16, 8), "breaks", 0.14, "808", "hard-tribal", "sluice", 122, "call", "thrice"),
+    Family("mystic-09", "Static Field", ("mystic", "haunted"), W, S01, False, 11, "HA", (16, 16, 8, 16, 8), "four", 0.04, "909", "hard", "millrace", 118, "glide", "arc"),
+    Family("infernal-09", "Blast Door", ("infernal",), W, S01, False, 9, "HC", (8, 16, 8, 24, 8), "four", 0.0, "909", "hard-gallop", "quarry", 128, "power"),
+    Family("frozen-10", "Black Ice", ("frozen",), W, S01, False, 4, "H9", (8, 24, 8, 16, 8), "step", 0.18, "606", "hard-broken", "tunnel", 119, "toll", "tool"),
+    Family("highland-11", "Switchback", ("highland", "pastoral"), W, S01, False, 1, "HD", (8, 16, 4, 24, 8), "broken", 0.1, "909", "hard-gallop", "arcade", 125, "line", "thrice"),
+    Family("camp-21", "Tyre Fire", ("desert", "jungle", "haunted"), "camp", S01, False, 6, "H9", (8, 16, 8, 16, 8), "half", 0.12, "606", "after-hours", "mortuary", 99),
+    Family("ember-20", "Split Lip", ("highland", "infernal", "mystic"), "ember", S01, False, 1, "HB", (8, 16, 8, 16, 8), "broken2", 0.12, "808", "after-hours", "switchyard", 104),
+    Family("night-20", "Empty Platform", ("coast", "marsh", "frozen"), "night", S01, False, 11, "HD", (16, 24, 8, 24, 8), "broken", 0.1, "606", "after-hours", "pumphouse", 102),
 )
 LATER = tuple(each.name for each in PLAN)[[each.name for each in PLAN].index("town-13"):]          # (the families from the fourth set of hard ones on: HAMMERS_LATER, SCENES_LATER)
 TAKES = (1, 2, 3)
@@ -1400,6 +1437,7 @@ class Take:
         # does not break down.
         themes = [first for story, first, _ in self.sections if story == "theme"]
         self.breakdown = themes[1] if len(themes) > 1 and not fam.hard else None
+        self.breaths = frozenset(themes[2:3]) if fam.form == "thrice" and not fam.hard else frozenset()          # (a third wave's eight bars between its drops are a breath too)
         self.frames = int(round(self.bars * BAR_FRAMES)) + int(round(POST_S * RATE))
         self.kick = KICKS[fam.groove]
         self.arc = ARCS[ARC_OF[fam.role]]
@@ -1439,7 +1477,9 @@ class Take:
     def layers(self, inside: int, count: int, first: int) -> str:
         """What plays in a bar of a hard song's drop (HARD_SCENES): a drop of fewer blocks than the scene has goes through it faster, and ends where it ends."""
         drops = [at for story, at, _ in self.sections if story == "moment"]
-        wanted = self.scene["last" if len(drops) > 1 and first == drops[-1] else "first"]
+        wanted = self.scene["last" if first == drops[-1] and (len(drops) > 1 or self.family.form == "arc") else "first"]
+        if len(drops) > 2 and first == drops[-2]:
+            wanted = self.scene["last"][:3]                  # (a drop between the first and the last has what the last begins with)
         blocks = max((count + 7) // 8, 1)
         at = min(inside // 8, blocks - 1)
         return wanted[at if blocks == len(wanted) else round(at * (len(wanted) - 1) / max(blocks - 1, 1))]
@@ -1449,7 +1489,7 @@ class Take:
 
     def broken(self, story: str, first: int) -> bool:
         """Whether a section is the breakdown (see `__init__`)."""
-        return story == "theme" and first == self.breakdown
+        return story == "theme" and (first == self.breakdown or first in self.breaths)
 
     @staticmethod
     def build_bars(count: int) -> int:

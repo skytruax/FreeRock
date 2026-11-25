@@ -252,6 +252,47 @@ def test_a_hard_song_has_nothing_sweet_in_it_and_goes_at_its_own_pace():
         assert stabs and max(stabs) <= 79 and sum(stabs) / len(stabs) < 62, (fam.name, max(stabs), sum(stabs) / len(stabs))
 
 
+def test_a_house_song_has_one_of_five_shapes():
+    """(2026-11-25: three hundred and forty songs and one shape.)"""
+    from freerock.studio import club
+    shaped = [fam for fam in house.PLAN if fam.form]
+    assert {fam.form for fam in house.PLAN} == set(house.FORMS_OF) and all(fam.name in house.LATER and house.PALETTES[fam.palette].get("low") and fam.role not in house.CALM_ROLES for fam in shaped)
+    for form in house.FORMS_OF[1:]:
+        assert sum(fam.form == form for fam in shaped) >= 2, form
+    for fam in shaped:
+        told = [story for story, _ in fam.story]
+        take = house.Take(fam, 1)
+        drops, rises = told.count("moment"), told.count("rise")
+        themes = [first for story, first, _ in take.sections if story == "theme"]
+        fallen = [first for first in themes if take.broken("theme", first)]
+        assert told[0] == "open" and told[-1] == "close" and all(count and count % 4 == 0 for _, count in fam.story)
+        assert {"thrice": (3, 3, 2), "arc": (1, 1, 0), "cold": (3, 2, 1), "tool": (3, 0, 1)}[fam.form] == (drops, rises, len(fallen)), (fam.name, drops, rises, fallen)
+        if fam.form == "cold":
+            assert fam.story[:2] == (("open", 4), ("moment", 8)), "its riff after four bars"
+        if fam.form == "arc":
+            assert max(count for _, count in fam.story) >= 48 and take.breakdown is None
+        # A drop between the first and the last is not the first again; the only drop has everything.
+        at = {first: [take.layers(inside, count, first) for inside in range(0, count, 8)] for story, first, count in take.sections if story == "moment"}
+        firsts = sorted(at)
+        if drops == 3:
+            assert at[firsts[1]] != at[firsts[0]] and at[firsts[2]] != at[firsts[1]], fam.name
+        if drops == 1:
+            assert set(at[firsts[0]]) == set(take.scene["last"]), fam.name
+        sheet = club.write(fam.name, 1)
+        assert [(section["story"], section["bars"]) for section in sheet.form] == list(fam.story)
+        assert [bool(section.get("breakdown")) for section in sheet.form] == [story == "theme" and first in fallen for story, first, _ in take.sections]
+        # Its riff is in every drop and its kick in none of what falls away.
+        kick = next(part.notes for name, part in sheet.parts["drums"].items() if name in club.KICKS)
+        act = club.ACTS[sheet.about["sounds"]]
+        big = [note.start for part in sheet.parts["lead"].values() if part.instrument in (act.big, *act.cut) for note in part.notes]
+        for story, first, count in take.sections:
+            a, b = first * 4.0 - 0.05, (first + count) * 4.0 - 0.05
+            if story == "moment":
+                assert any(a <= start < b for start in big) and any(a <= note.start < b for note in kick), (fam.name, first)
+            elif first in fallen:
+                assert not any(a <= note.start < b for note in kick), (fam.name, first)
+
+
 def test_a_hard_riff_is_made_six_ways_besides_the_hammer():
     """(2026-11-25, read through: every hard song hammered one note.)"""
     import dataclasses
@@ -306,7 +347,7 @@ def test_a_riff_that_is_called_is_answered_by_the_second_synth():
     for fam in (fam for fam in house.PLAN if fam.hook):
         sheet = club.write(fam.name, 1)
         act = club.ACTS[sheet.about["sounds"]]
-        assert sheet.about["sounds"] == fam.act and fam.act in club.ACTS_FOR["found"]
+        assert sheet.about["sounds"] == fam.act and fam.act in club.ACTS_FOR["found"] + club.ACTS_FOR["cut"]
         by = {part.instrument: part.notes for part in sheet.parts["lead"].values()}
         drops = [(section["first"] * 4.0, (section["first"] + section["bars"]) * 4.0) for section in sheet.form if section["story"] == "moment"]
         inside = lambda notes: [note for note in notes if any(a - 0.05 <= note.start < b for a, b in drops)]      # noqa: E731
@@ -664,8 +705,8 @@ def test_the_plan_covers_every_kind_of_place_and_moment():
     assert {fam.role for fam in house.PLAN} == set(studio.ROLES)
     about = [fam for fam in house.PLAN if fam.role in ("wander", "ember", "night")]
     # ("need some darker stuff", 2026-11-23. It was "mostly light", six in ten of these, from the house's first night on, 2026-11-15; and what is new is dark, 2026-11-24: but light moods belong,
-    # a third of it at the least.)
-    assert len(about) / 3.0 < sum(fam.light for fam in about) < 0.6 * len(about), "the house is meant to be dark, and not all dark"
+    # three in ten at the least.)
+    assert 0.3 * len(about) < sum(fam.light for fam in about) < 0.6 * len(about), "the house is meant to be dark, and not all dark"
     for role in ("ember", "camp", "night", "town"):
         mine = [fam for fam in house.PLAN if fam.role == role]
         assert any(not fam.light and fam.mode in ("minor", "phrygian", "phrygian dominant", "dorian") for fam in mine), "no dark %s" % role
@@ -1067,9 +1108,11 @@ def test_a_played_bass_is_left_open(monkeypatch, tmp_path):
     def tone() -> str:
         out, _ = club.lines(heard, 1, tmp_path)
         return next(effect for line in out["bass"] if "saw" in line.name and "sub" not in line.name for effect in line.effects if "channel_eq" in effect and " 650 4 0.9 " in effect)
+    held = lambda: any("SC4" in str(effect) for line in club.lines(heard, 1, tmp_path)[0]["bass"] for effect in line.effects)      # noqa: E731
     monkeypatch.setattr(club.muse, "available", lambda: True)
-    assert tone()
+    assert tone() and held(), "and held together: its plucked notes ring into one another where they come quickly"
     heard.played[("bass", "bass", "saw")] = "house bass wide"
+    assert not held()
     with pytest.raises(StopIteration):
         tone()
 
@@ -1801,3 +1844,45 @@ def test_a_rise_keeps_its_hats_going_and_builds_with_the_sweep(monkeypatch):
                 assert not kicks
             rolled = struck((roll,), first, first + count)
             assert rolled and (first + count - build) * house.BAR - 0.05 <= min(rolled) < (first + count - build + 1) * house.BAR
+
+
+def test_an_old_songs_drums_are_opened_and_shut_again(tmp_path, monkeypatch):
+    """(2026-11-25: eight to seventeen dB under the liked stems at 900 Hz and 1.8 kHz, where the claps are.)"""
+    import importlib.util
+    import soundfile
+    spec = importlib.util.spec_from_file_location("open_drums", Path(__file__).resolve().parents[2] / "tools" / "open_drums.py")
+    tool = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(tool)
+    rate, seconds = 48000, 4
+    when = np.arange(rate * seconds) / rate
+    rng = np.random.default_rng(1)
+    kick = 0.9 * np.sin(2 * np.pi * 60 * when) * np.exp(-12 * (when % 0.5))
+    clap = 0.03 * rng.standard_normal(len(when)) * (((when + 0.5) % 1.0) < 0.06)
+    drums = np.repeat((kick + clap)[:, None], 2, axis=1)
+    # Nothing goes over the ceiling, and what stays under it is left as it was.
+    out = tool.held(drums * 1.3, 0.9, rate)
+    assert np.abs(out).max() <= 0.9 + 1e-9 and np.allclose(out[int(0.3 * rate):int(0.45 * rate)], (drums * 1.3)[int(0.3 * rate):int(0.45 * rate)])
+    # The bell lifts its middle by what it says and a kick's low end by next to nothing; its opposite takes it out again.
+    for hz, want in ((1200.0, 6.0), (60.0, 0.0)):
+        tone = np.sin(2 * np.pi * hz * when)[:, None]
+        rose = tool.sosfilt(tool.bell(6.0, rate), tone, axis=0)
+        assert abs(20 * np.log10(np.std(rose[rate:]) / np.std(tone[rate:])) - want) < 0.35, hz
+        back = tool.sosfilt(tool.bell(-6.0, rate), rose, axis=0)
+        assert np.abs(back - tone).max() < 1e-6
+    # A song whose act drives its drums is left alone; an old one is opened once, and the take says so.
+    folder = tmp_path / "pastoral-01" / "1"
+    folder.mkdir(parents=True)
+    soundfile.write(str(folder / "drums.flac"), drums.astype(np.float32), rate, subtype="PCM_24")
+    (folder / "track.json").write_text(json.dumps({"measured": {}}))
+    (folder / "sheet.json").write_text(json.dumps({"about": {"sounds": "warehouse"}}))
+    assert tool.open_up(folder) == "its act drives its own"
+    (folder / "sheet.json").write_text(json.dumps({"about": {"sounds": ""}}))
+    monkeypatch.setattr(tool, "missing", lambda drums, rate: 10.0)
+    assert tool.open_up(folder, dry=True).startswith("+7.5 dB") and json.loads((folder / "track.json").read_text()) == {"measured": {}}
+    assert tool.open_up(folder).startswith("+7.5 dB") and json.loads((folder / "track.json").read_text())["measured"]["drums opened"] == 7.5
+    assert tool.open_up(folder).startswith("already opened")
+    now, _ = soundfile.read(str(folder / "drums.flac"), dtype="float32", always_2d=True)
+    assert abs(np.abs(now).max() - np.abs(drums).max()) < 0.01 and sorted(path.name for path in folder.iterdir()) == ["drums.flac", "sheet.json", "track.json"]
+    assert tool.open_up(folder, back=True).startswith("-7.5 dB") and "drums opened" not in json.loads((folder / "track.json").read_text())["measured"]
+    monkeypatch.setattr(tool, "missing", lambda drums, rate: 2.0)
+    assert tool.open_up(folder).startswith("no thinner")

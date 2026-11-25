@@ -21,7 +21,12 @@ dictated, where it drove the change.
 - **"house is a little better keep iterating"**, **"find more instruments!"**: six ways of making a hard riff besides hammering one note (`house.HOOKS_OF`: a machine's line, a glide, a call and its answer, a power riff, a
   toll, an odd cell); fifteen leads, three stabs, three basses and a pad out of the seven hundred wavetables that came with the synthesiser and had never been played (`patches.table`), chosen by how hard they sound and by how
   much of what they sound is in the key; twelve acts led by them, two of them calm; two kinds of drum set and two kick patterns; **the tenth round's seventeen House songs** by those acts.
+- A House story has five shapes, not one (`house.FORMS_OF`: three waves, one long arc, a drop after four bars, no builds at all), and hard songs six more chord loops; **the eleventh round's fifteen House songs**, twelve of them
+  in those shapes.
 - A calm House act's fretless and double bass are left open at the desk: they had been shut as a synthesiser's bass is.
+- **The eleventh round's twenty characters**: ten for the Knight Rock bands and ten for the Warcraft companies that had the fewest, two of them the dark nights Warcraft owed.
+- **The twelfth round's twenty characters**: Knight Rock's ten on the drum patterns, the figures and the leads its dark songs had least (a bass clarinet, a steel guitar, a storm in three), Warcraft's ten where its dark music
+  was thinnest (two caves, two storms, a night).
 - **The ninth round's twenty characters**: Knight Rock's ten by the bands that sound furthest from the house's (two inns, two storms, two caves, a town, a camp, two walks), Warcraft's ten by its companies (four towns, two inns,
   two camps, a storm, a walk).
 

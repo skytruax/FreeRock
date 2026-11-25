@@ -16,7 +16,7 @@
   <img alt="Five stems, lossless" src="https://img.shields.io/badge/audio-5%20stems%2C%2024--bit%20FLAC-7c5cd6">
   <img alt="Played in REAPER" src="https://img.shields.io/badge/studio-REAPER%20%2B%20real%20instruments-e0533d">
   <img alt="Python 3.11 to 3.13" src="https://img.shields.io/badge/python-3.11%E2%80%933.13-3fa55b">
-  <img alt="Tests: Python, headless Chrome, Lua" src="https://img.shields.io/badge/tests-650%2B-3fa55b">
+  <img alt="Tests: Python, headless Chrome, Lua" src="https://img.shields.io/badge/tests-1000%2B-3fa55b">
   <a href="LICENSE"><img alt="Licence: MIT" src="https://img.shields.io/badge/licence-MIT-3fa55b"></a>
 </p>
 
@@ -206,8 +206,18 @@ up after about four. Everything from the game to the speakers is written down, k
 | **Knight Rock** | A riff-driven rock band. The riff carries the walking music, and the whole band comes in for the fights | Muse Sounds' electric guitars, bass and Hammond organ; a 1970s rock kit with a 26-inch bass drum |
 | **Progressive House** | Builds, drops and long breakdowns, with the pads ducking under every kick | Surge XT's synths; Muse Sounds' piano, electric pianos, marimba, harp, flute, strings and brass; a TR-8 drum machine |
 
-As of 2026-11-23 the buckets hold **973 songs**: 428 Warcraft, 362 Knight Rock and 183 House. More are made every
-day and night.
+As of 2026-11-25 the buckets hold **1,418 songs**: 624 Warcraft, 474 Knight Rock and 320 House, about 173 hours.
+More are made every day and night.
+
+Every style has players of its own, so that two songs in a row are not one sound in two keys. Knight Rock has
+**twenty bands** besides the house band: fuzzed and crunch guitars, two cellos through amplifiers, a church organ,
+a saloon's upright piano, a torn Hammond, marimbas over felt mallets, two hollow-bodied guitars, saxophones over a
+street band's tuba, an archtop and a baritone saxophone over an upright bass, a banjo and a fiddle over a
+washtub bass, a line of trombones over a marching tuba. Warcraft has **thirteen companies** besides the full
+orchestra: the winds, an iron brass, a monastery's choir and organ, a string quartet, a consort with a
+harpsichord, bronze and bells, a caravan, a highland band, a carnival, a horde's drums, a crypt, a silk road's
+erhu and koto, a mead hall. House has **thirty-four acts**, each with its own leads, stabs, bass and drum
+machine. A band plays the same piece as the others, and is measured and judged, before it is given songs.
 
 ### A track is a story
 
@@ -494,10 +504,12 @@ FreeRock's code and documents are under the [MIT licence](LICENSE). The music is
 repository, apart from the four short samples above: every studio writes and plays its own. It is
 played on instruments that others recorded and gave away: MuseScore Studio and Muse Sounds (Muse
 Group; music made with them is its maker's, and the sounds themselves are never shared here);
-VSCO-2 CE, VCSL and Karoryfer's instruments (CC0); the AVL drum kits by Glen MacArthur (CC BY-SA
-3.0); Naked Drums by Wilkinson Audio (CC BY 4.0); TinySOL by Cella, Ghisi, Lostanlen, Lévy,
-Fineberg and Maresz at IRCAM (CC BY 4.0); the TR-8 recordings from MckAudio (CC0); Surge XT,
-sfizz, Dragonfly Reverb, x42, Calf and the other free plug-ins in REAPER. Each one, and its
+VSCO-2 CE, VCSL and Karoryfer's instruments (CC0), and the erhu, the lyre, the banjo and the jazz kit kept at
+sfzinstruments (CC0); the Muldjord kit by Lars Muldjord for DrumGizmo (CC BY 4.0); the AVL drum kits by Glen
+MacArthur (CC BY-SA 3.0); Naked Drums by Wilkinson Audio (CC BY 4.0); TinySOL by Cella, Ghisi, Lostanlen, Lévy,
+Fineberg and Maresz at IRCAM (CC BY 4.0); the TR-8 recordings from MckAudio (CC0); Surge XT and the
+wavetables that come with it (A.Liv's, Emu VSCO's, Layzer's, Philippe Favre's, Qonundrai's, TNMG's, Venus Theory's and
+the Waldorf set); sfizz, Dragonfly Reverb, x42, Calf and the other free plug-ins in REAPER. Each one, and its
 licence, is listed in [tools/stems/README.md](tools/stems/README.md). The judges are fetched, not
 shipped: TuneJury (Kim, Lee, Xia, Ma, Koo, Saito, Zhong, Mitsufuji and Donahue; CC BY-NC 4.0) with
 LAION-CLAP and MERT, SongEval (ASLP at NPU; CC BY-NC-SA 4.0) with MuQ, and Audiobox Aesthetics (Meta;

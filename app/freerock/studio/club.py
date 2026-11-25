@@ -712,6 +712,8 @@ def lines(heard: Heard, seed: int, work: Path) -> tuple[dict[str, list[desk.Line
                     if not synth_played:
                         # (2026-11-25: a fretless or a double bass that a calm act has, a player's and not a synthesiser's, through what was made to tame one: Cold Ashes' 6 dB thin in its middle and Bad Debt's 13.)
                         shut, middle = dict(high_cut=4500.0, high_shelf=(2200.0, -3.0)), ((650.0, 4.0, 0.9),)
+                        # ...and held, as an upright on a club record is: its plucked notes ring into one another where they come quickly (Cinder Block's rise stood 7 dB over its moment).
+                        line.effects = list(line.effects) + [sounds.squeeze(-24.0, 4.0, 10.0, 160.0, 4.0)]
                     line.effects = list(line.effects) + [sounds.equalise(low_cut=30.0, bands=middle, **shut), sounds.wide(0.25)]
                     line.send = 0.0
                 elif channel == "rhythm":

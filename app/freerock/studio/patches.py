@@ -154,8 +154,9 @@ def _scanned(file: str, *, at: float = 0.08, depth: float = 0.75, cutoff: float 
 
 
 def _struck(file: str, *, at: float = 0.08, depth: float = 0.6, cutoff: float = 560.0, opened: float = 32.0) -> tuple[dict, dict]:
-    """A stab from a table: two of it a little apart and a pulse an octave under, thrown open and shut within an eighth."""
-    return ({**table(1, file, at=at, voices=2, detune=0.1), **osc(2, shape=PULSE, octave=-1, level=0.55), "a_filter1_type": LADDER, "a_filter1_subtype": 3, "a_filter1_cutoff": hz(cutoff),
+    """A stab from a table: two of it a little apart and a triangle an octave under, thrown open and shut within an eighth. (A pulse under it, as the leads have, has its fifth overtone, a major third, as loud as what is struck:
+    Tin Roof's stabs, the first of these, 64% in C sharp phrygian, 2026-11-25; and they were opened a third as far again.)"""
+    return ({**table(1, file, at=at, voices=2, detune=0.06), **triangle(2, octave=-1, level=0.8), "a_filter1_type": LADDER, "a_filter1_subtype": 3, "a_filter1_cutoff": hz(cutoff),
              "a_filter1_resonance": 0.2, "a_filter1_envmod": opened, "a_filter1_keytrack": 0.4, "a_ws_type": WS_SOFT, "a_ws_drive": 10.0, "a_filter2_type": LP12, "a_filter2_subtype": 0,
              "a_filter2_cutoff": hz(4200.0), **env(2, 0.001, 0.12, 0.06, 0.1), **env(1, 0.001, 0.3, 0.12, 0.13), "polylimit": 12},
             {"a_osc1_param0": [("filter env", depth)], "a_filter1_cutoff": [("velocity", 14.0)]})
@@ -531,11 +532,12 @@ DESIGNS: dict[str, tuple[dict, dict]] = {
                         "a_filter1_keytrack": 0.3, "a_ws_type": WS_SOFT, "a_ws_drive": 7.0, "a_lfo6_shape": 0, "a_lfo6_rate": rate(0.15), "a_lfo6_trigmode": 0,
                         **env(2, 0.002, 0.2, 0.15, 0.3), **env(1, 0.002, 0.4, 0.25, 0.45), "polylimit": 12},
                        {"a_filter1_cutoff": [("scene lfo1", 7.0), ("velocity", 10.0)]}),
-    # Three stabs of the tables', and three basses and a pad (2026-11-25): a trombone's splat struck as chords; the chains', short; the digital's. A bass whose middle is a machine's jaw, one with a crust on it, one that
+    # Three stabs of the tables', and three basses and a pad (2026-11-25): a wave with a crust on it, dry as a bone (two trombones' tables were tried, and a root and its fifth by either sounded their own major third, second and
+    # seventh: 62 and 64% in two phrygian songs' keys); the chains', short; the digital's. A bass whose middle is a machine's jaw, one with a crust on it, one that
     # rasps; voices that are none, held under everything.
-    "house stab bone": _struck("wavetables_3rdparty/Emu VSCO/Brass/STAC Trombone Splat.wav", depth=0.15, cutoff=480.0, opened=26.0),
-    "house stab chain": _struck("wavetables_3rdparty/Emu VSCO/Misc/SUS Chains Low.wav", at=0.5, depth=0.15, cutoff=560.0, opened=28.0),
-    "house stab shard": _struck("wavetables_3rdparty/Layzer/PPG/PPG 32.wt", at=0.1, depth=0.15, cutoff=520.0, opened=28.0),
+    "house stab bone": _struck("wavetables_3rdparty/A.Liv/Crust Wave/Crust Wave 1.wav", at=0.06, depth=0.0, cutoff=420.0, opened=24.0),
+    "house stab chain": _struck("wavetables_3rdparty/Emu VSCO/Misc/SUS Chains Low.wav", at=0.5, depth=0.1, cutoff=380.0, opened=22.0),
+    "house stab shard": _struck("wavetables_3rdparty/Layzer/PPG/PPG 32.wt", at=0.1, depth=0.1, cutoff=400.0, opened=22.0),
     "house bass jaw": _sunk("wavetables_3rdparty/A.Liv/Exocat's Metalodon/Exocat's Metalodon 1.wav"),
     "house bass crust": _sunk("wavetables_3rdparty/A.Liv/Crust Wave/Crust Wave 1.wav", cutoff=420.0),
     "house bass rasp": _sunk("wavetables_3rdparty/Qonundrai/Abrasive Warmth.wav", cutoff=360.0, depth=0.6),
