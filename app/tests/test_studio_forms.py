@@ -553,7 +553,7 @@ def test_a_solo_picked_up_in_the_bar_before_leaves_its_part_to_be_lifted():
 
 def test_a_song_is_heard_from_its_first_bar():
     """(169 of the 521 songs of Warcraft's library opened under -36 LUFS, the first minute of them under a game's own sounds.)"""
-    heard = [-43.0, -30.0, -29.5, -27.0, -22.0, -41.0, -27.0, -20.0, -38.0]
+    heard = [-43.0, -30.0, -29.5, -27.0, -22.0, -35.0, -27.0, -20.0, -38.0]
     lifts = [min((max(heard) - loud) * build.RIDE, 12.0) for loud in heard]
     out = build.opened(heard, lifts)
     assert abs(heard[0] + out[0] - (-20.0 - build.OPEN_UNDER)) < 1e-6 and out[1:] == lifts[1:]       # 13 dB under the summit
@@ -570,6 +570,10 @@ def test_a_song_is_heard_from_its_first_bar():
     slow = [-37.0, -35.0, -33.0, -33.0, -31.0, -22.0, -24.0, -19.0, -34.0]
     up = [loud + lift for loud, lift in zip(slow, build.opened(slow, [0.0] * 9))]
     assert up[:5] == [-34.0, -32.0, -31.0, -31.0, -30.0] and up[5:] == slow[5:] and up[:5] == sorted(up[:5])
+    # ...and a valley that is gone is brought half way back to where it is heard, its close left to go (Bluebell Fold's).
+    gone = [-30.0, -27.0, -26.0, -24.0, -21.0, -41.0, -26.0, -20.0, -40.0]
+    assert build.opened(gone, [0.0] * 9) == [0.0] * 5 + [(-20.0 - build.LOW_UNDER + 41.0) / 2.0] + [0.0] * 3
+    assert build.opened(gone[:5] + [-34.0] + gone[6:], [0.0] * 9) == [0.0] * 9 and build.opened(gone[:5] + [-90.0] + gone[6:], [0.0] * 9) == [0.0] * 9
     assert build.opened([-36.0, -60.0] + burn[2:], [0.0] * 9)[1] == build.FIRST_MOST
     assert build.opened([-60.0] + heard[1:], [0.0] + lifts[1:])[0] == build.OPEN_MOST                # so far and no further
     loud = [-30.0] + heard[1:]

@@ -750,6 +750,20 @@ PLAN: tuple[Family, ...] = (
     Family("pastoral-10", "Grain Silo", ("pastoral", "highland"), W, S01, False, 5, "H7", (8, 24, 8, 16, 8), "broken", 0.14, "909", "hard-broken", "monolith", 122),
     Family("highland-09", "Rockfall", ("highland",), W, S01, False, 0, "H3", (16, 16, 8, 24, 8), "four", 0.06, "909", "hard", "signal", 128),
     Family("frozen-08", "Ice Drill", ("frozen",), W, S01, False, 6, "H1", (8, 16, 8, 24, 8), "broken3", 0.1, "606", "hard-broken", "foundry", 124),
+    # (The fifth set, 2026-11-25: the five acts whose riffs are cut up or led by a machine of another kind (club.ACTS, "cut"), and three calm ones for the two that had none.)
+    Family("town-15", "Slot Machine", ("desert", "regal", "infernal"), "town", S01, False, 10, "H3", (8, 16, 8, 16, 8), "four", 0.08, "606", "hard", "arcade", 122),
+    Family("town-16", "Guard Dog", ("highland", "haunted", "pastoral"), "town", S01, False, 3, "H7", (8, 16, 8, 16, 8), "broken2", 0.12, "808", "hard-broken", "kennel", 119),
+    Family("storm-13", "Wrecking Ball", ("highland", "infernal", "regal", "desert"), "storm", S01, False, 8, "H2", (8, 8, 8, 24, 8), "four", 0.0, "909", "hard", "chopshop", 130),
+    Family("depths-14", "Third Rail", ("haunted", "mystic", "infernal"), "depths", S01, False, 4, "H4", (8, 24, 8, 16, 8), "broken", 0.14, "606", "hard-slow", "tunnel", 118),
+    Family("depths-15", "Rock Crusher", ("highland", "frozen", "desert"), "depths", S01, False, 9, "H1", (16, 16, 8, 24, 8), "four", 0.06, "909", "hard", "quarry", 121),
+    Family("coast-10", "Loading Bay", ("coast",), W, S01, False, 6, "H6", (8, 16, 8, 24, 8), "four", 0.06, "909", "hard", "chopshop", 124),
+    Family("jungle-09", "Stray Dogs", ("jungle", "marsh"), W, S01, False, 1, "H1", (8, 24, 8, 16, 8), "broken3", 0.12, "808", "hard-broken", "kennel", 123),
+    Family("infernal-08", "Slag Heap", ("infernal",), W, S01, False, 11, "H7", (16, 16, 8, 24, 8), "four", 0.0, "909", "hard", "quarry", 127),
+    Family("mystic-08", "Dead Pixel", ("mystic", "haunted"), W, S01, False, 5, "H5", (8, 16, 4, 24, 8), "broken2", 0.1, "606", "hard-broken", "arcade", 120),
+    Family("regal-09", "Weigh Station", ("regal",), W, S01, False, 2, "H3", (8, 24, 4, 24, 8), "four", 0.0, "606", "hard", "tunnel", 126),
+    Family("camp-18", "Night Watchman", ("marsh", "coast", "haunted"), "camp", S01, False, 2, "H4", (8, 16, 8, 16, 8), "half", 0.1, "606", "after-hours", "mortuary", 94),
+    Family("night-18", "Signal Box", ("highland", "mystic", "desert"), "night", S01, False, 7, "H2", (16, 24, 8, 24, 8), "broken", 0.1, "808", "after-hours", "switchyard", 103),
+    Family("ember-18", "Flat Beer", ("frozen", "mystic", "coast"), "ember", S01, False, 0, "H6", (8, 16, 8, 16, 8), "broken2", 0.12, "808", "after-hours", "switchyard", 101),
 )
 LATER = tuple(each.name for each in PLAN)[[each.name for each in PLAN].index("town-13"):]          # (the families from the fourth set of hard ones on: HAMMERS_LATER, SCENES_LATER)
 TAKES = (1, 2, 3)

@@ -318,6 +318,57 @@ def test_a_leads_strokes_are_heard_one_by_one():
     assert "torn sax" not in {act.big for act in club.ACTS.values()}
 
 
+def test_a_riff_can_be_cut_up_among_three_voices():
+    """(2026-11-25: "house is a little better keep iterating": a riff whose every stroke is another machine's.)"""
+    from freerock.studio import club, sounds
+    from freerock.studio.score import Note
+    form = [{"story": "theme", "first": 0, "bars": 8}, {"story": "moment", "first": 8, "bars": 24}, {"story": "rise", "first": 32, "bars": 4}, {"story": "moment", "first": 36, "bars": 16}]
+    riff = [(bar, at, 62 if (bar % 2, at) == (1, 3) else 57) for bar in range(52) for at in (0, 1, 3, 6, 10, 14) if not (bar >= 8 and bar % 8 == 7 and at >= 8) and not 32 <= bar < 36]
+    notes = [Note(bar * 4.0 + at * 0.25, 0.3, pitch, 0.8) for bar, at, pitch in riff]
+    out = club.cut_up(notes, form, 7)
+    written = {(note.start, note.pitch) for note in notes}
+    said = [(note.start, note.pitch) for voice in out for note in voice]
+    assert written <= set(said) and len(said) == len(set(said)), "each stroke is one voice's, and none is lost"
+    assert all(note.start < 32.0 or note.start >= 128.0 for voice in out[1:] for note in voice if note.start < 32.0) and len([n for n in out[0] if n.start < 32.0]) == len([n for n in notes if n.start < 32.0])
+    inside = [[note for note in voice if 32.0 <= note.start < 64.0] for voice in out]
+    assert not inside[2] and all(note.pitch == 57 for note in inside[0]) and any(note.pitch == 62 for note in inside[1])            # the first eight bars: who hammers and who turns
+    assert any(abs(note.start % 4.0 - 0.25) < 1e-6 for note in inside[1]), "the second of two that run together is another's"
+    again = [note for note in out[2] if 64.0 <= note.start < 96.0]
+    assert again and all((note.start - 64.0) % 8.0 >= 5.95 for note in again), "the third answers in the last half bar of two"
+    most = [max(range(3), key=lambda k: sum(1 for note in out[k] if a <= note.start < a + 32.0)) for a in (64.0, 96.0)]
+    assert most[0] != most[1], "another voice hammers it eight bars on"
+    fill = [note for voice in out for note in voice if (note.start, note.pitch) not in written]
+    assert fill and all(note.pitch == 45 and 94.0 <= note.start < 96.0 for note in fill), "and what a riff leaves out every sixteen bars is filled, an octave under, but not a drop's last"
+    every = sorted((note.start, note.start + note.length, k) for k, voice in enumerate(out) for note in voice)
+    assert all(end <= after + 1e-6 for (_, end, k), (after, _, other) in zip(every, every[1:]) if k != other), "no voice sounds through another's stroke"
+    late = club.with_the_first([Note(note.start + 0.01, 0.3, note.pitch - 12, 0.4) for note in notes], out, form)
+    assert 0 < len([note for note in late if note.start >= 32.0]) == len([note for note in out[0] if 32.0 <= note.start < 208.0 and (note.start, note.pitch) in written])
+    # An act's three voices are three, all of House's own, and its sheet says which says what.
+    cut = {name: act for name, act in club.ACTS.items() if act.cut}
+    assert len(cut) >= 3
+    for name, act in cut.items():
+        assert len({act.big, act.late, *act.cut}) == 4 and set(act.cut) | {act.big} <= set(sounds.HOUSE_LEADS) and act.drive > 0.5, name
+
+
+def test_a_cut_up_song_says_so_on_its_sheet(monkeypatch):
+    from freerock.studio import club
+    plain = club.write("coast-09", 1)
+    monkeypatch.setattr(club, "act_of", lambda fam, take: "chopshop")
+    sheet = club.write("coast-09", 1)
+    act = club.ACTS["chopshop"]
+    by = {name: part.instrument for name, part in sheet.parts["lead"].items()}
+    body = next(name for name, instrument in by.items() if instrument == act.big)
+    assert sheet.family == "coast-09" and sheet.title == plain.title and by[body + "-two"] == act.cut[0] and by[body + "-three"] == act.cut[1]
+    drops = [(section["first"] * 4.0, (section["first"] + section["bars"]) * 4.0) for section in sheet.form if section["story"] == "moment"]
+    whole = {round(note.start * 48) for part in plain.parts["lead"].values() if part.instrument == club.ACTS[plain.about["sounds"]].big for note in part.notes}
+    mine = {round(note.start * 48) for name in (body, body + "-two", body + "-three") for note in sheet.parts["lead"][name].notes}
+    assert whole <= mine, "the riff is all there"
+    assert all(any(a - 0.05 <= note.start < b for a, b in drops) for name in (body + "-two", body + "-three") for note in sheet.parts["lead"][name].notes)
+    assert "echo" not in sheet.parts["lead"][body + "-two"].effects and sheet.parts["lead"][body + "-two"].effects.get("lowpass") == sheet.parts["lead"][body].effects.get("lowpass")
+    heard = club.heard_from(sheet)
+    assert {written for channel, _, _, written, *_ in club.voices(heard) if channel == "lead"} >= {act.big, *act.cut}
+
+
 def test_a_dub_chord_has_its_third():
     # (2026-11-24: a bare fifth behind a band-pass rang as a major second and a major third over a phrygian root.)
     from freerock.studio import club
@@ -495,8 +546,9 @@ def test_the_plan_covers_every_kind_of_place_and_moment():
         assert any(fam.light for fam in mine) and any(not fam.light for fam in mine), "%s has no light or no heavy music" % kind
     assert {fam.role for fam in house.PLAN} == set(studio.ROLES)
     about = [fam for fam in house.PLAN if fam.role in ("wander", "ember", "night")]
-    # ("need some darker stuff", 2026-11-23. It was "mostly light", six in ten of these, from the house's first night on, 2026-11-15.)
-    assert 0.4 * len(about) < sum(fam.light for fam in about) < 0.6 * len(about), "the house is meant to be as dark as it is light"
+    # ("need some darker stuff", 2026-11-23. It was "mostly light", six in ten of these, from the house's first night on, 2026-11-15; and what is new is dark, 2026-11-24: but light moods belong,
+    # a third of it at the least.)
+    assert len(about) / 3.0 < sum(fam.light for fam in about) < 0.6 * len(about), "the house is meant to be dark, and not all dark"
     for role in ("ember", "camp", "night", "town"):
         mine = [fam for fam in house.PLAN if fam.role == role]
         assert any(not fam.light and fam.mode in ("minor", "phrygian", "phrygian dominant", "dorian") for fam in mine), "no dark %s" % role

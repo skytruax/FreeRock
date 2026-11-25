@@ -616,6 +616,8 @@ HOUSE_LEADS: dict[str, tuple[tuple[str, float], ...]] = {
     "house lead hoover": (("hoover", 0.0),), "house lead reed": (("reed", 0.0),), "house lead fifth": (("fifth", 0.0), ("bite", -12.0)),
     "house lead razor": (("razor", 0.0),), "house lead squelch": (("squelch", 0.0),), "house lead smoke": (("smoke", 0.0),), "house lead horn": (("horn", 0.0),),
     "house lead bow": (("bow", 0.0),), "house lead tape": (("tape", 0.0),),
+    "house lead talk": (("talk", 0.0),), "house lead fold": (("fold", 0.0),), "house lead chip": (("chip", 0.0),),
+    "house lead scream": (("scream", 0.0),), "house lead reese": (("reese", 0.0),),
 }
 # A hard song's stabs and basses (2026-11-24; patches.DESIGNS), in the same way.
 HEARTS = ("heart lead", "heart pluck", "heart stab", "heart pad")          # (the bowed synthesiser's, programs.PROGRAMS: shaped in it, as these are in theirs)

@@ -9,6 +9,9 @@ dictated, where it drove the change.
   banjo, a fiddle, a plucked double bass and a kit through a worn microphone) and the drumline (a trombone and horns over a tuba and a kit whose every drum is a snare), heard by the same two songs as every band before them,
   each held where it fell away. Nine characters have them: two towns, a night, a camp, a fight, a battleground and three walks.
 - What comes between a song's first theme and its first arrival is heard (`build.opened`): four minutes of a slow burn had stood at -37 to -31 under a summit of -19. `tools/open_up.py` gives the same ride to songs already staged.
+- **"house is a little better keep iterating"**: a riff cut up stroke by stroke among three synths, who hammers, who turns and who answers changing every eight bars (`club.cut_up`); five leads of another kind (a talker, a chip, a
+  scream, a fold, a reese) and their acts (chopshop, arcade, kennel, quarry, tunnel); thirteen families more: two towns, two caves, a storm and five walks by them, and a camp, a night and an inn by the mortuary and the switchyard.
+- A valley that had gone under hearing is brought half way back (`build.LOW_UNDER`).
 
 ## 2026-11-24, night: a tune that is told another way each time, and calm House that is not sweet
 

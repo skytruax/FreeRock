@@ -76,6 +76,10 @@ FIRST_UNDER, FIRST_MOST = 11.0, 8.0
 # ...and what comes between them and a song's first arrival (its first part within ARRIVES of the loudest) is brought half way to this under it: five of nine parts of Forlorn Hope, a slow burn's four minutes, stood
 # at -37 to -31 under a moment of -22 and a summit of -19 (2026-11-25). A song that arrives with its first theme or its second has nothing between.
 EARLY_UNDER, EARLY_SHARE, ARRIVES = 10.0, 0.5, 8.0
+# ...and a valley may be quiet and not gone: what stands further than this under the loudest after that (its close left as it is) is brought half way back to it (2026-11-25: Bluebell Fold's at -41 under a summit of
+# -20, Wakeful Relief's, Winter-Dead Wind's and Siren-Grey Cloister's at -37 and -38: of the library's valleys 188 of 453 in Knight Rock and 190 of 593 in Warcraft stand 16 dB or more under, a minute of a tune
+# sung alone under a game's own sounds).
+LOW_UNDER, LOW_SHARE = 15.0, 0.5
 MUSE_WORKERS = 5               # how many parts of a piece MuseScore performs at once
 # (2026-11-16, twice. In the afternoon: "theres not much difference between quet and full, we want more ...
 # drasticness", and a calm game was given no drums and a third of the bass. Played that evening: "the abruptness
@@ -131,28 +135,30 @@ HOUSE_TITLES = (
     'Breakers', 'Breakwater', 'Brownout', 'Bullfrog Bass', 'Buried Machine', 'Burn Barrel', 'By the Fire',
     'Cairn Wind', 'Cannonade', 'Canopy', 'Capture the Flag', 'Caravan at Noon', 'Cellar Door', 'Chain Gang', 'Charge',
     'Cinder Bloom', 'Closing Time', 'Cold Ashes', 'Cold Iron', 'Cold Stars', 'Cold Storage', 'Cool of the Evening',
-    'Crawlspace', 'Curfew Bell', 'Customs Wall', 'Dead Hours', 'Dead Radio', 'Dead Reckoning', 'Desert Nocturne',
-    'Dewfall', 'Dim Lamp Alley', 'Driftwood Hearth', 'Dripstone', 'Drop Shaft', 'Drowned Halls', 'Drowned King',
-    'Dry Dock', 'Dunes at Dawn', 'Eclipse Gate', 'Embers under Stars', 'Empty Throne', 'Fireflies', 'Fishmarket',
-    'Frostbite', 'Frozen Echoes', 'Furnace Psalm', 'Gallows Meadow', 'Gaslight', 'Ghostfire', 'Gilded Halls',
-    'Glade at Dusk', 'Glowworm Hollow', 'Grain Silo', 'Gravel Pit', 'Graveyard Shift', 'Guildhall Steps',
-    "Gull's Morning", 'Hammerfall', 'Hanging Tree', 'Harbour Lights', 'Hay Bale Sunset', 'Heat Haze', 'Hoarfrost',
-    'Hold the Line', 'Hollow Road', 'Hushed Parlour', 'Ice Bridge', 'Ice Drill', 'Ice Fang', 'Ice Fishing', 'Insomnia',
-    'Iron Lung', 'Keelhaul', 'Knife Bazaar', 'Knuckle Duster', 'Lanterns in the Fog', 'Lanterns on the Square',
-    'Larks over the Ridge', 'Last Bus', 'Last Candle', 'Last Stand', 'Lock-Up', 'Lodestone', 'Long Road Home',
-    'Low Ceiling', 'Low Rafters', 'Market Day', 'Meat Locker', 'Mended Nets', 'Mill Stream', 'Mint Tea', 'Mirage',
-    'Monsoon Drums', 'Moonless', 'Moonlit Ebb', 'Moonwell', 'Morning on the Hill', 'Moth Wings', 'Night Prowl',
-    'Night Shift', 'No Fire Tonight', 'Nomad Fire', 'Northern Lights', 'Oasis', 'Oil Drum', 'Ossuary', 'Owl Light',
-    'Parrots', 'Pawn Shop', 'Peat Smoke', 'Power Cut', 'Rail Yard', 'Rain on the Roofs', 'Red Moon', 'Red Rock',
-    'Reedlight', 'Riot Line', 'River Drums', 'Rockfall', 'Rust Water', 'Salt Caravan', 'Sandblast', 'Sandstone Hollow',
-    'Scarecrow Road', 'Scrap Yard', 'Seaspray', 'Short Circuit', 'Siege Bells', 'Sleepless Shift', 'Smog Quarter',
-    'Smoke Break', 'Snowglobe', 'Snowmelt', 'Speakeasy', 'Squall', 'Stand Fast', 'Standing Dead', 'Starfall',
-    'Stone and Sky', 'Strangler Fig', 'Strip Mine', 'Sump', 'Sunken Grotto', 'Sunlit Fields', 'The Dark Hall',
-    'The Deep Road', 'The Forge at Rest', "The Headsman's Walk", 'The High Moor', 'The Kind Ghost', "The King's Road",
-    'The Leviathan', 'The Long Wait', 'The Long Watch', 'The Old Swamp', 'The Usurper', 'Throne of Ash', 'Thunderhead',
-    'Tide Camp', 'Tidepools', 'Toll Booth', 'Trench Line', 'Under the Mountain', "Undertaker's Table", 'Voltage',
-    'Vulture Sky', 'Wet Powder', 'Whispering Boughs', 'White Grave', "Will-o'-the-Wisp", 'Willow Lanterns',
-    'Wind over the Pass', "Wreckers' Lantern",
+    'Crawlspace', 'Curfew Bell', 'Customs Wall', 'Dead Hours', 'Dead Pixel', 'Dead Radio', 'Dead Reckoning',
+    'Desert Nocturne', 'Dewfall', 'Dim Lamp Alley', 'Driftwood Hearth', 'Dripstone', 'Drop Shaft', 'Drowned Halls',
+    'Drowned King', 'Dry Dock', 'Dunes at Dawn', 'Eclipse Gate', 'Embers under Stars', 'Empty Throne', 'Fireflies',
+    'Fishmarket', 'Flat Beer', 'Frostbite', 'Frozen Echoes', 'Furnace Psalm', 'Gallows Meadow', 'Gaslight',
+    'Ghostfire', 'Gilded Halls', 'Glade at Dusk', 'Glowworm Hollow', 'Grain Silo', 'Gravel Pit', 'Graveyard Shift',
+    'Guard Dog', 'Guildhall Steps', "Gull's Morning", 'Hammerfall', 'Hanging Tree', 'Harbour Lights',
+    'Hay Bale Sunset', 'Heat Haze', 'Hoarfrost', 'Hold the Line', 'Hollow Road', 'Hushed Parlour', 'Ice Bridge',
+    'Ice Drill', 'Ice Fang', 'Ice Fishing', 'Insomnia', 'Iron Lung', 'Keelhaul', 'Knife Bazaar', 'Knuckle Duster',
+    'Lanterns in the Fog', 'Lanterns on the Square', 'Larks over the Ridge', 'Last Bus', 'Last Candle', 'Last Stand',
+    'Loading Bay', 'Lock-Up', 'Lodestone', 'Long Road Home', 'Low Ceiling', 'Low Rafters', 'Market Day', 'Meat Locker',
+    'Mended Nets', 'Mill Stream', 'Mint Tea', 'Mirage', 'Monsoon Drums', 'Moonless', 'Moonlit Ebb', 'Moonwell',
+    'Morning on the Hill', 'Moth Wings', 'Night Prowl', 'Night Shift', 'Night Watchman', 'No Fire Tonight',
+    'Nomad Fire', 'Northern Lights', 'Oasis', 'Oil Drum', 'Ossuary', 'Owl Light', 'Parrots', 'Pawn Shop', 'Peat Smoke',
+    'Power Cut', 'Rail Yard', 'Rain on the Roofs', 'Red Moon', 'Red Rock', 'Reedlight', 'Riot Line', 'River Drums',
+    'Rock Crusher', 'Rockfall', 'Rust Water', 'Salt Caravan', 'Sandblast', 'Sandstone Hollow', 'Scarecrow Road',
+    'Scrap Yard', 'Seaspray', 'Short Circuit', 'Siege Bells', 'Signal Box', 'Slag Heap', 'Sleepless Shift',
+    'Slot Machine', 'Smog Quarter', 'Smoke Break', 'Snowglobe', 'Snowmelt', 'Speakeasy', 'Squall', 'Stand Fast',
+    'Standing Dead', 'Starfall', 'Stone and Sky', 'Strangler Fig', 'Stray Dogs', 'Strip Mine', 'Sump', 'Sunken Grotto',
+    'Sunlit Fields', 'The Dark Hall', 'The Deep Road', 'The Forge at Rest', "The Headsman's Walk", 'The High Moor',
+    'The Kind Ghost', "The King's Road", 'The Leviathan', 'The Long Wait', 'The Long Watch', 'The Old Swamp',
+    'The Usurper', 'Third Rail', 'Throne of Ash', 'Thunderhead', 'Tide Camp', 'Tidepools', 'Toll Booth', 'Trench Line',
+    'Under the Mountain', "Undertaker's Table", 'Voltage', 'Vulture Sky', 'Weigh Station', 'Wet Powder',
+    'Whispering Boughs', 'White Grave', "Will-o'-the-Wisp", 'Willow Lanterns', 'Wind over the Pass',
+    "Wreckers' Lantern", 'Wrecking Ball',
 )
 
 
@@ -358,6 +364,9 @@ def opened(heard: list[float], lifts: list[float]) -> list[float]:
     for at in range(2, arrives):
         if heard[at] > -70.0:
             out[at] += max(top - EARLY_UNDER - stands[at], 0.0) * EARLY_SHARE
+    for at in range(max(arrives, 2), len(heard) - 1):
+        if heard[at] > -70.0:
+            out[at] += max(top - LOW_UNDER - stands[at], 0.0) * LOW_SHARE
     if len(heard) > 2 and heard[1] > -70.0:
         out[1] += min(max(min(top - FIRST_UNDER, heard[2] + out[2] - 1.0) - stands[1], 0.0), FIRST_MOST)
     out[0] += min(max(min(top - OPEN_UNDER, heard[1] + out[1] - 2.0) - stands[0], 0.0), OPEN_MOST)

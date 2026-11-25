@@ -27,6 +27,7 @@ drawn volume curve of studio.build, deeper here: this is the music that curve co
 """
 from __future__ import annotations
 
+import bisect
 import json
 import math
 import sys
@@ -108,6 +109,7 @@ class Act:
     pad: tuple[str, ...] = ()
     machine: str = ""
     drive: float = 0.0                 # how hard its drums and its bass are driven at the desk (0 to 1)
+    cut: tuple[str, ...] = ()          # the two voices a drop's riff is dealt to, stroke by stroke, beside the big one (`cut_up`)
 
 
 ACTS: dict[str, Act] = {
@@ -135,6 +137,15 @@ ACTS: dict[str, Act] = {
     # and -6, gallows -8 and -7 (the darkest of all, +6.5 on that axis), cellar -9 and -12, beside vesper's -13 and -4 and velvet's -14 and -13; the mortuary's first writing, a bassoon and a parlour's piano, -16.)
     "mortuary": Act("house lead bow", "house lead growl", "growl sax", ("house keys bone",), ("acoustic bass",), ("house pad breath", "house pad hollow"), "606", drive=0.35),
     "switchyard": Act("house lead tape", "house lead smoke", "subtone sax", ("house stab dub",), ("house bass wide",), ("house pad hollow",), "808", drive=0.3),
+    # (2026-11-25: five whose riffs are cut up, or are led by a machine of another kind: a throat, an eight-bit wave, a filter screaming on the note's own overtone, a folded sine, saws that beat.)
+    "chopshop": Act("house lead talk", "house lead fifth", "house lead growl", ("house stab slab",), ("house bass grind",), ("house pad drone",), "909", drive=0.7,
+                    cut=("house lead razor", "house lead squelch")),
+    "arcade": Act("house lead chip", "house lead hoover", "house lead reed", ("house stab rave",), ("house bass square",), ("house pad hollow",), "606", drive=0.7,
+                  cut=("house lead acid", "house lead sync")),
+    "kennel": Act("house lead scream", "house lead fifth", "house lead vox", ("house stab clang",), ("house bass acid",), ("house pad drone",), "808", drive=0.75,
+                  cut=("house lead talk", "house lead razor")),
+    "quarry": Act("house lead fold", "house lead ladder", "house lead growl", ("house stab slab",), ("house bass fm",), ("house pad hollow",), "909", drive=0.7),
+    "tunnel": Act("house lead reese", "house lead sync", "house lead reed", ("house stab dub",), ("house bass wide",), ("house pad drone",), "606", drive=0.7),
 }
 # The acts a moment may have, in the order they are given out (a calm one's lead is soft).
 # (2026-11-24, 19:35: every act measured on one song, hard against sweet: the hard ones +9 to -2, warehouse's acid line far the hardest, and the soft ones -13 to -21, as sweet as the sweetest old songs, on a dark
@@ -143,7 +154,7 @@ ACTS_FOR = {"calm": ("velvet", "vesper", "strobe", "chamber", "bazaar"), "fight"
             "town": ("warehouse", "signal", "junkyard", "undercroft", "cyborg"), "depths": ("undercroft", "foundry", "cyborg", "monolith"),
             "light": ("strobe", "velvet", "bazaar", "vesper", "chamber", "brass"),
             "heavy": ("warehouse", "undercroft", "monolith", "foundry", "signal", "cyborg", "junkyard"),
-            "after": ("cellar", "gallows", "switchyard", "mortuary")}
+            "after": ("cellar", "gallows", "switchyard", "mortuary"), "cut": ("chopshop", "arcade", "kennel", "quarry", "tunnel")}
 # A family's first take is House's own act; its other takes, every take of the families planned after ACTS_AFTER, and of those that had no take yet when the acts
 # came in (ACTS_ALSO), another's.
 ACTS_AFTER = "depths-09"
@@ -163,7 +174,7 @@ def act_of(fam: house.Family, take: int) -> str:
     names = [each.name for each in house.PLAN]
     at = names.index(fam.name) if fam.name in names else 0
     if fam.act:                        # a hard song's other takes are other hard acts'
-        kin = ACTS_FOR[next(each for each in ("fight", "after", "calm") if fam.act in ACTS_FOR[each])]
+        kin = ACTS_FOR[next(each for each in ("fight", "after", "calm", "cut") if fam.act in ACTS_FOR[each])]
         return kin[(kin.index(fam.act) + take - 1) % len(kin)]
     if fam.name in ACTS_AFTER_HOURS:
         return ACTS_FOR["after"][(at + take) % len(ACTS_FOR["after"])]
@@ -248,6 +259,63 @@ def accented(notes: list[Note], form: list[dict], hammered: bool = False) -> Non
         after = notes[index + 1] if index + 1 < len(notes) else None
         if after is not None and index % 4 == 3 and after.pitch != note.pitch and 0.0 <= after.start - note.start - note.length < 0.2:
             note.length = after.start - note.start + 0.06
+
+
+# A riff cut up (2026-11-25: "house is a little better keep iterating"; the study of the records Sky names: a riff whose every stroke is another machine's). Who hammers it, who has its
+# turns and the second of two strokes that run together, and who answers in the last half bar of two, by eights of bars through a song's drops: the same riff, and another voice of it each time.
+CUT_ROLES = ((0, 1, 0), (0, 1, 2), (1, 2, 0), (0, 2, 1), (2, 1, 0), (0, 1, 2))
+CUT_FILLS = ("x.xxx.xx", "xx.xx.xx", "x.x.xxxx", "xxx.xxx.")          # what is said in the half bar a riff leaves out, every second eight bars (sixteenths)
+CUT_NAMES, CUT_SEATS = ("", "-two", "-three"), (0.0, -0.3, 0.3)
+
+
+def cut_up(notes: list[Note], form: list[dict], seed: int) -> list[list[Note]]:
+    """A lead's notes dealt to three voices. What is outside the drops is the first's. In a drop, two bars at a time: the note that is hammered is one voice's, the strokes that leave it and the
+    second of two that run together are another's, and the last half bar is answered by a third; who is which changes every eight bars (CUT_ROLES), and the half bar the riff leaves out at the
+    end of each sixteen is filled by whoever answers, an octave under. A stroke ends before the next one of any voice begins."""
+    out: list[list[Note]] = [[], [], []]
+    drops = [(section["first"] * 4.0, (section["first"] + section["bars"]) * 4.0) for section in form if section["story"] == "moment"]
+    done = 0                                             # the eights of bars gone by that had a riff in them
+    for a, b in drops:
+        for block in range(int((b - a) // 32.0)):
+            first = a + 32.0 * block
+            mine = sorted((note for note in notes if first - 0.05 <= note.start < first + 31.95), key=lambda note: note.start)
+            if not mine:
+                continue
+            hammer, turn, answer = CUT_ROLES[done % len(CUT_ROLES)]
+            done += 1
+            pitches: list[int] = []
+            for phrase in range(4):
+                said = [note for note in mine if phrase * 8.0 <= note.start - first + 0.05 < (phrase + 1) * 8.0]
+                if not said:
+                    continue
+                struck = [note.pitch for note in said]
+                pitches.append(max(sorted(set(struck)), key=struck.count))
+                before = None
+                for note in said:
+                    at = note.start - first - phrase * 8.0
+                    runs = before is not None and note.start - before <= 0.3
+                    out[answer if at >= 5.95 else turn if note.pitch != pitches[-1] or runs else hammer].append(note)
+                    before = note.start
+            if block % 2 == 1 and first + 32.0 < b and not any(note.start >= first + 29.95 for note in mine) and any(note.start >= first + 24.0 for note in mine):
+                text = CUT_FILLS[(seed + done) % len(CUT_FILLS)]
+                pitch, loud = pitches[-1] - 12 if pitches[-1] - 12 >= 40 else pitches[-1], max(note.loud for note in mine)
+                out[answer if answer != hammer else turn] += [Note(first + 30.0 + 0.25 * at, 0.2, pitch, loud * (0.8 + 0.2 * at / 7.0)) for at, what in enumerate(text) if what == "x"]
+    dealt = {id(note) for voice in out for note in voice}
+    out[0] += [note for note in notes if id(note) not in dealt]
+    every = sorted(((note.start, index, note) for index, voice in enumerate(out) for note in voice), key=lambda each: each[0])
+    for (start, voice, note), (after, other, _) in zip(every, every[1:]):
+        if other != voice and note.start + note.length > after - 0.02 and after - start > 0.1:
+            note.length = max(after - 0.02 - start, 0.08)                  # (not through another voice's stroke)
+    return [sorted(voice, key=lambda note: note.start) for voice in out]
+
+
+def with_the_first(notes: list[Note], dealt: list[list[Note]], form: list[dict]) -> list[Note]:
+    """A second synth's notes, where the riff is cut up: with the strokes of the voice that is the riff's own, and no other."""
+    drops = [(section["first"] * 4.0, (section["first"] + section["bars"]) * 4.0) for section in form if section["story"] == "moment"]
+    starts = sorted(note.start for note in dealt[0])
+    inside = lambda beat: any(a - 0.05 <= beat < b for a, b in drops)                  # noqa: E731
+    near = lambda beat: any(abs(starts[k] - beat) < 0.06 for k in (bisect.bisect_left(starts, beat) - 1, bisect.bisect_left(starts, beat)) if 0 <= k < len(starts))      # noqa: E731
+    return [note for note in notes if not inside(note.start) or near(note.start)]
 
 
 @dataclass
@@ -608,6 +676,8 @@ def lines(heard: Heard, seed: int, work: Path) -> tuple[dict[str, list[desk.Line
                                      taste=taste, room=1.0, seed=seed, muse_level=sounds.LEVEL):
                 if ride:
                     line.moves = list(ride)
+                if channel == "lead" and name.split(" ")[0].endswith(CUT_NAMES[1:]):
+                    line.pan = CUT_SEATS[2] if name.split(" ")[0].endswith(CUT_NAMES[2]) else CUT_SEATS[1]        # (a riff that is cut up: who hammers it in the middle, the others either side)
                 if cut:
                     line.effects = list(line.effects) + [sounds.equalise(high_cut=cut)]
                 if channel == "bass":
@@ -847,11 +917,21 @@ def _write(name: str, take: int) -> Sheet:
             for story, first, count in track.sections]
     parts: dict[str, dict[str, Voice]] = {channel: {} for channel in forever.CHANNELS}
     roles = parts_of_the_lead(heard, track.sections)
+    cut = ACTS[act].cut if act else ()
+    dealt: list[list[Note]] = []                         # a riff that is cut up: its three voices' notes
+    if cut:
+        dealt = cut_up([Note(at / BEAT, length / BEAT, int(round(pitch)), level) for (channel, table, sound), notes in sorted(heard.notes.items())
+                        if channel == "lead" and roles.get((table, sound)) == "big" for at, length, pitch, level, _, _ in notes], form, track.seed)
     for (channel, table, sound), notes in sorted(heard.notes.items()):
-        instrument = played(table, sound, act, track.seed, roles.get((table, sound), "") if channel == "lead" else "")
+        role = roles.get((table, sound), "") if channel == "lead" else ""
+        instrument = played(table, sound, act, track.seed, role)
         part = Voice(instrument=instrument,
                      notes=[Note(at / BEAT, length / BEAT, reached(instrument, int(round(pitch))) if act else int(round(pitch)), level)
                             for at, length, pitch, level, _, _ in notes])
+        if cut and role == "big":
+            part.notes = dealt[0]
+        elif cut and role == "late":
+            part.notes = with_the_first(part.notes, dealt, form)
         if channel == "lead" and MAIN_LEADS.get(instrument, instrument) in sounds.HOUSE_LEADS:
             accented(part.notes, form, hammered=track.scene is not None)
         if instrument in THIRDS:
@@ -885,6 +965,12 @@ def _write(name: str, take: int) -> Sheet:
                 part.set("phaser bars", 4.0)
                 part.set("phaser feedback", 0.4)
         parts[channel]["%s %s" % (table, sound)] = part
+        for suffix, voice, mine in zip(CUT_NAMES[1:], cut, dealt[1:]) if cut and role == "big" else ():
+            other = Voice(instrument=voice, notes=[Note(note.start, note.length, reached(voice, note.pitch), note.loud) for note in mine],
+                          effects={kind: list(points) for kind, points in part.effects.items() if kind != "echo"}, settings=dict(part.settings))
+            if voice in sounds.HOUSE_LEADS:
+                accented(other.notes, form, hammered=track.scene is not None)
+            parts[channel]["%s %s%s" % (table, sound, suffix)] = other
     if not calm:
         harsher(parts, form)
     machine = (ACTS[act].machine if act else "") or (heard.hits[0][1] if heard.hits else "")
@@ -1159,13 +1245,15 @@ def _perform(sheet: Sheet) -> dict:
     if "lead" in parts and sheet.parts.get("lead") and not about["calm"]:
         # The riff, stroke by stroke (strokes_off): of the voice that has the most of the drops, in the first of them.
         drops = [(first * 4.0, (first + count) * 4.0) for story, first, count in sections if story == "moment"]
-        big = max(sheet.parts["lead"].values(), key=lambda part: sum(any(a <= note.start < b for a, b in drops) for note in part.notes))
-        off = strokes_off(big.notes, parts["lead"], house.BAR_FRAMES / 4.0, drops[0])
-        found["strokes"] = off
-        wrong = {pitch: cents for pitch, cents in off.items() if abs(cents) > STROKE_OFF}
-        if wrong:
-            found["problems"] = list(found.get("problems") or []) + ["the lead's strokes are out of tune (%s): %s" % (
-                big.instrument, ", ".join("%d by %+.0f cents" % each for each in wrong.items()))]
+        big = max(sheet.parts["lead"], key=lambda each: sum(any(a <= note.start < b for a, b in drops) for note in sheet.parts["lead"][each].notes))
+        for each in [big] + [name for name in sorted(sheet.parts["lead"]) if name != big and name.endswith(CUT_NAMES[1:])]:
+            part = sheet.parts["lead"][each]
+            off = strokes_off(part.notes, parts["lead"], house.BAR_FRAMES / 4.0, drops[0] if each == big else (drops[0][0], drops[-1][1]))
+            found.setdefault("strokes", {}).update(off if each == big else {"%s %d" % (part.instrument, pitch): cents for pitch, cents in off.items()})
+            wrong = {pitch: cents for pitch, cents in off.items() if abs(cents) > STROKE_OFF}
+            if wrong:
+                found["problems"] = list(found.get("problems") or []) + ["the lead's strokes are out of tune (%s): %s" % (
+                    part.instrument, ", ".join("%d by %+.0f cents" % each for each in wrong.items()))]
     folder = stage_root(VAR, "house") / name / str(take)
     write_track(folder, meta, parts)
     sheet.save(folder / "sheet.json")

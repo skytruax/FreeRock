@@ -1985,6 +1985,14 @@ chorus and the hall are the desk's now*.
   *What the first nineteen still do* (read by the meter the same evening). In twelve of them the drums were one groove for sixteen bars, the second half of a theme (Chain Gang's twenty-six): a hard theme's fourth eight bars, and a
   long one's last, have the toms of its drops, softer. An after-hours song's chords and bass never turned (Dead Hours' chords the same 22 bars, its bass one colour for 52): its chords take their second figure and its bass its
   other one at the half of a theme and of a moment. *The squelch*: the acid line's other voice, a square through the same ladder, is the second synth of the foundry and of cyborg.
+  *A riff cut up* (`club.cut_up`, `Act.cut`, 2026-11-25: "house is a little better keep iterating"). On the records studied a hard riff's strokes are several machines', each short, one answering another; ours were one synth's
+  for a whole drop. Three acts have three voices: two bars at a time, the note that is hammered is one's, the strokes that leave it and the second of two that run together are another's, and the last half bar is answered by
+  the third; who is which changes every eight bars (`CUT_ROLES`), and the half bar a riff leaves out at the end of each sixteen is filled by whoever answers, an octave under. No voice sounds through another's stroke; the second
+  synth goes with the hammering one alone; the two others stand a little to either side. In a drop only: a theme's hook and a rise's are the first voice's.
+  *Five voices of another kind* (`patches.DESIGNS`): the talker (two formants opened by each stroke), the chip (an eight-bit ramp whose bits turn over as it is struck), the scream (a filter resonating on the note's own fourth
+  overtone, broken up), the fold (a saw and a square folded over on themselves) and the reese (saws that beat, a notch going through them). Their acts: chopshop, arcade and kennel, cut up; quarry and tunnel, one voice. On one song,
+  hard against sweet, drop and theme: tunnel +10 and +6 (the darkest drop of any), arcade +5 and 0, chopshop +5 and +4, kennel +5 and +2, beside warehouse's +9 and +7; not cut up arcade's drop stood at +1, chopshop's at +4 and
+  kennel's at +5. (A fold of two sines rang as a bell: -1.) Every stroke of every voice is in tune.
   *A stroke has a pitch.* A hard-synced lead swept 22 half-steps over half a second read 19 cents flat in two songs: in a riff's short stroke there is nothing but sweep, overtones sliding at 3.97 and 4.42 times the
   note. Swept six, from a little higher, its long notes are in tune and its short ones within 5 cents.
   *How hard it sounds, measured* (`tools/hardness.py`). The judges' model that hears audio against words (LAION-CLAP, music) scores ten seconds of a drop or a theme against three pairs of descriptions
@@ -2200,6 +2208,8 @@ part, by 9 dB at most, and never over the theme it leads to (13 dB and 12 from t
 Its first theme is heard too (`FIRST_UNDER`, 2026-11-25), and **so is what comes between it and a song's first arrival** (`EARLY_UNDER`, the same night): five of nine parts of Forlorn Hope, a slow burn, stood at -37 to -31 under
 a moment of -22 and a summit of -19, four minutes under a game's own sounds. Each part after the first theme and before the first that comes within 8 dB of the loudest is brought half way to 10 under it, so a burn still burns, each part
 under the one after it. A song that arrives with its first theme or its second has nothing between.
+**A valley may be quiet and not gone** (`LOW_UNDER`, the same night): of the library's valleys 188 of Knight Rock's 453 and 190 of Warcraft's 593 stood 16 dB or more under their song's loudest part, some at -37 to -41 LUFS: a tune
+sung alone for a minute under a game's own sounds. What stands more than 15 dB under, after the first arrival and before the close, is brought half way back to that: a decibel or two for most, three for the furthest.
 
 **A drop stands over its theme** (`club.HELD_BACK`, `HELD_BACK_SOFTER`, the same day): House's in 5.7.
 

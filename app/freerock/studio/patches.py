@@ -24,6 +24,7 @@ BASE = "patches_factory/Templates/Init Saw.fxp"
 # Surge XT 1.3's numbers (src/common/SurgeStorage.h, ModulationSource.h; sst-filters' FilterConfiguration.h).
 CLASSIC = 0                                         # the classic oscillator: a saw, or a pulse (see `osc`)
 SINE, FM3, FM2, MODERN = 1, 5, 6, 8                 # the sine, the two FM oscillators (each a sine modulated by sines), the modern
+ALIAS = 11                                          # an eight-bit machine's wave, its bits and its masks
 # The classic oscillator's Shape: 0 a saw; -1 a pulse as wide as its Width 1, a square at 0.5 (Surge's own "Init Square"
 # template). Its +1 is a double saw, at the default widths a saw an octave over the note, and no design uses it.
 # (2026-11-21, afternoon: the first two sets of designs had read -1 as a triangle and +1 as a square. Played alone and
@@ -32,6 +33,8 @@ SINE, FM3, FM2, MODERN = 1, 5, 6, 8                 # the sine, the two FM oscil
 SAW, PULSE = 0.0, -1.0
 LP12, LP24, LADDER, HP12, BP12, OBXD4 = 1, 2, 3, 4, 6, 12    # filters; the legacy ladder's subtype 3 is 24 dB
 WS_SOFT, WS_HARD = 1, 2                             # the waveshaper's soft saturation and its hard clip (after the first filter); its drive in dB
+NOTCH12, K35 = 7, 13                                # a notch; the filter of a Korg 35, which breaks up as it resonates
+WS_FOLD = 17                                        # ...and the west coast's: a wave folded back on itself, further the harder it is driven
 SOURCES = {"velocity": 1, "keytrack": 2, "amp env": 15, "filter env": 16, "lfo1": 17, "lfo2": 18, "scene lfo1": 23,
            "scene lfo2": 24, "random": 31}
 # An oscillator of another kind keeps its seven settings in other units, some of them whole numbers where the saw's are
@@ -40,7 +43,8 @@ SOURCES = {"velocity": 1, "keytrack": 2, "amp env": 15, "filter env": 16, "lfo1"
 # Surge's empty sine and empty FM2, and for the FM3, which has no empty patch, the factory's "FM Bass 5" (whose values
 # the design replaces, every one: see `fm3`).
 KINDS = {SINE: "patches_factory/Templates/Init Sine.fxp", FM2: "patches_factory/Templates/Init FM2.fxp",
-         FM3: "patches_factory/Basses/FM Bass 5.fxp", MODERN: "patches_factory/Templates/Init Modern.fxp"}
+         FM3: "patches_factory/Basses/FM Bass 5.fxp", MODERN: "patches_factory/Templates/Init Modern.fxp",
+         ALIAS: "patches_3rdparty/Altenberg/Basses/Rampage.fxp"}
 
 
 def seconds(value: float) -> float:
@@ -100,6 +104,14 @@ def fm3(n: int, *, m1: float, r1: float = 1.0, m2: float = 0.0, r2: float = 1.0,
     return {p + "type": FM3, p + "octave": octave, p + "pitch": pitch, p + "param0": m1, p + "param1": r1, p + "param2": m2,
             p + "param3": r2, p + "param4": 0.0, p + "param5": 0.0, p + "param6": feedback, p + "retrigger": 1,
             "a_level_o%d" % n: level, "a_mute_o%d" % n: 0}
+
+
+def alias(n: int, *, shape: int = 1, wrap: float = 0.0, mask: float = 0.0, threshold: float = 0.5, bits: float = 8.0, voices: int = 1, detune: float = 0.1,
+          octave: int = 0, pitch: float = 0.0, level: float = 1.0) -> dict:
+    """The alias oscillator: a sine (shape 0), a ramp (1) or a pulse (2) as an eight-bit machine draws it, wrapped over itself, its bits turned over by a mask past `threshold`, and crushed to `bits`."""
+    p = "a_osc%d_" % n
+    return {p + "type": ALIAS, p + "octave": octave, p + "pitch": pitch, p + "param0": shape, p + "param1": wrap, p + "param2": mask, p + "param3": threshold,
+            p + "param4": bits, p + "param5": detune, p + "param6": voices, p + "retrigger": 1, "a_level_o%d" % n: level, "a_mute_o%d" % n: 0}
 
 
 def env(which: int, attack: float, decay: float, sustain: float, release: float) -> dict:
@@ -390,6 +402,37 @@ DESIGNS: dict[str, tuple[dict, dict]] = {
                           "a_filter1_keytrack": 0.5, "a_ws_type": WS_SOFT, "a_ws_drive": 9.0,
                           **env(2, 0.002, 0.28, 0.25, 0.2), **env(1, 0.002, 0.5, 0.85, 0.14), "polylimit": 4},
                          {"a_filter1_cutoff": [("velocity", 16.0)]}),
+    # Five more (2026-11-25: "house is a little better keep iterating"): what a riff cut up among several voices is said by (club.ACTS, `cut`), each a machine of another kind.
+    # The talker: two band-passes side by side, as a throat has its formants, opened by each stroke from an "oo" to an "ah" and back, clipped.
+    "house lead talk": ({**osc(1, voices=2, detune=0.06), **osc(2, shape=PULSE, width=0.28, octave=-1, level=0.7), "a_fb_config": 3,
+                         "a_filter1_type": BP12, "a_filter1_subtype": 0, "a_filter1_cutoff": hz(340.0), "a_filter1_resonance": 0.55, "a_filter1_envmod": 15.0,
+                         "a_filter2_type": BP12, "a_filter2_subtype": 0, "a_filter2_cutoff": hz(800.0), "a_filter2_resonance": 0.6, "a_filter2_envmod": 18.0,
+                         "a_ws_type": WS_HARD, "a_ws_drive": 10.0, **env(2, 0.04, 0.15, 0.15, 0.1), **env(1, 0.002, 0.5, 0.9, 0.08), **MONO},
+                        {"a_filter1_cutoff": [("velocity", 4.0)], "a_filter2_cutoff": [("velocity", 7.0)]}),
+    # The fold: a saw and a square an octave under it, folded over on themselves by each stroke and let out again, shut low after. (Of two sines, as first drawn, it rang as a bell does: -1 on the song
+    # the other four stood at +5 to +10 on.)
+    "house lead fold": ({**osc(1), **osc(2, shape=PULSE, octave=-1, width=0.4, level=0.7), "a_filter1_type": LP12, "a_filter1_subtype": 0, "a_filter1_cutoff": hz(1800.0), "a_filter1_keytrack": 0.4,
+                         "a_ws_type": WS_FOLD, "a_ws_drive": 5.0, "a_filter2_type": LP24, "a_filter2_subtype": 1, "a_filter2_cutoff": hz(1700.0), "a_filter2_resonance": 0.2,
+                         "a_filter2_envmod": 18.0, **env(2, 0.001, 0.13, 0.15, 0.1), **env(1, 0.001, 0.45, 0.88, 0.08), **MONO},
+                        {"a_ws_drive": [("filter env", 12.0), ("velocity", 4.0)], "a_filter2_cutoff": [("velocity", 12.0)]}),
+    # The chip: an eight-bit ramp whose bits are turned over, further as it is struck, crushed to five, over a pulse an octave under.
+    "house lead chip": ({**alias(1, shape=1, wrap=0.05, mask=0.2, threshold=0.5, bits=5.0), **osc(2, shape=PULSE, width=0.35, octave=-1, level=0.5),
+                         "a_filter1_type": LP24, "a_filter1_subtype": 1, "a_filter1_cutoff": hz(1500.0), "a_filter1_resonance": 0.25, "a_filter1_envmod": 24.0,
+                         "a_filter1_keytrack": 0.5, "a_ws_type": WS_SOFT, "a_ws_drive": 11.0, "a_filter2_type": LP12, "a_filter2_subtype": 0, "a_filter2_cutoff": hz(6500.0),
+                         **env(2, 0.001, 0.12, 0.2, 0.08), **env(1, 0.001, 0.4, 0.85, 0.06), **MONO},
+                        {"a_osc1_param2": [("filter env", 0.3)], "a_filter1_cutoff": [("velocity", 16.0)]}),
+    # The scream: two saws and a square under them through a filter resonating on the note's own fourth overtone, whatever the note, and broken up.
+    "house lead scream": ({**osc(1), **osc(2, pitch=0.09, level=0.9), **osc(3, shape=PULSE, octave=-1, level=0.5),
+                           "a_filter1_type": K35, "a_filter1_subtype": 2, "a_filter1_cutoff": hz(1046.5), "a_filter1_resonance": 0.75, "a_filter1_keytrack": 1.0,
+                           "a_ws_type": WS_HARD, "a_ws_drive": 14.0, "a_filter2_type": LP12, "a_filter2_subtype": 0, "a_filter2_cutoff": hz(4600.0),
+                           **env(2, 0.002, 0.2, 0.3, 0.1), **env(1, 0.002, 0.5, 0.9, 0.08), **MONO},
+                          {"a_ws_drive": [("velocity", 6.0)]}),
+    # The reese: five saws that beat against one another, an octave's two under them, a notch going through them, clipped and shut low.
+    "house lead reese": ({**osc(1, voices=3, detune=0.12), **osc(2, octave=-1, voices=2, detune=0.06, level=0.8), **osc(3, pitch=0.06, level=0.6),
+                          "a_filter1_type": NOTCH12, "a_filter1_subtype": 0, "a_filter1_cutoff": hz(700.0), "a_filter1_resonance": 0.3, "a_lfo6_shape": 0, "a_lfo6_rate": rate(0.9),
+                          "a_lfo6_trigmode": 0, "a_ws_type": WS_HARD, "a_ws_drive": 13.0, "a_filter2_type": LP24, "a_filter2_subtype": 1, "a_filter2_cutoff": hz(1900.0),
+                          "a_filter2_envmod": 18.0, **env(2, 0.002, 0.2, 0.3, 0.1), **env(1, 0.002, 0.5, 0.9, 0.09), **MONO},
+                         {"a_filter1_cutoff": [("scene lfo1", 16.0)], "a_filter2_cutoff": [("velocity", 12.0)]}),
     # Stabs. The rave's: five saws and a pulse an octave under, driven, thrown open and shut within an eighth.
     "house stab rave": ({**osc(1, voices=5, detune=0.2), **osc(2, shape=PULSE, octave=-1, level=0.6), **osc(3, octave=1, voices=3, detune=0.15, level=0.3),
                          "a_filter1_type": LADDER, "a_filter1_subtype": 3, "a_filter1_cutoff": hz(420.0), "a_filter1_resonance": 0.28, "a_filter1_envmod": 40.0,
