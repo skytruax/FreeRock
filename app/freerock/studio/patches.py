@@ -19,12 +19,14 @@ import struct
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+import numpy as np
+
 BASE = "patches_factory/Templates/Init Saw.fxp"
 
 # Surge XT 1.3's numbers (src/common/SurgeStorage.h, ModulationSource.h; sst-filters' FilterConfiguration.h).
 CLASSIC = 0                                         # the classic oscillator: a saw, or a pulse (see `osc`)
 SINE, FM3, FM2, MODERN = 1, 5, 6, 8                 # the sine, the two FM oscillators (each a sine modulated by sines), the modern
-ALIAS = 11                                          # an eight-bit machine's wave, its bits and its masks
+WAVETABLE, WINDOW, TWIST, ALIAS = 2, 7, 10, 11      # a table of waves gone through (`table`), a wave under a window (`window`), a machine of many models (`twist`), an eight-bit machine's wave
 # The classic oscillator's Shape: 0 a saw; -1 a pulse as wide as its Width 1, a square at 0.5 (Surge's own "Init Square"
 # template). Its +1 is a double saw, at the default widths a saw an octave over the note, and no design uses it.
 # (2026-11-21, afternoon: the first two sets of designs had read -1 as a triangle and +1 as a square. Played alone and
@@ -44,7 +46,8 @@ SOURCES = {"velocity": 1, "keytrack": 2, "amp env": 15, "filter env": 16, "lfo1"
 # the design replaces, every one: see `fm3`).
 KINDS = {SINE: "patches_factory/Templates/Init Sine.fxp", FM2: "patches_factory/Templates/Init FM2.fxp",
          FM3: "patches_factory/Basses/FM Bass 5.fxp", MODERN: "patches_factory/Templates/Init Modern.fxp",
-         ALIAS: "patches_3rdparty/Altenberg/Basses/Rampage.fxp"}
+         ALIAS: "patches_3rdparty/Altenberg/Basses/Rampage.fxp", WAVETABLE: "patches_factory/Templates/Init Wavetable.fxp",
+         WINDOW: "patches_3rdparty/Jacky Ligon/Templates/Window.fxp", TWIST: "patches_3rdparty/Jacky Ligon/Templates/Twist.fxp"}
 
 
 def seconds(value: float) -> float:
@@ -114,6 +117,15 @@ def alias(n: int, *, shape: int = 1, wrap: float = 0.0, mask: float = 0.0, thres
             p + "param4": bits, p + "param5": detune, p + "param6": voices, p + "retrigger": 1, "a_level_o%d" % n: level, "a_mute_o%d" % n: 0}
 
 
+def table(n: int, file: str, *, at: float = 0.0, saturate: float = 0.0, formant: float = 0.0, bend: float = 0.0, voices: int = 1, detune: float = 0.1,
+          octave: int = 0, pitch: float = 0.0, level: float = 1.0) -> dict:
+    """The wavetable oscillator: one of Surge's tables (a path under its folders), the place in it where it stands (0 its first wave, 1 its last), each wave
+    one turn of the note, so whatever is in it is in tune."""
+    p = "a_osc%d_" % n
+    return {p + "type": WAVETABLE, p + "octave": octave, p + "pitch": pitch, p + "param0": at, p + "param1": 0.0, p + "param2": saturate, p + "param3": formant,
+            p + "param4": bend, p + "param5": detune, p + "param6": voices, p + "retrigger": 1, "a_level_o%d" % n: level, "a_mute_o%d" % n: 0, "table %d" % n: file}
+
+
 def env(which: int, attack: float, decay: float, sustain: float, release: float) -> dict:
     p = "a_env%d_" % which
     return {p + "attack": seconds(attack), p + "decay": seconds(decay), p + "sustain": sustain, p + "release": seconds(release)}
@@ -122,6 +134,41 @@ def env(which: int, attack: float, decay: float, sustain: float, release: float)
 # A lead's slow vibrato, which waits, and its one voice that slides only between notes that are tied (Surge's fingered portamento).
 VIBRATO = {"a_lfo0_shape": 0, "a_lfo0_rate": rate(5.2), "a_lfo0_delay": seconds(0.4), "a_lfo0_attack": seconds(0.5)}
 MONO = {"a_polymode": 3, "a_portamento": seconds(0.06), "polylimit": 2}
+def _scanned(file: str, *, at: float = 0.08, depth: float = 0.75, cutoff: float = 1500.0, opened: float = 22.0, drive: float = 9.0, under: float = 0.45, top: float = 5200.0,
+             soft: bool = False, glide: float = 0.06, wobble: tuple[float, float, float] | None = None) -> tuple[dict, dict]:
+    """A lead that goes through a table with every stroke: from `depth` past where it stands (`at`) back to it, with the filter, harder as it is struck harder; a pulse an octave under it; clipped, and shut at `top`.
+    `soft`: sung and not struck. `wobble`: to and fro so many times a beat, how far through the table, how many semitones of the filter."""
+    values = {**table(1, file, at=at), **osc(2, shape=PULSE, octave=-1, width=0.4, level=under), "a_filter1_type": LP24, "a_filter1_subtype": 1, "a_filter1_cutoff": hz(cutoff), "a_filter1_resonance": 0.2,
+              "a_filter1_envmod": opened, "a_filter1_keytrack": 0.5, "a_ws_type": WS_SOFT if soft else WS_HARD, "a_ws_drive": drive, "a_filter2_type": LP12, "a_filter2_subtype": 0, "a_filter2_cutoff": hz(top),
+              **(env(2, 0.03, 0.5, 0.45, 0.25) if soft else env(2, 0.002, 0.22, 0.25, 0.1)), **(env(1, 0.02, 0.5, 0.9, 0.18) if soft else env(1, 0.002, 0.5, 0.9, 0.08)),
+              **MONO, "a_portamento": seconds(glide), **(VIBRATO if soft else {})}
+    routes = {"a_osc1_param0": [("filter env", depth), ("velocity", 0.12)], "a_filter1_cutoff": [("velocity", 12.0)]}
+    if soft:
+        routes["a_pitch"] = [("lfo1", 0.16)]
+    if wobble:
+        times, through, semitones = wobble
+        values.update({"a_lfo0_shape": 0, "a_lfo0_rate": rate(2.0 * times), "a_lfo0_trigmode": 1, "sync a_lfo0_rate": 1})
+        routes["a_osc1_param0"].append(("lfo1", through))
+        routes["a_filter1_cutoff"].append(("lfo1", semitones))
+    return values, routes
+
+
+def _struck(file: str, *, at: float = 0.08, depth: float = 0.6, cutoff: float = 560.0, opened: float = 32.0) -> tuple[dict, dict]:
+    """A stab from a table: two of it a little apart and a pulse an octave under, thrown open and shut within an eighth."""
+    return ({**table(1, file, at=at, voices=2, detune=0.1), **osc(2, shape=PULSE, octave=-1, level=0.55), "a_filter1_type": LADDER, "a_filter1_subtype": 3, "a_filter1_cutoff": hz(cutoff),
+             "a_filter1_resonance": 0.2, "a_filter1_envmod": opened, "a_filter1_keytrack": 0.4, "a_ws_type": WS_SOFT, "a_ws_drive": 10.0, "a_filter2_type": LP12, "a_filter2_subtype": 0,
+             "a_filter2_cutoff": hz(4200.0), **env(2, 0.001, 0.12, 0.06, 0.1), **env(1, 0.001, 0.3, 0.12, 0.13), "polylimit": 12},
+            {"a_osc1_param0": [("filter env", depth)], "a_filter1_cutoff": [("velocity", 14.0)]})
+
+
+def _sunk(file: str, *, at: float = 0.06, depth: float = 0.5, cutoff: float = 320.0) -> tuple[dict, dict]:
+    """A bass from a table: one of it and a pulse on the note, shut low, opened by each stroke for a sixteenth or two; the sub is a track of its own (club.SUBBED)."""
+    return ({**table(1, file, at=at), **osc(2, shape=PULSE, pitch=0.05, level=0.4), "a_osc2_retrigger": 1, "a_filter1_type": LADDER, "a_filter1_subtype": 3, "a_filter1_cutoff": hz(cutoff),
+             "a_filter1_resonance": 0.18, "a_filter1_envmod": 28.0, "a_filter1_keytrack": 0.5, "a_ws_type": WS_SOFT, "a_ws_drive": 9.0,
+             **env(2, 0.002, 0.15, 0.22, 0.08), **env(1, 0.002, 0.5, 0.85, 0.07), "polylimit": 4},
+            {"a_osc1_param0": [("filter env", depth)], "a_filter1_cutoff": [("velocity", 12.0)]})
+
+
 # Each design: its parameters (on the empty saw) and its modulations, {parameter: [(source, depth), ...]}.
 # (The first two sets were measured, refined against the factory patches and judged while their squares were saws an octave
 # up and their triangles squares (see SAW, PULSE); the measurements beside them are of those. Drawn as they are described
@@ -434,6 +481,38 @@ DESIGNS: dict[str, tuple[dict, dict]] = {
                           "a_lfo6_trigmode": 0, "a_ws_type": WS_HARD, "a_ws_drive": 11.0, "a_filter2_type": LP24, "a_filter2_subtype": 1, "a_filter2_cutoff": hz(2300.0),
                           "a_filter2_envmod": 16.0, **env(2, 0.002, 0.2, 0.3, 0.1), **env(1, 0.002, 0.5, 0.9, 0.09), **MONO},
                          {"a_filter1_cutoff": [("scene lfo1", 12.0)], "a_filter2_cutoff": [("velocity", 12.0)]}),
+    # Leads of another kind (2026-11-25: "house is a little better keep iterating", "find more instruments!"): the seven hundred wavetables that came with the synthesiser, none of them played before. Thirty-six were
+    # given one riff in one drop (Bilge Pump's), the rest of it the same, and measured: hard against sweet, and how much of what they sound is in the song's key. The hardest were the ones that are hardly a note: gone
+    # all the way through by every stroke a torn saxophone's table stood at +10.9 with 54% in the key, dragged chains +10.2 with 61%, a scraped brick +9.3 with 60%, where the acid line is +11.0 with 72%. Gone a
+    # sixth of the way through, with more of the pulse an octave under them, the chains and the brick are notes again (67%, 68%), and those are what is here; five growls drawn for a bass were the sweetest (+4.4 to
+    # +5.4) and two tables not in tune in themselves (the saxophone's, a run-away pulse's) are left out. Each wave is one turn of the note, whatever it was recorded from.
+    # A filter swept over a saw, with what a filter does to its own edge:
+    "house lead sweep": _scanned("wavetables_3rdparty/Philippe Favre/Filtering/Filtering 6.wav", depth=0.4, cutoff=900.0, opened=24.0, under=0.65, top=3600.0),
+    # chains dragged:
+    "house lead chain": _scanned("wavetables_3rdparty/Emu VSCO/Misc/SUS Chains Low.wav", at=0.5, depth=0.1, under=0.8),
+    # a brick scraped along a wall:
+    "house lead brick": _scanned("wavetables_3rdparty/Emu VSCO/Misc/ENV Brick Scrape.wav", at=0.5, depth=0.18, under=0.65),
+    # a throat, far down:
+    "house lead gullet": _scanned("wavetables_3rdparty/Layzer/Vocal/Vocal 18.wt", at=0.1, depth=0.18, under=0.65),
+    # the first digital synthesiser's own, glass that has been broken:
+    "house lead shard": _scanned("wavetables_3rdparty/Layzer/PPG/PPG 32.wt", at=0.5, depth=0.18, under=0.65),
+    # a mouth, opened all the way:
+    "house lead maw": _scanned("wavetables_3rdparty/Layzer/Vocal/Vocal 8.wt", under=0.5),
+    # a formant pushed up over a clock that stays:
+    "house lead charge": _scanned("wavetables_3rdparty/A.Liv/Crust PD/Harmonic7.wav", at=0.1, depth=0.18, under=0.65),
+    # something that croaks:
+    "house lead croak": _scanned("wavetables_3rdparty/Qonundrai/Articulate Croak.wav", under=0.5),
+    # one wave turning into another:
+    "house lead shift": _scanned("wavetables_3rdparty/Layzer/Morphs/Morph 17.wt", at=0.1, depth=0.18, under=0.65),
+    # the jaw of a machine, a robot's throat, a gremlin: what joins those or sings their themes.
+    "house lead jaw": _scanned("wavetables_3rdparty/A.Liv/Exocat's Metalodon/Exocat's Metalodon 1.wav", depth=0.6, under=0.5),
+    "house lead droid": _scanned("wavetables_3rdparty/TNMG/Humanoid.wav", depth=0.35, under=0.6),
+    "house lead gremlin": _scanned("wavetables_3rdparty/Qonundrai/Gremlin Mode.wav", depth=0.4, cutoff=900.0, opened=24.0, under=0.65, top=3600.0),
+    # The wobble: a growl's table gone to and fro twice in a beat, with the filter, for a few long notes to be held through (house.HOOKS_OF, "glide").
+    "house lead wobble": _scanned("wavetables_3rdparty/Venus Theory/Growl/VT Growl 7.wav", at=0.45, depth=0.15, cutoff=1100.0, opened=10.0, drive=11.0, under=0.6, wobble=(2.0, 0.4, 15.0)),
+    # Two for a calm act: a low "ah" that is nobody's, hummed; a trombone that buzzes, slid from note to note.
+    "house lead murmur": _scanned("wavetables/Waldorf/Male AhPG.wt", at=0.1, depth=0.35, cutoff=750.0, opened=12.0, drive=5.0, under=0.3, top=3600.0, soft=True),
+    "house lead slide": _scanned("wavetables_3rdparty/Emu VSCO/Brass/SUS Trombone Buzzy.wav", at=0.2, depth=0.15, cutoff=900.0, opened=13.0, drive=6.0, under=0.4, top=3800.0, soft=True, glide=0.11),
     # Stabs. The rave's: five saws and a pulse an octave under, driven, thrown open and shut within an eighth.
     "house stab rave": ({**osc(1, voices=5, detune=0.2), **osc(2, shape=PULSE, octave=-1, level=0.6), **osc(3, octave=1, voices=3, detune=0.15, level=0.3),
                          "a_filter1_type": LADDER, "a_filter1_subtype": 3, "a_filter1_cutoff": hz(420.0), "a_filter1_resonance": 0.28, "a_filter1_envmod": 40.0,
@@ -452,6 +531,18 @@ DESIGNS: dict[str, tuple[dict, dict]] = {
                         "a_filter1_keytrack": 0.3, "a_ws_type": WS_SOFT, "a_ws_drive": 7.0, "a_lfo6_shape": 0, "a_lfo6_rate": rate(0.15), "a_lfo6_trigmode": 0,
                         **env(2, 0.002, 0.2, 0.15, 0.3), **env(1, 0.002, 0.4, 0.25, 0.45), "polylimit": 12},
                        {"a_filter1_cutoff": [("scene lfo1", 7.0), ("velocity", 10.0)]}),
+    # Three stabs of the tables', and three basses and a pad (2026-11-25): a trombone's splat struck as chords; the chains', short; the digital's. A bass whose middle is a machine's jaw, one with a crust on it, one that
+    # rasps; voices that are none, held under everything.
+    "house stab bone": _struck("wavetables_3rdparty/Emu VSCO/Brass/STAC Trombone Splat.wav", depth=0.15, cutoff=480.0, opened=26.0),
+    "house stab chain": _struck("wavetables_3rdparty/Emu VSCO/Misc/SUS Chains Low.wav", at=0.5, depth=0.15, cutoff=560.0, opened=28.0),
+    "house stab shard": _struck("wavetables_3rdparty/Layzer/PPG/PPG 32.wt", at=0.1, depth=0.15, cutoff=520.0, opened=28.0),
+    "house bass jaw": _sunk("wavetables_3rdparty/A.Liv/Exocat's Metalodon/Exocat's Metalodon 1.wav"),
+    "house bass crust": _sunk("wavetables_3rdparty/A.Liv/Crust Wave/Crust Wave 1.wav", cutoff=420.0),
+    "house bass rasp": _sunk("wavetables_3rdparty/Qonundrai/Abrasive Warmth.wav", cutoff=360.0, depth=0.6),
+    "house pad crypt": ({**table(1, "wavetables/Waldorf/Male AhPG.wt", at=0.25, voices=3, detune=0.12), **osc(2, octave=-1, voices=2, detune=0.08, level=0.35),
+                         "a_filter1_type": LP24, "a_filter1_subtype": 0, "a_filter1_cutoff": hz(640.0), "a_filter1_resonance": 0.15, "a_filter1_keytrack": 0.4, "a_ws_type": WS_SOFT, "a_ws_drive": 6.0,
+                         "a_lfo6_shape": 0, "a_lfo6_rate": rate(0.06), "a_lfo6_trigmode": 0, **env(1, 0.9, 1.0, 0.9, 1.5), "polylimit": 12},
+                        {"a_osc1_param0": [("scene lfo1", 0.2)], "a_filter1_cutoff": [("scene lfo1", 6.0)]}),
     # The slab (2026-11-24, 22:38: the monolith's second stab was a brass section's, and a fifth of it sounded its own overtone, a major second, as loud as the root: Boiler Room II's 63% in the key of it):
     # saws and a square an octave under, shut at 420 Hz, opened two octaves by the stroke for a tenth of a second: a weight put down, little of it over 1.5 kHz.
     "house stab slab": ({**osc(1, voices=3, detune=0.12), **osc(2, shape=PULSE, octave=-1, level=0.7), **osc(3, shape=PULSE, width=0.3, pitch=-0.06, level=0.4),
@@ -571,6 +662,11 @@ def xml(name: str, surge: Path) -> str:
             node.attrib.clear()
             node.attrib.update(their.attrib)
     for key, value in values.items():
+        if key.startswith("table "):
+            continue                                     # (a table's waves go after the XML: `state`)
+        if key.startswith("sync "):
+            params.find(key[5:]).set("temposync", "1")   # (an LFO that goes with the song: its rate is what it would be at 120)
+            continue
         node = params.find(key)
         if node is None:
             raise KeyError("%s: Surge's patch has no parameter %r" % (name, key))
@@ -584,9 +680,56 @@ def xml(name: str, surge: Path) -> str:
     return '<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>' + ET.tostring(root, encoding="unicode")
 
 
+WAVES = 32            # how many of a table's waves a design keeps, spread over the whole of it (a table may have 256)
+
+
+def waves(path: Path, most: int = WAVES) -> bytes:
+    """A wavetable file as Surge keeps one inside a patch: its header and its waves. A `.wt` has its own header; a `.wav` says how long a wave is in a chunk of its own (Surge's, Serum's
+    or Hive's). The waves are brought to one loudness with nothing under them, so that going through the table changes the colour and not the level."""
+    data = path.read_bytes()
+    if data[:4] == b"vawt":
+        size, count, flags = struct.unpack("<IHH", data[4:12])
+        kind = "<i2" if flags & 4 else "<f4"
+        audio = np.frombuffer(data, kind, size * count, 12).astype(np.float64)
+    elif data[:4] == b"RIFF":
+        at, size, form, depth, body = 12, 2048, 1, 16, b""
+        while at + 8 <= len(data):
+            tag, length = data[at:at + 4], struct.unpack("<I", data[at + 4:at + 8])[0]
+            chunk = data[at + 8:at + 8 + length]
+            if tag == b"fmt ":
+                form, _, _, _, _, depth = struct.unpack("<HHIIHH", chunk[:16])
+            elif tag in (b"srge", b"srgo"):
+                size = struct.unpack("<I", chunk[4:8])[0]
+            elif tag == b"clm ":
+                size = int(chunk[3:].split()[0])
+            elif tag == b"data":
+                body = chunk
+            at += 8 + length + (length & 1)
+        kind = {(1, 16): "<i2", (3, 32): "<f4"}.get((form, depth))
+        if kind is None:
+            raise ValueError("%s: waves of format %d, %d bits" % (path, form, depth))
+        audio = np.frombuffer(body, kind, len(body) // (depth // 8)).astype(np.float64)
+        count = len(audio) // size
+    else:
+        raise ValueError("%s is not a wavetable" % path)
+    if count < 1 or size < 2 or size > 4096 or size & (size - 1):
+        raise ValueError("%s: %d waves of %d samples" % (path, count, size))
+    rows = audio[:size * count].reshape(count, size)
+    if count > most:
+        rows = rows[np.linspace(0, count - 1, most).round().astype(int)]
+    rows = rows - rows.mean(axis=1, keepdims=True)
+    loud = np.sqrt((rows ** 2).mean(axis=1, keepdims=True))
+    rows = rows / np.maximum(loud, 0.1 * loud.max())
+    rows = 0.98 * rows / np.abs(rows).max()
+    return struct.pack("<4sIHH", b"vawt", size, len(rows), 0) + rows.astype("<f4").tobytes()
+
+
 def state(name: str, surge: Path) -> bytes:
-    """What Surge keeps as its state for the design: its header with the XML's new size, the XML, and the base's
-    wavetables (none in the empty saw)."""
+    """What Surge keeps as its state for the design: its header with the XML's new size and its tables', the XML, and the waves of its tables (none in the empty saw, and none in a design that has no table)."""
     sizes, _, tail = _split((surge / BASE).read_bytes())
     body = xml(name, surge).encode("utf-8")
+    values = DESIGNS[name][0]
+    blocks = [waves(surge / values["table %d" % n]) if "table %d" % n in values else b"" for n in (1, 2, 3)]
+    if any(blocks):
+        sizes, tail = struct.pack("<6I", *[len(block) for block in blocks], 0, 0, 0), b"".join(blocks)
     return b"sub3" + struct.pack("<I", len(body)) + sizes + body + tail

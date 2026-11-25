@@ -618,11 +618,14 @@ HOUSE_LEADS: dict[str, tuple[tuple[str, float], ...]] = {
     "house lead bow": (("bow", 0.0),), "house lead tape": (("tape", 0.0),),
     "house lead talk": (("talk", 0.0),), "house lead fold": (("fold", 0.0),), "house lead chip": (("chip", 0.0),),
     "house lead scream": (("scream", 0.0),), "house lead reese": (("reese", 0.0),),
+    # (2026-11-25, of the wavetables)
+    **{"house lead " + name: ((name, 0.0),) for name in ("sweep", "chain", "brick", "gullet", "shard", "maw", "charge", "croak", "shift", "jaw", "droid", "gremlin", "wobble", "murmur", "slide")},
 }
 # A hard song's stabs and basses (2026-11-24; patches.DESIGNS), in the same way.
 HEARTS = ("heart lead", "heart pluck", "heart stab", "heart pad")          # (the bowed synthesiser's, programs.PROGRAMS: shaped in it, as these are in theirs)
 HOUSE_HARD = ("house stab rave", "house stab clang", "house stab dub", "house bass acid", "house bass grind", "house pad drone",
-              "house keys ash", "house keys bone", "house pad breath", "house bass tube", "house stab slab")      # (...and the calm ones', the same evening; and the monolith's)
+              "house keys ash", "house keys bone", "house pad breath", "house bass tube", "house stab slab",      # (...and the calm ones', the same evening; and the monolith's)
+              "house stab bone", "house stab chain", "house stab shard", "house bass jaw", "house bass crust", "house bass rasp", "house pad crypt")      # (2026-11-25, of the wavetables)
 
 
 def _surge_player(patch: str) -> str:
@@ -1861,9 +1864,8 @@ def _lines(voice: Voice, title: str, bpm: float, *, taste: float = 1.0, room: fl
         own = AMPS.get(voice.instrument)                 # (one that goes through an amplifier of the studio's own, held together by it: muse.SQUEEZE)
         hand = own.hand if own else HANDS.get(voice.instrument, 0.0)
         follow = [(note.start, (note.loud / 0.75) ** hand) for note in sorted(notes, key=lambda each: each.start)] if hand else []
-        squeeze_by = muse.SQUEEZE.get(voice.instrument, 0.0)
-        if squeeze_by:
-            notes = [Note(note.start, note.length, note.pitch, min(note.loud + (1.0 - note.loud) * squeeze_by, 1.0)) for note in notes]
+        if voice.instrument in muse.SQUEEZE:
+            notes = [Note(note.start, note.length, note.pitch, muse.held_together(voice.instrument, note.loud)) for note in notes]
         effects = [turned(level(player.name)["before"])] + (synth_chain(player.name, bpm) if synth else chain(player.name, bpm)) + (own.effects(bpm) if own else []) + placed
         out.append(desk.Line("%s: %s" % (title, name), track_of(player.name, slurs), notes, volume=_db(level(player.name)["after"] + player.gain) * taste,
                              pan=voice.pan if player.seat is None else player.seat,

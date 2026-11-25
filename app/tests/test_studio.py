@@ -2230,7 +2230,7 @@ def test_a_light_bands_bass_is_given_presence(monkeypatch):
     # (2026-11-22, night: the light bands' bass, MuseScore's electric bass played softly, 3.7 to 13 dB thin in its middle in
     # the studies of the day's new Knight families; judged in for the light band's alone, bass1.) A light band's bass, picked
     # or fretless, has LIGHT_BAND_BASS dB more at 800 Hz in an equaliser of its own; a heavy band's and an orchestra's none.
-    from freerock.studio import build
+    from freerock.studio import build, muse
     assert build.LIGHT_BAND_BASS == 4.0
     light = build.tamed_tone("picked bass", "picked bass", band=True, channel="bass", light=True)
     assert light and " 800 4 1.2 " in light
@@ -2241,6 +2241,10 @@ def test_a_light_bands_bass_is_given_presence(monkeypatch):
     for tuba in ("stomp tuba", "war tuba", "line tuba"):
         assert build.tamed_tone("picked bass", tuba, band=True, channel="bass") and build.tamed_tone("picked bass", tuba, band=False, channel="bass") is None
         assert tuba in {each["picked bass"] for each in orchestra.BANDS.values()}, tuba
+    # ...the marching one's furthest, and played softer than its brass; a growling bass guitar's growl as well.
+    assert build.tamed_tone("picked bass", "line tuba", band=True, channel="bass") != build.tamed_tone("picked bass", "war tuba", band=True, channel="bass")
+    assert muse.held_together("line tuba", 0.95) < 0.72 and muse.held_together("line tuba", 0.2) > 0.35 and muse.held_together("line euphonium", 0.3) > 0.7 and muse.held_together("tuba", 0.3) == 0.3
+    assert build.tamed_tone("picked bass", "growly bass", band=True, channel="bass") and build.tamed_tone("picked bass", "growly bass", band=True, channel="lead") != build.tamed_tone("picked bass", "growly bass", band=True, channel="bass")
     monkeypatch.setattr(build, "LIGHT_BAND_BASS", 0.0)
     assert build.tamed_tone("picked bass", "picked bass", band=True, channel="bass", light=True) is None
 

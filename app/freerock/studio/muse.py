@@ -705,6 +705,13 @@ SQUEEZE: dict[str, float] = {
     "upright bass": 0.5, "wash bass": 0.5, "bar vibes": 0.6, "front mandolin": 0.6, "riff trombones": 0.65, "riff bassoons": 0.65, "guitar banjo": 0.5,
     "line tuba": 0.6, "line euphonium": 0.65, "line horns": 0.5,
 }
+# ...and at what strength, where that is not full: a tuba held near full strength is brass and no bass, 18 to 25 dB over the liked stems' bass from 450 Hz to 7 kHz (the drumline's first three songs, 2026-11-25).
+HELD_AT: dict[str, float] = {"line tuba": 0.5}
+
+
+def held_together(written: str, loud: float) -> float:
+    """How hard a note of an instrument is struck, held as far as it is (SQUEEZE) to the strength it is held at."""
+    return min(max(loud + (HELD_AT.get(written, 1.0) - loud) * SQUEEZE.get(written, 0.0), 0.0), 1.0)
 
 
 def shared(written: str, notes: list[Note], seed: int = 0) -> list[tuple[str, str, list[Note], str | None]]:
@@ -712,9 +719,8 @@ def shared(written: str, notes: list[Note], seed: int = 0) -> list[tuple[str, st
     notes, the Muse Sound that plays it: the one set down for the part, or the piece's own
     choice by its `seed`, or None for the one MuseScore picks)."""
     out = []
-    squeeze = SQUEEZE.get(written, 0.0)
-    if squeeze:
-        notes = [replace(note, loud=min(note.loud + (1.0 - note.loud) * squeeze, 1.0)) for note in notes]
+    if written in SQUEEZE:
+        notes = [replace(note, loud=held_together(written, note.loud)) for note in notes]
     for each in PARTS[written]:
         part, low, high, way = each[:4]
         mine = [note for note in notes if low <= note.pitch <= high]

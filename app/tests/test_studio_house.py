@@ -105,7 +105,10 @@ def test_houses_own_patches_are_written_as_designed():
         assert root.find("meta").get("name") == name
         params = root.find("parameters")
         for key, value in values.items():
-            assert abs(float(params.find(key).get("value")) - value) < 1e-5, (name, key)
+            if key.startswith("sync "):
+                assert params.find(key[5:]).get("temposync") == "1", (name, key)
+            elif not key.startswith("table "):
+                assert abs(float(params.find(key).get("value")) - value) < 1e-5, (name, key)
         for key, wanted in routes.items():
             got = [(int(each.get("source")), float(each.get("depth"))) for each in params.find(key).findall("modrouting")]
             assert got == [(patches.SOURCES[source], depth) for source, depth in wanted], (name, key)
@@ -114,6 +117,49 @@ def test_houses_own_patches_are_written_as_designed():
     pluck, pad = patches.DESIGNS["house pluck"][0], patches.DESIGNS["house pad"][0]
     assert pluck["a_env1_sustain"] == 0.0 and pluck["a_env2_sustain"] == 0.0 and pluck["a_filter1_envmod"] >= 36.0
     assert pad["a_env1_attack"] >= patches.seconds(0.5) and pad["a_env1_release"] >= patches.seconds(1.5)
+
+
+def test_a_wavetable_is_read_whatever_wrote_it_and_goes_with_its_patch(tmp_path):
+    # (2026-11-25: "house is a little better keep iterating", "find more instruments!": seven hundred wavetables came with the synthesiser and none was played.)
+    import struct
+    import numpy as np
+    from freerock.studio import patches
+    turn = np.arange(64) / 64.0
+    rows = np.stack([0.15 + (0.2 + 0.005 * k) * np.sin(2 * np.pi * (1 + k // 4) * turn) for k in range(80)])
+    plain = tmp_path / "plain.wt"
+    plain.write_bytes(struct.pack("<4sIHH", b"vawt", 64, 80, 0) + rows.astype("<f4").tobytes())
+    short = tmp_path / "short.wt"
+    short.write_bytes(struct.pack("<4sIHH", b"vawt", 64, 3, 4) + (rows[:3] * 16384).astype("<i2").tobytes())
+
+    def riff(kind: int, depth: int, chunk: bytes, body: bytes) -> bytes:
+        form = struct.pack("<HHIIHH", kind, 1, 44100, 44100 * depth // 8, depth // 8, depth)
+        parts = b"".join(tag + struct.pack("<I", len(data)) + data + b"\0" * (len(data) & 1) for tag, data in ((b"fmt ", form), (chunk[:4], chunk[4:]), (b"data", body)))
+        return b"RIFF" + struct.pack("<I", 4 + len(parts)) + b"WAVE" + parts
+    serum, hive = tmp_path / "serum.wav", tmp_path / "surge.wav"
+    serum.write_bytes(riff(1, 16, b"clm <!>64 00000000 wavetable", (rows * 32767).astype("<i2").tobytes()))
+    hive.write_bytes(riff(3, 32, b"srge" + struct.pack("<II", 1, 64), rows.astype("<f4").tobytes()))
+    for path in (plain, short, serum, hive):
+        data = patches.waves(path)
+        tag, size, count, flags = struct.unpack("<4sIHH", data[:12])
+        got = np.frombuffer(data, "<f4", size * count, 12).reshape(count, size)
+        assert (tag, size, flags) == (b"vawt", 64, 0) and count == (3 if path is short else patches.WAVES) and len(data) == 12 + 4 * size * count, path
+        assert abs(np.abs(got).max() - 0.98) < 1e-5 and np.abs(got.mean(axis=1)).max() < 1e-5, "nothing under it, and not over its top"
+        loud = np.sqrt((got ** 2).mean(axis=1))
+        assert loud.max() / loud.min() < 1.01, "going through it changes its colour and not its level"
+        overtone = lambda wave: int(np.argmax(np.abs(np.fft.rfft(wave))))      # noqa: E731
+        assert overtone(got[0]) == 1 and overtone(got[-1]) == (1 if path is short else 20), "from its first wave to its last"
+    with pytest.raises(ValueError):
+        patches.waves(Path(__file__))
+    # A design that has a table says which, and its state has the waves after the XML, their size in its header; one that has none is as it was.
+    if _surge_there():
+        from freerock.studio import desk
+        assert any(key.startswith("table ") for values, _ in patches.DESIGNS.values() for key in values)
+        for name in patches.DESIGNS:
+            state = patches.state(name, desk.SURGE)
+            sizes = struct.unpack("<6I", state[8:32])
+            tables = [n for n in (1, 2, 3) if "table %d" % n in patches.DESIGNS[name][0]]
+            assert [n for n in (1, 2, 3) if sizes[n - 1]] == tables and not any(sizes[3:]), name
+            assert len(state) == 32 + struct.unpack("<I", state[4:8])[0] + sum(sizes), name
 
 
 def test_every_act_is_played_by_something_the_desk_knows_and_none_by_an_organ():
@@ -162,7 +208,7 @@ def test_a_hard_song_has_nothing_sweet_in_it_and_goes_at_its_own_pace():
     assert len(hard) >= 10 and len({fam.bpm for fam in hard}) >= 6 and all(118 <= fam.bpm <= 132 for fam in hard)
     assert all(fam.loop.startswith("H") and not fam.light and club.ACTS[fam.act].drive for fam in hard)
     late = [fam for fam in house.PLAN if fam.palette == "after-hours"]
-    calm = club.ACTS_FOR["calm"] + club.ACTS_FOR["after"]
+    calm = club.ACTS_FOR["calm"] + club.ACTS_FOR["after"] + club.ACTS_FOR["late"]
     assert late and all(fam.role in house.CALM_ROLES and fam.loop.startswith("H") and fam.bpm <= 110 and fam.act in calm for fam in late)
     assert all(fam.bpm == 110 and not fam.act for fam in house.PLAN if fam not in hard and fam not in late)
     for fam in late:
@@ -171,7 +217,7 @@ def test_a_hard_song_has_nothing_sweet_in_it_and_goes_at_its_own_pace():
         assert not set(sheet.parts["drums"]) & {"maracas", "snap", "chime", "tambourine", "cabasa"}, (fam.name, set(sheet.parts["drums"]))
         sung = [note.pitch for part in sheet.parts["lead"].values() for note in part.notes]
         assert sung and sum(sung) / len(sung) < 66, (fam.name, sum(sung) / len(sung))
-        kin = club.ACTS_FOR["after" if fam.act in club.ACTS_FOR["after"] else "calm"]
+        kin = club.ACTS_FOR[next(each for each in ("after", "late", "calm") if fam.act in club.ACTS_FOR[each])]
         assert club.act_of(fam, 2) != fam.act and club.act_of(fam, 2) in kin
     before = (house.BPM, house.BEAT, house.STEP, house.BAR, house.BAR_FRAMES, club.BEAT)
     for fam in hard[::4]:
@@ -196,14 +242,81 @@ def test_a_hard_song_has_nothing_sweet_in_it_and_goes_at_its_own_pace():
                 beats = [note for note in sheet.parts["drums"]["tom_low"].notes if a - 0.05 <= note.start < b - 0.05]
                 assert not rolled and len(beats) == section["bars"] * 4 - 2 and beats[-1].loud > beats[0].loud, (fam.name, len(rolled), len(beats))
         assert not any(air["kind"] == "climb" for air in sheet.airs)
-        # A riff hammered on one note: more of it on one pitch than on all the others.
+        # A riff hammered on one note (where it is not made another way: HOOKS_OF): more of it on one pitch than on all the others.
         phrase = house.Take(fam, 1).tune
         assert phrase.riff and all(note.at == int(note.at) and note.length >= 1 for note in phrase.notes)
         counted = [sum(note.degree == each for note in phrase.idea) for each in {note.degree for note in phrase.idea}]
-        assert max(counted) * 2 > sum(counted) and len(counted) >= 3, (fam.name, counted)
+        assert fam.hook or (max(counted) * 2 > sum(counted) and len(counted) >= 3), (fam.name, counted)
         # Its chords stand low, a root and its fifth.
         stabs = [note.pitch for part in sheet.parts["rhythm"].values() for note in part.notes]
         assert stabs and max(stabs) <= 79 and sum(stabs) / len(stabs) < 62, (fam.name, max(stabs), sum(stabs) / len(stabs))
+
+
+def test_a_hard_riff_is_made_six_ways_besides_the_hammer():
+    """(2026-11-25, read through: every hard song hammered one note.)"""
+    import dataclasses
+    import random
+    given = [fam.hook for fam in house.PLAN if fam.palette.startswith("hard")]
+    assert set(given) == set(house.HOOKS_OF) and all(fam.hook in house.HOOKS_OF and (not fam.hook or fam.name in house.LATER) for fam in house.PLAN)
+    assert not any(fam.hook for fam in house.PLAN if not house.PALETTES[fam.palette].get("low") or fam.role in house.CALM_ROLES)
+    for hook in house.HOOKS_OF[1:]:
+        seen = set()
+        for seed, loop in ((seed, loop) for seed in range(6) for loop in ("H1", "H3", "H5", "H7")):
+            fam = dataclasses.replace(house.family("coast-09"), loop=loop, hook=hook)
+            changes = house.Changes(fam)
+            made = lambda: house.Tune(changes, random.Random(seed), home=55, riff=True, hammer=True, hook=hook)      # noqa: E731
+            tune, again = made(), made()
+            assert [dataclasses.astuple(note) for note in tune.notes] == [dataclasses.astuple(note) for note in again.notes], "the same number, the same riff"
+            seen.add(tuple((note.at, note.degree) for note in tune.idea))
+            assert tune.notes == tune.first + tune.second and all(0 <= note.at < 120 for note in tune.first) and all(128 <= note.at < 248 for note in tune.second), (hook, "half a bar's breath")
+            assert all(note.at == int(note.at) and note.length >= 1 and tune.low - 3 <= note.degree <= tune.high + 3 for note in tune.notes)
+            assert all(note.voice in (0, 1) for note in tune.notes) and (hook == "call") == any(note.voice for note in tune.notes)
+            for row in (tune.first, tune.second):
+                for voice in (0, 1):
+                    mine = sorted((note for note in row if note.voice == voice), key=lambda note: note.at)
+                    assert all(b.at - a.at >= 1 for a, b in zip(mine, mine[1:])), (hook, "one note at a time")
+                    # A note that runs on into the next (it slides) is written half a sixteenth past it, and no other reaches it.
+                    for a, b in zip(mine, mine[1:]):
+                        assert a.length * (0.9 if a.length >= 4 else 0.96) <= b.at - a.at + 0.51, (hook, a, b)
+            strokes = [note.at for note in tune.idea]
+            struck = lambda a, b: [(note.at - a, note.degree) for note in tune.first if a <= note.at < b]      # noqa: E731
+            if hook == "line":
+                steps = [at for at, _ in struck(0, 16)]
+                assert 10 <= len(steps) <= 13 and struck(0, 16) == struck(16, 32) and all([at for at, _ in struck(16 * bar, 16 * bar + 16)] == steps for bar in range(7)), "a machine's sixteen steps, over and over"
+                assert struck(48, 60) == struck(32, 44) and struck(48, 64) != struck(32, 48), "its end is turned every fourth bar"
+                assert any(note.length > 1 for note in tune.idea), "some of it slides"
+            elif hook == "glide":
+                assert 4 <= len(strokes) <= 6 and max(note.length for note in tune.idea) >= 6 and any(note.length != int(note.length) for note in tune.idea)
+            elif hook == "call":
+                low, high = [note for note in tune.idea if not note.voice], [note for note in tune.idea if note.voice]
+                assert low and high and max(note.at for note in low) < 16 <= min(note.at for note in high), "one bar each"
+                assert min(note.degree for note in high) > max(note.degree for note in low[:1]), "the answer is over it"
+            elif hook == "power":
+                assert 6 <= len(strokes) <= 14 and sum(note.length for note in tune.idea) < 32, "a riff with holes in it"
+            elif hook == "toll":
+                assert 2 <= len(strokes) <= 6
+            else:
+                cell = [at for at in strokes if at < 16]
+                assert len(strokes) >= 14 and any((at + 16 in strokes) != (at in strokes) for at in range(16)), ("a cell that does not fit the bar", cell)
+        assert len(seen) >= 4, (hook, "drawn, not written once")
+
+
+def test_a_riff_that_is_called_is_answered_by_the_second_synth():
+    from freerock.studio import club
+    for fam in (fam for fam in house.PLAN if fam.hook):
+        sheet = club.write(fam.name, 1)
+        act = club.ACTS[sheet.about["sounds"]]
+        assert sheet.about["sounds"] == fam.act and fam.act in club.ACTS_FOR["found"]
+        by = {part.instrument: part.notes for part in sheet.parts["lead"].values()}
+        drops = [(section["first"] * 4.0, (section["first"] + section["bars"]) * 4.0) for section in sheet.form if section["story"] == "moment"]
+        inside = lambda notes: [note for note in notes if any(a - 0.05 <= note.start < b for a, b in drops)]      # noqa: E731
+        # The riff's own voice says it in the themes and the drops; what joins it is heard in the drops alone.
+        assert act.big in by and 0 < len(inside(by[act.big])) < len(by[act.big]), (fam.name, {name: len(notes) for name, notes in by.items()})
+        assert act.late not in by or len(inside(by[act.late])) == len(by[act.late]), fam.name
+        if fam.hook == "call":
+            assert all((note.start + 0.05) % 8.0 < 4.0 for note in inside(by[act.big])), "a bar of it"
+            answers = [note for note in by[act.late] if (note.start + 0.05) % 8.0 >= 4.0]
+            assert answers and min(note.pitch for note in answers) > min(note.pitch for note in by[act.big]), "and a bar of the other"
 
 
 def test_the_dark_calm_songs_are_played_by_the_acts_that_are_not_sweet():
@@ -211,7 +324,7 @@ def test_the_dark_calm_songs_are_played_by_the_acts_that_are_not_sweet():
     from freerock.studio import club, sounds
     after = club.ACTS_FOR["after"]
     assert len(after) >= 2 and not set(after) & {act for kind, acts in club.ACTS_FOR.items() if kind != "after" for act in acts}
-    for name in after:
+    for name in after + club.ACTS_FOR["late"]:
         act = club.ACTS[name]
         assert 0.0 < act.drive <= 0.5 and act.machine in ("808", "606")
         assert not {act.big, act.late, act.soft, *act.keys, *act.pad} & {"house pluck", "house pad warm", "house pad super", "house bell", "house glass", "rhodes", "electric piano"}
@@ -570,6 +683,8 @@ def test_the_plan_covers_every_kind_of_place_and_moment():
         assert all(name in house.PERCUSSION for name in palette["perc"])
     assert len({(fam.tonic, fam.loop) for fam in house.PLAN}) >= 40, "the families are too alike"
     assert len({fam.tonic for fam in house.PLAN}) == 12
+    titles = [fam.title for fam in house.PLAN]
+    assert len(set(titles)) == len(titles), "a title is one family's: %s" % sorted({title for title in titles if titles.count(title) > 1})      # (2026-11-25: two of the tenth round's had been an earlier song's)
 
 
 def test_a_tune_is_an_idea_stated_answered_and_closed_on_the_chords():
@@ -942,6 +1057,23 @@ def test_the_own_fm_bass_middle_is_cut(monkeypatch, tmp_path):
     assert " 600 " not in bands(None)
 
 
+def test_a_played_bass_is_left_open(monkeypatch, tmp_path):
+    """(2026-11-25: the gallows' fretless, 6 and 13 dB thin in its middle through what was made to tame a synthesiser's.)"""
+    from freerock.studio import club
+    heard = club.Heard()
+    heard.notes[("bass", "bass", "saw")].append((0.0, house.BAR, 40.0, 0.5, 0.0, 1.0))
+    heard.played[("bass", "bass", "saw")] = "fretless"
+
+    def tone() -> str:
+        out, _ = club.lines(heard, 1, tmp_path)
+        return next(effect for line in out["bass"] if "saw" in line.name and "sub" not in line.name for effect in line.effects if "channel_eq" in effect and " 650 4 0.9 " in effect)
+    monkeypatch.setattr(club.muse, "available", lambda: True)
+    assert tone()
+    heard.played[("bass", "bass", "saw")] = "house bass wide"
+    with pytest.raises(StopIteration):
+        tone()
+
+
 def test_the_own_fm_bass_can_be_held_lighter():
     # (2026-11-23, night: still 4.6 to 7.9 dB heavy over the liked stems at 450 to 900 Hz after the desk's cut.) The FM bass
     # held lighter is a design of its own, its first modulation, its feedback and the waveshaper's drive less and nothing
@@ -1104,7 +1236,7 @@ def test_a_riff_is_a_cell_of_the_chords_notes_said_again_with_a_shape_of_its_own
     assert riffs >= 20
     # A hard song's: one note more than half of its strokes, three different notes at least, and never more than an octave and a step from the hammered one; its second
     # eight bars strike somewhere the first do not.
-    hammered = [house.Take(fam, 1).tune for fam in house.PLAN if house.PALETTES[fam.palette].get("low") and fam.role not in house.CALM_ROLES]
+    hammered = [house.Take(fam, 1).tune for fam in house.PLAN if house.PALETTES[fam.palette].get("low") and fam.role not in house.CALM_ROLES and not fam.hook]
     assert len(hammered) >= 20
     for tune in hammered:
         degrees = [note.degree for note in tune.idea]

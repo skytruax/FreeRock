@@ -146,6 +146,19 @@ ACTS: dict[str, Act] = {
                   cut=("house lead talk", "house lead razor")),
     "quarry": Act("house lead fold", "house lead ladder", "house lead growl", ("house stab slab",), ("house bass wide",), ("house pad drone",), "808", drive=0.75),
     "tunnel": Act("house lead reese", "house lead sync", "house lead reed", ("house stab dub",), ("house bass wide",), ("house pad drone",), "606", drive=0.7),
+    # (2026-11-25: ten led by what was found in the synthesiser's own wavetables, and two calm ones; patches.DESIGNS says how they were chosen. What joins each, its stabs, its bass and its pad are no two of them alike.)
+    "drydock": Act("house lead chain", "house lead fifth", "house lead droid", ("house stab bone",), ("house bass jaw",), ("house pad drone",), "909", drive=0.75),
+    "smelter": Act("house lead sweep", "house lead ladder", "house lead jaw", ("house stab slab",), ("house bass crust",), ("house pad drone",), "606", drive=0.75),
+    "brickyard": Act("house lead brick", "house lead hoover", "house lead growl", ("house stab clang",), ("house bass rasp",), ("house pad hollow",), "808", drive=0.75),
+    "catacomb": Act("house lead gullet", "house lead gremlin", "house lead vox", ("house stab dub",), ("house bass wide",), ("house pad crypt",), "808", drive=0.7),
+    "icehouse": Act("house lead shard", "house lead sync", "house lead reed", ("house stab shard",), ("house bass square",), ("house pad hollow",), "606", drive=0.65),
+    "faultline": Act("house lead maw", "house lead razor", "house lead droid", ("house stab rave",), ("house bass grind",), ("house pad drone",), "909", drive=0.7),
+    "powerhouse": Act("house lead charge", "house lead squelch", "house lead jaw", ("house stab chain",), ("house bass acid",), ("house pad drone",), "909", drive=0.75),
+    "sluice": Act("house lead croak", "house lead fold", "house lead growl", ("house stab bone",), ("house bass rasp",), ("house pad crypt",), "808", drive=0.7),
+    "pressroom": Act("house lead shift", "house lead gremlin", "house lead reed", ("house stab chain",), ("house bass crust",), ("house pad hollow",), "606", drive=0.7),
+    "millrace": Act("house lead wobble", "house lead croak", "house lead droid", ("house stab shard",), ("house bass jaw",), ("house pad drone",), "909", drive=0.7),
+    "flophouse": Act("house lead murmur", "house lead smoke", "tenor sax", ("upright piano",), ("upright bass",), ("house pad crypt",), "606", drive=0.3),
+    "pumphouse": Act("house lead slide", "house lead horn", "contrabassoon", ("fuzz wurly",), ("round bass",), ("house pad drone",), "808", drive=0.35),
 }
 # The acts a moment may have, in the order they are given out (a calm one's lead is soft).
 # (2026-11-24, 19:35: every act measured on one song, hard against sweet: the hard ones +9 to -2, warehouse's acid line far the hardest, and the soft ones -13 to -21, as sweet as the sweetest old songs, on a dark
@@ -154,7 +167,8 @@ ACTS_FOR = {"calm": ("velvet", "vesper", "strobe", "chamber", "bazaar"), "fight"
             "town": ("warehouse", "signal", "junkyard", "undercroft", "cyborg"), "depths": ("undercroft", "foundry", "cyborg", "monolith"),
             "light": ("strobe", "velvet", "bazaar", "vesper", "chamber", "brass"),
             "heavy": ("warehouse", "undercroft", "monolith", "foundry", "signal", "cyborg", "junkyard"),
-            "after": ("cellar", "gallows", "switchyard", "mortuary"), "cut": ("chopshop", "arcade", "kennel", "quarry", "tunnel")}
+            "after": ("cellar", "gallows", "switchyard", "mortuary"), "cut": ("chopshop", "arcade", "kennel", "quarry", "tunnel"),
+            "found": ("drydock", "smelter", "brickyard", "catacomb", "icehouse", "faultline", "powerhouse", "sluice", "pressroom", "millrace"), "late": ("flophouse", "pumphouse")}
 # A family's first take is House's own act; its other takes, every take of the families planned after ACTS_AFTER, and of those that had no take yet when the acts
 # came in (ACTS_ALSO), another's.
 ACTS_AFTER = "depths-09"
@@ -174,7 +188,7 @@ def act_of(fam: house.Family, take: int) -> str:
     names = [each.name for each in house.PLAN]
     at = names.index(fam.name) if fam.name in names else 0
     if fam.act:                        # a hard song's other takes are other hard acts'
-        kin = ACTS_FOR[next(each for each in ("fight", "after", "calm", "cut") if fam.act in ACTS_FOR[each])]
+        kin = ACTS_FOR[next(each for each in ("fight", "after", "calm", "cut", "found", "late") if fam.act in ACTS_FOR[each])]
         return kin[(kin.index(fam.act) + take - 1) % len(kin)]
     if fam.name in ACTS_AFTER_HOURS:
         return ACTS_FOR["after"][(at + take) % len(ACTS_FOR["after"])]
@@ -185,14 +199,16 @@ def act_of(fam: house.Family, take: int) -> str:
     return ACTS_FOR[kind][(at + take) % len(ACTS_FOR[kind])]
 
 
-def parts_of_the_lead(heard: "Heard", sections: list[tuple[str, int, int]]) -> dict[tuple[str, str], str]:
-    """Which of a song's lead voices is the big one (the most of the drops is its), which joins it there ("late") and which sings the rest ("soft")."""
+def parts_of_the_lead(heard: "Heard", sections: list[tuple[str, int, int]], outside: bool = False) -> dict[tuple[str, str], str]:
+    """Which of a song's lead voices is the big one (the most of the drops is its), which joins it there ("late") and which sings the rest ("soft"). `outside`: the big one says the themes' riff too, and the one that
+    joins it is heard in the drops alone, where it may have more to say than the riff has (what answers it, an octave of it through most of a drop): the big one is the one of those two that is heard outside them."""
     drops = [(first * house.BAR, (first + count) * house.BAR) for story, first, count in sections if story == "moment"]
     counts = {(table, sound): (sum(1 for note in notes if any(a <= note[0] < b for a, b in drops)), len(notes))
               for (channel, table, sound), notes in heard.notes.items() if channel == "lead"}
     if not counts:
         return {}
-    big = max(counts, key=lambda each: (counts[each][0], counts[each][1], each))
+    heard_outside = [each for each, (inside, whole) in counts.items() if inside and inside < 0.95 * whole] if outside else []          # (a stroke a hair early is before its drop)
+    big = max(heard_outside or counts, key=lambda each: (counts[each][0], counts[each][1], each))
     return {each: "big" if each == big else "late" if inside > 0.6 * whole else "soft" for each, (inside, whole) in counts.items()}
 
 
@@ -418,7 +434,7 @@ def _loud(levels: list[float]) -> list[float]:
 
 SPAN = 4            # bars: a voice's level is read four at a time (a house phrase is eight, every part a whole number of them)
 UNDER = 0.6         # a note written under this part of the loudest in its four bars is a line under the tune: a doubling, an echo
-SUBBED = ("house bass pluck", "house bass saw", "iron bass", "driven bass", "house bass grind")      # the basses that are heard more than felt: a sine goes under them
+SUBBED = ("house bass pluck", "house bass saw", "iron bass", "driven bass", "house bass grind", "house bass jaw", "house bass crust", "house bass rasp")      # the basses that are heard more than felt: a sine goes under them
 # The basses with a sawtooth growl under them, closed above 900 Hz (`voices`): the sub, and the factory FM bass, which had no
 # middle of its own. House's own FM bass has one, and the growl under it is not heard: taken away in three songs, the bass moved
 # 1 dB or less in every octave and the judges stayed level (2026-11-22; Sunlit Fields II's bass, 7 dB over the liked stems at
@@ -496,7 +512,7 @@ OPEN_TOP = ("house lead saw", "house lead super") + tuple(sounds.HOUSE_LEADS)
 LEAD_CHAIN: dict[str, tuple[float, float, float, float, float]] = {
     "": (0.4, 1.5, 0.0, 1.15, 0.24), "house lead stack": (0.45, 2.0, 0.0, 1.25, 0.24), "house lead anthem": (0.45, 2.0, 0.0, 1.35, 0.24),
     "house lead pwm": (0.35, 1.0, 0.35, 1.3, 0.24), "house lead vox": (0.45, 2.5, 0.0, 1.15, 0.24), "house lead metal": (0.4, 1.0, 0.0, 1.15, 0.24),
-    "house lead acid": (0.35, 1.0, 0.0, 1.1, 0.24), "house lead growl": (0.45, 2.0, 0.0, 1.15, 0.24), "house lead pluck": (0.4, 1.5, 0.0, 1.2, 0.34)}
+    "house lead acid": (0.35, 1.0, 0.0, 1.1, 0.24), "house lead wobble": (0.4, 1.5, 0.0, 1.15, 0.14), "house lead growl": (0.45, 2.0, 0.0, 1.15, 0.24), "house lead pluck": (0.4, 1.5, 0.0, 1.2, 0.34)}
 SUB_UNDER = 0.8     # ...this far under the bass it holds up (0.7 until the third pass: the liked basses have 3 to 7 dB more at 28 to 57 Hz)
 # House's room, at the foot of every channel's folder (sounds.hall): how long it rings (s), nothing in it over (Hz) or under
 # (Hz), and how long its lows ring against the rest. A darker room than the orchestra's, as it was set the first night
@@ -693,6 +709,9 @@ def lines(heard: Heard, seed: int, work: Path) -> tuple[dict[str, list[desk.Line
                     # from 1.8 kHz, the shelf down from 800 Hz.)
                     shut = dict(high_cut=2400.0, high_shelf=(900.0, -3.0)) if own else dict(high_cut=1800.0, high_shelf=(800.0, -6.0))
                     middle = ((600.0, FM_MIDDLE, 1.0),) if own and written == "house bass fm" and FM_MIDDLE is not None else ()
+                    if not synth_played:
+                        # (2026-11-25: a fretless or a double bass that a calm act has, a player's and not a synthesiser's, through what was made to tame one: Cold Ashes' 6 dB thin in its middle and Bad Debt's 13.)
+                        shut, middle = dict(high_cut=4500.0, high_shelf=(2200.0, -3.0)), ((650.0, 4.0, 0.9),)
                     line.effects = list(line.effects) + [sounds.equalise(low_cut=30.0, bands=middle, **shut), sounds.wide(0.25)]
                     line.send = 0.0
                 elif channel == "rhythm":
@@ -922,7 +941,7 @@ def _write(name: str, take: int) -> Sheet:
     form = [dict({"story": story, "first": first, "bars": count}, **({"breakdown": True} if track.broken(story, first) else {}))
             for story, first, count in track.sections]
     parts: dict[str, dict[str, Voice]] = {channel: {} for channel in forever.CHANNELS}
-    roles = parts_of_the_lead(heard, track.sections)
+    roles = parts_of_the_lead(heard, track.sections, outside=bool(fam.hook))
     cut = ACTS[act].cut if act else ()
     dealt: list[list[Note]] = []                         # a riff that is cut up: its three voices' notes
     if cut:

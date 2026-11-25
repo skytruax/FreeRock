@@ -135,34 +135,36 @@ TOLD_ONCE = frozenset((Path(__file__).parent / "told_once.txt").read_text(encodi
 HOUSE_TITLES = (
     'Ambush', 'Ash Bucket', 'Ash Wind', 'Back Room', 'Backwater', 'Bad Debt', 'Banners', 'Barbed Wire', 'Basement Bar',
     'Bedroll Sky', 'Bellows and Sparks', 'Bells under the Hill', 'Bilge Pump', 'Black Frost', 'Black Market',
-    'Black Rain', 'Black Water', 'Blackout', 'Blades', 'Blast Furnace', 'Boiler Room', 'Bone Procession', 'Bone Saw',
-    'Breakers', 'Breakwater', 'Brownout', 'Bullfrog Bass', 'Buried Machine', 'Burn Barrel', 'By the Fire',
-    'Cairn Wind', 'Cannonade', 'Canopy', 'Capture the Flag', 'Caravan at Noon', 'Cellar Door', 'Chain Gang', 'Charge',
-    'Cinder Bloom', 'Closing Time', 'Cold Ashes', 'Cold Iron', 'Cold Stars', 'Cold Storage', 'Cool of the Evening',
-    'Crawlspace', 'Curfew Bell', 'Customs Wall', 'Dead Hours', 'Dead Pixel', 'Dead Radio', 'Dead Reckoning',
+    'Black Rain', 'Black Van', 'Black Water', 'Blackout', 'Blades', 'Blast Furnace', 'Boiler Room', 'Bone Procession',
+    'Bone Saw', 'Breakers', 'Breakwater', 'Brownout', 'Bullfrog Bass', 'Buried Machine', 'Burn Barrel', 'By the Fire',
+    'Cairn Wind', 'Cannonade', 'Canopy', 'Capture the Flag', 'Caravan at Noon', 'Cellar Door', 'Chain Gang',
+    'Chain Hoist', 'Charge', 'Cinder Block', 'Cinder Bloom', 'Closing Time', 'Coal Chute', 'Coal Smoke', 'Cold Ashes',
+    'Cold Chisel', 'Cold Iron', 'Cold Stars', 'Cold Storage', 'Cool of the Evening', 'Crawlspace', 'Crowbar',
+    'Curfew Bell', 'Customs Wall', 'Dead Hours', 'Dead Pixel', 'Dead Radio', 'Dead Reckoning', 'Debt Collector',
     'Desert Nocturne', 'Dewfall', 'Dim Lamp Alley', 'Driftwood Hearth', 'Dripstone', 'Drop Shaft', 'Drowned Halls',
     'Drowned King', 'Dry Dock', 'Dunes at Dawn', 'Eclipse Gate', 'Embers under Stars', 'Empty Throne', 'Fireflies',
-    'Fishmarket', 'Flat Beer', 'Frostbite', 'Frozen Echoes', 'Furnace Psalm', 'Gallows Meadow', 'Gaslight',
-    'Ghostfire', 'Gilded Halls', 'Glade at Dusk', 'Glowworm Hollow', 'Grain Silo', 'Gravel Pit', 'Graveyard Shift',
-    'Guard Dog', 'Guildhall Steps', "Gull's Morning", 'Hammerfall', 'Hanging Tree', 'Harbour Lights',
-    'Hay Bale Sunset', 'Heat Haze', 'Hoarfrost', 'Hold the Line', 'Hollow Road', 'Hushed Parlour', 'Ice Bridge',
-    'Ice Drill', 'Ice Fang', 'Ice Fishing', 'Insomnia', 'Iron Lung', 'Keelhaul', 'Knife Bazaar', 'Knuckle Duster',
-    'Lanterns in the Fog', 'Lanterns on the Square', 'Larks over the Ridge', 'Last Bus', 'Last Candle', 'Last Stand',
-    'Loading Bay', 'Lock-Up', 'Lodestone', 'Long Road Home', 'Low Ceiling', 'Low Rafters', 'Market Day', 'Meat Locker',
-    'Mended Nets', 'Mill Stream', 'Mint Tea', 'Mirage', 'Monsoon Drums', 'Moonless', 'Moonlit Ebb', 'Moonwell',
-    'Morning on the Hill', 'Moth Wings', 'Night Prowl', 'Night Shift', 'Night Watchman', 'No Fire Tonight',
-    'Nomad Fire', 'Northern Lights', 'Oasis', 'Oil Drum', 'Ossuary', 'Owl Light', 'Parrots', 'Pawn Shop', 'Peat Smoke',
-    'Power Cut', 'Rail Yard', 'Rain on the Roofs', 'Red Moon', 'Red Rock', 'Reedlight', 'Riot Line', 'River Drums',
+    'Fishmarket', 'Flat Beer', 'Fog Signal', 'Frostbite', 'Frozen Echoes', 'Furnace Psalm', 'Gallows Meadow',
+    'Gaslight', 'Ghostfire', 'Gilded Halls', 'Glade at Dusk', 'Glowworm Hollow', 'Grain Silo', 'Gravel Pit',
+    'Graveyard Shift', 'Grease Trap', 'Guard Dog', 'Guildhall Steps', "Gull's Morning", 'Hammerfall', 'Hanging Tree',
+    'Harbour Lights', 'Hay Bale Sunset', 'Heat Haze', 'Hoarfrost', 'Hold the Line', 'Hollow Road', 'Hushed Parlour',
+    'Ice Bridge', 'Ice Drill', 'Ice Fang', 'Ice Fishing', 'Insomnia', 'Iron Lung', 'Keelhaul', 'Knife Bazaar',
+    'Knuckle Duster', 'Lanterns in the Fog', 'Lanterns on the Square', 'Larks over the Ridge', 'Last Bus',
+    'Last Candle', 'Last Stand', 'Lightning Rod', 'Loading Bay', 'Lock-Up', 'Lodestone', 'Long Road Home',
+    'Low Ceiling', 'Low Rafters', 'Market Day', 'Meat Locker', 'Mended Nets', 'Mill Stream', 'Mint Tea', 'Mirage',
+    'Monsoon Drums', 'Moonless', 'Moonlit Ebb', 'Moonwell', 'Morning on the Hill', 'Moth Wings', 'Night Prowl',
+    'Night Shift', 'Night Watchman', 'No Fire Tonight', 'Nomad Fire', 'Northern Lights', 'Oasis', 'Oil Drum',
+    'Open Cast', 'Ossuary', 'Owl Light', 'Parrots', 'Pawn Shop', 'Peat Smoke', 'Pit Boss', 'Power Cut', 'Rail Yard',
+    'Rain on the Roofs', 'Red Moon', 'Red Rock', 'Reedlight', 'Rendering Plant', 'Riot Line', 'River Drums',
     'Rock Crusher', 'Rockfall', 'Rust Water', 'Salt Caravan', 'Sandblast', 'Sandstone Hollow', 'Scarecrow Road',
     'Scrap Yard', 'Seaspray', 'Short Circuit', 'Siege Bells', 'Signal Box', 'Slag Heap', 'Sleepless Shift',
     'Slot Machine', 'Smog Quarter', 'Smoke Break', 'Snowglobe', 'Snowmelt', 'Speakeasy', 'Squall', 'Stand Fast',
-    'Standing Dead', 'Starfall', 'Stone and Sky', 'Strangler Fig', 'Stray Dogs', 'Strip Mine', 'Sump', 'Sunken Grotto',
-    'Sunlit Fields', 'The Dark Hall', 'The Deep Road', 'The Forge at Rest', "The Headsman's Walk", 'The High Moor',
-    'The Kind Ghost', "The King's Road", 'The Leviathan', 'The Long Wait', 'The Long Watch', 'The Old Swamp',
-    'The Usurper', 'Third Rail', 'Throne of Ash', 'Thunderhead', 'Tide Camp', 'Tidepools', 'Toll Booth', 'Trench Line',
-    'Under the Mountain', "Undertaker's Table", 'Voltage', 'Vulture Sky', 'Weigh Station', 'Wet Powder',
-    'Whispering Boughs', 'White Grave', "Will-o'-the-Wisp", 'Willow Lanterns', 'Wind over the Pass',
-    "Wreckers' Lantern", 'Wrecking Ball',
+    'Standing Dead', 'Starfall', 'Stone and Sky', 'Strangler Fig', 'Stray Dogs', 'Street Sweeper', 'Strip Mine', 'Sump',
+    'Sump Pump', 'Sunken Grotto', 'Sunlit Fields', 'The Dark Hall', 'The Deep Road', 'The Forge at Rest',
+    "The Headsman's Walk", 'The High Moor', 'The Kind Ghost', "The King's Road", 'The Leviathan', 'The Long Wait',
+    'The Long Watch', 'The Old Swamp', 'The Usurper', 'Third Rail', 'Throne of Ash', 'Thunderhead', 'Tide Camp',
+    'Tidepools', 'Tin Roof', 'Toll Booth', 'Trench Line', 'Under the Mountain', "Undertaker's Table", 'Voltage',
+    'Vulture Sky', 'Weigh Station', 'Wet Powder', 'Whispering Boughs', 'White Grave', "Will-o'-the-Wisp",
+    'Willow Lanterns', 'Wind over the Pass', "Wreckers' Lantern", 'Wrecking Ball',
 )
 
 
@@ -355,7 +357,14 @@ def tamed_tone(name: str, instrument: str, band: bool = False, channel: str = ""
         # (2026-11-25: three bands' bass is a tuba, whose fourth to eighth overtones are nearly all of it: the octave from 320 Hz at -4 to -7 dB of the whole where the liked stems have it at -26, the basses of Deep
         # Mine, Charge Song and the press gang's songs 11 to 13 over in their middle, where the riff and the tune are. Its note is left.)
         # (Eight at 450 Hz took half a decibel of it in Company-Store Wages, whose line lies a third higher: five at 340 and eight at 560.)
-        return sounds.equalise(bands=((340.0, -5.0, 1.0), (560.0, -8.0, 0.8)), high_shelf=(1400.0, -4.0))
+        # (Those two left the brawl's storm 16 over at 450 Hz and 13 at 900, and the drumline's marching tuba, held near full strength, 18 to 25 over from 450 Hz to 7 kHz in three songs of three, 2026-11-25: deeper, and the
+        # marching one shut as well, and played softer (muse.SQUEEZE).)
+        if instrument == "line tuba":
+            return sounds.equalise(high_cut=1800.0, bands=((340.0, -5.0, 1.0), (520.0, -9.0, 1.2), (950.0, -6.0, 1.0)), high_shelf=(800.0, -10.0))
+        return sounds.equalise(bands=((340.0, -5.0, 1.0), (520.0, -9.0, 1.0)), high_shelf=(850.0, -8.0))
+    if band and channel == "bass" and instrument == "growly bass":
+        # (The same day: shut at 1.9 kHz by its amplifier it had still 14 over at 900 Hz and 12 at 1.8 kHz in a storm, over the riff.)
+        return sounds.equalise(bands=((1100.0, -6.0, 1.4),))
     if band and light and instrument in ("picked bass", "fretless") and LIGHT_BAND_BASS:
         # (2026-11-22, night: the light bands' bass, MuseScore's electric bass played softly in the walks, inns, camps and
         # nights, 3.7 to 13 dB thin in its middle in the day's studies of the new families, where the heavy band's sits within

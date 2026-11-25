@@ -118,7 +118,7 @@ LOOPS = {
 # Where in the bar the kick falls, in sixteenths. A family has one, and every take keeps to it:
 # everything but the drums ducks under the kick, so the kick is part of the changes.
 KICKS = {"four": (0, 4, 8, 12), "broken": (0, 6, 10), "broken2": (0, 6, 8, 14), "broken3": (0, 3, 8, 10),
-         "half": (0, 10), "none": ()}
+         "half": (0, 10), "none": (), "step": (0, 10), "breaks": (0, 2, 10)}          # (the last two since 2026-11-25: a two-step's, its claps on two and four over a half's kick, and a break's)
 # How much is going on through each part of the story, from 0 to 1, at its beginning and its end.
 ARCS = {
     "wander": {"open": (0.2, 0.5), "theme": (0.6, 0.72), "rise": (0.4, 0.95), "moment": (1.0, 1.0), "close": (0.72, 0.2)},
@@ -406,6 +406,11 @@ PALETTES: dict[str, dict[str, Any]] = {
                         lead=("hollow", "saw", "super"), pad=("hollow",), perc=("rim", "tom", "quijada"), hats=("sixteenths", "off"), atmos="", voicing="open", low=True),
     "hard-slow": dict(bass=("sub", "reese"), bass_style=("dub", "long"), keys=("stab",), keys_style=("dub", "stabs"),
                       lead=("hollow", "saw"), pad=("hollow",), perc=("rim", "clave"), hats=("sparse", "off"), atmos="", voicing="open", low=True),
+    # (2026-11-25: sixty hard songs on one set of drums.) Skins, and hats in threes; a gallop, with a ride.
+    "hard-tribal": dict(bass=("reese", "saw"), bass_style=("tresillo", "rolling"), keys=("stab",), keys_style=("stabs", "dub"),
+                        lead=("saw", "hollow", "super"), pad=("hollow",), perc=("conga", "timbale", "bongo"), hats=("thirds", "shuffle"), atmos="", voicing="open", low=True),
+    "hard-gallop": dict(bass=("saw", "square", "reese"), bass_style=("driving", "synco"), keys=("stab", "pluck"), keys_style=("stabs", "dub"),
+                        lead=("saw", "super", "hollow"), pad=("hollow",), perc=("ride", "rim", "tom"), hats=("gallop", "off"), atmos="", voicing="open", low=True),
     # ...and what is left when the hard ones have gone home: an inn's, a camp's, a night's. A low tune sung, not a riff; low chords with no third; a rim and a clave.
     "after-hours": dict(bass=("sub", "reese"), bass_style=("dub", "long"), keys=("keys",), keys_style=("broken", "stabs"),
                         lead=("hollow", "saw"), pad=("hollow",), perc=("rim", "clave"), hats=("sparse", "off"), atmos="", voicing="open", low=True, grim=True),
@@ -459,6 +464,7 @@ class Family:
     palette: str
     act: str = ""                  # whose instruments its first take has (club.ACTS), where it says
     bpm: int = BPM                 # how fast it goes (`at`)
+    hook: str = ""                 # how a hard song's riff is made (HOOKS_OF); "" hammered
 
     @property
     def mode(self) -> str:
@@ -764,6 +770,25 @@ PLAN: tuple[Family, ...] = (
     Family("camp-18", "Night Watchman", ("marsh", "coast", "haunted"), "camp", S01, False, 2, "H4", (8, 16, 8, 16, 8), "half", 0.1, "606", "after-hours", "mortuary", 94),
     Family("night-18", "Signal Box", ("highland", "mystic", "desert"), "night", S01, False, 7, "H2", (16, 24, 8, 24, 8), "broken", 0.1, "808", "after-hours", "switchyard", 103),
     Family("ember-18", "Flat Beer", ("frozen", "mystic", "coast"), "ember", S01, False, 0, "H6", (8, 16, 8, 16, 8), "broken2", 0.12, "808", "after-hours", "switchyard", 101),
+    # (The sixth set, 2026-11-25, the tenth round: the ten acts of what was found in the synthesiser's wavetables and two calm ones, each with a song or two; their riffs made six other ways than by the hammer (HOOKS_OF),
+    # a two-step's kick and a break's, skins, and a gallop.)
+    Family("town-17", "Crowbar", ("regal", "coast", "frozen"), "town", S01, False, 4, "H2", (8, 16, 8, 16, 8), "step", 0.2, "606", "hard-gallop", "smelter", 124, "power"),
+    Family("town-18", "Pit Boss", ("infernal", "desert", "jungle"), "town", S01, False, 9, "H7", (8, 16, 8, 16, 8), "broken2", 0.16, "808", "hard-tribal", "sluice", 119, "line"),
+    Family("storm-14", "Tin Roof", ("coast", "marsh", "jungle", "pastoral"), "storm", S01, False, 1, "H1", (8, 8, 8, 24, 8), "breaks", 0.08, "909", "hard-gallop", "drydock", 131, "odd"),
+    Family("storm-15", "Lightning Rod", ("highland", "frozen", "regal", "haunted"), "storm", S01, False, 6, "H3", (8, 8, 8, 24, 8), "four", 0.0, "909", "hard", "powerhouse", 128, "line"),
+    Family("depths-16", "Coal Chute", ("infernal", "highland", "regal", "frozen"), "depths", S01, False, 0, "H4", (8, 24, 8, 16, 8), "broken", 0.14, "808", "hard-slow", "catacomb", 118, "toll"),
+    Family("pastoral-11", "Rendering Plant", ("pastoral",), W, S01, False, 10, "H6", (8, 16, 8, 24, 8), "four", 0.06, "606", "hard", "icehouse", 125, "call"),
+    Family("coast-11", "Fog Signal", ("coast",), W, S01, False, 3, "H5", (16, 16, 8, 16, 8), "step", 0.18, "909", "hard-broken", "millrace", 120, "glide"),
+    Family("frozen-09", "Cold Chisel", ("frozen", "highland"), W, S01, False, 8, "H2", (8, 16, 4, 24, 8), "four", 0.0, "909", "hard-gallop", "faultline", 129, "power"),
+    Family("highland-10", "Chain Hoist", ("highland",), W, S01, False, 5, "H7", (8, 24, 8, 16, 8), "broken3", 0.1, "909", "hard-tribal", "drydock", 123, "odd"),
+    Family("marsh-07", "Sump Pump", ("marsh", "jungle"), W, S01, False, 2, "H1", (8, 16, 8, 24, 8), "breaks", 0.12, "606", "hard-broken", "pressroom", 121, "call"),
+    Family("haunted-09", "Black Van", ("haunted", "mystic"), W, S01, False, 11, "H4", (16, 16, 8, 24, 8), "step", 0.2, "808", "hard-slow", "catacomb", 118, "glide"),
+    Family("desert-09", "Open Cast", ("desert", "infernal"), W, S01, False, 7, "H3", (8, 24, 4, 24, 8), "four", 0.04, "808", "hard-tribal", "brickyard", 127, "line"),
+    Family("regal-10", "Debt Collector", ("regal",), W, S01, False, 1, "H5", (8, 16, 8, 24, 8), "broken", 0.1, "909", "hard-gallop", "faultline", 124, "power"),
+    Family("camp-19", "Cinder Block", ("highland", "infernal", "regal", "frozen"), "camp", S01, False, 3, "H6", (8, 16, 8, 16, 8), "half", 0.1, "606", "after-hours", "flophouse", 97),
+    Family("camp-20", "Coal Smoke", ("coast", "marsh", "mystic"), "camp", S01, False, 8, "H3", (8, 16, 8, 16, 8), "broken2", 0.12, "808", "after-hours", "pumphouse", 101),
+    Family("ember-19", "Grease Trap", ("pastoral", "coast", "jungle"), "ember", S01, False, 10, "H2", (8, 16, 8, 16, 8), "broken", 0.12, "808", "after-hours", "pumphouse", 106),
+    Family("night-19", "Street Sweeper", ("regal", "highland", "desert"), "night", S01, False, 5, "H5", (16, 24, 8, 24, 8), "broken3", 0.08, "606", "after-hours", "flophouse", 105),
 )
 LATER = tuple(each.name for each in PLAN)[[each.name for each in PLAN].index("town-13"):]          # (the families from the fourth set of hard ones on: HAMMERS_LATER, SCENES_LATER)
 TAKES = (1, 2, 3)
@@ -820,6 +845,28 @@ RIFFS = (
 HAMMERS = ("x..x..x...x.x...", "x.xx..x.x.xx..x.", "x---x.xxx---x.x.", "xx.x.xx.x.x.xx..", "x.x.x.x.x.x.xxxx", "..x...x...x.x.xx", "x..xx..xx..xx.x.", "x-.x-.x-.x-.x.xx", "x.......x..x..x.")
 # (...and the later families' (LATER): fifty hard songs on nine cells would have come round.)
 HAMMERS_LATER = ("x..x.x..x..x.x..", "x.x..x.x..x.x..x", "x---..x.x---..xx", ".x.x..x..x.x..x.", "xxx...xxx...xx..", "x.....x.x.....x.", "x.xxx.x.x.xxx.x.", "x-.xx-.xx-.xx-.x")
+# (2026-11-25, read through: every hard song hammered one note.) Six other ways a hard riff is made, each two bars said and answered as the hammer is (`Tune._phrased`): "line", a machine's sixteen steps;
+# "glide", a few long notes, each slid into the next; "call", three or four strokes low down and an answer over them by the second synth; "power", a guitarist's riff with its holes; "toll", a stroke or two in
+# a bar and the floor between them; "odd", a cell of three, five or seven sixteenths over the four.
+HOOKS_OF = ("", "line", "glide", "call", "power", "toll", "odd")
+GLIDES = (((0, 6), (6, 4), (10, 6), (16, 10), (26, 4)), ((0, 10), (10, 6), (16, 6), (22, 2), (24, 6)), ((0, 3), (3, 9), (12, 4), (16, 12), (28, 3)),
+          ((0, 8), (8, 3), (11, 5), (16, 8), (24, 3), (27, 3)), ((2, 6), (8, 8), (18, 6), (24, 6)), ((0, 4), (6, 10), (16, 4), (22, 8)))
+GLIDED = ((0, -1, 0, 2, 1), (0, 7, 6, 4, 2), (0, 1, 0, -2, -1), (0, 2, 3, 2, -1), (0, 7, 8, 7, 1), (0, -3, -1, 0, 1))          # where each of them goes, over the chord's root
+CALLS = ("x.x...x.x.......", "x..x..x.........", "xx.x..xx........", "x...x.xx.x......", "..x.x.xx........", "x.xx....x.x.....", "x..x.x..x-......")
+ANSWERS = (("....x.x.x---x...", (9, 8, 7, 4)), ("..x..x..x---....", (7, 8, 11)), ("x-x-x---........", (8, 7, 4)), ("....xxx.x---x---", (7, 7, 9, 8, 7)),
+           ("..x.x.x.x-----..", (11, 9, 8, 7)), ("x..x..x-x-------", (7, 9, 8, 7)), ("......x.x.x.x---", (4, 7, 8, 9)))
+# A riff as a guitarist has one: (sixteenth, how long, where over the root).
+POWERS = (((0, 2, 0), (3, 1, 0), (4, 2, 0), (8, 2, 2), (10, 2, 3), (14, 2, 2), (16, 2, 0), (19, 1, 0), (20, 2, 0), (24, 2, -1), (26, 3, 0)),
+          ((0, 3, 0), (4, 1, 0), (6, 2, -1), (8, 3, 0), (12, 2, 2), (14, 2, 0), (16, 3, 0), (20, 1, 0), (22, 2, 3), (24, 3, 2), (28, 2, -1)),
+          ((0, 1, 0), (1, 1, 0), (2, 2, 0), (6, 2, 3), (8, 2, 2), (11, 1, 0), (12, 2, -1), (16, 1, 0), (17, 1, 0), (18, 2, 0), (22, 2, 1), (24, 4, 0)),
+          ((0, 4, 0), (6, 2, 0), (8, 2, 2), (10, 2, 1), (12, 3, 0), (16, 4, 0), (22, 2, -2), (24, 2, -1), (26, 4, 0)),
+          ((2, 2, 0), (4, 2, 0), (7, 1, 2), (8, 3, 3), (12, 2, 2), (14, 1, 0), (18, 2, 0), (20, 2, 0), (23, 1, -1), (24, 5, 0)),
+          ((0, 2, 0), (2, 1, 7), (4, 2, 0), (6, 1, 6), (8, 2, 0), (10, 1, 4), (12, 3, 2), (16, 2, 0), (18, 1, 7), (20, 2, 0), (22, 1, 6), (24, 4, -1)),
+          ((0, 3, 0), (3, 3, 0), (6, 2, 2), (10, 2, 2), (12, 4, 1), (16, 3, 0), (19, 3, 0), (22, 2, -1), (24, 4, -2)),
+          ((0, 1, 0), (3, 1, 0), (6, 1, 0), (9, 1, 0), (12, 3, 2), (16, 1, 0), (19, 1, 0), (22, 1, 0), (25, 1, 0), (27, 3, -1)))
+TOLLS = (((0, 3, 0), (10, 2, 1), (16, 3, 0), (26, 3, -1)), ((0, 6, 0), (12, 3, -1), (16, 6, 0)), ((0, 2, 0), (6, 8, 2), (22, 4, 1)), ((4, 3, 0), (12, 3, 0), (20, 3, 1), (24, 4, 0)),
+         ((0, 8, 0), (14, 2, 7), (16, 8, 0), (27, 2, -1)), ((0, 2, 0), (3, 2, 0), (16, 2, 1), (19, 2, 0)))
+ODDS = ("xx.", "x.x", "xx.x.", "x..x.", "xxx.x", "x.x.xx.", "xx.xx..", "x..xx.x")
 FLOWS = (
     ((0, 2), (2, 2), (4, 2), (6, 2), (8, 4), (12, 2), (14, 2), (16, 2), (18, 2), (20, 2), (22, 2), (24, 6)),
     ((0, 1), (1, 1), (2, 2), (4, 2), (6, 2), (8, 6), (16, 1), (17, 1), (18, 2), (20, 2), (22, 2), (24, 6)),
@@ -867,6 +914,7 @@ class Tone:
     length: float
     degree: int
     loud: float = 0.7
+    voice: int = 0                 # 1: said by the second synth in a drop (a riff that is called and answered)
 
 
 class Changes:
@@ -927,7 +975,7 @@ class Tune:
     climb a third higher. Notes on the strong beats and the long notes are notes of the chord
     under them; the notes between move by step."""
 
-    def __init__(self, changes: Changes, rng: random.Random, home: int = 67, riff: bool = False, hammer: bool = False):
+    def __init__(self, changes: Changes, rng: random.Random, home: int = 67, riff: bool = False, hammer: bool = False, hook: str = ""):
         # (The middle of the tune at G4, not D5 as it was: 2026-11-17, morning, "your house needs some work". Against
         # the liked house stems the leads had nothing under 320 Hz and 6 to 19 dB too much from 900 Hz to 3.5 kHz, where
         # the liked leads have their weight at 200 to 450 Hz: a house hook sits in the warm middle, not over the band.)
@@ -937,6 +985,9 @@ class Tune:
         self.low, self.high = self.centre - 6, self.centre + 7
         # A riff (RIFFS) or a singing hook (HOOKS): the riff is a house lead's, every note on the chord.
         self.riff = riff
+        if hammer and hook:
+            self._phrased(hook)
+            return
         if hammer:
             self._hammered()
             return
@@ -957,7 +1008,7 @@ class Tune:
 
     @staticmethod
     def _moved(notes: list[Tone], by: float) -> list[Tone]:
-        return [Tone(note.at + by, note.length, note.degree, note.loud) for note in notes]
+        return [Tone(note.at + by, note.length, note.degree, note.loud, note.voice) for note in notes]
 
     def _chord(self, bar: int, at: float) -> tuple[int, str]:
         return self.changes.chord(bar + int(at // 16))
@@ -1051,6 +1102,105 @@ class Tune:
                        + self._moved(said((shapes[2], shapes[1]), 12, lift, octave), 192) + self._moved([note for note in said((shapes[0], shapes[0]), 14, 0, octave) if note.at < 24], 224))
         self.notes = self.first + self.second
 
+    def _step(self, bar: int, at: float, over: int) -> int:
+        """A step over the root of the chord at a place in a phrase, near the middle of the tune."""
+        root = self._chord(bar, at)[0]
+        return min(max(self.centre + (root - 7 if root > 3 else root) - self.centre % 7 + over, self.low - 3), self.high + 3)
+
+    @staticmethod
+    def _tied(length: float) -> float:
+        """How long a note is written to run on into the next, half a sixteenth past it, so that it slides (a lead of House's own slides between notes that are tied; `Take.lead` plays a note a little short)."""
+        return (length + 0.5) / (0.96 if length + 0.5 < 4 else 0.9)
+
+    def _phrased(self, hook: str) -> None:
+        """A hard song's tune made another way than by the hammer (HOOKS_OF): two bars said, and said again with their end turned; the same up a third or a fourth, for two; the first again with its last half
+        bar left out. The second eight bars say it changed. Each way of making one draws what it is made of once, so that the phrase is one phrase however often it comes."""
+        rng = self.rng
+        lift = rng.choice((2, 3))
+        if hook == "line":
+            while True:
+                on = [True] + [rng.random() < 0.74 for _ in range(15)]
+                if 10 <= sum(on) <= 13 and not any(not on[k] and not on[k + 1] and not on[k + 2] for k in range(14)):
+                    break
+            drawn = [0] + rng.choices((0, 7, 1, 2, -1, 4, -3), weights=(9, 4, 2, 2, 2, 1, 1), k=15)
+            slid, struck = set(rng.sample([k for k in range(15) if on[k] and on[k + 1]], 4)), {0} | set(rng.sample(range(1, 16), 4))
+
+            def turned(steps: list[int], where: tuple[int, ...]) -> list[int]:
+                return [rng.choice([each for each in (0, 7, 1, 2, -1, 4) if each != step]) if k in where and k else step for k, step in enumerate(steps)]
+            sounding = [k for k in range(1, 16) if on[k]]
+            ends = turned(drawn, (12, 13, 14, 15))
+            again = turned(drawn, tuple(rng.sample(sounding, 3)))
+            high = [7 if step == 0 and k in rng.sample(sounding, 3) else step for k, step in enumerate(again)]
+
+            def said(bars: tuple[list[int], list[int]], bar: int, up: int) -> list[Tone]:
+                out = []
+                for half, steps in enumerate(bars):
+                    for k in range(16):
+                        if on[k]:
+                            at = 16 * half + k
+                            degree, after = self._step(bar, at, steps[k] + up), self._step(bar, at, steps[(k + 1) % 16] + up)
+                            out.append(Tone(at, self._tied(1) if k in slid and degree != after else 1, degree, 0.95 if k in struck else 0.68))
+                return out
+            plain, changed = (said((drawn, drawn), 0, 0), said((drawn, ends), 2, 0)), (said((again, again), 8, 0), said((again, high), 10, 0))
+            middle, middle2 = said((drawn, ends), 4, lift), said((high, ends), 12, lift)
+            last, last2 = said((drawn, drawn), 6, 0), said((again, again), 14, 0)
+        elif hook == "odd":
+            cells = rng.sample(ODDS, 2)
+            moved = rng.choice(((0, 1), (0, 2), (0, -1), (7, 0), (2, 1)))
+
+            def said(cell: str, bar: int, up: int, over: tuple[int, int]) -> list[Tone]:
+                out = []
+                for at in range(32):
+                    k, turn = at % len(cell), at // len(cell)
+                    if cell[k] == "x":
+                        step = over[0] if k else 0
+                        if turn % 4 == 3:
+                            step = over[1] if k == 0 else step
+                        out.append(Tone(at, 1, self._step(bar, at, step + up), 0.95 if k == 0 else 0.68))
+                return out
+            plain, changed = (said(cells[0], 0, 0, moved), said(cells[0], 2, 0, moved[::-1])), (said(cells[0], 8, 0, (moved[0], 7)), said(cells[0], 10, 0, (7, moved[1])))
+            middle, middle2 = said(cells[1], 4, lift, moved), said(cells[1], 12, lift, (moved[0], 7))
+            last, last2 = said(cells[0], 6, 0, moved), said(cells[0], 14, 0, (moved[0], 7))
+        else:
+            # Strokes written out: (sixteenth, how long, where over the root, whose).
+            def written(kind: int, way: int) -> list[tuple[float, float, int, int]]:
+                if hook == "glide":
+                    rhythm, where = GLIDES[kind % len(GLIDES)], GLIDED[way % len(GLIDED)]
+                    starts = {at for at, _ in rhythm}
+                    return [(at, self._tied(length) if at + length in starts else length, where[k % len(where)], 0) for k, (at, length) in enumerate(rhythm)]
+                if hook == "power":
+                    return [(at, length, step, 0) for at, length, step in POWERS[kind % len(POWERS)]]
+                if hook == "toll":
+                    return [(at, length, step, 0) for at, length, step in TOLLS[kind % len(TOLLS)]]
+                low, (text, where) = CALLS[kind % len(CALLS)], ANSWERS[way % len(ANSWERS)]
+                strokes = lambda row: [(at, 1 + len(row[at + 1:]) - len(row[at + 1:].lstrip("-"))) for at in range(16) if row[at] == "x"]      # noqa: E731
+                turns = (0, 0, 0, -1, 0, 2)
+                return ([(at, length, turns[(k + way) % 6] if k else 0, 0) for k, (at, length) in enumerate(strokes(low))]
+                        + [(16 + at, length, where[k % len(where)], 1) for k, (at, length) in enumerate(strokes(text))])
+            kinds = {"glide": len(GLIDES), "power": len(POWERS), "toll": len(TOLLS), "call": len(CALLS)}[hook]
+            one, two = rng.sample(range(kinds), 2)
+            way, other = rng.sample(range({"glide": len(GLIDED), "call": len(ANSWERS)}.get(hook, 2)), 2)
+
+            def said(kind: int, how: int, bar: int, up: int, turn: int = 0, end: int = 0) -> list[Tone]:
+                strokes = written(kind, how)
+                out = []
+                for index, (at, length, step, voice) in enumerate(strokes):
+                    if end and index == len(strokes) - 1:
+                        step += end
+                    if turn and voice == 0 and index and index % 3 == 2:
+                        step += turn
+                    out.append(Tone(at, length, self._step(bar, at, step + up), 0.9 if at % 4 == 0 else 0.74, voice))
+                return out
+            end, leap = rng.choice((1, -1, 2)), 7 if hook in ("call", "toll") else 0          # (a riff's and a glide's notes do not leap an octave here and there: they come back with another end)
+            plain, changed = (said(one, way, 0, 0), said(one, other if hook == "call" else way, 2, 0, end=end)), (said(one, way, 8, 0, turn=leap, end=-end), said(one, other, 10, 0, end=end))
+            middle, middle2 = said(two, other, 4, lift), said(two, way, 12, lift, end=end)
+            last, last2 = said(one, way, 6, 0), said(one, way, 14, 0, turn=leap)
+        breath = lambda notes: [Tone(note.at, min(note.length, 24 - note.at), note.degree, note.loud, note.voice) for note in notes if note.at < 24]      # noqa: E731
+        self.idea = plain[0]
+        self.first = plain[0] + self._moved(plain[1], 32) + self._moved(middle, 64) + self._moved(breath(last), 96)
+        self.second = self._moved(changed[0], 128) + self._moved(changed[1], 160) + self._moved(middle2, 192) + self._moved(breath(last2), 224)
+        self.notes = self.first + self.second
+
     def _answer(self, notes: list[Tone], bar: int, lift: int | None = None) -> list[Tone]:
         """The same idea over other chords: moved up or down as a whole to where it fits them
         best, with its strong notes put on the chord."""
@@ -1113,11 +1263,14 @@ HATS = {
                    "open": ((14, 0.5),)},
     "shuffle": {"hat": ((0, 0.5), (3, 0.36), (4, 0.5), (6, 0.75), (7, 0.3), (8, 0.5), (11, 0.36), (12, 0.5), (14, 0.75), (15, 0.3))},
     "sparse": {"hat": ((2, 0.6), (10, 0.6)), "open": ((6, 0.55),)},
+    # (2026-11-25, the later hard songs': cells of three over the four; a gallop.)
+    "thirds": {"hat": ((0, 0.5), (3, 0.75), (6, 0.75), (9, 0.75), (12, 0.5), (14, 0.75)), "open": ((15, 0.35),)},
+    "gallop": {"hat": ((0, 0.4), (2, 0.8), (3, 0.5), (4, 0.4), (6, 0.8), (7, 0.5), (8, 0.4), (10, 0.8), (11, 0.5), (12, 0.4), (14, 0.8), (15, 0.5))},
 }
 # What a hat figure turns into every second sixteen bars of a groove (2026-11-18, the boredom meter: Breakwater's drums
 # sounded the same for 40 bars of its theme and 52 of its last drop; "still some boring sounds in house"; the house study:
 # a layer enters or leaves, or a pattern varies, every 16 bars).
-HAT_TURNS = {"eighths": "off", "off": "eighths", "sixteenths": "off", "shuffle": "sparse", "sparse": "off"}
+HAT_TURNS = {"eighths": "off", "off": "eighths", "sixteenths": "off", "shuffle": "sparse", "sparse": "off", "thirds": "off", "gallop": "sparse"}
 # Percussion figures for one bar: (sixteenth, sound, how hard).
 PERCUSSION = {
     "tambourine": ((4, "tambourine", 0.7), (12, "tambourine", 0.7), (14, "tambourine", 0.4)),
@@ -1253,12 +1406,13 @@ class Take:
         # Walking music, the moments and the fights have a riff for a hook two takes in three; the calm moments sing.
         low = bool(self.palette.get("low"))              # (a hard song's tune is always a riff, hammered, an octave under the others'; a calm one's is sung, as low)
         self.tune = Tune(self.changes, self.rng("tune"), home=55 if low else 67, riff=(low and fam.role not in CALM_ROLES) or (fam.role not in CALM_ROLES and self.pick("riff", (True, True, False))),
-                         hammer=low and fam.role not in CALM_ROLES)
+                         hammer=low and fam.role not in CALM_ROLES, hook=fam.hook)
         # A hard song's arrangement (HARD_SCENES); a fight's and a storm's riff is there from its drop's first bar.
         self.scene: dict | None = None
         if low and fam.role not in CALM_ROLES:
             scenes = {**HARD_SCENES, **SCENES_LATER} if fam.name in LATER else HARD_SCENES
-            self.scene = scenes[self.pick("scene", tuple(each for each in scenes if each not in WAITS or not (fam.hard or fam.role == "storm")))]
+            few = fam.hook in ("glide", "toll", "call")          # (a riff of few strokes has nothing to hammer a rise with)
+            self.scene = scenes[self.pick("scene", tuple(each for each in scenes if (each not in WAITS or not (fam.hard or fam.role == "storm")) and not (few and scenes[each]["rise"] == "hammer")))]
 
     # --- what a take is made of ----------------------------------------------------------------
     def rng(self, what: str) -> random.Random:
@@ -1769,7 +1923,7 @@ class Take:
                 before = (note.at + note.length, pitch)
 
         def cut(notes: list[Tone], first: float, last: float) -> list[Tone]:
-            return [Tone(note.at - first, note.length, note.degree, note.loud) for note in notes if first <= note.at < last]
+            return [Tone(note.at - first, note.length, note.degree, note.loud, note.voice) for note in notes if first <= note.at < last]
 
         for story, first, count in self.sections:
             if story == "open":
@@ -1789,7 +1943,8 @@ class Take:
                     hook = cut(tune.notes, 32 * (index % 2), 32 * (index % 2) + 32) if index < 2 else cut(tune.notes, 96, 128)
                     if THEME_MAIN and self.scene and fam.name in LATER and not fam.hard:
                         along = (inside - half) / max(count - half, 1)
-                        say(hook, first + inside, main, 0.4 + 0.12 * along, 0.34 + 0.22 * along)
+                        say([note for note in hook if not note.voice], first + inside, main, 0.4 + 0.12 * along, 0.34 + 0.22 * along)
+                        say([note for note in hook if note.voice], first + inside, soft, 0.4 + 0.12 * along, 0.4 + 0.22 * along)
                         continue
                     say(hook, first + inside, soft if not fam.hard else main, 0.42, 0.6)
             elif story == "rise" and self.scene:
@@ -1819,16 +1974,19 @@ class Take:
                     answering = late is not None and count >= 32 and inside >= count - 16 and (inside // 8) % 2 == 1
                     if self.dropped_out(story, inside + 7, count):
                         # The phrase's last bar is the drop-out: what is begun before it ends as it begins.
-                        notes = [Tone(note.at, min(note.length, 112 - note.at), note.degree, note.loud) for note in notes if note.at < 112]
+                        notes = [Tone(note.at, min(note.length, 112 - note.at), note.degree, note.loud, note.voice) for note in notes if note.at < 112]
                     if self.scene:
                         # A hard song's, by its layers (HARD_SCENES): the second synth, never the riff's own, says it an octave under or over.
                         now = self.layers(inside, count, first)
                         if "C" in now:
                             notes = [note for note in notes if note.at % 64 < 32]
+                        called = [note for note in notes if not note.voice]
                         if set("LC") & set(now):
-                            say(notes, first + inside, main, 0.62, 1.0)
+                            say(called, first + inside, main, 0.62, 1.0)
+                            if late is not None:
+                                say([note for note in notes if note.voice], first + inside, late, 0.55, 1.0)          # (the answer is the second synth's)
                         if late is not None and set("UH") & set(now):
-                            say(notes, first + inside, late, 0.3, 0.95, shift=-7 if "U" in now else 7)
+                            say(called, first + inside, late, 0.3, 0.95, shift=-7 if "U" in now else 7)
                         continue
                     if not answering:
                         say(notes, first + inside, main, 0.62, 1.0)

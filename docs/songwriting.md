@@ -1535,7 +1535,8 @@ drums' bus at four strengths). Whose they are was heard first (next).
 *The eighth round's three bands* (2026-11-25), each with one of them: the noir, the jug and the drumline. The same heavy walk and the same inn's song as every band before them, eight bars of the first theme, the
 valley and the summit. As they first came their plucked strings and their brass fell away in a valley as no held instrument does: the drumline's was at -40 LUFS, its tuba 10 dB under its own riff in the first theme; the
 jug's inn at -34. So each player has a part of its own that is held part of the way to full strength (`muse.SQUEEZE`: 0.5 to 0.65), under a name of its own, as its instrument in an orchestra keeps the whole of its
-range: the tuba came from -40 to -31 and the valley to -29. A light song by the drumline is too soft in its riff (-39 under a mix of -28): it has heavy songs only. The noir's and the jug's lightest are right as they stand.
+range: the tuba came from -40 to -31 and the valley to -29. (Held near full strength it was all brass: in the drumline's first three songs, the same night, its bass stood 14 to 15 dB over the liked stems' in its middle
+and 25 at its top. It is held as evenly at half strength, `muse.HELD_AT`, and shut at 1.8 kHz; the other two tubas and the garage's growl have more taken off them between 450 Hz and 1.8 kHz, `build.tamed_tone`.) A light song by the drumline is too soft in its riff (-39 under a mix of -28): it has heavy songs only. The noir's and the jug's lightest are right as they stand.
 
 *The ninth round's ten for Knight Rock* (the same night) are the bands' that sound furthest from the house's, by measure (`tools/sameness.py`: of 179 songs any two are alike by 0.77, the house band's 126 by 0.80 to one
 another; the fifty-three new ones by 0.75 among themselves and 0.745 to those; a song of the harpsichord's, the marimba's, the saxophones', the torn harp's or the church organ's by 0.68 to 0.71, one of the fuzz's, the crunch's or
@@ -2014,6 +2015,23 @@ chorus and the hall are the desk's now*.
   overtone, broken up), the fold (a saw and a square folded over on themselves) and the reese (saws that beat, a notch going through them). Their acts: chopshop, arcade and kennel, cut up; quarry and tunnel, one voice. On one song,
   hard against sweet, drop and theme: tunnel +10 and +6 (the darkest drop of any), arcade +5 and 0, chopshop +5 and +4, kennel +5 and +2, beside warehouse's +9 and +7; not cut up arcade's drop stood at +1, chopshop's at +4 and
   kennel's at +5. (A fold of two sines rang as a bell, -1, and a saw's and a square's stood no higher over an FM bass and a pad: the quarry has the wide bass, the drone and the 808.) Every stroke of every voice is in tune.
+  *A riff is not only a hammer* (`house.HOOKS_OF`, `Tune._phrased`, 2026-11-25). Read through, every hard song's riff was one note hammered, two bars of it, three or four of its strokes somewhere else: sixty songs, one
+  kind of hook. Six others, each two bars said, said again with its end turned, up a third or a fourth for two, and once more with its last half bar left out: *a line*, a machine's sixteen steps drawn once (ten to
+  thirteen of them sounding, the root half of them, an octave, the steps beside it, four slid into the next), two or three of them changed when it comes back, as a player turns the knobs; *a glide*, four to six long
+  notes, each slid into the next; *a call*, three or four strokes low down for a bar and a bar's answer over them by the second synth; *a power riff*, a guitarist's, with its holes; *a toll*, a stroke or two to the bar
+  with the floor between; *an odd cell*, three, five or seven sixteenths over the four, beginning again every two bars. A riff of few strokes has nothing to hammer a rise with, and has the machine's rise or the stab's.
+  A family that has takes keeps the hammer. The second synth of these is the voice that is heard in the drops alone (`club.parts_of_the_lead`, `outside`): counted by notes, what answers and doubles a riff had been
+  taken for it in four songs of thirteen.
+  *Leads out of wavetables* (`patches.table`, `waves`, `_scanned`, the same day: "find more instruments!"). Seven hundred tables came with the synthesiser and none had been played; a design names one, and thirty-two of
+  its waves, each brought to one loudness with nothing under it, go with the patch. Thirty-six were given one riff in one drop, the rest of the song the same. *The hardest were hardly notes*: gone all the way through by
+  every stroke, a torn saxophone's table stood at +10.9 with 54% of what it sounds in the key, dragged chains +10.2 with 61%, a scraped brick +9.3 with 60%; the acid line is +11.0 with 72%, and seven notes of twelve by
+  chance are 58%. Measure both. A sixth of the way through, over more of a pulse an octave under, they are notes again: a throat +10.2 and 68%, a broken glass +9.4 and 76%, chains, a formant +8.2 and 68%, a brick +8.1 and
+  67%, a swept filter +8.0 and 73%, and as they were a croak +8.6 and 73%, a mouth +8.9 and 68%. Five growls drawn for a bass were the sweetest of all (+4.4 to +5.4), and two tables are not in tune in themselves. Ten acts
+  are led by them (drydock, smelter, brickyard, catacomb, icehouse, faultline, powerhouse, sluice, pressroom, millrace, whose wobble goes to and fro with the beat for a glide to be held through), no two with the same stabs,
+  bass and second synth; two calm ones (flophouse, a hummed "ah" with a tenor saxophone, an upright piano and an upright bass; pumphouse, a trombone that buzzes with a contrabassoon and a fuzzed electric piano); three
+  stabs, three basses and a pad beside them.
+  *A played bass is left open* (`club.lines`, the same day): a calm act's fretless was 6 and 13 dB thin in its middle in two songs (Cold Ashes, Bad Debt): the desk shut it at 1.8 kHz as it shuts a synthesiser's. A bass
+  that is a player's is shut from 4.5 kHz, with 4 dB at 650 Hz.
   *A stroke has a pitch.* A hard-synced lead swept 22 half-steps over half a second read 19 cents flat in two songs: in a riff's short stroke there is nothing but sweep, overtones sliding at 3.97 and 4.42 times the
   note. Swept six, from a little higher, its long notes are in tune and its short ones within 5 cents.
   *How hard it sounds, measured* (`tools/hardness.py`). The judges' model that hears audio against words (LAION-CLAP, music) scores ten seconds of a drop or a theme against three pairs of descriptions

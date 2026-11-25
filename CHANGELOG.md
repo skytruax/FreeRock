@@ -16,7 +16,12 @@ dictated, where it drove the change.
 - The page of what is new says who plays each song, in what key, metre and shape.
 - A band's riff gives way where its tune, lifted as far as it goes, stands under it still (`build.riff_gives`); a dub chord on its fifth has its own third.
 - Every family that has no take yet, some seven hundred, tells its themes another way each time they come back (`build.TOLD_ONCE` names those that had one).
-- The garage band's bass and the three bands' tubas, 10 to 14 dB over the liked stems' bass in their middle, are basses again.
+- The garage band's bass and the three bands' tubas, 10 to 14 dB over the liked stems' bass in their middle, are basses again; the drumline's marching tuba, 15 over in three songs of three, is played softer and shut, and the
+  other two and the garage's growl are let down further.
+- **"house is a little better keep iterating"**, **"find more instruments!"**: six ways of making a hard riff besides hammering one note (`house.HOOKS_OF`: a machine's line, a glide, a call and its answer, a power riff, a
+  toll, an odd cell); fifteen leads, three stabs, three basses and a pad out of the seven hundred wavetables that came with the synthesiser and had never been played (`patches.table`), chosen by how hard they sound and by how
+  much of what they sound is in the key; twelve acts led by them, two of them calm; two kinds of drum set and two kick patterns; **the tenth round's seventeen House songs** by those acts.
+- A calm House act's fretless and double bass are left open at the desk: they had been shut as a synthesiser's bass is.
 - **The ninth round's twenty characters**: Knight Rock's ten by the bands that sound furthest from the house's (two inns, two storms, two caves, a town, a camp, two walks), Warcraft's ten by its companies (four towns, two inns,
   two camps, a storm, a walk).
 
