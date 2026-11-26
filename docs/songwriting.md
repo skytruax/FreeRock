@@ -2910,6 +2910,9 @@ that morning, none of them judged. So:
    A song is brought back, and given to the judges, by its tag: one that is to stay out whatever they say rests under a word of its own (`rest.py tag`: the takes told another way each
    time rest under `retold-1126`, and one of them moves back to the tag that is read once it has been written again, `--since`). And a reading counts for the take as it is staged: one made
    before the take was performed again is left out by `check`, and `read` has the take read again (`gate.performed_since`: a take's `track.json` is the last thing a performance writes).
+   Whose a song is, its sheet says (`gate.whose`): the morning brings back the house's own players' songs that passed (`gate.py check <label> --style <style> --passed --own`); a band's, a
+   company's or an act's that passed (`--bands`) does not come in on the judges' word alone. `tools/gate_page.py <label> ...` writes the page the listener hears them on
+   (`var/listen/gate.html`: band by band, each to play, the take of before beside a song that was written again, and the held ones by name), and they say which may come in.
 5. Each morning `heard.py` says what was played the evening before, how much of it for the first time and how much of it new, before anything is said about the night's music.
 
 The library's windows are few still (five Knight Rock songs, six Warcraft, none of House's: `gate.py library` says "THIN"): two windows of twenty-four liked songs in each style are owed, the most

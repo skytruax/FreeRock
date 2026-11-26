@@ -155,3 +155,32 @@ def test_a_reading_made_before_its_take_was_performed_again_does_not_count_and_t
     assert again == [] and tool.to_read(tmp_path, kept, "gate-1126", "knight", "audit-1126") == []
     assert [each["passes"] for each in tool.check(kept, "gate-1126") if each["take"] == "salt-pan-1/1"] == [False]
     assert tool.standing(rows, "watch") == (rows, [])
+
+
+def test_whose_a_song_is_its_sheet_says_and_the_morning_brings_back_only_the_houses_own(tmp_path, monkeypatch, capsys):
+    """(2026-11-26: "the new bands a lot of time just sound random". A band's song that the judges pass waits for the listener's word; the house's own
+    players' come back on the judges'. Until this the two came out of one list of names.)"""
+    tool = _tool()
+    stage = tmp_path / "studio" / "knight"
+    for name, about in (("bone-mill-1/1", {"sounds": "jug", "band": True}), ("old-road-4/1", {"sounds": "", "band": True}), ("salt-pan-1/1", {"sounds": "saloon"}), ("mill-song-1/1", None)):
+        (stage / name).mkdir(parents=True)
+        if about is not None:
+            (stage / name / "sheet.json").write_text(json.dumps({"about": about}), encoding="utf-8")
+    assert [tool.whose(tmp_path, "knight", name) for name in ("bone-mill-1/1", "old-road-4/1", "salt-pan-1/1", "mill-song-1/1", "not-staged-1/1")] == ["jug", "", "saloon", "", ""]
+    rows = [_row("watch", "knight", "old-%d/1" % n, "", 3.0 + n / 10, folder="/drive/studio/knight/old-%d/1" % n) for n in range(5)]
+    rows += [_row("gate-1126", "knight", name, "", score, folder="/drive/studio/knight/%s" % name)
+             for name, score in (("bone-mill-1/1", 3.4), ("old-road-4/1", 3.4), ("salt-pan-1/1", 2.0), ("mill-song-1/1", 3.3))]
+    log = tmp_path / "judged.jsonl"
+    log.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+    monkeypatch.setattr(tool, "VAR", tmp_path)
+    said = {}
+    for flags in ((), ("--own",), ("--bands",)):
+        assert tool.main(["--log", str(log), "check", "gate-1126", "--style", "knight", "--passed", *flags]) == 0
+        said[flags] = capsys.readouterr().out.split()
+    assert said[()] == ["bone-mill-1/1", "mill-song-1/1", "old-road-4/1"]
+    assert said[("--own",)] == ["mill-song-1/1", "old-road-4/1"] and said[("--bands",)] == ["bone-mill-1/1"]
+    assert tool.main(["--log", str(log), "check", "gate-1126"]) == 0
+    told = capsys.readouterr().out
+    assert "jug" in told and "of those that pass: 2 the house's own players' (the morning brings these back), 1 a band's, a company's or an act's" in told
+    with pytest.raises(SystemExit):
+        tool.main(["--log", str(log), "check", "gate-1126", "--passed", "--own", "--bands"])
