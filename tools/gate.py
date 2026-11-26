@@ -22,8 +22,8 @@ sheet's to say: tools/study.py, "the tune's phrases that come back".)
     cd app && uv run --no-sync python ../tools/gate.py library                 what a song is held to, style by style, and from how many songs
     ... gate.py check <label> [--style knight]                                   each song judged under that label: its scores, and pass or hold
     ... gate.py check <label> --passed                                           only the names of those that pass (family/take, a line each: for rest.py back)
-    ... gate.py check <label> --style knight --passed --own                      of those, the house's own players' songs: what the morning brings back
-    ... gate.py check <label> --passed --bands                                   of those, a band's, a company's or an act's: listed for the listener, who says
+    ... gate.py check <label> --style knight --passed --own                      of those, the house's own players' songs not let in yet: what the morning brings back
+    ... gate.py check <label> --passed --bands                                   of those, a band's, a company's or an act's not let in yet: listed for the listener, who says
     ... gate.py pick knight [--n 24]                                             the library's songs to read for it: the most played, one take of each, not resting
     ... gate.py read <label> knight --tag audit-1126 [--threads 2] [--n 40]      has the judges read (SongEval alone, whole takes) the songs resting under a tag
                                                                                  that have no reading under the label yet; then `check <label>` says which pass
@@ -201,6 +201,15 @@ def whose(var: Path, style: str, take: str) -> str:
     return str((json.loads(sheet.read_text(encoding="utf-8")).get("about") or {}).get("sounds") or "")
 
 
+def let_in(var: Path, style: str) -> set[str]:
+    """The songs (family/take) of a style that have been let into the player already: tools/rest.py back writes each one down
+    (var/studio/<style>/admitted.txt). A song that passed and is here waits for nobody."""
+    listed = Path(var) / "studio" / style / "admitted.txt"
+    if not listed.is_file():
+        return set()
+    return {line.split(" ", 1)[0] for line in listed.read_text(encoding="utf-8").splitlines() if line.strip() and not line.startswith("#")}
+
+
 def to_read(var: Path, rows: list[dict], label: str, style: str, tag: str) -> list[str]:
     """The songs (family/take) resting under a tag in a style that have no whole reading under the label yet, in the list's order."""
     listed = Path(var) / "studio" / style / "resting.txt"
@@ -275,29 +284,36 @@ def main(argv: list[str] | None = None) -> int:
                     way, style, bar["score"], bar["memorability"], bar["middle"], bar["songs"], "  (THIN: under %d)" % THIN if bar["songs"] < THIN else ""))
         return 0
     found = check(rows, args.label, args.style)
+    inside = {style: let_in(VAR, style) for style in {each["style"] for each in found}}
     for each in found:
         each["whose"] = whose(VAR, each["style"], each["take"])
+        each["in"] = each["take"] in inside[each["style"]]
     if args.own and args.bands:
         parser.error("--own or --bands, not both")
     if args.passed:
         names = passed(found)
         if args.own or args.bands:
+            # (What still waits: a song let in already is neither brought back again nor put to the listener again.)
             theirs = {each["take"] for each in found if each["whose"]}
-            names = [name for name in names if (name in theirs) == args.bands]
+            already = {each["take"] for each in found if each["in"]}
+            names = [name for name in names if (name in theirs) == args.bands and name not in already]
         print("\n".join(names))
         return 0
     for each in found:
         bar = each["bar"] or {"score": float("nan"), "memorability": float("nan")}
         print("%-5s %-9s %-40s %-26s %-11s %.2f (bar %.2f)  memorability %.2f (bar %.2f)  %s%s" % (
-            "pass" if each["passes"] else "HOLD", each["style"], each["take"], each["title"][:26], each["whose"] or "own", each["score"], bar["score"], each["memorability"],
+("in" if each["in"] else "pass") if each["passes"] else "HOLD", each["style"], each["take"], each["title"][:26], each["whose"] or "own", each["score"], bar["score"], each["memorability"],
             bar["memorability"], "+".join(each["windows"]), "" if each["passes"] else "  under in: " + ", ".join(each["under"])))
     names = {each["take"] for each in found}
     through = passed(found)
     theirs = {each["take"] for each in found if each["whose"]}
     print("%d songs: %d pass, %d held" % (len(names), len(through), len(names) - len(through)))
     if through:
-        print("of those that pass: %d the house's own players' (the morning brings these back), %d a band's, a company's or an act's (these wait for the listener's word)" % (
-            sum(1 for name in through if name not in theirs), sum(1 for name in through if name in theirs)))
+        already = {each["take"] for each in found if each["in"]}
+        waiting = [name for name in through if name not in already]
+        print("of those that pass: %s%d the house's own players' (the morning brings these back), %d a band's, a company's or an act's (these wait for the listener's word)" % (
+            "%d let in already; " % (len(through) - len(waiting)) if len(waiting) < len(through) else "",
+            sum(1 for name in waiting if name not in theirs), sum(1 for name in waiting if name in theirs)))
     if again:
         print("%d not counted, read before they were performed again (gate.py read reads them again): %s" % (len(again), ", ".join(again)))
     return 0

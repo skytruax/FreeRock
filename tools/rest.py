@@ -17,6 +17,9 @@ taken out again as a whole, and comes back song by song as it is tested against 
         moves resting songs to another tag (all under the tag, or the ones named; with --since 2026-11-26T14:11 only those whose
         sheet was written then or after: the ones written again). A song is brought back by its tag, and the judges are given a
         tag to read: what is to stay out whatever they say rests under a word of its own
+    ... rest.py these knight --tag audit-1126 --why "came in unread" family/take ...
+        rests the songs named, whether the player has them or not (2026-11-26: fifteen further takes that came into the player with the
+        morning's builds unread, before every take the player did not have was rested; and what the listener lets in and wants out again)
     ... rest.py list knight
 
 A style's resting songs are the lines of var/studio/<style>/resting.txt (freerock.pieces.resting reads them when the style's
@@ -186,6 +189,11 @@ def main(argv: list[str] | None = None) -> int:
     moved.add_argument("--why", default="", help="the reason said anew (kept as it is where none is given)")
     moved.add_argument("--since", default="", help="2026-11-26T14:11: only the songs whose sheet was written then or after")
     moved.add_argument("songs", nargs="*")
+    named = sub.add_parser("these")
+    named.add_argument("style")
+    named.add_argument("--tag", required=True)
+    named.add_argument("--why", required=True)
+    named.add_argument("songs", nargs="+")
     listed = sub.add_parser("list")
     listed.add_argument("style")
     args = parser.parse_args(argv)
@@ -208,6 +216,13 @@ def main(argv: list[str] | None = None) -> int:
     elif args.what == "back":
         out = back(VAR, args.style, args.tag, args.songs or None)
         print("%s: %d songs brought back from [%s]. Heard after: var/passes/rebuild.sh %s" % (args.style, len(out), args.tag, args.style))
+    elif args.what == "these":
+        missing = [name for name in args.songs if not (VAR / "studio" / args.style / name / "track.json").is_file()]
+        if missing:
+            parser.error("not staged in %s: %s" % (args.style, " ".join(missing)))
+        added = rest(VAR, args.style, args.songs, args.tag, args.why)
+        print("%s: %d songs rested under [%s]%s. Heard after: var/passes/rebuild.sh %s" % (
+            args.style, len(added), args.tag, "" if len(added) == len(args.songs) else " (%d were resting already)" % (len(args.songs) - len(added)), args.style))
     elif args.what == "tag":
         out = retag(VAR, args.style, args.tag, args.to, args.songs or None, args.why, args.since)
         print("%s: %d songs moved from [%s] to [%s]" % (args.style, len(out), args.tag, args.to))

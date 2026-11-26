@@ -7,7 +7,8 @@ says. This is the page they hear them on.)
 
     cd app && uv run --no-sync python ../tools/gate_page.py gate-1126 [gate-1127 ...]
 
-For the labels given, a style at a time: the songs that passed and are a band's, a company's or an act's, band by band, each to listen to (its whole
+For the labels given, a style at a time: the songs that passed and have been let into the player (tools/rest.py back writes them down); the songs that
+passed and are a band's, a company's or an act's and wait for the listener's word, band by band; each to listen to (its whole
 file on the listening pages, var/listen/<style>/, written here where it is missing or older than the take); where a song was written again, the take
 of before beside it (kept under var/studio-demo/retold-audit-1126/resting; its whole file is written to var/listen/gate/); then the house's own
 players' songs that passed (they come into the player at the next build); then, by name and number only, the ones that were held. A song whose
@@ -110,12 +111,14 @@ def songs(var: Path, rows: list[dict], labels: list[str]) -> list[dict]:
         for each in found:
             by[(each["style"], each["take"])] = dict(each, label=label, passes=each["take"] in through)
     out = []
+    inside: dict[str, set[str]] = {}
     for (style, take), each in sorted(by.items()):
         meta = staged(var, style, take)
         if not meta:
             continue                                   # (read and since taken away: nothing to listen to)
         whole, stale = whole_of(var, style, take, write=each["passes"])
-        each.update(whose=gate.whose(var, style, take), whole=whole, stale=stale, title=meta.get("title") or each.get("title") or take,
+        each.update(whose=gate.whose(var, style, take), inside=take in inside.setdefault(style, gate.let_in(var, style)), whole=whole, stale=stale,
+                    title=meta.get("title") or each.get("title") or take,
                     tempo=meta.get("tempo"), metre=metre_of(Path(var) / "studio" / style / take),
                     before=before_of(var, style, take) if each["passes"] else "",
                     before_metre=metre_of(Path(var).joinpath(*BEFORE) / style / take))
@@ -123,7 +126,7 @@ def songs(var: Path, rows: list[dict], labels: list[str]) -> list[dict]:
     return out
 
 
-def _row(each: dict) -> str:
+def _row(each: dict, who: bool = False) -> str:
     bar = each["bar"] or {"score": float("nan"), "memorability": float("nan")}
     said = "the judges %.2f, memorability %.2f <small>(a song passes at %.2f and %.2f)</small>" % (each["score"], each["memorability"], bar["score"], bar["memorability"])
     about = " · ".join(part for part in ("%.0f to the minute" % each["tempo"] if each.get("tempo") else "", "in " + each["metre"] if each["metre"] else "") if part)
@@ -133,8 +136,9 @@ def _row(each: dict) -> str:
             now += "<br><small>this file is of the take before it was performed again: the new one is written within the half hour</small>"
     else:
         now = "<small>(its file to listen to is not written yet: within the half hour)</small>"
-    cells = "<td><b>%s</b><br><small>%s</small><br>%s</td><td>%s%s</td>" % (
-        html.escape(each["title"]), html.escape(each["take"]), said, ("<small>%s</small><br>" % html.escape(about)) if about else "", now)
+    by = " · the %s" % html.escape(each["whose"]) if who and each["whose"] else ""
+    cells = "<td><b>%s</b><br><small>%s%s</small><br>%s</td><td>%s%s</td>" % (
+        html.escape(each["title"]), html.escape(each["take"]), by, said, ("<small>%s</small><br>" % html.escape(about)) if about else "", now)
     if each["before"]:
         was = " in %s" % html.escape(each["before_metre"]) if each["before_metre"] and each["before_metre"] != each["metre"] else ""
         cells += '<td><small>as it was before it was written again%s</small><br><audio controls preload="none" src="%s"></audio></td>' % (was, quote(each["before"]))
@@ -151,14 +155,17 @@ def page(found: list[dict], labels: list[str], now: float | None = None) -> str:
         if not mine:
             continue
         through = [each for each in mine if each["passes"]]
+        inside = [each for each in through if each["inside"]]
         theirs: dict[str, list[dict]] = defaultdict(list)
         for each in through:
-            if each["whose"]:
+            if each["whose"] and not each["inside"]:
                 theirs[each["whose"]].append(each)
-        own = [each for each in through if not each["whose"]]
+        own = [each for each in through if not each["whose"] and not each["inside"]]
         held = [each for each in mine if not each["passes"]]
-        parts.append("<h2>%s</h2><p>%d songs read: %d passed (%d of a band, a company or an act; %d of the house's own players), %d were held.</p>" % (
-            name, len(mine), len(through), sum(len(each) for each in theirs.values()), len(own), len(held)))
+        parts.append("<h2>%s</h2><p>%d songs read: %d passed (%d let into the player; %d of a band, a company or an act waiting for your word; %d of the house's own players for the next build), %d were held.</p>" % (
+            name, len(mine), len(through), len(inside), sum(len(each) for each in theirs.values()), len(own), len(held)))
+        if inside:
+            parts.append("<h3>Passed, and let into the player</h3><table>%s</table>" % "\n".join(_row(each, who=True) for each in sorted(inside, key=lambda each: -each["score"])))
         if theirs:
             parts.append("<h3>Passed, and waiting for your word</h3>")
             for who in sorted(theirs, key=lambda who: (-len(theirs[who]), who)):
@@ -174,9 +181,9 @@ def page(found: list[dict], labels: list[str], now: float | None = None) -> str:
 audio{width:100%%;max-width:420px}small{color:#a8a59c}h1{font-size:22px}h2{font-size:20px;margin-top:28px}h3{font-size:17px;margin-top:20px}h4{font-size:16px;margin:14px 0 2px;text-transform:capitalize}
 .held{color:#c9c6bd}@media(max-width:700px){td{display:block;border-top:0;width:auto}tr{display:block;border-top:1px solid #333;padding:6px 0}}</style>
 <h1>What the judges passed</h1>
-<p>Every new song is read by the judges and held to the songs you liked: it passes when it reads no worse than three in four of them. Nothing here is in the player yet.
-A song of one of the new bands, companies or acts that passed is here for you to hear: say which bands may come in, or which songs. The house's own players' songs that passed come in by themselves at the next build.
-Where a song was written again (its tune told plainly, in an even metre), the take you heard before is beside it.</p>
+<p>Every new song is read by the judges and held to the songs you liked: it passes when it reads no worse than three in four of them. Until then it is not in the player.
+A song of one of the new bands, companies or acts that passed is here for you to hear: say which bands may come in, or which songs; the ones you have let in are first.
+The house's own players' songs that passed come in by themselves at the next build. Where a song was written again (its tune told plainly, in an even metre), the take you heard before is beside it.</p>
 <p><small>Written %s, from the readings under %s.</small></p>
 %s""" % (when, ", ".join(labels), "\n".join(parts) or "<p>Nothing has been read under these labels yet.</p>")
 
@@ -197,8 +204,9 @@ def main(argv: list[str] | None = None) -> int:
     scratch.write_text(page(found, args.labels), encoding="utf-8")
     scratch.replace(out)
     through = [each for each in found if each["passes"]]
-    print("%s: %d songs read, %d passed (%d a band's, a company's or an act's), %d of them with the take of before beside" % (
-        out, len(found), len(through), sum(1 for each in through if each["whose"]), sum(1 for each in through if each["before"])))
+    print("%s: %d songs read, %d passed (%d let in; %d a band's, a company's or an act's waiting), %d of them with the take of before beside" % (
+        out, len(found), len(through), sum(1 for each in through if each["inside"]), sum(1 for each in through if each["whose"] and not each["inside"]),
+        sum(1 for each in through if each["before"])))
     return 0
 
 

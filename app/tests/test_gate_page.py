@@ -57,13 +57,15 @@ def test_the_page_has_a_bands_passes_to_hear_the_houses_own_and_the_held_and_the
     rows += [_row("gate-x", take, score, str(stage / take)) for take, score in (("bone-mill-1/1", 3.4), ("old-road-4/1", 3.3), ("salt-pan-1/1", 2.0), ("night-fair-1/1", 3.2), ("crow-watch-4/1", 3.1),
                                                                                 ("gone-song-1/1", 3.5))]
     rows.append(_row("gate-x", "mill-song-1/1", 3.6, str(stage / "mill-song-1/1"), at="2000-01-01T00:00"))      # read before the take as it is staged was performed
+    (stage / "admitted.txt").write_text("# let in\ncrow-watch-4/1 [audit-1126]\n", encoding="utf-8")       # the listener said so (tools/rest.py back)
     log = tmp_path / "judged.jsonl"
     log.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
     assert tool.main(["--var", str(tmp_path), "--log", str(log), "gate-x"]) == 0
-    assert "5 songs read, 4 passed (3 a band's, a company's or an act's), 1 of them with the take of before beside" in capsys.readouterr().out
+    assert "5 songs read, 4 passed (1 let in; 2 a band's, a company's or an act's waiting), 1 of them with the take of before beside" in capsys.readouterr().out
     page = (tmp_path / "listen" / "gate.html").read_text(encoding="utf-8")
     waiting, own, held = page.index("Passed, and waiting for your word"), page.index("Passed, the house's own players"), page.index("<h3>Held</h3>")
     assert waiting < page.index("Bone Mill") < page.index("Night Fair") < own < page.index("Old Road") < held < page.index("Salt Pan")     # a band's by score, the house's own, the held
+    assert page.index("Passed, and let into the player") < page.index("Crow Watch") < waiting and "crow-watch-4/1 · the baroque" in page      # what was let in is first, and says whose
     assert "<h4>jug</h4>" in page and "gone-song" not in page                                        # (read, and not staged: nothing to hear)
     assert "Mill Song" not in page                                                                   # (its reading is of a take that is no longer there)
     assert 'src="knight/Bone%20Mill%20-%20take%201%20%28bone-mill-1%29.flac"' in page

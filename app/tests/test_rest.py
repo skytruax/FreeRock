@@ -114,3 +114,19 @@ def test_resting_songs_move_to_another_tag_and_are_brought_back_and_read_by_it(t
     assert tool.retag(tmp_path, "knight", "nothing-here", "audit-1126") == []
     with pytest.raises(ValueError, match="one word"):
         tool.retag(tmp_path, "knight", "audit-1126", "two words")
+
+
+def test_songs_named_are_rested_whether_the_player_has_them_or_not(tmp_path, monkeypatch, capsys):
+    """(2026-11-26: fifteen further takes had come into the player with the morning's builds unread. `new` rests what the player does not have; these it had.)"""
+    tool = _tool()
+    monkeypatch.setattr(tool, "VAR", tmp_path)
+    for name in ("old-road-1/3", "mill-song-1/2"):
+        _take(tmp_path, name, "2026-11-26T03:00:00")
+    assert tool.main(["these", "knight", "--tag", "audit-1126", "--why", "came in unread", "old-road-1/3", "mill-song-1/2"]) == 0
+    assert "2 songs rested under [audit-1126]." in capsys.readouterr().out
+    assert pieces.resting(tmp_path, "knight") == {"old-road-1/3": "[audit-1126] came in unread", "mill-song-1/2": "[audit-1126] came in unread"}
+    assert tool.main(["these", "knight", "--tag", "audit-1126", "--why", "again", "old-road-1/3"]) == 0
+    assert "0 songs rested under [audit-1126] (1 were resting already)" in capsys.readouterr().out
+    with pytest.raises(SystemExit):
+        tool.main(["these", "knight", "--tag", "audit-1126", "--why", "x", "no-such-song-1/1"])           # not staged: said, nothing rested
+    assert set(pieces.resting(tmp_path, "knight")) == {"old-road-1/3", "mill-song-1/2"}

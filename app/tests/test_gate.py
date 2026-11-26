@@ -184,3 +184,15 @@ def test_whose_a_song_is_its_sheet_says_and_the_morning_brings_back_only_the_hou
     assert "jug" in told and "of those that pass: 2 the house's own players' (the morning brings these back), 1 a band's, a company's or an act's" in told
     with pytest.raises(SystemExit):
         tool.main(["--log", str(log), "check", "gate-1126", "--passed", "--own", "--bands"])
+    # Let in on the listener's word (tools/rest.py back writes it down): it waits for nobody, and is not put to them again.
+    assert tool.let_in(tmp_path, "knight") == set()
+    (stage / "admitted.txt").write_text("# Songs let into the player\nbone-mill-1/1 [audit-1126]\n", encoding="utf-8")
+    assert tool.let_in(tmp_path, "knight") == {"bone-mill-1/1"}
+    for flags in ((), ("--own",), ("--bands",)):
+        assert tool.main(["--log", str(log), "check", "gate-1126", "--style", "knight", "--passed", *flags]) == 0
+        said[flags] = capsys.readouterr().out.split()
+    assert said[()] == ["bone-mill-1/1", "mill-song-1/1", "old-road-4/1"] and said[("--own",)] == ["mill-song-1/1", "old-road-4/1"] and said[("--bands",)] == []
+    assert tool.main(["--log", str(log), "check", "gate-1126"]) == 0
+    told = capsys.readouterr().out
+    assert "of those that pass: 1 let in already; 2 the house's own players' (the morning brings these back), 0 a band's, a company's or an act's" in told
+    assert [line.split()[0] for line in told.splitlines() if "bone-mill-1/1" in line] == ["in"]
