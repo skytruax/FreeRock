@@ -211,6 +211,12 @@ MIDS_TURN = {("clap",): ("clap", "snare"), ("clap", "snare"): ("clap",), ("snare
 # 0.86 with no brief, SongEval down on every axis), the ghost kick not heard; the meter heard neither. The drums turn every
 # eight bars in the hats all along, which the meter hears since it hears their ring (tools/boredom.py, 2026-11-21).
 MIDS_WAY = ""
+# (2026-11-26, the meter on the first takes of the eleventh, twelfth and thirteenth rounds, forty House songs: in thirteen a theme's drums the same sixteen bars, Vine Cutter I's thirty. Their sheets turn every
+# eight: a fill in the eighth bar's last beat, the hats every sixteen, the percussion eight after. But the fill "lift" took the kick from the bar's last beat, where a broken kick has no stroke, and left
+# nothing; a four-stroke snare fill moves a bar's sound by less than the meter's line; and the hats' turn is a hat for a hat on the acts' machines. Under them the kick and the backbeat never move, which is what
+# a floor hears.) The turn every eight bars: in the last bar of each eight of a theme or a drop (not its last, which has its own way out) the kick rests from the bar's half, and where the fill is the lift the
+# backbeat's drum plays two strokes into the next bar. A rest and a pickup, where THEME_MIDS and MIDS_WAY laid something on the backbeat for sixteen bars and the judges took neither.
+EIGHTS_TURN = True
 # The calm moments: an inn, the night, a camp. They have no drop to speak of, no roll into one and no line doubled over the
 # tune, and they play under the usual level.
 CALM_ROLES = ("ember", "night", "camp")
@@ -856,6 +862,19 @@ PLAN: tuple[Family, ...] = (
     Family("infernal-10", "Clinker Pit", ("infernal",), W, S01, False, 5, "HD", (8, 8, 8, 24, 8), "four", 0.06, "808", "hard", "brickyard", 128, "line", "cold"),
     Family("pastoral-13", "Stubble Burn", ("pastoral", "highland"), W, S01, False, 8, "HB", (8, 16, 8, 16, 8), "step", 0.18, "606", "hard-broken", "chopshop", 123, "odd", "thrice"),
     Family("night-23", "Ash Fall", ("infernal", "coast", "highland"), "night", S01, False, 6, "H8", (16, 24, 8, 24, 8), "broken", 0.08, "808", "after-hours", "switchyard", 101),
+    # (The tenth set, 2026-11-26, the fourteenth round: where House's music comes round most a song: a camp, a town, an inn and a storm (0.7 to 0.8 times), the coast's, the pastoral, the frozen and the
+    # highland walks, a night and a cave. The hard ones by acts whose drops the contest's upper half leads (the talker, the jaw, the fifths, the brick, the growl, the reese, the ladder), each with a riff and a
+    # shape no song of its act has had: a storm in three squalls where the six before it begin cold. The calm ones under the bow, the murmur and the turning pulses.)
+    Family("town-22", "Chain Link", ("coast", "infernal", "highland"), "town", S01, False, 5, "HA", (8, 16, 8, 16, 8), "step", 0.18, "707", "hard-broken", "chopshop", 121, "toll", "thrice"),
+    Family("storm-19", "Arc Flash", ("desert", "frozen", "marsh"), "storm", S01, False, 1, "HD", (8, 16, 8, 16, 8), "four", 0.0, "909", "hard-gallop", "powerhouse", 131, "line", "thrice"),
+    Family("coast-14", "Sea Wall", ("coast", "frozen"), W, S01, False, 9, "H8", (16, 16, 8, 16, 8), "half", 0.2, "808", "hard-slow", "catacomb", 119, "power", "arc"),
+    Family("pastoral-14", "Cattle Grid", ("pastoral", "marsh"), W, S01, False, 2, "HB", (8, 16, 8, 16, 8), "breaks", 0.14, "707", "hard-tribal", "brickyard", 125, "glide", "tool"),
+    Family("frozen-11", "Frost Heave", ("frozen",), W, S01, False, 7, "HC", (8, 16, 8, 16, 8), "broken3", 0.12, "606", "hard-broken", "drydock", 126, "odd", "tool"),
+    Family("highland-12", "High Tension", ("highland", "infernal"), W, S01, False, 10, "H9", (8, 16, 8, 16, 8), "four", 0.06, "909", "hard-gallop", "tunnel", 129, "call", "thrice"),
+    Family("depths-20", "Blind Shaft", ("highland", "infernal", "frozen"), "depths", S01, False, 4, "HD", (16, 16, 8, 16, 8), "step", 0.2, "808", "hard-slow", "undercroft", 118, "", "arc"),
+    Family("camp-23", "Scrap Fire", ("coast", "infernal", "frozen"), "camp", S01, False, 9, "HA", (8, 16, 8, 16, 8), "half", 0.1, "606", "after-hours", "mortuary", 95),
+    Family("ember-23", "Lock-In", ("coast", "desert", "regal"), "ember", S01, False, 2, "H8", (8, 16, 8, 16, 8), "broken", 0.12, "707", "after-hours", "flophouse", 102),
+    Family("night-24", "Dial Tone", ("pastoral", "regal", "frozen"), "night", S01, False, 0, "HB", (16, 24, 8, 24, 8), "broken2", 0.1, "808", "after-hours", "pumphouse", 100),
 )
 LATER = tuple(each.name for each in PLAN)[[each.name for each in PLAN].index("town-13"):]          # (the families from the fourth set of hard ones on: HAMMERS_LATER, SCENES_LATER)
 TAKES = (1, 2, 3)
@@ -1616,9 +1635,12 @@ class Take:
                 out_bar = self.dropped_out(story, inside, count)
                 filling = (groove and inside % 8 == 7 and not (story == "close")) or out_bar
                 this_fill = "snare" if out_bar else fill
+                turning = EIGHTS_TURN and filling and not out_bar and not last and story in ("theme", "moment")      # the turn every eight bars
                 if self.kick_plays(story, inside, count, first):
                     for step in self.kick:
                         if filling and this_fill == "lift" and step >= 12:
+                            continue
+                        if turning and step >= 8:
                             continue
                         hit(dry, kick, bar, step, 0.92, 0.0, kick_speed)
                     if turns and MIDS_WAY == "ghost" and 14 not in self.kick:
@@ -1694,6 +1716,9 @@ class Take:
                                 hit(wet, sound, bar, step, 0.5, pan)
                         else:
                             hit(wet, "open", bar, 14, 0.4, -0.12)
+                            if turning:
+                                for step, strength in ((14, 0.6), (15, 0.8)):
+                                    hit(wet, backbeat[0], bar, step, (0.56 if backbeat[0] != "snap" else 0.5) * strength)
                 elif story == "rise" and RISE_PULSE:
                     # The groove's top goes on through a rise (RISE_PULSE): the family's hats (sixteenths thinned to
                     # eighths, as everywhere but a drop) growing with the rise, and the first percussion figure until the

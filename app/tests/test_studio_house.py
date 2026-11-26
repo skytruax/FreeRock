@@ -252,6 +252,41 @@ def test_a_hard_song_has_nothing_sweet_in_it_and_goes_at_its_own_pace():
         assert stabs and max(stabs) <= 79 and sum(stabs) / len(stabs) < 62, (fam.name, max(stabs), sum(stabs) / len(stabs))
 
 
+def test_a_long_part_turns_every_eight_bars(monkeypatch):
+    """(2026-11-26, the meter on forty House first takes: in thirteen a theme's drums the same sixteen bars, Vine Cutter I's thirty: under the fills and the hats' turns the kick and the backbeat never moved.
+    Played again with the turn, Rat Trap I, Hush Money I and Vine Cutter I read eight bars at the most, and the judges on their first themes level to a shade up.)"""
+    from freerock.studio import club
+
+    def read(name):
+        sheet = club.write(name, 1)
+        drums = sheet.parts["drums"]
+        kick = next(part for voice, part in drums.items() if voice in club.KICKS)
+        back = next(drums[voice] for voice in ("clap", "snare2", "snare", "rim", "snap") if voice in drums)
+        late, elsewhere, picked = 0, 0, 0
+        for section in sheet.form:
+            if section["story"] not in ("theme", "moment"):
+                continue
+            for inside in range(section["bars"]):
+                bar = section["first"] + inside
+                after = [note for note in kick.notes if bar * 4.0 + 2.0 - 0.05 <= note.start < (bar + 1) * 4.0 - 0.05]
+                if inside % 8 == 7 and inside != section["bars"] - 1:        # the last bar of each eight, but not the part's last: that has its own way out
+                    late += len(after)
+                    picked += sum(1 for note in back.notes if min(abs(note.start - bar * 4.0 - 3.5), abs(note.start - bar * 4.0 - 3.75)) < 0.06)
+                else:
+                    elsewhere += len(after)
+        return late, elsewhere, picked
+
+    assert house.EIGHTS_TURN
+    # A broken kick with the lift for its fill (the lift alone left such a bar as it was), four on the floor with a snare's fill, the breaks, a calm song, a storm with the toms' fill.
+    turned = {name: read(name) for name in ("town-20", "regal-12", "jungle-11", "ember-20", "storm-16")}
+    monkeypatch.setattr(house, "EIGHTS_TURN", False)
+    for name, (late, elsewhere, picked) in turned.items():
+        was_late, was_elsewhere, was_picked = read(name)
+        fill = house.Take(house.family(name), 1).pick("fill", ("snare", "toms", "lift"))
+        assert late == 0 and was_late >= 7 and elsewhere == was_elsewhere > 90, (name, late, was_late, elsewhere, was_elsewhere)       # the kick rests from the bar's half there, and nowhere else
+        assert was_picked == 0 and (picked >= 12) == (fill == "lift"), (name, fill, picked)                                         # the backbeat's two strokes into the next bar, where the fill is the lift
+
+
 def test_a_house_song_has_one_of_five_shapes():
     """(2026-11-25: three hundred and forty songs and one shape.)"""
     from freerock.studio import club

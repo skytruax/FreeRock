@@ -387,7 +387,9 @@ def test_a_theme_is_told_another_way_each_time_it_comes_back_where_a_character_g
         section, first, _ = span(now, "first")
         until = first + fam.period * now.beats / 2
         if section.sings in ("first", "again", "valley"):
-            assert [(round(note.start, 3), note.pitch) for note in lead_notes(now, first, until)] == [(round(note.start, 3), note.pitch) for note in lead_notes(was, first, until)]
+            # (By the notes' names: a low character's singer goes an octave down where the middle of ALL its notes is at A4 or over (Take.sing_low), and a song that grows has other notes in it than
+            # one that does not: the wreckers' soprano saxophone and the caravan's cello tell the same tune an octave apart with and without.)
+            assert [(round(note.start, 3), note.pitch % 12) for note in lead_notes(now, first, until)] == [(round(note.start, 3), note.pitch % 12) for note in lead_notes(was, first, until)]
         assert all(len(now.voices[channel][name].notes) == len(voice.notes) for channel in ("bass",) for name, voice in was.voices[channel].items())
     assert statistics.mean(less) >= 0.08, less
 

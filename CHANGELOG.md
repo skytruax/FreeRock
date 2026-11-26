@@ -3,6 +3,16 @@
 Newest first. Words in quotation marks are what was said while listening or playing, as typed or
 dictated, where it drove the change.
 
+## 2026-11-26: the fourteenth round, and a drummer who turns every eight bars
+
+- **The fourteenth round's twenty characters**: Knight Rock's ten by bands that had five dark songs or fewer, each a moment or a walk it had none for, in a metre it had not, led by what no dark band
+  song had been led by (a recorder, a flute, a shenai, an ocarina, a steel guitar, a soprano saxophone, a violin, a growling saxophone, a bagpipe, a shakuhachi); Warcraft's ten by companies that had four dark songs,
+  each a place it had none for, sung by a player of its own that had not led for it (a full choir in a storm, a pan flute on a bog road, an ocarina at a sin-eater's supper, a trumpet on a conqueror's avenue).
+- Those eight new leaders may take the solo at a summit they lead: six of the ten first takes had none.
+- **The fourteenth round's ten House songs**: a town, a storm in three squalls, a cave, four walks, a camp, an inn and a night, where its music comes round most a song.
+- House's drums turn every eight bars: the kick rests from the half of each eight's last bar, with two strokes of the backbeat into the next where the fill left room. In thirteen of forty first takes a theme's drums
+  had been the same for sixteen bars by the meter, in one for thirty; three played again read eight at the most, and the judges that listen were level to a shade up.
+
 ## 2026-11-25: three bands more
 
 - **"make sure were using unique bands on all genres"**, **"keep up the multiple band concept but make sure to test each bands musicality"**: the noir (an archtop, an upright, a baritone saxophone and a jazz drummer), the jug (a
