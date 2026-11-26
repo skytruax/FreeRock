@@ -2581,6 +2581,12 @@ LIGHT_SUMMIT_TURNS = False  # after a light band's solo its summit comes back ha
 # tune alone over the band's stabs heard as a hole, not a breath; Midnight Vigil's level, 0.37 to 0.31, enjoyment 7.39 to
 # 7.49. Its way is kept, and held in its test.)
 STOP_TIME = False        # after a light band's solo its band plays stop-time for STOP_BARS bars (Take.stop_time)
+# (2026-11-26, the third way. Solder-Smoke Embers, a camp's song in six-eight at 65: its summit's guitars the same for all 24 bars, 66 seconds: twenty strummed notes a bar on the muted string and six on
+# the open one, under a guitar solo sixteen bars long and after it alike. Under a solo a riff band comps (SOLO_COMP); a band that strums played on at full, and nothing in a light band's summit turned: its
+# last chorus played harder was judged down, and stop-time heard as a hole.) A light band's summit turns by taking away: under its solo the strummer comps too, the down-strokes on the bar's strong beats
+# and every other note of a broken chord; and in the last bar of each eight, but not the summit's last, the band strikes the chord once and lets it ring. The characters that `grows` (the newer ones): the
+# others' takes are written as they were.
+LIGHT_TURNS = True
 STOP_BARS = 4
 # (2026-11-20, the study: Lazy River Sway I's banjo, geared after its solo, back at its own register within twelve bars, and
 # from a chord spread over 21 semitones: a geared voicing was led apart from the bars before it, about a centre an octave up,
@@ -5467,7 +5473,7 @@ class Take:
                 leading[(name, raised)] = notes
             ladder = notes + [notes[0] + 12]
             loud = self.hard(level, 0.8) * gain
-            thin = density < 0.45
+            thin = density < 0.45 or (comp and figure in ("strum", "arp"))          # (under a solo a strummer comps: LIGHT_TURNS)
             if figure == "pulse":
                 step = half if density >= 0.5 else pulse
                 if density > 0.85 and pulse == 1.0 and self.fam.bpm <= 112:
@@ -5704,6 +5710,10 @@ class Take:
                 # chords are struck once and held under the second theme's singer, the way a '70s band opens out for its
                 # other tune, and the riff comes back with the rise.
                 rings = (RING_SECOND and ch.band and self.heavy and part == "second") or end in ("stop", "ring", "last")
+                # A light band's summit breathes at the end of each eight (LIGHT_TURNS): the chord once, left to ring.
+                light = LIGHT_TURNS and ch.band and ch.grows and not self.heavy
+                breath = light and part == "summit" and bars >= 16 and bar % 8 == 7 and bar != bars - 1
+                rings = rings or breath
                 # A heavy band's long rise climbs (2026-11-19, the boredom meter: in a fight's 36-bar build the rhythm guitar
                 # played one riff 17 bars over one chord, Lightning Runner's): where a chord is held nine bars or more, its second
                 # half has the riff an octave up the neck, over the muted string still chugging low, and the next chord
@@ -5714,7 +5724,7 @@ class Take:
                 # a riff's register is its own, so the raise above does not reach it. `band_geared`.)
                 geared_band = self.band_geared(part, bars, bar)
                 played = "riff" if rings else "chug" if climbing and self.rise_way == "drive" and figure == "riff" else figure
-                comping = SOLO_COMP and ch.band and solo_from is not None and played in RIFFS and not rings \
+                comping = SOLO_COMP and ch.band and solo_from is not None and (played in RIFFS or (light and played in ("strum", "arp"))) and not rings \
                     and solo_from - 1e-6 <= bar_at < solo_to - beats / 2
                 # (A heavy band's long moment turns its guitars at its dig-in, out of the solo's way: `dig_turn`.)
                 turn = None if comping else self.dig_turn(part, bars, bar)
@@ -5728,7 +5738,7 @@ class Take:
                       and not rings else 0,
                       ending=end in ("stop", "ring", "last"), comp=comping)
                 # (A band's riff guitars are the band's whole accompaniment; the unplugged band takes the second figure too.)
-                if not (ch.band and self.heavy) and fuller(part, bar, along):
+                if not (ch.band and self.heavy) and fuller(part, bar, along) and not breath:
                     # The other figure, on its own instrument (another of the palette's, where both themes have the
                     # same one), an octave up where the two would sit on each other, a little under the first.
                     with_name, with_figure = (self.pluck, self.figure) if second else (self.pluck_b, self.figure_b)
@@ -5740,7 +5750,7 @@ class Take:
                         # (A riff keeps its own register and goes up the neck only by `up`: in a geared phrase a riff that
                         # is the second figure goes up too, 2026-11-19, Kinsman's Ballad VI's rhythm guitar 53 all through.)
                         layer(with_name, with_figure, not second, up, 0.72, key, chord, bar, bar_at, level, max(density, 0.5),
-                              up=12 if geared_band and with_figure in RIFFS else 0)
+                              up=12 if geared_band and with_figure in RIFFS else 0, comp=comping and light and with_figure in ("strum", "arp"))
                 if part in ("arrival", "summit") and self.heavy and not ch.band:
                     # The brass marks the chord: on the bar at the first arrival, on every strong beat
                     # at the summit. A line each for the trombones, the horns and the trumpets;

@@ -357,6 +357,43 @@ def test_a_long_moment_turns_where_a_character_turns():
     assert all(Take(made(character), 0).dig_way in ("up", "ring", "plain") for character in plain)
 
 
+def test_a_light_bands_summit_turns_by_taking_away(monkeypatch):
+    """(2026-11-26: Solder-Smoke Embers, a camp's song in six-eight: its summit's guitars the same for all 24 bars, 66 seconds, twenty strummed notes a bar under a solo sixteen bars long and after it
+    alike. A light band's last chorus played harder was judged down, and stop-time heard as a hole. Played again with this: the meter's 24 bars gone, the judges on its summit level to a shade up.)"""
+    from freerock.studio import orchestra
+    assert orchestra.LIGHT_TURNS
+    fam = next(fam for fam, _ in build.plan() if fam.name == "anywhere-tinkers-camp-1")
+
+    def summit(take):
+        section, first, _ = span(take, "summit")
+        strokes = [sum(1 for name, voice in take.voices["rhythm"].items() if "bell" not in name for note in voice.notes
+                       if first + bar * take.beats - 1e-6 <= note.start < first + (bar + 1) * take.beats - 1e-6) for bar in range(section.bars)]
+        solo = sorted(note.start for note in lead_notes(take, first, first + section.bars * take.beats, solos=True))
+        return strokes, int((solo[-1] - first) // take.beats) + 1
+
+    strokes, under = summit(Take(fam, 1))
+    assert len(strokes) == 24 and under == 16, (len(strokes), under)
+    breaths = [bar for bar in range(24) if bar % 8 == 7 and bar != 23]
+    full = [strokes[bar] for bar in range(under, 24) if bar not in breaths]
+    comped = [strokes[bar] for bar in range(under) if bar not in breaths]
+    assert min(full) >= 24 and max(comped) <= min(full) // 2, strokes                    # under the solo the strummers comp: half the strokes and fewer
+    assert breaths == [7, 15] and all(0 < strokes[bar] <= 8 for bar in breaths), strokes   # and at each eight's end the chord once, left to ring
+    monkeypatch.setattr(orchestra, "LIGHT_TURNS", False)
+    was, _ = summit(Take(fam, 1))
+    assert max(was) - min(was) <= 2 and min(was) >= 24, was                               # as it was: every bar alike
+    # A heavy band's song, and a light one's whose character does not grow, are written as they were.
+    monkeypatch.setattr(orchestra, "LIGHT_TURNS", True)
+    for name in ("sirocco", "last orders"):
+        character = next(each for each in CHARACTERS if each.name == name)
+        assert (character.weight >= 0.8) != (not character.grows), name
+        fam = made(character)
+        notes = lambda: [(name, note.start, note.pitch) for name, voice in Take(fam, 1).voices["rhythm"].items() for note in voice.notes]     # noqa: E731
+        now = notes()
+        monkeypatch.setattr(orchestra, "LIGHT_TURNS", False)
+        assert notes() == now, name
+        monkeypatch.setattr(orchestra, "LIGHT_TURNS", True)
+
+
 def told_before(take):
     """How much of a take's tune is a bar heard before."""
     by = {}

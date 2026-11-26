@@ -18,6 +18,8 @@ dictated, where it drove the change.
 - A band's string bass is heard as well as felt: the desk measures the bass that was played and, where it stands more than 4 dB under the liked stems about 450 and 900 Hz, gives it a bell at the mixdown, eight at
   the most. Eleven of nineteen staged songs with the round bass stood 5 to 18 under there, and neither their weight nor how low their lines lie said which.
 - An opening is brought up by fifteen at the most, where it was twelve: eight old songs whose revised sheets were performed opened at -33.5 to -34.9, written 51 LUFS down under first themes of -25 to -30.
+- A light band's summit turns by taking away: its strummers comp under the solo as a riff band's do, and the band lets one chord ring at the end of each eight. A camp's song had strummed the same twenty notes a
+  bar for all 24 bars of its summit; played again, the meter no longer hears it so and the judges are level to a shade up, where two earlier ways (harder after the solo, stop-time) had been judged down.
 
 ## 2026-11-25: three bands more
 
