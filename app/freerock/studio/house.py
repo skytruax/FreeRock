@@ -843,6 +843,19 @@ PLAN: tuple[Family, ...] = (
     Family("night-21", "Night Bus", ("infernal", "haunted", "jungle"), "night", S01, False, 2, "HA", (16, 24, 8, 24, 8), "broken", 0.08, "808", "after-hours", "mortuary", 100),
     Family("night-22", "Sodium Lamp", ("marsh", "mystic", "pastoral"), "night", S01, False, 11, "H7", (16, 24, 8, 24, 8), "broken3", 0.1, "606", "after-hours", "pumphouse", 104),
     Family("camp-22", "Dead Battery", ("mystic", "pastoral", "regal"), "camp", S01, False, 4, "HC", (8, 16, 8, 16, 8), "half", 0.12, "707", "after-hours", "cellar", 96),
+    # (The ninth set, the same evening, the thirteenth round: hard walks where they were fewest (the desert's four, the jungle's and the mystic's five, the coast's, the haunted's and the infernal's six), by the acts
+    # whose drops the contest's upper half leads (the jaw, the reese, the chip, the metal, the fifths, the growl, the stack, the brick, the talker), on the drum machine and the kick patterns the hard songs have
+    # least (the 707 in four of 110, the breaks in six), each with a riff and a shape of its own; and a night under the tape.)
+    Family("desert-12", "Glass Dune", ("desert",), W, S01, False, 7, "HA", (8, 8, 8, 24, 8), "breaks", 0.12, "707", "hard-tribal", "powerhouse", 124, "glide", "cold"),
+    Family("desert-13", "Cracked Earth", ("desert", "mystic"), W, S01, False, 0, "HD", (16, 16, 8, 16, 8), "half", 0.2, "808", "hard-slow", "tunnel", 118, "call", "arc"),
+    Family("jungle-11", "Vine Cutter", ("jungle",), W, S01, False, 9, "HB", (8, 16, 8, 16, 8), "breaks", 0.14, "707", "hard-tribal", "arcade", 126, "toll", "tool"),
+    Family("mystic-10", "White Noise", ("mystic",), W, S01, False, 10, "H8", (8, 8, 8, 24, 8), "broken3", 0.14, "909", "hard-broken", "faultline", 127, "odd", "cold"),
+    Family("mystic-11", "Phantom Limb", ("mystic", "frozen"), W, S01, False, 3, "H9", (16, 16, 8, 16, 8), "step", 0.2, "606", "hard-slow", "catacomb", 120, "glide", "arc"),
+    Family("coast-13", "Rip Current", ("coast",), W, S01, False, 4, "HC", (8, 16, 8, 16, 8), "four", 0.04, "909", "hard-gallop", "drydock", 130, "power", "thrice"),
+    Family("haunted-10", "Hollow Stair", ("haunted",), W, S01, False, 2, "HA", (8, 24, 8, 16, 8), "broken2", 0.16, "707", "hard-broken", "icehouse", 122, "call", "tool"),
+    Family("infernal-10", "Clinker Pit", ("infernal",), W, S01, False, 5, "HD", (8, 8, 8, 24, 8), "four", 0.06, "808", "hard", "brickyard", 128, "line", "cold"),
+    Family("pastoral-13", "Stubble Burn", ("pastoral", "highland"), W, S01, False, 8, "HB", (8, 16, 8, 16, 8), "step", 0.18, "606", "hard-broken", "chopshop", 123, "odd", "thrice"),
+    Family("night-23", "Ash Fall", ("infernal", "coast", "highland"), "night", S01, False, 6, "H8", (16, 24, 8, 24, 8), "broken", 0.08, "808", "after-hours", "switchyard", 101),
 )
 LATER = tuple(each.name for each in PLAN)[[each.name for each in PLAN].index("town-13"):]          # (the families from the fourth set of hard ones on: HAMMERS_LATER, SCENES_LATER)
 TAKES = (1, 2, 3)
@@ -1368,7 +1381,7 @@ SCENES_LATER: dict[str, dict] = {
     "late": dict(first=("SB", "SBT", "L"), last=("L", "LS", "LSU", "BT", "LSH", "LsHT"), rise="hammer", stabs=8, bass=0),
     "shadow": dict(first=("U", "LU", "LUS"), last=("LS", "UT", "LU", "sB", "LSH", "LsHT"), rise="stab", stabs=16, bass=0),
 }
-WAITS = ("held", "late", "shadow")                # the shapes whose riff is not there from their first drop's first bar: no fight's and no storm's
+WAITS = ("held", "late", "shadow")                # the shapes whose riff is not there from their first drop's first bar: no fight's, no storm's and none that begins cold
 THREES = ((0, 2.0), (3, 2.0), (6, 2.0), (9, 2.0), (12, 2.0), (14, 1.5))
 # Bass figures for one bar: (sixteenth, how long, which note of the chord).
 BASSES = {
@@ -1467,7 +1480,10 @@ class Take:
         if low and fam.role not in CALM_ROLES:
             scenes = {**HARD_SCENES, **SCENES_LATER} if fam.name in LATER else HARD_SCENES
             few = fam.hook in ("glide", "toll", "call")          # (a riff of few strokes has nothing to hammer a rise with)
-            self.scene = scenes[self.pick("scene", tuple(each for each in scenes if (each not in WAITS or not (fam.hard or fam.role == "storm")) and not (few and scenes[each]["rise"] == "hammer")))]
+            # (2026-11-25, the thirteenth round: a song that begins cold has its riff after four bars, and its first drop is eight: a shape that keeps the riff back had none in it, Clinker Pit's. Until
+            # then the three that began cold were storms.)
+            now = fam.hard or fam.role == "storm" or fam.form == "cold"
+            self.scene = scenes[self.pick("scene", tuple(each for each in scenes if (each not in WAITS or not now) and not (few and scenes[each]["rise"] == "hammer")))]
 
     # --- what a take is made of ----------------------------------------------------------------
     def rng(self, what: str) -> random.Random:

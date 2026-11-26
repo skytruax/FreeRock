@@ -39,6 +39,10 @@ dictated, where it drove the change.
 - `tools/study.py` reads a take's staged music sheet, not the writer's first draft: a song retold the night before was still read at its first draft's count and marked for the revision it had had.
 - A soft song's opening and first theme are heard as well: fifteen of the day's first takes opened at -33 to -36 LUFS, thirteen under a summit that was itself at -22 (`build.OPEN_FLOOR`, `FIRST_FLOOR`).
 - A company's bass is doubled only by a player who can reach its line: in seven songs a lyre, a xylophone or a kalimba had played it two and three octaves up, inside the bass's channel.
+- **The thirteenth round's twenty characters**: Knight Rock's ten by the bands that had four dark songs, where its music comes round most (two inns, two towns, a storm, a camp, a cave) and where it has least (the night,
+  the mystic and the haunted walks), led by what its dark songs had barely used (an accordion, a bass clarinet, a mandolin, an oboe, a bassoon); Warcraft's ten by the companies that had three, each sung by
+  a player of its own that had not led for it (a shakuhachi in a desert night, a bagpipe in a white squall, an erhu in a teahouse, handbells in a monsoon, a choir humming at a pilgrims' fire).
+- **The thirteenth round's ten House songs**: nine hard walks where they were fewest and a night, by the acts whose leads the contest ranked in its upper half, each with a riff and a shape of its own.
 
 ## 2026-11-24, night: a tune that is told another way each time, and calm House that is not sweet
 
