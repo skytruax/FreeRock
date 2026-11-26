@@ -78,6 +78,8 @@ FIRST_UNDER, FIRST_MOST = 11.0, 8.0
 # say, and the summit of a cave's or a camp's song itself at -22: Daylight-Starved Echo's and Prospector's Stake's openings at -35). An opening and a first theme are brought up to these, LUFS, within what the
 # rules above allow them: never over the part after them, and no more than OPEN_MOST and FIRST_MOST.
 OPEN_FLOOR, FIRST_FLOOR = -32.0, -30.0
+# (The same night, looked at and left: Rime-Sealed Crossing opens at -35 and says its first theme at -33 with these floors in. A burn is a stair: its second theme stands at -32, a first theme goes no
+# higher than one under what it leads to and an opening two under that, -32 and -34; the most they are brought up leaves them one short of it. A floor does not lift a stair.)
 # ...and what comes between them and a song's first arrival (its first part within ARRIVES of the loudest) is brought half way to this under it: five of nine parts of Forlorn Hope, a slow burn's four minutes, stood
 # at -37 to -31 under a moment of -22 and a summit of -19 (2026-11-25). A song that arrives with its first theme or its second has nothing between.
 EARLY_UNDER, EARLY_SHARE, ARRIVES = 10.0, 0.5, 8.0
@@ -378,7 +380,9 @@ def tamed_tone(name: str, instrument: str, band: bool = False, channel: str = ""
         # 894 Hz to 3.5 kHz. Performed again through the desk with sixteen off from 700 Hz and shut at 2.2 kHz on the brass alone: 6 over at 894 and 1768, 1.6 at 3.5 kHz.)
         if instrument in BRASS_BASSES:
             return sounds.equalise(high_cut=2200.0, bands=((450.0, -8.0, 1.6),), high_shelf=(700.0, -16.0))
-        return sounds.equalise(high_cut=3000.0, bands=((450.0, -8.0, 1.6),), high_shelf=(900.0, -10.0))
+        # (22:35, the reeds as well: where the line itself is a bassoon's, the carnival's Blown-Lantern Squall, the bass stood 8 over at 453 and 894 Hz on that tone, and the crypt's, the winds' and the silk's
+        # 4 to 6. Performed again through the desk with twelve at 450 and five more at 900: 5.0 and 3.0 over.)
+        return sounds.equalise(high_cut=3000.0, bands=((450.0, -12.0, 1.6), (900.0, -5.0, 1.2)), high_shelf=(900.0, -10.0))
     if band and channel == "bass" and instrument.endswith("tuba"):
         # (2026-11-25: three bands' bass is a tuba, whose fourth to eighth overtones are nearly all of it: the octave from 320 Hz at -4 to -7 dB of the whole where the liked stems have it at -26, the basses of Deep
         # Mine, Charge Song and the press gang's songs 11 to 13 over in their middle, where the riff and the tune are. Its note is left.)

@@ -45,6 +45,7 @@ dictated, where it drove the change.
 - **The thirteenth round's ten House songs**: nine hard walks where they were fewest and a night, by the acts whose leads the contest ranked in its upper half, each with a riff and a shape of its own.
 - A company's brass in the bass (a trombone, a tuba) has a deeper tone than its reeds: the horde's stood 10 to 11 dB over the liked stems from 894 Hz to 3.5 kHz, and 6 over with it, through the desk.
 - A calm House song's rise stands under the moment it leads to: where it came out over it (the mortuary's night, its bass and stabs 3 dB hotter in the build than in the drop), the desk holds it by what it is over.
+- A company's reeds in the bass have a deeper tone: where the bass line itself is a bassoon's it stood 8 dB over the liked stems at 453 and 894 Hz, and stands 5 and 3 over with it, through the desk.
 
 ## 2026-11-24, night: a tune that is told another way each time, and calm House that is not sweet
 

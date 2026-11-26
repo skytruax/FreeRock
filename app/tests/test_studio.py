@@ -2251,6 +2251,8 @@ def test_a_light_bands_bass_is_given_presence(monkeypatch):
     brass = {build.tamed_tone("basses", each, band=False, channel="bass") for each in build.BRASS_BASSES}
     assert set(build.BRASS_BASSES) < set(build.REED_BASSES) and len(reeds) == 1 and len(brass) == 1 and None not in reeds | brass and reeds != brass
     assert " 2200 " in next(iter(brass)) and " 3000 " in next(iter(reeds)) and not brass & {build.tamed_tone("picked bass", "war tuba", band=True, channel="bass")}
+    # (...and the reeds' two bells: the carnival's bassoon line, 8 over at 453 and 894 Hz on one of eight, stands 5 and 3 over on these, through the desk.)
+    assert next(iter(reeds)).split("\n")[1].split()[4:10] == ["450", "-12", "1.6", "900", "-5", "1.2"]
     assert {"contrabassoon", "tuba", "war tuba"} <= set(build.REED_BASSES) and all(each in orchestra.INSTRUMENTS for each in build.REED_BASSES)
     assert all(build.tamed_tone("basses", each, band=False, channel="bass") is None for each in ("basses", "celli", "acoustic bass", "basses pizz"))
     assert build.tamed_tone("bassoon", "bassoon", band=False, channel="lead") is None

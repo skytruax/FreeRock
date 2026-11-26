@@ -647,6 +647,11 @@ def test_a_song_is_heard_from_its_first_bar():
     lifts = [min((max(heard) - loud) * build.RIDE, 12.0) for loud in heard]
     out = build.opened(heard, lifts)
     assert build.OPEN_FLOOR == -32.0 and build.FIRST_FLOOR == -30.0
+    # (A burn is a stair, and a floor does not lift it: written at -47 and -41 under a second theme of -32, a first theme goes no higher than one under what it leads to and an opening two under that,
+    # -32 and -34; the most they are brought up, eight and twelve, leaves them one short of it. Rime-Sealed Crossing's, heard at -35 and -33.)
+    burnt = [-47.0, -41.0, -32.0, -31.0, -30.0, -22.0, -25.0, -20.0, -35.0]
+    lifted = [each + lift for each, lift in zip(burnt, build.opened(burnt, [0.0] * 9))]
+    assert lifted[:3] == [-47.0 + build.OPEN_MOST, -41.0 + build.FIRST_MOST, -31.0] == [-35.0, -33.0, -31.0]
     assert abs(heard[0] + out[0] - max(-20.0 - build.OPEN_UNDER, build.OPEN_FLOOR)) < 1e-6 and out[1:] == lifts[1:]       # 13 dB under the summit, and no lower than where it is heard
     loud = [each + 4.0 for each in heard[1:]]                                                        # (under a loud song's summit of -16 it is the thirteen that hold)
     assert abs(-38.0 + build.opened([-38.0] + loud, [0.0] * 9)[0] - (-16.0 - build.OPEN_UNDER)) < 1e-6
