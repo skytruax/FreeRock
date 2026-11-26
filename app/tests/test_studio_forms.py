@@ -802,24 +802,26 @@ def test_a_song_is_heard_from_its_first_bar():
     assert build.opened([-80.0] + heard[1:], lifts) == lifts and build.opened([-40.0], [0.0]) == [0.0]
 
 
-def test_a_resting_family_in_five_in_seven_or_in_a_bands_three_is_written_again_in_an_even_metre():
-    """(2026-11-26, afternoon: 46 of the resting families, of the bands and companies that read level in the auditions, were in 5/4, in 7/8 or, a band's, in 3/4,
-    where the house band's songs are in four and none in five or seven.) A family on the list (studio/even.txt) is the same song in another metre: its key and
-    its tempo as it drew them, five and seven in four, a Knight Rock band's three in six-eight; it is told plainly too. No other family changes."""
+def test_a_resting_family_of_a_sound_band_is_written_again_in_an_even_metre():
+    """(2026-11-26, afternoon: 55 of the resting families, of the bands and companies that read level in the auditions, were in 5/4, in 7/8 or, Knight Rock's, in
+    3/4 or 6/8, where the house band's songs are in four and none in five or seven, and its few in six read under every one in four.) A family on the list
+    (studio/even.txt) is the same song in another metre: its key and its tempo as it drew them, five and seven in four, and Knight Rock's in four whatever it
+    drew; it is told plainly too. No other family changes."""
     planned = {fam.name: fam for fam, _ in build.plan()}
     assert build.EVEN and build.EVEN <= set(planned) and not build.EVEN & build.GROWN
     assert all(fam.character.even == (name in build.EVEN) for name, fam in planned.items())
     for name in build.EVEN:
         fam = planned[name]
-        assert fam.metre in (("4/4", "6/8") if fam.character.style == "knight" else ("4/4", "6/8", "3/4")), (name, fam.metre)
+        assert fam.metre in (("4/4",) if fam.character.style == "knight" else ("4/4", "6/8", "3/4")), (name, fam.metre)
     five = planned["coast-customs-house-1"]                       # the hammond's Tally-Clerk's Ledger, drawn in five
-    drawn = orchestra.family(replace(five.character, even=False), five.seed, five.name, five.title)
+    drawn = family(replace(five.character, even=False), five.seed, five.name, five.title)
     assert (drawn.metre, five.metre) == ("5/4", "4/4") and (five.key, five.bpm) == (drawn.key, drawn.bpm)
-    seven = planned["desert-sirocco-1"]                           # the stoner's Red-Wind Howl, drawn in seven
-    assert orchestra.family(replace(seven.character, even=False), seven.seed, seven.name, seven.title).metre == "7/8" and seven.metre == "4/4"
-    three = planned["anywhere-lee-shore-1"]                       # a band's three: the same bar in two swings
-    assert orchestra.family(replace(three.character, even=False), three.seed, three.name, three.title).metre == "3/4" and three.metre == "6/8"
-    assert "3/4" not in orchestra.EVEN_OF                         # (Warcraft's three stays three)
+    for name, was in (("desert-sirocco-1", "7/8"), ("anywhere-lee-shore-1", "3/4"), ("coast-fish-quay-1", "6/8")):     # the stoner's, and the shanty's two
+        fam = planned[name]
+        assert family(replace(fam.character, even=False), fam.seed, fam.name, fam.title).metre == was and fam.metre == "4/4"
+    assert orchestra.EVEN_OF == {"5/4": "4/4", "7/8": "4/4"}      # (Warcraft's three and six stay)
+    company = planned["desert-salt-market-1"]                     # the caravan's, drawn in five
+    assert family(replace(company.character, even=False), company.seed, company.name, company.title).metre == "5/4" and company.metre == "4/4"
     liked = planned["desert-sandstorm-ride-1"]                    # in the player in seven: as it is
     assert liked.metre == "7/8" and not liked.character.even
 

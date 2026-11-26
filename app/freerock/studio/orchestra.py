@@ -233,7 +233,7 @@ class Character:
     grows: bool = False                                    # its themes are told another way each time they come back (`retold`)
     # (2026-11-26, afternoon: the songs made in five and in seven rest, never liked: the house band's songs are 95 in 100 in four and none in five or seven, and the
     # judges read round thirteen's 5/4 ones lowest. Two written again in four read 0.3 to 0.4 higher on the same band.)
-    even: bool = False                                     # its family is written in four (a band's three in six-eight) whatever metre it drew (EVEN_OF)
+    even: bool = False                                     # its family is written in an even metre whatever it drew (EVEN_OF; Knight Rock's in four)
 
 
 C = Character
@@ -2423,10 +2423,14 @@ CHARACTERS = (
 
 METRES = {"4/4": (4.0, (2.0, 2.0)), "3/4": (3.0, (3.0,)), "6/8": (3.0, (1.5, 1.5)), "5/4": (5.0, (3.0, 2.0)),
           "7/8": (3.5, (1.5, 1.0, 1.0))}
-# What a family written again in an even metre (Character.even) is in: five and seven go to four; a Knight Rock band's three goes to six-eight, the same bar
-# in two swings (its songs are in four, or in six-eight or twelve-eight for a shuffle or a jig; Warcraft's three stays). Every other metre stays as drawn.
+# What a family written again in an even metre (Character.even) is in: five and seven go to four, and every other metre stays as drawn (Warcraft's three and
+# its six read level with its four in the liked library: 3.10, 2.91 and 2.92 by SongEval's five).
 EVEN_OF = {"5/4": "4/4", "7/8": "4/4"}
-EVEN_OF_KNIGHT = {**EVEN_OF, "3/4": "6/8"}
+# Knight Rock's goes to four whatever it drew. (2026-11-26, the same afternoon, before any was played: the liked library's seven Knight Rock songs in 6/8 read 2.79
+# to 2.93 by SongEval's five, every one under the lower quartile a new song is held to (3.08), where its 114 in four read 3.21 in the middle; and of the first
+# nineteen new band songs the judges read, the five that passed were in four, the two in six and the three in three were not among them. The band's writing in six
+# is not its writing in four yet.)
+EVEN_OF_KNIGHT = {**EVEN_OF, "3/4": "4/4", "6/8": "4/4"}
 
 # Changes for eight bars of theme, by mode: four chords are two bars each. The last two bars are
 # rewritten as the mode's own way home.

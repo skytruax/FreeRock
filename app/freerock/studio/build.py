@@ -145,10 +145,10 @@ MORE_FAMILIES = {"knight": 2, "warcraft": 2}
 # written so the next time it is made.
 # (2026-11-26, afternoon: the first 37 taken out, to be written again while they rest: the six of Knight Rock's in 4/4 by bands that stood with the house band in
 # the auditions, and Warcraft's 31 in 4/4, 6/8 and 3/4. 83 are left: the ones in five and in seven, and those of the bands that read under.)
-# (The same evening: Knight Rock's nine in 6/8 by those bands, and the 46 of those bands and companies in five, seven and three, which are written in an even
-# metre: EVEN below. 28 are left, the songs of the four bands that read under and of the two to be read again.)
+# (The same afternoon: the other 55 of those bands and companies, Knight Rock's 28 in six, three, five and seven and Warcraft's 27 in five and seven, which are
+# written in an even metre: EVEN below. 28 are left, the songs of the four bands that read under and of the two to be read again.)
 GROWN = frozenset((Path(__file__).parent / "grown.txt").read_text(encoding="utf-8").split())
-# (2026-11-26, afternoon.) The families written again in an even metre (orchestra.EVEN_OF: five and seven to four, a Knight Rock band's three to six-eight): the
+# (2026-11-26, afternoon.) The families written again in an even metre (orchestra.EVEN_OF: five and seven to four; Knight Rock's to four whatever they drew): the
 # resting ones of the bands and companies that read level in the auditions, taken off the list above at the same time. A family that has takes in the player is
 # never put here: it would be another song under the same name.
 EVEN = frozenset((Path(__file__).parent / "even.txt").read_text(encoding="utf-8").split())
