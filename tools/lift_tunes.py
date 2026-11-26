@@ -6,8 +6,9 @@ half a decibel anywhere is left as it is.
 
     cd app && uv run --no-sync python ../tools/lift_tunes.py knight [family/take ...]     (all the style's takes)
     ... --out FOLDER      the lifted takes written there (the other stems linked), the staged ones left as they are: to be judged
-    ... --back            takes it back, from what was written down: the lead stem (and the rhythm's, where the riff gave way) as it was
-                          before, to the hundredth of a decibel the track keeps; with no take named, every take of the style that was lifted
+    ... --back            takes it back, from what was written down: the lead stem (and the rhythm's, where THIS TOOL made the riff give way)
+                          as it was before, to the hundredth of a decibel the track keeps; with no take named, every take of the style that
+                          was lifted. A take that is refused is said and the others go on; the command ends with 1 if any was
 
 (2026-11-26, the audit: in the night of 24 to 25 November this was run over the older library in place, 137 takes' lead stems up by 5 dB
 in the middle and 8 at the most, with no way back and no reading of before and after by anyone who listens.)
@@ -62,7 +63,11 @@ def back(folder: Path) -> str:
     sheet = json.loads((folder / "sheet.json").read_text(encoding="utf-8"))
     meta = json.loads((folder / "track.json").read_text(encoding="utf-8"))
     measured = meta.get("measured") or {}
-    again, gives = measured.get("tune lift again"), measured.get("riff gives")
+    # (2026-11-26, an hour after --back was written: "riff gives" is also what the DESK writes when it performs a band's song (build.perform), with the rhythm
+    # already taken down in the performance: 61 staged takes carry it that this tool never touched, and --back would have brought their rhythm up by what the
+    # desk had taken off. Only what this tool laid in place is its to take back: "tune lift again", and "riff gives again" from now on. The four takes whose riff
+    # this tool made give way before that day carry "riff gives" alone, as the desk's do: their rhythm stays as it is.)
+    again, gives = measured.get("tune lift again"), measured.get("riff gives again")
     if not again and not gives:
         return "nothing to take back"
     spans, _, beat = sung(sheet, meta)
@@ -87,7 +92,9 @@ def back(folder: Path) -> str:
     if again and measured.get("tune lift") and len(measured["tune lift"]) == len(again):
         measured["tune lift"] = [round(now - up, 2) for now, up in zip(measured["tune lift"], again)]
     measured.pop("tune lift again", None)
-    measured.pop("riff gives", None)
+    if gives:
+        measured.pop("riff gives again", None)
+        measured.pop("riff gives", None)
     scratch = folder / "track.json.part"
     scratch.write_text(json.dumps(meta, indent=1), encoding="utf-8")
     scratch.replace(folder / "track.json")
@@ -136,6 +143,7 @@ def lift(folder: Path, out: Path | None = None) -> str:
             soundfile.write(str(scratch), parts["rhythm"] * gives[:, None], RATE, format="FLAC", subtype="PCM_24")
             scratch.replace(folder / "rhythm.flac")
             measured["riff gives"] = downs
+            measured["riff gives again"] = downs          # laid in place by this tool, not by the desk at the performance: `back` takes this back, and no other
             (folder / "track.json").write_text(json.dumps(meta, indent=1), encoding="utf-8")
             if curve is None or max(lifts) < 0.5:
                 return "its riff gives way by part: %s dB" % ", ".join("%.1f" % each for each in downs)
@@ -179,12 +187,23 @@ def main() -> int:
     style, names = argv[0], argv[1:]
     root = VAR / "studio" / style
     folders = [root / name for name in names] if names else sorted(path.parent for path in root.glob("*/*/sheet.json"))
+    refused = 0
     for folder in folders:
-        said = back(folder) if undo else lift(folder, out)
+        if undo:
+            try:
+                said = back(folder)
+            except (ValueError, RuntimeError, OSError, soundfile.SoundFileError) as problem:
+                # One take that cannot be taken back (its sheet revised since, a stem that cannot be read) is said and the others go on.
+                refused += 1
+                said = "NOT TAKEN BACK: %s: %s" % (type(problem).__name__, problem)
+        else:
+            said = lift(folder, out)
         if undo and not names and said == "nothing to take back":
             continue                                             # (every take of the style was asked: only those that were lifted are said)
         print("%-40s %s" % (folder.parent.name + "/" + folder.name, said), flush=True)
-    return 0
+    if refused:
+        print("%d not taken back (said above)" % refused, flush=True)
+    return 1 if refused else 0
 
 
 if __name__ == "__main__":

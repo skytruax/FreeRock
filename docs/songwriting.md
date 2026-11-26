@@ -1540,9 +1540,10 @@ and marks one under the liked library's lower quartile (7.3).
 *And the liked library itself was changed that night, in place* (2026-11-26, the same audit). In the night of 24 to 25 November the retelling was also laid on 41 takes that existed, by
 revisions of their sheets (the line above, "an old song is told so by a revision of its sheet"): 27 of them were in the player on the 26th, 14 with the retold tune performed and 13 with the sheet
 waiting for its next performance. On the 26th they were put back as they were before the revision (`tools/revise.py --back`; each retold take is kept beside, in `var/studio-demo/retold-audit-1126`).
-The same night `tools/lift_tunes.py` brought the lead stem of 135 older takes up in place (127 of Knight Rock's; 5 dB at its most in the middle one, 8 at the most; in 65 the rhythm's stem was taken
-down as well, by up to 9), and `tools/open_up.py` had by then lifted the openings of 237 (210 of Warcraft's), none of them read before and after by anyone who listens; the lift had no way back
-until that day (`lift_tunes.py --back` takes it back from what each track wrote down; `open_up.py --back` was there). Whether those stay is for the ear that plays with them. A take that is liked is
+The same night `tools/lift_tunes.py` brought the lead stem of 135 older takes up in place (127 of Knight Rock's; 5 dB at its most in the middle one, 8 at the most; in four it took the rhythm's
+stem down as well), and `tools/open_up.py` had by then lifted the openings of 237 (210 of Warcraft's), none of them read before and after by anyone who listens; the lift had no way back
+until that day (`lift_tunes.py --back` takes it back from what each track wrote down; `open_up.py --back` was there). (The 65 takes that carry "riff gives" are not all that tool's: 61 are band
+songs the desk performed with the rhythm taken down already, and wrote the same words for. What the tool lays in place it now writes down as its own, "riff gives again", and takes back that alone.) Whether those stay is for the ear that plays with them. A take that is liked is
 changed only beside itself: the new one is staged where the old one is not lost, the two are read by the judges and heard, and the old one stands until the new one is chosen.
 
 *No more songs in five or in seven* (2026-11-26, the same audit). The house band's songs are in 4/4 in 95 of 100 and none is in 5/4 or 7/8. Of the Knight Rock songs begun after the evening of 11-24,

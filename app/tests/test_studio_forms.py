@@ -521,7 +521,7 @@ def test_every_band_is_played_by_something_the_desk_knows():
                 assert played in muse.PARTS or played in sounds.SOUNDS, (name, written, played)
 
 
-def test_a_soft_lead_of_a_band_of_other_sounds_is_brought_up_further(tmp_path):
+def test_a_soft_lead_of_a_band_of_other_sounds_is_brought_up_further(tmp_path, monkeypatch, capsys):
     """(Casket Roll, the first of them: a saxophone's head 4 dB under the piano with the house band's most, 5 dB, given.)"""
     import importlib.util
     from pathlib import Path
@@ -578,13 +578,24 @@ def test_a_soft_lead_of_a_band_of_other_sounds_is_brought_up_further(tmp_path):
         soundfile.write(str(quiet / (channel + ".flac")), audio, rate, subtype="PCM_24")
     assert tool.lift(quiet).startswith("brought up by part")
     told = json.loads((quiet / "track.json").read_text(encoding="utf-8"))["measured"]
-    assert told["tune lift again"] == [8.0] and min(told["riff gives"]) < -3.0
+    assert told["tune lift again"] == [8.0] and min(told["riff gives"]) < -3.0 and told["riff gives again"] == told["riff gives"]
     given_way, _ = soundfile.read(str(quiet / "rhythm.flac"), dtype="float32", always_2d=True)
     assert float(np.abs(given_way[12 * rate:15 * rate]).max()) < 0.8 * 10 ** (-22.0 / 20)
     assert "its lead" in tool.back(quiet) and json.loads((quiet / "track.json").read_text(encoding="utf-8"))["measured"] == {"tune lift": [5.0]}
     for channel, hz, db in (("lead", 880.0, -40.0), ("rhythm", 220.0, -22.0)):
         was, now = tone(hz, db), soundfile.read(str(quiet / (channel + ".flac")), dtype="float32", always_2d=True)[0]
         assert float(np.abs(now - was).max()) < 1e-3 * float(np.abs(was).max()), channel
+    # The desk writes "riff gives" too, when it performs a band's song with the rhythm taken down already: that is not this tool's to take back.
+    # (2026-11-26: 61 staged takes carried the desk's, and --back as first written would have brought their rhythm up by it.)
+    desk = tmp_path / "desk" / "1"
+    desk.mkdir(parents=True)
+    (desk / "sheet.json").write_text(json.dumps(sheet), encoding="utf-8")
+    (desk / "track.json").write_text(json.dumps(dict(meta, measured={"tune lift": [5.0], "riff gives": [-6.0]})), encoding="utf-8")
+    for channel, audio in (("lead", tone(880.0, -29.0)), ("rhythm", tone(220.0, -28.0))):
+        soundfile.write(str(desk / (channel + ".flac")), audio, rate, subtype="PCM_24")
+    performed = (desk / "rhythm.flac").read_bytes()
+    assert tool.back(desk) == "nothing to take back"
+    assert (desk / "rhythm.flac").read_bytes() == performed and json.loads((desk / "track.json").read_text(encoding="utf-8"))["measured"]["riff gives"] == [-6.0]
     # A take whose sheet sings in other parts now than when it was lifted is refused, and nothing of it is touched.
     assert tool.lift(folder).startswith("brought up by part")
     lifted = (folder / "lead.flac").read_bytes()
@@ -596,6 +607,21 @@ def test_a_soft_lead_of_a_band_of_other_sounds_is_brought_up_further(tmp_path):
     with pytest.raises(ValueError, match="revised since"):
         tool.back(folder)
     assert (folder / "lead.flac").read_bytes() == lifted
+    # Over a whole style the take that is refused is said and the others are taken back all the same; the command ends with 1.
+    import shutil
+    import sys
+    assert tool.lift(quiet).startswith("brought up by part")
+    stage = tmp_path / "var" / "studio" / "knight"
+    shutil.copytree(folder, stage / "revised-since-1" / "1")
+    shutil.copytree(quiet, stage / "quiet-song-1" / "1")
+    shutil.copytree(desk, stage / "desk-song-1" / "1")
+    monkeypatch.setattr(tool, "VAR", tmp_path / "var")
+    monkeypatch.setattr(sys, "argv", ["lift_tunes.py", "knight", "--back"])
+    assert tool.main() == 1
+    said = capsys.readouterr().out
+    assert "revised-since-1/1" in said and "NOT TAKEN BACK" in said and "quiet-song-1/1" in said and "taken back: its lead" in said and "desk-song-1" not in said
+    assert (stage / "revised-since-1" / "1" / "lead.flac").read_bytes() == lifted
+    assert json.loads((stage / "quiet-song-1" / "1" / "track.json").read_text(encoding="utf-8"))["measured"] == {"tune lift": [5.0]}
 
 
 def test_an_amplified_instrument_is_held_together_and_the_others_keep_their_range():
