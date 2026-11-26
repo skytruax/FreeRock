@@ -1559,6 +1559,10 @@ and marks one under the liked library's lower quartile (7.3). That afternoon the
 Rock's six in 4/4 by bands that stood with the house band in the auditions (4.11), and Warcraft's 31 in 4/4, 6/8 and 3/4; their takes of before are kept beside
 (`var/studio-demo/retold-audit-1126/resting`), and each new one is read by the judges and held to the library like any new song (8.9). 83 are left: the ones in five and in seven, which need a new
 metre as well, and those of the bands that read under.
+That evening the rest of those bands' and companies' came off it: Knight Rock's nine in 6/8, and the 46 in five, in seven and (a Knight Rock band's) in three, which are written in an even
+metre (`studio/even.txt`, `build.EVEN`, `orchestra.EVEN_OF`: five and seven go to four, a band's three to six-eight, the same bar in two swings; the family keeps the key and the tempo it drew, so
+it is the same song in another metre). On paper 54 of those 55 bring their tune back at or over the library's lower quartile, where 14 did as they were staged; the one that does not is a jam,
+two solos long (Lock-In Groove). 28 are left on the list: the songs of the four bands that read under and of the two to be read again (4.11).
 
 *And the liked library itself was changed that night, in place* (2026-11-26, the same audit). In the night of 24 to 25 November the retelling was also laid on 41 takes that existed, by
 revisions of their sheets (the line above, "an old song is told so by a revision of its sheet"): 27 of them were in the player on the 26th, 14 with the retold tune performed and 13 with the sheet

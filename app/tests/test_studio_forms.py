@@ -802,6 +802,28 @@ def test_a_song_is_heard_from_its_first_bar():
     assert build.opened([-80.0] + heard[1:], lifts) == lifts and build.opened([-40.0], [0.0]) == [0.0]
 
 
+def test_a_resting_family_in_five_in_seven_or_in_a_bands_three_is_written_again_in_an_even_metre():
+    """(2026-11-26, afternoon: 46 of the resting families, of the bands and companies that read level in the auditions, were in 5/4, in 7/8 or, a band's, in 3/4,
+    where the house band's songs are in four and none in five or seven.) A family on the list (studio/even.txt) is the same song in another metre: its key and
+    its tempo as it drew them, five and seven in four, a Knight Rock band's three in six-eight; it is told plainly too. No other family changes."""
+    planned = {fam.name: fam for fam, _ in build.plan()}
+    assert build.EVEN and build.EVEN <= set(planned) and not build.EVEN & build.GROWN
+    assert all(fam.character.even == (name in build.EVEN) for name, fam in planned.items())
+    for name in build.EVEN:
+        fam = planned[name]
+        assert fam.metre in (("4/4", "6/8") if fam.character.style == "knight" else ("4/4", "6/8", "3/4")), (name, fam.metre)
+    five = planned["coast-customs-house-1"]                       # the hammond's Tally-Clerk's Ledger, drawn in five
+    drawn = orchestra.family(replace(five.character, even=False), five.seed, five.name, five.title)
+    assert (drawn.metre, five.metre) == ("5/4", "4/4") and (five.key, five.bpm) == (drawn.key, drawn.bpm)
+    seven = planned["desert-sirocco-1"]                           # the stoner's Red-Wind Howl, drawn in seven
+    assert orchestra.family(replace(seven.character, even=False), seven.seed, seven.name, seven.title).metre == "7/8" and seven.metre == "4/4"
+    three = planned["anywhere-lee-shore-1"]                       # a band's three: the same bar in two swings
+    assert orchestra.family(replace(three.character, even=False), three.seed, three.name, three.title).metre == "3/4" and three.metre == "6/8"
+    assert "3/4" not in orchestra.EVEN_OF                         # (Warcraft's three stays three)
+    liked = planned["desert-sandstorm-ride-1"]                    # in the player in seven: as it is
+    assert liked.metre == "7/8" and not liked.character.even
+
+
 def test_no_more_characters_are_written_in_five_or_in_seven():
     """(2026-11-26: of the Knight Rock songs begun after the evening of 11-24, 66 in 100 were not in 4/4 and a third in 5/4 or 7/8, where the house band's
     are 95 in 100 in 4/4 and none in five or seven; round thirteen's ten Knight songs had not one in 4/4, and its 5/4 ones the judges' lowest. "The new bands a
