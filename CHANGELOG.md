@@ -37,7 +37,7 @@ dictated, where it drove the change.
   13.6 at 894, 23.5 at 1768). Performed again through the desk with a gentler tone it stands within 4 from 57 to 894 Hz; the tone is that one, two decibels opener. The war tuba, 7 and 22 under at the same two
   places in the brawl's first song on it, has its own the same way. A tone is found on an instrument as it is played now, through the desk.
 - `tools/study.py` reads a take's staged music sheet, not the writer's first draft: a song retold the night before was still read at its first draft's count and marked for the revision it had had.
-- A soft song's opening and first theme are heard as well: fifteen of the day's first takes opened at -33 to -36 LUFS, thirteen under a summit that was itself at -22 (`build.OPEN_FLOOR`, `FIRST_FLOOR`).
+- A soft song's opening and first theme are heard as well: fifteen of the day's first takes opened at -33 to -36 LUFS, thirteen under a summit that was itself at -22 (`build.OPEN_FLOOR`, `FIRST_FLOOR`). So is its valley, which had stood at -37 in two of the evening's songs (`build.LOW_FLOOR`).
 - A company's bass is doubled only by a player who can reach its line: in seven songs a lyre, a xylophone or a kalimba had played it two and three octaves up, inside the bass's channel.
 - **The thirteenth round's twenty characters**: Knight Rock's ten by the bands that had four dark songs, where its music comes round most (two inns, two towns, a storm, a camp, a cave) and where it has least (the night,
   the mystic and the haunted walks), led by what its dark songs had barely used (an accordion, a bass clarinet, a mandolin, an oboe, a bassoon); Warcraft's ten by the companies that had three, each sung by

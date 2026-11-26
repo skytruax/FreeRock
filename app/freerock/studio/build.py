@@ -85,6 +85,9 @@ EARLY_UNDER, EARLY_SHARE, ARRIVES = 10.0, 0.5, 8.0
 # -20, Wakeful Relief's, Winter-Dead Wind's and Siren-Grey Cloister's at -37 and -38: of the library's valleys 188 of 453 in Knight Rock and 190 of 593 in Warcraft stand 16 dB or more under, a minute of a tune
 # sung alone under a game's own sounds).
 LOW_UNDER, LOW_SHARE = 15.0, 0.5
+# ...and, as an opening, it has a floor of its own in a soft song (2026-11-25, the evening's first takes: Pomander Rounds' and Tally-Clerk's Ledger's valleys at -37 under summits of -20 and -21, Fog-Lamp
+# Round's at -36: half way back to fifteen under a summit that is itself low is under a game's sounds still). A valley is brought up to this, LUFS, and by no more than LOW_MOST in all.
+LOW_FLOOR, LOW_MOST = -35.0, 8.0
 MUSE_WORKERS = 5               # how many parts of a piece MuseScore performs at once
 # (2026-11-16, twice. In the afternoon: "theres not much difference between quet and full, we want more ...
 # drasticness", and a calm game was given no drums and a third of the bass. Played that evening: "the abruptness
@@ -423,7 +426,8 @@ def opened(heard: list[float], lifts: list[float]) -> list[float]:
             out[at] += max(top - EARLY_UNDER - stands[at], 0.0) * EARLY_SHARE
     for at in range(max(arrives, 2), len(heard) - 1):
         if heard[at] > -70.0:
-            out[at] += max(top - LOW_UNDER - stands[at], 0.0) * LOW_SHARE
+            back = max(top - LOW_UNDER - stands[at], 0.0) * LOW_SHARE
+            out[at] += min(max(back, LOW_FLOOR - stands[at]), LOW_MOST) if back > 0.0 or stands[at] < LOW_FLOOR else 0.0
     if len(heard) > 2 and heard[1] > -70.0:
         out[1] += min(max(min(max(top - FIRST_UNDER, FIRST_FLOOR), heard[2] + out[2] - 1.0) - stands[1], 0.0), FIRST_MOST)
     out[0] += min(max(min(max(top - OPEN_UNDER, OPEN_FLOOR), heard[1] + out[1] - 2.0) - stands[0], 0.0), OPEN_MOST)

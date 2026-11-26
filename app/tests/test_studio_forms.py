@@ -670,7 +670,12 @@ def test_a_song_is_heard_from_its_first_bar():
     assert up[:5] == [-34.0, -32.0, -31.0, -31.0, -30.0] and up[5:] == slow[5:] and up[:5] == sorted(up[:5])
     # ...and a valley that is gone is brought half way back to where it is heard, its close left to go (Bluebell Fold's).
     gone = [-30.0, -27.0, -26.0, -24.0, -21.0, -41.0, -26.0, -20.0, -40.0]
-    assert build.opened(gone, [0.0] * 9) == [0.0] * 5 + [(-20.0 - build.LOW_UNDER + 41.0) / 2.0] + [0.0] * 3
+    # (...half way to fifteen under, and no lower than the valley's own floor: 2026-11-25, valleys at -37 under summits of -20 and -21 in two of the evening's songs.)
+    assert build.LOW_FLOOR == -35.0 and build.LOW_MOST == 8.0
+    assert build.opened(gone, [0.0] * 9) == [0.0] * 5 + [max((-20.0 - build.LOW_UNDER + 41.0) / 2.0, build.LOW_FLOOR + 41.0)] + [0.0] * 3
+    soft_valley = [-30.0, -27.0, -26.0, -24.0, -22.0, -37.0, -26.0, -21.0, -40.0]                    # (a soft song's: its summit at -21, fifteen under is -36)
+    assert build.opened(soft_valley, [0.0] * 9) == [0.0] * 5 + [2.0] + [0.0] * 3                     # to the floor, -35
+    assert build.opened(gone[:5] + [-50.0] + gone[6:], [0.0] * 9)[5] == build.LOW_MOST               # and by no more than this
     assert build.opened(gone[:5] + [-34.0] + gone[6:], [0.0] * 9) == [0.0] * 9 and build.opened(gone[:5] + [-90.0] + gone[6:], [0.0] * 9) == [0.0] * 9
     assert build.opened([-36.0, -60.0] + burn[2:], [0.0] * 9)[1] == build.FIRST_MOST
     assert build.opened([-60.0] + heard[1:], [0.0] + lifts[1:])[0] == build.OPEN_MOST                # so far and no further
