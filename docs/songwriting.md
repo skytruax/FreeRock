@@ -1374,6 +1374,26 @@ Knight Rock sheets staged: the same two distorted guitars, recorded distorted, i
 Muse part as the picked bass); the rock kit in 80; the organ's pad in 55; a lead guitar's tune in 62; 4/4 in 95; one form of nine parts in all of them. The
 bands answer for the first five of those.
 
+*The auditions, read at last* (2026-11-26, the audit). Every band was to be "tested for its musicality (the same music by each, measured and judged)" before it was given many songs. The
+auditions were performed on 11-24 and 11-25 (`var/studio-demo/bands`: King's Oath, heavy, and Last Call Rock, light, by the house band and by each of the twenty bands;
+`var/studio-demo/companies`: Scarab Necropolis by the orchestra and by each of the thirteen companies) and measured for level and tone; no judge that listens heard one until the 26th, after
+two nights of songs for all of them. Read then by SongEval alone, each take as it stands (`var/passes/audition-read.sh`, `audition-said.py`; the mean of its five scores):
+
+| On the same notes | Reads |
+|---|---|
+| The house band | 3.09 (heavy), 3.62 (light) |
+| Level with it or over it on both songs: baroque (+0.30, +0.10), saloon (+0.21, +0.08), chop (+0.25, +0.02), cellos (+0.18, +0.07), twang (+0.23, +0.02), tweed (+0.21, +0.01), stoner (+0.15, +0.05), jug (+0.14, +0.02), lounge (+0.02, +0.13), hammond, shanty, grit | twelve bands |
+| Within the judge's noise either way: cathedral (-0.09, +0.08), doom (-0.11, +0.11) | two |
+| Under on one song: garage (+0.04, -0.25), bones (-0.34, +0.11) | two |
+| Under on both: the drumline (-0.21, -0.57), the brawl (-0.26, -0.32), noir (-0.08, -0.40), the skald (-0.11, -0.34) | four |
+| The orchestra | 2.91 |
+| Every company level with it or over it: quartet +0.76, highland +0.68, caravan +0.53, bronze +0.38, consort +0.32, mead hall +0.23, carnival +0.22, winds +0.15; monastery, silk, crypt, horde and iron brass within 0.1 | thirteen |
+
+So a band's or a company's sound is not what reads low in the songs written for them (round thirteen's Knight Rock songs read 2.76 where the same windows of older songs read 3.19): on
+notes that are liked, sixteen of twenty bands and all thirteen companies stand with the house players or over them. What reads low is what was written for them (4.12: the metres, the
+retelling, and what else the gate's reading of the resting songs shows). The four bands that read under on both songs are given no new song until they are reworked and read again on
+the same two; garage and bones are read again before they are given a heavy song or a light one, each the kind it fell on. House's acts have no audition of this kind yet: one is owed.
+
 A character has the instruments of a band (`Character.sounds`, a key of `orchestra.BANDS`; "" is the house band, the sound of every song before that
 night). The writer writes for the instruments of 4.1 and its notes are its own; `build.write` gives each to what stands for it in the band
 (`orchestra.band_of`, `sounded`), and the sheet says which (`about["sounds"]`). What a band does not name is played as written.
