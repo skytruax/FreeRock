@@ -2294,6 +2294,7 @@ a moment of -22 and a summit of -19, four minutes under a game's own sounds. Eac
 under the one after it. A song that arrives with its first theme or its second has nothing between.
 **A valley may be quiet and not gone** (`LOW_UNDER`, the same night): of the library's valleys 188 of Knight Rock's 453 and 190 of Warcraft's 593 stood 16 dB or more under their song's loudest part, some at -37 to -41 LUFS: a tune
 sung alone for a minute under a game's own sounds. What stands more than 15 dB under, after the first arrival and before the close, is brought half way back to that: a decibel or two for most, three for the furthest.
+**In a soft song an opening and a first theme have a floor of their own** (`OPEN_FLOOR`, `FIRST_FLOOR`: -32 and -30 LUFS, the same evening): fifteen of the day's first takes opened at -33 to -36, each as far under its summit as the rules say, and the summit of a cave's or a camp's song itself at -22 (Daylight-Starved Echo, Prospector's Stake). They are brought up to the floor within the same limits: never over the part after them.
 
 **A drop stands over its theme** (`club.HELD_BACK`, `HELD_BACK_SOFTER`, the same day): House's in 5.7.
 

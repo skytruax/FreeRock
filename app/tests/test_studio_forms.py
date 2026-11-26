@@ -624,7 +624,10 @@ def test_a_song_is_heard_from_its_first_bar():
     heard = [-43.0, -30.0, -29.5, -27.0, -22.0, -35.0, -27.0, -20.0, -38.0]
     lifts = [min((max(heard) - loud) * build.RIDE, 12.0) for loud in heard]
     out = build.opened(heard, lifts)
-    assert abs(heard[0] + out[0] - (-20.0 - build.OPEN_UNDER)) < 1e-6 and out[1:] == lifts[1:]       # 13 dB under the summit
+    assert build.OPEN_FLOOR == -32.0 and build.FIRST_FLOOR == -30.0
+    assert abs(heard[0] + out[0] - max(-20.0 - build.OPEN_UNDER, build.OPEN_FLOOR)) < 1e-6 and out[1:] == lifts[1:]       # 13 dB under the summit, and no lower than where it is heard
+    loud = [each + 4.0 for each in heard[1:]]                                                        # (under a loud song's summit of -16 it is the thirteen that hold)
+    assert abs(-38.0 + build.opened([-38.0] + loud, [0.0] * 9)[0] - (-16.0 - build.OPEN_UNDER)) < 1e-6
     assert heard[0] + out[0] < heard[1] + lifts[1] - 1.9                                             # and under the theme it leads to
     low = [heard[0], -36.0] + heard[2:]                                                              # (which holds it down where it is soft itself)
     eased = [min((max(low) - loud) * build.RIDE, 12.0) for loud in low]
@@ -634,6 +637,11 @@ def test_a_song_is_heard_from_its_first_bar():
     burn = [-36.0, -37.0, -31.0, -27.0, -26.0, -21.0, -23.0, -20.0, -25.0]
     up = build.opened(burn, [0.0] * 9)
     assert burn[2] + up[2] == -30.5 and burn[1] + up[1] == -31.5 and burn[0] + up[0] == -33.5 and not any(up[3:])
+    # ...and in a soft song, whose summit is itself low, they are heard still (Daylight-Starved Echo's and Prospector's Stake's openings at -35 under summits of -22: thirteen under a summit that is as far under
+    # a loud song's).
+    soft = [-38.0, -36.0, -25.0, -23.0, -27.0, -23.0, -25.0, -22.0, -33.0]
+    up = [each + lift for each, lift in zip(soft, build.opened(soft, [0.0] * 9))]
+    assert up[1] == build.FIRST_FLOOR and up[0] == build.OPEN_FLOOR and up[2:] == soft[2:]
     # ...and all that comes before a song first arrives, half way, each part under the one after it still (Forlorn Hope's).
     slow = [-37.0, -35.0, -33.0, -33.0, -31.0, -22.0, -24.0, -19.0, -34.0]
     up = [loud + lift for loud, lift in zip(slow, build.opened(slow, [0.0] * 9))]

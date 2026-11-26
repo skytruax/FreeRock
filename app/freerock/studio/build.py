@@ -74,6 +74,10 @@ OPEN_UNDER, OPEN_MOST = 13.0, 12.0
 # ...nor is its first theme under hearing (2026-11-25: a slow burn's opening and first theme stood at -36 and -37 in Basalt Walk, at -35 and -35 in Spur-Lit Halter, and an opening goes no higher than what it leads
 # to): no further than this under the loudest part, brought up no more than this, and never over the part after it.
 FIRST_UNDER, FIRST_MOST = 11.0, 8.0
+# ...whatever the song's loudest part is (the same evening, the day's first takes: fifteen of them open at -33 to -36 with their first themes at -31 to -34, each as far under its summit as the two rules above
+# say, and the summit of a cave's or a camp's song itself at -22: Daylight-Starved Echo's and Prospector's Stake's openings at -35). An opening and a first theme are brought up to these, LUFS, within what the
+# rules above allow them: never over the part after them, and no more than OPEN_MOST and FIRST_MOST.
+OPEN_FLOOR, FIRST_FLOOR = -32.0, -30.0
 # ...and what comes between them and a song's first arrival (its first part within ARRIVES of the loudest) is brought half way to this under it: five of nine parts of Forlorn Hope, a slow burn's four minutes, stood
 # at -37 to -31 under a moment of -22 and a summit of -19 (2026-11-25). A song that arrives with its first theme or its second has nothing between.
 EARLY_UNDER, EARLY_SHARE, ARRIVES = 10.0, 0.5, 8.0
@@ -401,7 +405,8 @@ def tamed_tone(name: str, instrument: str, band: bool = False, channel: str = ""
 
 
 def opened(heard: list[float], lifts: list[float]) -> list[float]:
-    """How far each part of a song is brought up (`lifts`, dB), its opening and its first theme so far that they are heard (OPEN_UNDER, FIRST_UNDER), and never over what comes after them."""
+    """How far each part of a song is brought up (`lifts`, dB), its opening and its first theme so far that they are heard (OPEN_UNDER, FIRST_UNDER, and in a soft song OPEN_FLOOR, FIRST_FLOOR), and never over
+    what comes after them."""
     if len(heard) < 2 or heard[0] <= -70.0:
         return lifts
     stands = [loud + lift for loud, lift in zip(heard, lifts)]
@@ -414,8 +419,8 @@ def opened(heard: list[float], lifts: list[float]) -> list[float]:
         if heard[at] > -70.0:
             out[at] += max(top - LOW_UNDER - stands[at], 0.0) * LOW_SHARE
     if len(heard) > 2 and heard[1] > -70.0:
-        out[1] += min(max(min(top - FIRST_UNDER, heard[2] + out[2] - 1.0) - stands[1], 0.0), FIRST_MOST)
-    out[0] += min(max(min(top - OPEN_UNDER, heard[1] + out[1] - 2.0) - stands[0], 0.0), OPEN_MOST)
+        out[1] += min(max(min(max(top - FIRST_UNDER, FIRST_FLOOR), heard[2] + out[2] - 1.0) - stands[1], 0.0), FIRST_MOST)
+    out[0] += min(max(min(max(top - OPEN_UNDER, OPEN_FLOOR), heard[1] + out[1] - 2.0) - stands[0], 0.0), OPEN_MOST)
     return out
 
 
