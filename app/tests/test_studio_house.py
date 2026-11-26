@@ -543,6 +543,20 @@ def test_a_leads_strokes_are_heard_one_by_one():
     octaves = [Note(note.start, 0.24, note.pitch + 12, 0.8) for note in notes if note.pitch == 57]
     assert set(club.strokes_off(notes, played({}, with_them=octaves), beat, (0.0, 24.0), beside=notes + octaves)) == {57, 62}      # an octave over it is no other note
     assert "torn sax" not in {act.big for act in club.ACTS.values()}
+    # (2026-11-26: Hollow Stair I's lead read "38 by -122 cents": most of its strokes at that pitch within ten cents, the rest near -245, and the median of two heaps is neither.) The heap most strokes are in.
+    def split(off: int) -> np.ndarray:
+        out, seen = np.zeros((int(26 * beat), 2), dtype=np.float32), 0
+        for note in notes:
+            cents = 0.0
+            if note.pitch == 62:
+                cents, seen = (-240.0 if seen < off else 0.0), seen + 1
+            hz = 440.0 * 2.0 ** ((note.pitch - 69 + cents / 100.0) / 12.0)
+            t = np.arange(int(0.24 * beat)) / RATE
+            out[int(note.start * beat):int(note.start * beat) + len(t)] += sum(np.sin(2 * np.pi * hz * k * t) / k for k in range(1, 9)).astype(np.float32)[:, None] * 0.1
+        return out
+    assert abs(club.strokes_off(notes, split(9), beat, (0.0, 24.0))[62]) <= 10.0                    # nine of twenty-four elsewhere: where most of them are
+    assert abs(club.strokes_off(notes, split(15), beat, (0.0, 24.0))[62] + 240.0) <= 15.0           # fifteen: there
+    assert abs(club.strokes_off(notes, split(12), beat, (0.0, 24.0))[62] + 240.0) <= 15.0           # as many in each: the one further off, and never the -120 between them
 
 
 def test_a_riff_can_be_cut_up_among_three_voices():
@@ -1190,6 +1204,28 @@ def test_a_played_bass_is_left_open(monkeypatch, tmp_path):
     assert not held()
     with pytest.raises(StopIteration):
         tone()
+
+
+def test_a_bass_has_its_own_tone_at_the_desk(monkeypatch, tmp_path):
+    """(2026-11-26: the square bass 7 to 9 dB over the liked stems in its middle in four songs of four, the grinder 8.5 over at 1.8 kHz in five, the crust 5 to 10 over to 894 Hz in three, the pumphouse's
+    round bass 13 under at 453 Hz in three; each tone found on a song played again through the desk.)"""
+    from freerock.studio import club
+    monkeypatch.setattr(club.muse, "available", lambda: True)
+    heard = club.Heard()
+    heard.notes[("bass", "bass", "saw")].append((0.0, house.BAR, 40.0, 0.5, 0.0, 1.0))
+
+    def tone(sound: str) -> str:
+        heard.played[("bass", "bass", "saw")] = sound
+        out, _ = club.lines(heard, 1, tmp_path)
+        return [effect for line in out["bass"] if "saw" in line.name and "sub" not in line.name for effect in line.effects if "channel_eq" in effect][-1]       # (the desk's: a player's own comes before it)
+
+    assert set(club.BASS_TONES) == {"house bass square", "house bass grind", "house bass crust", "round bass"}
+    assert " 640 -8 2 " in tone("house bass square") and " 600 -7 1.8 " in tone("house bass crust")
+    assert " 450 9 1.4 " in tone("round bass") and " 1200 9 1.6 " in tone("round bass") and " 650 4 0.9 " not in tone("round bass")        # in the place of a played bass's bell of four
+    assert tone("house bass grind") != tone("house bass wide") and " 650 4 0.9 " in tone("fretless")                                   # what is not named keeps the desk's own
+    plain = tone("house bass wide")
+    monkeypatch.setattr(club, "BASS_TONES", {})
+    assert tone("house bass square") == plain == tone("house bass grind")                                                              # (without the table, one tone for every synthesiser's bass)
 
 
 def test_the_own_fm_bass_can_be_held_lighter():

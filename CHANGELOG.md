@@ -12,6 +12,9 @@ dictated, where it drove the change.
 - **The fourteenth round's ten House songs**: a town, a storm in three squalls, a cave, four walks, a camp, an inn and a night, where its music comes round most a song.
 - House's drums turn every eight bars: the kick rests from the half of each eight's last bar, with two strokes of the backbeat into the next where the fill left room. In thirteen of forty first takes a theme's drums
   had been the same for sixteen bars by the meter, in one for thirty; three played again read eight at the most, and the judges that listen were level to a shade up.
+- A House bass has its own tone at the desk: the square's middle eight lighter (it stood 7 to 9 dB over the liked stems in four songs of four), the grinder's shelf deeper (8.5 over at 1.8 kHz in five), the crust's
+  middle seven lighter, the pumphouse's soft round bass given a middle (13 under at 453 Hz in three songs); each found on a song played again through the desk.
+- The stroke meter gives the heap most of a pitch's strokes are in, not the median between two heaps (a lead in tune was reported 122 cents flat).
 
 ## 2026-11-25: three bands more
 

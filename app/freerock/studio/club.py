@@ -462,6 +462,19 @@ TWINS = ("harsh", "harsh saw")       # the writer's names of the bass's harsh tw
 # 900 Hz; TuneJury with the House brief up in all six windows, +0.07 to +0.20, the rest level: in. The bass is still 4.6 to 7.9
 # over there, its weight spread from 226 Hz to 3.5 kHz: a broader easing, or the patch's own index, is owed.)
 FM_MIDDLE: float | None = -4.0
+# A bass's own tone at the desk, by its sound: (how it is shut, its bells), in the place of the tone a synthesiser's or a player's bass has below (`lines`). Each was found on a song of that bass played again
+# through the desk, the bass read octave by octave against the liked stems. A sound that is not named keeps the desk's own.
+# (2026-11-26, the staged basses of the acts found in the wavetables and of the calm ones, from 226 Hz to 3.5 kHz against the liked stems. The square, four songs of four: +4 to +8, +7 to +8.5, +7 to +9,
+# +4 to +9, +3 to +10; with eight off its middle, two octaves wide, +4.0, +3.1, +4.8, +4.8, +4.3 (Hollow Stair I). The grinder, five of five: 0, +2.5, +6.5, +8.5, +6.5; with its shelf seven deep from
+# 650 Hz, -0.5, +1.3, +3.6, +5.2, +4.2 (Rendering Plant II). The crust, three: +5, +5 to +8, +5 to +10, +3 to +7; with seven off its middle, +4.1, +4.2, +5.6, +6.7, +3.3 (Paper Trail I). The pumphouse's
+# round bass, played softly, three: -3, -13, -9 to -12, -7 to -18; with nine at 450 Hz and nine at 1.2 kHz, -2.2, -5.9, -6.3, -10.2 (Street Sweeper II): heard, where it was felt. A bass's share in its key
+# moved with none of them but the grinder's (67% to 79): the desk notes it and does not judge it, house.measure.)
+BASS_TONES: dict[str, tuple[dict, tuple]] = {
+    "house bass square": (dict(high_cut=2000.0, high_shelf=(1400.0, -4.0)), ((640.0, -8.0, 2.0),)),
+    "house bass grind": (dict(high_cut=1700.0, high_shelf=(650.0, -7.0)), ()),
+    "house bass crust": (dict(high_cut=2400.0, high_shelf=(900.0, -3.0)), ((600.0, -7.0, 1.8),)),
+    "round bass": (dict(high_cut=5000.0, high_shelf=(2200.0, 0.0)), ((450.0, 9.0, 1.4), (1200.0, 9.0, 1.6))),
+}
 # (2026-11-22, the day's House studies: the own bell, the chords in the snowfields' and the haunted palettes, 36.6 to 37.8 dB over
 # the liked stems at its top and 5.5 to 8.4 thin in its middle in all four takes that drew it, ten dB beyond any other House
 # sound: its FM partials at three and a half times the note ring over nothing.) BELL_BODY: the own bell given a body at 450 Hz
@@ -719,6 +732,8 @@ def lines(heard: Heard, seed: int, work: Path) -> tuple[dict[str, list[desk.Line
                         shut, middle = dict(high_cut=4500.0, high_shelf=(2200.0, -3.0)), ((650.0, 4.0, 0.9),)
                         # ...and held, as an upright on a club record is: its plucked notes ring into one another where they come quickly (Cinder Block's rise stood 7 dB over its moment).
                         line.effects = list(line.effects) + [sounds.squeeze(-24.0, 4.0, 10.0, 160.0, 4.0)]
+                    if written in BASS_TONES:
+                        shut, middle = BASS_TONES[written]
                     line.effects = list(line.effects) + [sounds.equalise(low_cut=30.0, bands=middle, **shut), sounds.wide(0.25)]
                     line.send = 0.0
                 elif channel == "rhythm":
@@ -1144,7 +1159,9 @@ def strokes_off(notes: list[Note], audio: np.ndarray, beat_frames: float, span: 
     half-steps either way, and the median of them. (2026-11-24: three songs' leads, a saxophone's short strokes, sounded 90 to 185 cents flat; the channel heard as a whole read 12 in one of them and passed the
     others, and the instrument's long notes, by which it was tuned, are in tune.) A stroke is heard where it sounds alone: one under which another note of its channel sounds (`beside`: everything the channel
     plays; an octave or a unison apart is no other note) is left out. (2026-11-25: Red Rock II's riff read 100 cents flat at E5 and was in tune: a C sharp of the same channel sounded under nineteen of its
-    thirty-eight strokes there, and the meter found that.)"""
+    thirty-eight strokes there, and the meter found that.) For each pitch, the heap most of its strokes are in: the fullest twenty cents of them and the median of the strokes within thirty of it; two heaps as
+    full, the one further from the note, so that a fault is not hidden. (2026-11-26: Hollow Stair I's lead, a sync low down, read "38 by -122 cents": most of its strokes there stood within ten cents and the
+    rest near -245, a second row of partials that the harmonic sum took for the note in some strokes; the median of two heaps is neither of them.)"""
     mono, found = audio.mean(axis=1), defaultdict(list)
     cents, size = np.arange(-300.0, 301.0, 5.0), 1 << 17
 
@@ -1161,7 +1178,14 @@ def strokes_off(notes: list[Note], audio: np.ndarray, beat_frames: float, span: 
         at = np.round(written * np.arange(1, 9)[:, None] * 2.0 ** (cents[None, :] / 1200.0)).astype(int)
         at = np.clip(at, 4, size // 2 - 4)
         found[note.pitch].append(float(cents[int(np.argmax(np.sqrt(power[at + 4] - power[at - 3]).sum(axis=0)))]))
-    return {pitch: float(np.median(each)) for pitch, each in sorted(found.items()) if len(each) >= 8}
+    def heap(strokes: list[float]) -> float:
+        full = defaultdict(int)
+        for each in strokes:
+            full[int(round(each / 20.0))] += 1
+        centre = 20.0 * max(full, key=lambda each: (full[each], abs(each)))
+        return float(np.median([each for each in strokes if abs(each - centre) <= 30.0]))
+
+    return {pitch: heap(each) for pitch, each in sorted(found.items()) if len(each) >= 8}
 
 
 def stage(name: str, take: int) -> dict:
