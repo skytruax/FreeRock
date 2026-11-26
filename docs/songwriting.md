@@ -1566,6 +1566,12 @@ until that day (`lift_tunes.py --back` takes it back from what each track wrote 
 songs the desk performed with the rhythm taken down already, and wrote the same words for. What the tool lays in place it now writes down as its own, "riff gives again", and takes back that alone.) Whether those stay is for the ear that plays with them. A take that is liked is
 changed only beside itself: the new one is staged where the old one is not lost, the two are read by the judges and heard, and the old one stands until the new one is chosen.
 
+*Three of them performed again, and read* (2026-11-26, the same day; `var/studio-demo/audit-plain`, the same band's instruments, the same two windows by SongEval, label `plain1126` beside
+`round13`). Written plainly means here: in 4/4, each theme as it was first told, nobody sung an octave down. Red-Wind Howl (the stoner band's, from 7/8): 2.85 and 2.79 as staged, 3.13 and 3.19
+written plainly, where the liked library reads about 3.2. Tally-Clerk's Ledger (the hammond band's, from 5/4): its theme 3.06 to 3.27, its summit 2.73 and 2.74. Crepe-Band Mile (the drumline's,
+from 5/4): 2.34 and 2.31 to 2.32 and 2.20, no better; and the drumline is one of the four bands that read under the house band on the house band's own notes (4.11). So there were two things, and
+they are apart: how the songs were written, which the plain rules mend where the band is sound; and four bands whose sound reads low whatever they are given.
+
 *No more songs in five or in seven* (2026-11-26, the same audit). The house band's songs are in 4/4 in 95 of 100 and none is in 5/4 or 7/8. Of the Knight Rock songs begun after the evening of 11-24,
 66 in 100 were not in 4/4 and a third were in 5/4 or 7/8 (of Warcraft's, three in ten, where six in a hundred were before); round thirteen's ten had not one in 4/4, and its 5/4 songs read lowest with the judges (2.62 by SongEval where the same windows of older songs
 read 3.19). The 86 characters written in five or seven stay as they are; no more are added (a test holds the count). A new Knight Rock song is in 4/4, or in 6/8 or 12/8 where it is a shuffle or a jig;
