@@ -370,3 +370,22 @@ def test_the_mix_is_what_the_player_is_sent():
                                       setting_here=lambda state: "", zone_here=lambda state: None)
     message = music.Conductor._target_message(conductor)
     assert message["target"]["channels"]["drums"] == {"level": 1.0, "tier": 2}
+
+
+async def test_a_fault_in_the_counting_is_not_read_as_a_bucket_that_is_not_here(tmp_path, monkeypatch):
+    """(2026-11-26, the audit: one `except KeyError` stood round the finding of the bucket and the counting in it, so any KeyError of the counting's
+    own was said as "a bucket which is not here" and the plays were dropped.)"""
+    client, app, conductor = await running(tmp_path)
+    try:
+        bucket = conductor.buckets.get("Elwynn Forest", "knight")
+        stock(bucket)
+
+        def faulty(self, ids):
+            raise KeyError("a fault of its own")
+
+        monkeypatch.setattr(type(bucket), "played", faulty)
+        with pytest.raises(KeyError, match="a fault of its own"):
+            conductor._count_plays({"heard": ["x"], "bucket": bucket.key})
+        conductor._count_plays({"heard": ["x"], "bucket": "knight/nowhere"})          # a bucket that is not here: said, and nothing counted
+    finally:
+        await client.close()

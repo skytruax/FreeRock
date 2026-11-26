@@ -41,8 +41,17 @@ def addresses() -> list[str]:
     return found
 
 
+def say_what_is_logged() -> None:
+    """What the server logs goes to its output (var/log/serve-<date>.log) with the time, from INFO up. (2026-11-26, the audit: logging was never set
+    up, so everything said at INFO went nowhere, a dropped page and a failed update among it, and a warning had no time to it.) The web server's own
+    line for every request stays out: the player fetches thousands."""
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+    logging.getLogger("aiohttp.access").setLevel(logging.WARNING)
+
+
 def serve(host: str = "0.0.0.0", port: int = 8765, *, music: bool = True) -> None:
     """Runs FreeRock until it is stopped."""
+    say_what_is_logged()
     config = server.ServerConfig(host=host, port=port, front_page="/player" if music else "/")
     app = build_app(config, music=music)
     here = addresses() or ["<this machine>"]

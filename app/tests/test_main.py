@@ -49,3 +49,14 @@ def test_the_moments_of_silence_come_from_the_settings(tmp_path):
     assert music._silences == {"every_s": 540.0, "for_s": 45.0}
     never = main.build_app(config(tmp_path), settings=Settings(var_dir=tmp_path / "var", rest_every_minutes=0.0))
     assert never["conductor"]._silences["every_s"] == 0.0
+
+
+def test_what_the_server_logs_is_seen_with_its_time(monkeypatch):
+    """(2026-11-26, the audit: logging was never set up: what was said at INFO went nowhere, and a warning had no time to it.)"""
+    import logging
+    access, said = logging.getLogger("aiohttp.access"), {}
+    monkeypatch.setattr(access, "level", access.level)
+    monkeypatch.setattr(logging, "basicConfig", lambda **told: said.update(told))
+    main.say_what_is_logged()
+    assert said["level"] == logging.INFO and "%(asctime)s" in said["format"] and "%(name)s" in said["format"]
+    assert access.level == logging.WARNING              # not a line for each of the player's thousands of fetches

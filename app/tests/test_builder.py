@@ -300,3 +300,19 @@ def test_the_command_builds_with_the_server_up_and_swaps_only_with_it_stopped(tm
     shutil.rmtree(tmp_path / "studio" / "warcraft" / "test-family" / "2")
     (tmp_path / "studio" / "warcraft" / "test-family" / "1" / "lead.flac").write_bytes(b"spoilt")
     assert up.main(["warcraft", "--beside"]) == 1 and "NOT put in" in capsys.readouterr().out
+
+
+def test_a_server_that_does_not_answer_in_time_is_up(monkeypatch):
+    """(2026-11-26, the audit: a timeout was read as no server, and a bucket could be swapped under one that was only slow, which has the buckets in memory.)"""
+    import socket
+
+    def slow(*_, **__):
+        raise socket.timeout("timed out")
+
+    def refused(*_, **__):
+        raise ConnectionRefusedError("nobody there")
+
+    monkeypatch.setattr(socket, "create_connection", slow)
+    assert pieces.server_is_up(8765) is True
+    monkeypatch.setattr(socket, "create_connection", refused)
+    assert pieces.server_is_up(8765) is False

@@ -503,9 +503,14 @@ class Bucket:
                 clip.plays += 1
                 found.append(clip)
         if found:
-            self._save()
+            # (2026-11-26, the audit: the whole index was written again for every report of a play, 513 times in an evening, 12 MB each for Warcraft's, the
+            # server's loop standing still for each: about half a second every half minute in which nothing of the game was read. The book keeps every play of a
+            # written part and gives it back when the bucket is read, `sync_book`; the index is written only for a part the book has no place for.)
+            keys = self._keys(found) if self.book is not None else []
             if self.book is not None:
-                self.book.played(self.genre, self._keys(found))
+                self.book.played(self.genre, keys)
+            if len(keys) < len(found):
+                self._save()
 
     def places(self) -> dict[str, tuple[str, int]]:
         """Each written piece's track and its place in it, counted along the track from its first piece."""

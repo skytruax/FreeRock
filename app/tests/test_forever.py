@@ -232,3 +232,25 @@ def test_an_intensity_hovering_on_a_line_does_not_change_gear_back_and_forth():
 def test_the_moment_after_a_fight_everything_plays_calm():
     after = forever.mix(Target(place="ember", intensity=0.6, drums=0.5, bass=0.0))
     assert all(channel["tier"] == 0 for channel in after.values())
+
+
+def test_a_play_is_kept_in_the_book_and_the_index_is_not_written_again_for_it(tmp_path):
+    """(2026-11-26, the audit: the whole index, 12 MB for Warcraft's, was written again for every report of a play, 513 times in one evening, the
+    server's loop standing still for each.) The book keeps the play and gives it back when the bucket is read; with no book the index keeps it, as before."""
+    from freerock.playbook import PlayBook
+    book = PlayBook(tmp_path / "plays.sqlite3")
+    bucket = forever.Bucket(tmp_path / "buckets", "elwynn-forest", "knight", 120, "G mixolydian", book=book)
+    stock(bucket)
+    index = bucket.folder / "bucket.json"
+    before = index.read_text(encoding="utf-8")
+    first = bucket.clips[0]
+    bucket.played([first.id])
+    bucket.played([first.id, "a part that is not here"])
+    assert first.plays == 2 and index.read_text(encoding="utf-8") == before
+    again = forever.Bucket(tmp_path / "buckets", "elwynn-forest", "knight", 120, "G mixolydian", book=book)
+    assert again.clips[0].id == first.id and again.clips[0].plays == 0
+    assert again.sync_book() >= 1 and again.clips[0].plays == 2
+    alone = bucket_at(tmp_path / "alone")
+    stock(alone)
+    alone.played([alone.clips[0].id])
+    assert json.loads((alone.folder / "bucket.json").read_text(encoding="utf-8"))["clips"][0]["plays"] == 1

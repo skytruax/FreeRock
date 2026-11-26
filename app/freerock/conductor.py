@@ -146,7 +146,7 @@ class Conductor:
         except (ConnectionResetError, RuntimeError) as error:
             # The page went away between two messages. It is dropped here; its own handler logs
             # the disconnect.
-            log.info("a player page could not be reached and is dropped: %r", error)
+            log.warning("a player page could not be reached and is dropped: %r", error)
             self.players.discard(socket)
 
     async def _broadcast(self, message: dict[str, Any]) -> None:
@@ -231,10 +231,12 @@ class Conductor:
         if not heard or not key:
             return
         try:
-            self.buckets.by_key(key).played(heard)
+            bucket = self.buckets.by_key(key)
         except KeyError:
             # The page is playing from a bucket this server does not have. Nothing to count.
             log.warning("a player is playing from the bucket %s, which is not here", key)
+            return
+        bucket.played(heard)        # (outside the `try`: a KeyError from the counting itself is a fault, and is not read as a bucket that is not here)
 
     def _playing_parts(self) -> tuple[forever.Bucket, list[str]] | None:
         """The bucket and the parts a player is playing right now: what love and ban apply to."""
@@ -242,9 +244,11 @@ class Conductor:
             playing, key = status.get("playing"), status.get("bucket")
             if playing and key:
                 try:
-                    return self.buckets.by_key(key), [entry["id"] for entry in playing.values()]
+                    bucket = self.buckets.by_key(key)
                 except KeyError:
                     log.warning("a player is playing from the bucket %s, which is not here", key)
+                    continue
+                return bucket, [entry["id"] for entry in playing.values()]
         return None
 
     async def _handle(self, event: object) -> None:
@@ -328,6 +332,10 @@ class Conductor:
             if self.bucket is not None:
                 await self._send(socket, self._bucket_message())
             async for message in socket:
+                if message.type == WSMsgType.ERROR:
+                    # (The socket's own failure: said, with what it was, and the page's handler ends as for any page that went away.)
+                    log.warning("a player page's connection failed: %r", socket.exception())
+                    break
                 if message.type != WSMsgType.TEXT:
                     continue
                 report = json.loads(message.data)

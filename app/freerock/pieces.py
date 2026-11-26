@@ -29,8 +29,12 @@ def server_is_up(port: int, host: str = "127.0.0.1") -> bool:
     try:
         with socket.create_connection((host, port), timeout=0.5):
             return True
-    except (ConnectionRefusedError, socket.timeout):
+    except ConnectionRefusedError:
         return False
+    except socket.timeout:
+        # (2026-11-26, the audit: a server that does not answer in half a second was read as no server, and a bucket could be swapped under one that
+        # was only slow or hung, which has the buckets in memory.) Something holds the port or is too busy to say: it is up.
+        return True
 
 
 def home_bucket(var_dir: Path, style: str, zone: str | None = None) -> forever.Bucket:
