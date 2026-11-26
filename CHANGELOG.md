@@ -15,6 +15,9 @@ dictated, where it drove the change.
 - A House bass has its own tone at the desk: the square's middle eight lighter (it stood 7 to 9 dB over the liked stems in four songs of four), the grinder's shelf deeper (8.5 over at 1.8 kHz in five), the crust's
   middle seven lighter, the pumphouse's soft round bass given a middle (13 under at 453 Hz in three songs); each found on a song played again through the desk.
 - The stroke meter gives the heap most of a pitch's strokes are in, not the median between two heaps (a lead in tune was reported 122 cents flat).
+- A band's string bass is heard as well as felt: the desk measures the bass that was played and, where it stands more than 4 dB under the liked stems about 450 and 900 Hz, gives it a bell at the mixdown, eight at
+  the most. Eleven of nineteen staged songs with the round bass stood 5 to 18 under there, and neither their weight nor how low their lines lie said which.
+- An opening is brought up by fifteen at the most, where it was twelve: eight old songs whose revised sheets were performed opened at -33.5 to -34.9, written 51 LUFS down under first themes of -25 to -30.
 
 ## 2026-11-25: three bands more
 

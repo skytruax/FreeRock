@@ -2226,6 +2226,33 @@ def test_a_plucked_bass_is_played_to_be_heard(monkeypatch):
     assert statistics.median(note.pitch for note in line("anywhere-glow-cave-2", 2, "picked bass")) == picked
 
 
+def test_a_bands_string_bass_is_given_a_middle_where_it_has_none(monkeypatch):
+    """(2026-11-26: eleven of nineteen staged band songs with the round bass stood 5 to 18 dB under the liked stems at 453 and 894 Hz, a thump with no note to it; neither their weight nor how low their
+    lines lie says which. Measured on the stem that was played, a bell at the mixdown brings it to four under, by eight at the most.)"""
+    import dataclasses
+
+    from freerock.studio import desk, ear, sounds
+    wanted = ear.reference("", style="knight", channel="bass")
+    stands = {}
+    monkeypatch.setattr(ear, "profile", lambda audio, rate: dataclasses.replace(wanted, bands=[each - (stands["under"] if at in (4, 5) else 0.0) for at, each in enumerate(wanted.bands)]))
+
+    def middle(under: float, played: tuple = ("round bass",)) -> float:
+        stands["under"] = under
+        return build.bass_middle(np.zeros((8, 2), dtype=np.float32), set(played))
+
+    assert (build.BASS_HEARD_UNDER, build.BASS_HEARD_MOST, build.BASS_HEARD_AT) == (4.0, 8.0, 700.0) and [round(each) for each in ear.CENTRES[4:6]] == [453, 894]
+    assert middle(0.0) == 0.0 and middle(4.0) == 0.0 and middle(-3.0) == 0.0                           # heard already
+    assert middle(7.0) == 3.0 and middle(13.9) == 8.0 and middle(30.0) == 8.0                          # to four under, by eight at the most
+    assert middle(9.0, ("fretless",)) == 5.0 and middle(9.0, ("picked bass", "upright bass")) == 5.0
+    assert middle(13.0, ("stomp tuba",)) == 0.0 and middle(13.0, ("round bass", "war tuba")) == 0.0 and middle(13.0, ()) == 0.0        # a tuba has the tone found for it
+    assert set(build.STRING_BASSES) <= set(orchestra.INSTRUMENTS)
+    monkeypatch.setattr(build, "BASS_HEARD_UNDER", None)
+    assert middle(13.0) == 0.0
+    # ...as a bell on the bass's own track in the mix, and on no other.
+    bell = sounds.equalise(bands=((build.BASS_HEARD_AT, 5.0, 2.0),))
+    assert " 700 5 2 " in bell and "effects" in {field.name for field in dataclasses.fields(desk.Line)}
+
+
 def test_a_light_bands_bass_is_given_presence(monkeypatch):
     # (2026-11-22, night: the light bands' bass, MuseScore's electric bass played softly, 3.7 to 13 dB thin in its middle in
     # the studies of the day's new Knight families; judged in for the light band's alone, bass1.) A light band's bass, picked

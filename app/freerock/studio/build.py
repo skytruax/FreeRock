@@ -25,7 +25,7 @@ from pathlib import Path
 import numpy as np
 
 from .. import analysis, forever
-from . import RATE, desk, muse, reaper, sounds, stage_root, write_track
+from . import RATE, desk, ear, muse, reaper, sounds, stage_root, write_track
 from .orchestra import CHANNELS, CHARACTERS, INSTRUMENTS, STRUMS, Family, Take, band_of, borrow, borrowed, family, fresh, given, held, settings_of
 from .score import Sheet, humanise
 
@@ -70,7 +70,9 @@ DRUMS_UP = 6.0                 # dB: the most the drums are ever turned up to re
 # library under -36, which a game's own sounds cover: the first minute of them is not heard at all. The characters that `opens` are written louder there, and they are the
 # newest alone). An opening stands no further than this under its song's loudest part, and is brought up no more than this for it. (16 and 9 dB at first, the same evening: the
 # thirty songs of the day stand at -17 to -21 at their loudest, so that an opening of -43 came up to -36 and was not heard still; three or four under the first theme is an opening.)
-OPEN_UNDER, OPEN_MOST = 13.0, 12.0
+# (2026-11-26, eight of the twenty-eight old songs whose revised sheets were performed that night opened at -33.5 to -34.9, their first themes at -25 to -30: seven written about 51 LUFS down, a lone player
+# as softly as it can, and held there by the twelve that was the most: fifteen.)
+OPEN_UNDER, OPEN_MOST = 13.0, 15.0
 # ...nor is its first theme under hearing (2026-11-25: a slow burn's opening and first theme stood at -36 and -37 in Basalt Walk, at -35 and -35 in Spur-Lit Halter, and an opening goes no higher than what it leads
 # to): no further than this under the loudest part, brought up no more than this, and never over the part after it.
 FIRST_UNDER, FIRST_MOST = 11.0, 8.0
@@ -79,7 +81,8 @@ FIRST_UNDER, FIRST_MOST = 11.0, 8.0
 # rules above allow them: never over the part after them, and no more than OPEN_MOST and FIRST_MOST.
 OPEN_FLOOR, FIRST_FLOOR = -32.0, -30.0
 # (The same night, looked at and left: Rime-Sealed Crossing opens at -35 and says its first theme at -33 with these floors in. A burn is a stair: its second theme stands at -32, a first theme goes no
-# higher than one under what it leads to and an opening two under that, -32 and -34; the most they are brought up leaves them one short of it. A floor does not lift a stair.)
+# higher than one under what it leads to and an opening two under that, -32 and -34; the most a first theme is brought up leaves it one short of that, and its opening two under it. A floor does not lift
+# a stair.)
 # ...and what comes between them and a song's first arrival (its first part within ARRIVES of the loudest) is brought half way to this under it: five of nine parts of Forlorn Hope, a slow burn's four minutes, stood
 # at -37 to -31 under a moment of -22 and a summit of -19 (2026-11-25). A song that arrives with its first theme or its second has nothing between.
 EARLY_UNDER, EARLY_SHARE, ARRIVES = 10.0, 0.5, 8.0
@@ -317,6 +320,27 @@ def project_at(style: str, family: str, take: int) -> Path:
 # in three of their four windows and with none down in three, while the heavy band's last drop came out down (TuneJury with no
 # brief -0.18) and the fretless level. So the light band's alone: the heavy band's and the orchestra's as they were. 0: as it was.
 LIGHT_BAND_BASS = 4.0
+# (2026-11-26, nineteen staged band songs with the round bass, each read octave by octave against the liked stems: eight stand within 5 dB at 453 and 894 Hz and eleven 5 to 18 under there, a thump with no
+# note to it on a small loudspeaker. Neither a song's weight nor how low its line lies says which: Prospector's Stake, a camp's, +4.5 and -2.2; Bone March, a walk of weight 0.9, -5.6 and -10.5; Closing
+# Cup, an inn's, -9.8 and -18.0. A string bass that holds long soft notes has no middle, whoever plays it, and one that pumps has. Swamper's Lullaby played again with a bell of six at 700 Hz, two octaves
+# wide, before its amplifier: -5.1 and -8.9 to -2.0 and -3.8.) A band's string bass is heard as well as felt: where its stem, as the studies read it (ear.profile), stands more than BASS_HEARD_UNDER dB under
+# the liked stems in the two octaves about 450 and 900 Hz, a bell at BASS_HEARD_AT, two octaves wide, brings it up to that at the mixdown, by BASS_HEARD_MOST at the most: measured on what was played, after
+# everything else. A tuba, a growling or a torn bass has the tone found for it and none of this. None: as it was.
+BASS_HEARD_UNDER: float | None = 4.0
+BASS_HEARD_MOST, BASS_HEARD_AT = 8.0, 700.0
+STRING_BASSES = ("round bass", "picked bass", "fretless", "upright bass", "wash bass", "acoustic bass")
+
+
+def bass_middle(stem: np.ndarray, played: set[str]) -> float:
+    """How big a bell a band's bass is given at the mixdown, dB (BASS_HEARD_UNDER): nothing where it is heard already, or where any of its players is not a string bass."""
+    if BASS_HEARD_UNDER is None or not played or not played <= set(STRING_BASSES):
+        return 0.0
+    mine = ear.profile(stem, RATE)
+    if mine is None:
+        return 0.0
+    wanted = ear.reference("", style="knight", channel="bass")
+    under = -float(np.mean([mine.bands[at] - wanted.bands[at] for at in (4, 5)]))          # (ear.CENTRES: 453 and 894 Hz)
+    return round(min(max(under - BASS_HEARD_UNDER, 0.0), BASS_HEARD_MOST), 1)
 
 
 # (2026-11-23, night: the blues harp, wherever it leads a band's tune or solo, 4 to 11 dB thin in its middle and 12 to 16 over
@@ -928,10 +952,13 @@ def perform(sheet: Sheet) -> dict:
     # channel's stem on a track of its own with its fader where it was measured to go, the ride of the story as the
     # volume envelope, rendered again; the project is kept as mix.rpp beside the track's own.
     recorded = {channel: work / (channel + ".wav") for channel in parts}
+    # A band's string bass is heard as well as felt (BASS_HEARD_UNDER): a bell on its stem's track in the mix, where it has no middle of its own.
+    middle = bass_middle(parts["bass"], {voice.instrument for voice in voices["bass"].values() if voice.notes and voice.instrument != "deep"}) if about["band"] and "bass" in parts else 0.0
+    tones = {"bass": [sounds.equalise(bands=((BASS_HEARD_AT, middle, 2.0),))]} if middle > 0.0 else {}
     with reaper.Display() as display:
         parts = desk.mixdown(work, recorded, faders={channel: 10 ** (gains[channel] / 20.0) * scale for channel in parts},
                              ride=desk.ride_points(curve), bpm=bpm, seconds=whole / RATE, tail=forever.POST_S, frames=frames,
-                             display=display, timeout=300.0 + whole / RATE, alone=alone)
+                             display=display, timeout=300.0 + whole / RATE, alone=alone, tones=tones)
     for bus, _ in folders:
         (work / (bus.name + ".wav")).unlink()      # the staged track has them; the project can make them again
     gains = {channel: round(gain, 1) for channel, gain in gains.items()}
@@ -956,7 +983,7 @@ def perform(sheet: Sheet) -> dict:
                   "Muldjord, DrumGizmo, CC BY 4.0), the FreePats bagpipe (Gilles Sadowski, CC0), the AVL drum kits (Glen MacArthur, CC BY-SA 3.0) and the Surge XT, "
                   "ZynAddSubFX and Geonkick synths"
                   % (about["character"], about["metre"], "its instruments performed by MuseScore Studio with Muse Sounds (Muse Group) and " if muse.available() else ""),
-        "seed": about["seed"], "measured": {"sections": loudness, "channels": levels, "gains": gains},
+        "seed": about["seed"], "measured": {"sections": loudness, "channels": levels, "gains": gains, **({"bass middle": middle} if middle > 0.0 else {})},
     }
     if solo_db:
         meta["measured"]["solo lift"] = solo_db            # dB the lead was brought up where its solo plays
