@@ -1529,6 +1529,19 @@ seventeen of one night's new songs, the fourth families of characters written be
 Warcraft).
 An old song is told so by a revision of its sheet (the lead's parts alone, over the same band: 2026-11-24, the twenty-two most repeated, 50 to 76% to 32 to 60).
 
+*Turned down, 2026-11-26.* After an evening of these songs: "most of the music we heard last night sucked, the new bands a lot of time just sound random, it got worse not better". A tune told another way
+each time, half of it upside down, is not known again when it comes back; and how much of a tune has been heard before is not a fault to bring down. Counted as the share of the lead's two-bar phrases
+that are played more than once, the liked library's tunes come back in 49% in the middle for Knight Rock (the lower quartile 44, nine songs in ten over 40) and 35 for Warcraft (the lower quartile 27);
+three in four of the songs this rule made lie under 38. Four of them written again without it go from 15 to 38% up to 43 to 77. The 120 families that were staged with it keep it (`build.GROWN`,
+`studio/grown.txt`: never change a family that has takes; a family taken out of the list is written plainly the next time it is made); every other family, 912 of the plan's that had been set to grow, is
+told as its first telling was, its leaps filled the second time and what a player adds the third (`varied`, `decorated`). `build.TOLD_ONCE` is gone. `tools/study.py` now says how much of a tune comes back
+and marks one under the liked library's lower quartile (7.3).
+
+*No more songs in five or in seven* (2026-11-26, the same audit). The house band's songs are in 4/4 in 95 of 100 and none is in 5/4 or 7/8. Of the Knight Rock songs begun after the evening of 11-24,
+66 in 100 were not in 4/4 and a third were in 5/4 or 7/8 (of Warcraft's, three in ten, where six in a hundred were before); round thirteen's ten had not one in 4/4, and its 5/4 songs read lowest with the judges (2.62 by SongEval where the same windows of older songs
+read 3.19). The 86 characters written in five or seven stay as they are; no more are added (a test holds the count). A new Knight Rock song is in 4/4, or in 6/8 or 12/8 where it is a shuffle or a jig;
+a new Warcraft song in 4/4, 6/8 or 3/4.
+
 *Three kits more* (2026-11-24, 23:10). A band is told by its drummer: fourteen had shared three kits, and fifteen snares told them apart. A Boston shop's jazz kit (six microphones to a stroke, mixed as an
 engineer does, "club"), the same through the worn vintage microphone beside them ("lofi"), and a kit whose every drum is a snare, the kick and the toms too ("unruly"): each stroke's soft layers brought half way
 up (a jazz drummer's softest is thirty dB under the hardest, where a groove is a third of the way), and each stroke of each kit brought to where the house's has it (`sounds.KIT_GAINS`, measured through the band's
@@ -2373,6 +2386,11 @@ from its music sheet, how many lines play in each part, the spread of their pitc
 tune is a bar heard before; against the liked stems of its style and channel, how far its middle
 (160 Hz to 1.25 kHz) and top (2.5 to 10 kHz) are off. Then the set's averages.
 
+From 2026-11-26 it also says how much of the tune comes back: the share of the lead's two-bar phrases that are played more than once, with the liked library's lower quartile beside it
+(`study.RETURNS_FLOOR`: 44% for Knight Rock, 27 for Warcraft; none yet for House, whose hooks come back in 92%), and "UNDER" where a song lies below it. "Tune bars heard before" is still printed, and is
+not a fault at any height: until that day a song was marked at 55% and over, and nothing was marked for a tune that never came back. A channel that has no liked stems to be held against is named, where
+it was passed over without a word.
+
 The sheet read is the staged one, each note at the nearest twelfth of a beat (where the player put it), and what the desk
 stacks on a moment (a kick, a sub, a bell) is not counted as one more playing. Until 2026-11-25 the writer was asked
 again, which is the first draft: Keg Clamour, retold the night before to 51% of its tune's bars heard before, was read
@@ -2594,6 +2612,14 @@ On the music machine `var/passes/rebuild.sh <style>` does all of this; it lives 
 
 ### 8.7 Add a character or a family
 
+**What the audit of 2026-11-26 changed for a new song** (4.12, 8.9; "the new bands a lot of time just sound random, it got worse not better"). It is in 4/4 (6/8 or 12/8 for a shuffle or a jig; a Warcraft song
+in 4/4, 6/8 or 3/4), never in 5/4 or 7/8. Its theme comes back as it was first told (no `grows`). It rests when it is staged and comes into the player only through the gate. Dark and gritty still, by
+its key, its harmony and its sounds. Three readings of the audit's that are not tested yet, each to be tried on a pair of takes before it is a rule: a tune sung an octave down (`low`) lies inside what
+accompanies it (the companies' leads at a mean of 61 where their accompaniment is at 68, the orchestra's at 71); a guitarist's riff handed to a marimba, a harpsichord or a line of trombones is not that
+instrument's music; and a band is known by its own two singers song after song, where each new character has named an odd lead of its own (48 lead instruments over 137 band songs, none in more than a
+quarter of them; the house band's lead guitar is in 70 of 100).
+
+
 **New music is darker, gritty, and varied in its instruments** ("just new music should be darker", "make them gritty and darker",
 "make sure to switch up the instruments from song to song so theres variety", 2026-11-23). A new character or family is heavy, in
 minor, dorian or phrygian, with the deep sounds, unless its place or moment has no light music left; what is already made stays as
@@ -2812,7 +2838,27 @@ night".
 
 The passes so far looked for more swing between quietest and loudest (the orchestra's pieces reached
 18 dB; the heavy band's went from 8 to 17–20), channels within a few dB of the liked stems octave by
-octave, a bass that moves, a tune that does not repeat its bars, and every channel worth hearing alone.
+octave, a bass that moves, and every channel worth hearing alone. (Until 2026-11-26 this list had "a tune that does not repeat its bars" in it. It was read as
+"the less of a tune comes back the better", a rule was written to make it so (4.12, turned down), and the songs it made were heard as random. A tune is meant to come back: the study
+holds it to the liked library from below.)
+
+**Nothing new is in the player until it has been held to the liked library** (2026-11-26; `tools/heard.py`, `tools/rest.py`, `tools/windows.py`, `tools/gate.py`). A song never heard comes first in
+the player ("the idea is to hear new music all the time"), so whatever was made in the night is the next evening: on 11-25, 64 of the 79 songs heard were heard for the first time and 49 had come in
+that morning, none of them judged. So:
+
+1. A new song is rested when it is staged (`rest.py`: a line in `var/studio/<style>/resting.txt`; the bucket's builder leaves it out, the listening pages keep it).
+2. Its two windows are cut (`windows.py`: the first theme's last 32 bars, the last moment's first 32) and given to the judges under the round's label. A window takes them four minutes, a whole song twenty:
+   a night makes no more new songs than its judges can read, about sixty.
+3. `gate.py check <label>` holds each song to the same windows of older, liked songs (the label `library`): it passes when the mean of SongEval's five and its Memorability are each at or over the
+   library's lower quartile for its style. A song is never read against the others of its round, nor a window against whole songs.
+   The quick way, and the one the library is ready for: SongEval reads a whole take by its two minutes from the first theme on, and the judges' watch read 261 whole takes of the library so until
+   2026-11-23 (the label `watch`). `gate.py read <label> <style> --tag <tag>` has the resting songs of a tag read the same way, by SongEval alone (`judges.py --only songeval`: a minute or two a song,
+   where the three judges take twenty over one), and `check` holds them to those 261. SongEval does not hear whether a tune comes back four minutes on: that is the sheet's to say (7.3).
+4. What passes is brought back (`rest.py back <style> --tag <tag> $(gate.py check <label> --passed)`) and comes in with the next build; what does not is written again, or stays out.
+5. Each morning `heard.py` says what was played the evening before, how much of it for the first time and how much of it new, before anything is said about the night's music.
+
+The library's windows are few still (five Knight Rock songs, six Warcraft, none of House's: `gate.py library` says "THIN"): two windows of twenty-four liked songs in each style are owed, the most
+played first (`gate.py pick <style>`), under the label `library`, before a song is read by its windows. Its whole takes are many: 130, 62 and 69.
 
 ---
 
@@ -2837,4 +2883,5 @@ octave, a bass that moves, a tune that does not repeat its bars, and every chann
 | One crown for every heavy moment | *every heavy piece had a choir and a bell at its moments, so every moment sounded alike* | Crowns by kind of place (`build.CROWNS`) |
 | Hairpins from 1.5 s | *nearly every note of a slow piece swelled, which read as pumping, not phrasing* | From 2.5 s (`muse.LONG_S`) |
 | Streams from music shops and services | their published terms forbid capturing or altering streams, or using them with games | The studio's own music |
+| A theme told another way each time it comes back (`Character.grows`), for every new family; songs in 5/4 and 7/8 for a third of a style's new ones; every night's new songs into the player unjudged, read only against their own round | "most of the music we heard last night sucked, the new bands a lot of time just sound random, it got worse not better" (2026-11-26); *the judges had read the new Knight Rock songs 0.45 under the same windows of older ones, and three in four of them had less of their tune come back than nine in ten of the liked* | Themes told as they were first told (4.12); 4/4, 6/8 and 3/4; a new song rested until it passes the gate against the liked library (8.9); what came in after the evening of 11-24 rested (276 songs, tag `audit-1126`) |
 | A bell in the old House songs' drums (their claps and snares stand 8 to 17 dB under the liked stems at 900 Hz and 1.8 kHz) | five old songs with the drums' middle 5 and 9 dB up, 25 November: *the themes' hardness moved by -0.8 to +0.3; one listening judge fell with the amount on four songs of five, by 0.05 to 0.25, and two rose by 0.01 to 0.14*: the judges do not agree, and a song that exists stays as it is unless they do | The old songs' drums as they are; what the meter hears in them is that nothing turns, and that is a revision of their sheets (the kick rests at each eight's end, a pickup, a shaker out every other eight), kept song by song where the judges agree |

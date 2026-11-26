@@ -45,6 +45,29 @@ def story_loudness(meta: dict, parts: dict[str, np.ndarray], rate: int) -> list[
     return out
 
 
+# How much of a liked song's tune comes back: the share of its lead's two-bar phrases that are played more than once, the lower quartile
+# of the library as it stood on the evening of 2026-11-24, the last one that was liked (Knight Rock's middle 49%, Warcraft's 35). A song
+# under it has a tune that hardly returns. (2026-11-26, after "the new bands a lot of time just sound random": the one number the study had
+# of a tune, its bars heard before, was read one way only, a high one as a fault, 55% and over; a rule was written to bring it down, and
+# three in four of the songs that rule made lie under 38% here, where nine in ten of the liked ones lie over 40.) House's leads are hooks,
+# nearly all of them heard again (92% in the middle of its own songs): no floor is set for it yet.
+RETURNS_FLOOR = {"knight": 0.44, "warcraft": 0.27}
+
+
+def returns(by_bar: dict[int, set]) -> float | None:
+    """The share of a tune's two-bar phrases that are played more than once (bars 0-1, 2-3, ...; a phrase with nothing in it is none):
+    how much of it comes back, note for note. None for a tune of fewer than two phrases."""
+    if not by_bar:
+        return None
+    mark = lambda bar: tuple(sorted(by_bar.get(bar, ())))      # noqa: E731
+    phrases = [(mark(bar), mark(bar + 1)) for bar in range(0, max(by_bar) + 1, 2)]
+    phrases = [phrase for phrase in phrases if any(phrase)]
+    if len(phrases) < 2:
+        return None
+    counts = collections.Counter(phrases)
+    return sum(1 for phrase in phrases if counts[phrase] > 1) / len(phrases)
+
+
 def written(style: str, name: str, take: int) -> dict:
     """From the take's music sheet: instruments at once in each part, the tune's repeated bars, the spread of registers.
 
@@ -104,6 +127,7 @@ def written(style: str, name: str, take: int) -> dict:
         lead_bars.append(signature in seen)
         seen.add(signature)
     out["tune_repeats"] = sum(lead_bars) / max(len(lead_bars), 1)
+    out["tune_returns"] = returns(by_bar)
     return out
 
 
@@ -121,12 +145,13 @@ def main(argv: list[str]) -> int:
         loud = [value for _, value in story if value > -70]
         swing = max(loud) - min(loud) if loud else 0.0
         notes = written(style, name, int(take))
-        off = {}
+        off, unheld = {}, []
         for channel, audio in parts.items():
             mine = ear.profile(audio, rate)
             try:
                 wanted = ear.reference("", style=style, channel=channel)
             except KeyError:
+                unheld.append(channel)          # no liked stems of this style and channel: said below, not passed over
                 continue
             if mine is not None:
                 gaps = [mine.bands[at] - wanted.bands[at] for at in range(len(ear.CENTRES))]
@@ -136,8 +161,14 @@ def main(argv: list[str]) -> int:
         if notes:
             print("%-34s at once: %s | spread: %s | tune bars heard before: %.0f%%" % (
                 "", " ".join("%s %d" % (p[:4], n) for p, n in notes["at_once"]), " ".join("%d" % s for _, s in notes["spread"]), 100 * notes["tune_repeats"]))
+            back, floor = notes.get("tune_returns"), RETURNS_FLOOR.get(style)
+            if back is not None:
+                print("%-34s the tune's phrases that come back: %.0f%%%s" % ("", 100 * back, "" if floor is None else (
+                    "  UNDER the liked library's lower quartile (%.0f%%): the tune hardly returns" % (100 * floor) if back < floor else "  (the liked library's lower quartile %.0f%%)" % (100 * floor))))
         if off:
             print("%-34s against the liked stems (mids dB, top dB): %s" % ("", "  ".join("%s %+.1f %+.1f" % (c, m, t) for c, (m, t) in off.items())))
+        if unheld:
+            print("%-34s NOT held against the liked stems (there are none of %s's): %s" % ("", style, ", ".join(unheld)))
     if rows:
         print("\nacross the set: story swing %.1f dB on average (least %.1f); tune bars heard before %.0f%% on average" % (
             float(np.mean([r[2] for r in rows])), min(r[2] for r in rows),

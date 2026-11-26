@@ -136,9 +136,14 @@ def _shapes_last(character) -> list[int]:
 # beyond the plan's own (`plan`), by style: each one more song for its kind of place. 0 (or no entry): the plan's own, as
 # before. (That night Knight Rock, the music they play, was given a second round: Warcraft had 210 first takes still to make.)
 MORE_FAMILIES = {"knight": 2, "warcraft": 2}
-# The families that had a take before 2026-11-25: their themes come back as they were first told. In every other a theme is told another way each time (`Character.grows`): of 430 Knight Rock songs the middle one had 46% of
-# its tune's bars heard before, and seventeen of one night's new ones 50 to 66, the fourth families of characters that were written before it was.
-TOLD_ONCE = frozenset((Path(__file__).parent / "told_once.txt").read_text(encoding="utf-8").split())
+# The families whose themes are told another way each time they come back (`Character.grows`, `orchestra.retold`): the ones that were staged that way,
+# from 2026-11-25 to the morning of the 26th, and no other. (2026-11-26, after an evening of them: "most of the music we heard last night sucked, the new bands
+# a lot of time just sound random, it got worse not better". The rule had been made to bring down how much of a tune's bars had been heard before, 46% in the
+# middle of the library and 50 to 76 in a night's new songs, as if a tune coming back were a fault; told another way, half of it upside down, a tune is not
+# known again when it comes back: the liked library's tunes come back whole in 54% of their two-bar phrases, these in 36, and four of them written again without the rule
+# in 43 to 77.) A family written from now on is told as its first telling was, with what a player adds (`varied`, `decorated`); one taken out of this list is
+# written so the next time it is made.
+GROWN = frozenset((Path(__file__).parent / "grown.txt").read_text(encoding="utf-8").split())
 
 
 # House's titles (house.PLAN's, the test keeps them the same), written out here so that the plan, which the study and the lanes
@@ -213,7 +218,7 @@ def plan() -> list[tuple[Family, int]]:
         name = "%s-%s-%d" % (place, character.name.replace(" ", "-"), number + 1)
         # (A house band's character's families past its third are another band's songs: orchestra.fresh.)
         made = fresh(character, number)
-        out.append((family(made if made.grows or name in TOLD_ONCE else replace(made, grows=True), seed, name, title), takes))
+        out.append((family(replace(made, grows=name in GROWN), seed, name, title), takes))
 
     later, camps, last = [], [], []
     for index, character in enumerate(CHARACTERS):

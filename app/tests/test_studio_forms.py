@@ -221,8 +221,7 @@ def test_a_family_past_a_house_band_character_s_third_is_another_band_s_song():
     for fam, _ in build.plan():
         if fam.character.name in house:
             (old if int(fam.name.rsplit("-", 1)[1]) <= orchestra.FRESH_FROM else new).append(fam)
-    assert old and all(fam.character == house[fam.character.name] for fam in old if fam.name in build.TOLD_ONCE), "a family made before is changed"
-    assert all(replace(fam.character, grows=False) == house[fam.character.name] for fam in old if not house[fam.character.name].grows), "...and one not made yet tells its themes another way, no more"
+    assert old and all(fam.character == house[fam.character.name] for fam in old), "a family of its first ones is changed"
     assert len(new) >= 40 and all(fam.character.sounds in BANDS and fam.character.form in ("",) + tuple(FORMS) for fam in new)
     fourth = [fam for fam in new if fam.name.endswith("-4")]
     bands = [fam.character.sounds for fam in fourth]
@@ -450,19 +449,25 @@ def test_a_phrase_turned_upside_down_keeps_its_rhythm_and_comes_home():
     assert len(ways) == 6 and ways[0] is tune and len({tuple(way.notes) for way in ways}) >= 5 and chords
 
 
-def test_only_a_family_that_has_no_take_yet_is_told_another_way():
-    """(Never change a family that has takes: the house band's and the orchestra's characters past their fourth family.)"""
+def test_only_the_families_staged_that_way_are_told_another_way():
+    """(2026-11-26, after an evening of them: "most of the music we heard last night sucked, the new bands a lot of time just sound random, it got worse not
+    better". Until then every family with no take yet was to be told another way each time its theme came back, 1,032 of the plan's 1,656, to bring down how
+    much of a tune had been heard before: a tune that is not known again when it comes back.) The 120 families staged that way keep it (never change a family
+    that has takes); every other is told as its first telling was, and more of its tune comes back."""
     plain = next(character for character in CHARACTERS if character.band and not character.sounds)
     court = next(character for character in CHARACTERS if not character.band and not character.sounds)
     for character in (plain, court):
-        assert [orchestra.fresh(character, number).grows for number in range(6)] == [False, False, False, False, True, True]
-    # ...and whoever's a family is, one that had no take on 2026-11-25 (build.TOLD_ONCE): seventeen of one night's new songs had 50 to 66% of their tune's bars heard before.
-    planned = {fam.name: fam.character for fam, _ in build.plan()}
-    assert build.TOLD_ONCE <= set(planned) and 600 <= len(build.TOLD_ONCE) < len(planned) - 400
-    assert all(character.grows for name, character in planned.items() if name not in build.TOLD_ONCE)
-    assert not planned["pastoral-banner-ride-1"].grows and not planned["regal-five-black-kings-4"].grows
-    written = {character.name: character.grows for character in CHARACTERS}
-    assert sum(1 for name, character in planned.items() if name not in build.TOLD_ONCE and not written[character.name]) >= 300
+        assert [orchestra.fresh(character, number).grows for number in range(6)] == [False, False, False, False, True, True]     # (what `fresh` says: the plan decides)
+    planned = {fam.name: fam for fam, _ in build.plan()}
+    assert build.GROWN <= set(planned) and len(build.GROWN) == 120
+    assert all(fam.character.grows == (name in build.GROWN) for name, fam in planned.items())
+    assert not planned["pastoral-banner-ride-1"].character.grows and not planned["regal-five-black-kings-4"].character.grows
+    assert planned["haunted-slow-cortege-1"].character.grows                    # (staged on 2026-11-26 with it: as it was)
+    # A family of a character written to grow that has no take yet: its tune comes back more than it would have.
+    later = [fam for name, fam in sorted(planned.items()) if name not in build.GROWN and next(each for each in CHARACTERS if each.name == fam.character.name).grows][:8]
+    assert len(later) == 8
+    more = [told_before(Take(fam, 0)) - told_before(Take(replace(fam, character=replace(fam.character, grows=True)), 0)) for fam in later]
+    assert statistics.mean(more) >= 0.08 and min(more) >= 0.0, more
 
 
 def test_a_band_s_instruments_play_within_their_ranges():
@@ -732,3 +737,11 @@ def test_a_song_is_heard_from_its_first_bar():
     assert build.opened(soft, [0.0, 0.0, 0.0]) == [7.0, 8.0, 0.0]                                    # (the theme as far as it goes, the opening never over it)
     assert build.opened([-43.0, -42.0], [0.0, 0.0]) == [0.0, 0.0]
     assert build.opened([-80.0] + heard[1:], lifts) == lifts and build.opened([-40.0], [0.0]) == [0.0]
+
+
+def test_no_more_characters_are_written_in_five_or_in_seven():
+    """(2026-11-26: of the Knight Rock songs begun after the evening of 11-24, 66 in 100 were not in 4/4 and a third in 5/4 or 7/8, where the house band's
+    are 95 in 100 in 4/4 and none in five or seven; round thirteen's ten Knight songs had not one in 4/4, and its 5/4 ones the judges' lowest. "The new bands a
+    lot of time just sound random.") The characters written in 5/4 or 7/8 until that day stay as they are; no more are added."""
+    odd = {style: sum(1 for character in CHARACTERS if character.style == style and set(character.metres) & {"5/4", "7/8"}) for style in ("knight", "warcraft")}
+    assert odd["knight"] <= 36 and odd["warcraft"] <= 50, odd

@@ -65,7 +65,10 @@ def change_of(folder: str) -> tuple[str, str] | None:
 
 def main(argv: list[str]) -> int:
     only = argv[1] if len(argv) > 1 else ""
-    rows = [json.loads(line) for line in (VAR / "passes" / "judged3.jsonl").read_text(encoding="utf-8").splitlines() if line.strip()]
+    every = [json.loads(line) for line in (VAR / "passes" / "judged3.jsonl").read_text(encoding="utf-8").splitlines() if line.strip()]
+    rows = [row for row in every if "tunejury" in row and "audiobox" in row]
+    if len(rows) < len(every):
+        print("(%d records of SongEval alone, made for the gate, are not in this report: tools/gate.py reads them)" % (len(every) - len(rows)))
     styles = sorted({row["style"] for row in rows if not only or row["style"] == only})
     for style in styles:
         mine = [row for row in rows if row["style"] == style]

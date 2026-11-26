@@ -223,6 +223,13 @@ Two rules over all of it, 2026-11-24 ("make sure were using unique bands on all 
 - **Every night makes new songs before anything else**: at least ten new songs of each style stand at the front of the night's lane; revisions, re-renders and
   covers come after them. The morning's report says how many of the night's songs were new.
 
+And one over those, 2026-11-26 ("most of the music we heard last night sucked, the new bands a lot of time just sound random, it got worse not better"):
+
+- **Nothing new is in the player until it has been held to the liked library.** A song never heard comes first in the player, so a night's untested songs are the next evening: 64 of the 79 songs
+  heard on 11-25 were heard for the first time. A new song is rested when it is staged, its two windows are judged, and it comes into the player only when `tools/gate.py` passes it against the
+  same windows of older, liked songs (`docs/songwriting.md` 8.9). A night makes no more new songs than its judges can read. The morning's report begins with `tools/heard.py`: what was played the
+  evening before, and how much of it was new. A new song is never read against its own round alone, and a measure of sameness is never a target: a tune is meant to come back.
+
 The bars for a round: no kind of place or moment in any style with fewer songs than ten; no song heard more often than three
 times while another for the same place has not been heard once; and a song's neighbours in an evening not led by the same
 instrument.
