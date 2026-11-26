@@ -2246,8 +2246,11 @@ def test_a_light_bands_bass_is_given_presence(monkeypatch):
     tones = {tuba: build.tamed_tone("picked bass", tuba, band=True, channel="bass").split("\n")[1].split() for tuba in ("stomp tuba", "war tuba", "line tuba")}
     assert {tuba: (tone[1], tone[13], tone[14]) for tuba, tone in tones.items()} == {"stomp tuba": ("900", "500", "-20"), "war tuba": ("1800", "500", "-14"), "line tuba": ("2500", "500", "-8")}
     assert all(tone[4:6] == ["340", "-5"] and tone[7:9] == ["420", "-10"] and tone[10:12] == ["520", "-9"] for tone in tones.values())
-    reeds = {build.tamed_tone("basses", each, band=False, channel="bass") for each in build.REED_BASSES}
-    assert len(reeds) == 1 and None not in reeds and reeds != {build.tamed_tone("picked bass", "war tuba", band=True, channel="bass")}
+    # (The reeds have one tone and the brass a deeper one: the horde's trombone and tubas stood 10 to 11 dB over from 894 Hz to 3.5 kHz on the reeds' in Beast-Pen Straw, and 6 over on their own, through the desk.)
+    reeds = {build.tamed_tone("basses", each, band=False, channel="bass") for each in build.REED_BASSES if each not in build.BRASS_BASSES}
+    brass = {build.tamed_tone("basses", each, band=False, channel="bass") for each in build.BRASS_BASSES}
+    assert set(build.BRASS_BASSES) < set(build.REED_BASSES) and len(reeds) == 1 and len(brass) == 1 and None not in reeds | brass and reeds != brass
+    assert " 2200 " in next(iter(brass)) and " 3000 " in next(iter(reeds)) and not brass & {build.tamed_tone("picked bass", "war tuba", band=True, channel="bass")}
     assert {"contrabassoon", "tuba", "war tuba"} <= set(build.REED_BASSES) and all(each in orchestra.INSTRUMENTS for each in build.REED_BASSES)
     assert all(build.tamed_tone("basses", each, band=False, channel="bass") is None for each in ("basses", "celli", "acoustic bass", "basses pizz"))
     assert build.tamed_tone("bassoon", "bassoon", band=False, channel="lead") is None

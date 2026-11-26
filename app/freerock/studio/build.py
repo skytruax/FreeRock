@@ -326,6 +326,7 @@ HARP_LEAD: tuple[float, float, float, float] | None = None
 
 
 REED_BASSES = ("contrabassoon", "bassoon", "bass clarinet", "contrabass flute", "tuba", "war tuba", "trombone")      # an orchestra's or a company's low reeds and brass, where they play in the bass
+BRASS_BASSES = ("tuba", "war tuba", "trombone")                                                                      # ...and the brass among them, which has a deeper tone than the reeds
 
 
 def tamed_tone(name: str, instrument: str, band: bool = False, channel: str = "", light: bool = False) -> str | None:
@@ -370,6 +371,10 @@ def tamed_tone(name: str, instrument: str, band: bool = False, channel: str = ""
         # (2026-11-25: a company's bass is its own reed or tuba, the winds' contrabassoon, the horde's and the carnival's tuba, and an orchestra's reeds and trombone double its line at the moments: Spindrift
         # Landfall, Sharpened-Stake Judgement and Waterfall Ledge stood 7 to 10 dB over the liked stems from 450 Hz to 7 kHz, where Clan-Feud Fine's bowed and plucked basses stand within 3. Tried on the three
         # recordings: eight at 450, ten off from 900 and shut at 3 kHz, within 5 in every octave. A string bass has none of it.)
+        # (The same evening, the songs made on it: the reeds level (the crypt's, the winds', the silk's within 6) and the brass not: Beast-Pen Straw's trombone and tubas, the horde's bass, 10 to 11 over from
+        # 894 Hz to 3.5 kHz. Performed again through the desk with sixteen off from 700 Hz and shut at 2.2 kHz on the brass alone: 6 over at 894 and 1768, 1.6 at 3.5 kHz.)
+        if instrument in BRASS_BASSES:
+            return sounds.equalise(high_cut=2200.0, bands=((450.0, -8.0, 1.6),), high_shelf=(700.0, -16.0))
         return sounds.equalise(high_cut=3000.0, bands=((450.0, -8.0, 1.6),), high_shelf=(900.0, -10.0))
     if band and channel == "bass" and instrument.endswith("tuba"):
         # (2026-11-25: three bands' bass is a tuba, whose fourth to eighth overtones are nearly all of it: the octave from 320 Hz at -4 to -7 dB of the whole where the liked stems have it at -26, the basses of Deep

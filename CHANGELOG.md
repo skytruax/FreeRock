@@ -43,6 +43,7 @@ dictated, where it drove the change.
   the mystic and the haunted walks), led by what its dark songs had barely used (an accordion, a bass clarinet, a mandolin, an oboe, a bassoon); Warcraft's ten by the companies that had three, each sung by
   a player of its own that had not led for it (a shakuhachi in a desert night, a bagpipe in a white squall, an erhu in a teahouse, handbells in a monsoon, a choir humming at a pilgrims' fire).
 - **The thirteenth round's ten House songs**: nine hard walks where they were fewest and a night, by the acts whose leads the contest ranked in its upper half, each with a riff and a shape of its own.
+- A company's brass in the bass (a trombone, a tuba) has a deeper tone than its reeds: the horde's stood 10 to 11 dB over the liked stems from 894 Hz to 3.5 kHz, and 6 over with it, through the desk.
 
 ## 2026-11-24, night: a tune that is told another way each time, and calm House that is not sweet
 
