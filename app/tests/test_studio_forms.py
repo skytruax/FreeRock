@@ -452,14 +452,15 @@ def test_a_phrase_turned_upside_down_keeps_its_rhythm_and_comes_home():
 def test_only_the_families_staged_that_way_are_told_another_way():
     """(2026-11-26, after an evening of them: "most of the music we heard last night sucked, the new bands a lot of time just sound random, it got worse not
     better". Until then every family with no take yet was to be told another way each time its theme came back, 1,032 of the plan's 1,656, to bring down how
-    much of a tune had been heard before: a tune that is not known again when it comes back.) The 120 families staged that way keep it (never change a family
-    that has takes); every other is told as its first telling was, and more of its tune comes back."""
+    much of a tune had been heard before: a tune that is not known again when it comes back.) The families staged that way keep it until they are written
+    again (120 at first; none of them is in the player, they rest); every other is told as its first telling was, and more of its tune comes back."""
     plain = next(character for character in CHARACTERS if character.band and not character.sounds)
     court = next(character for character in CHARACTERS if not character.band and not character.sounds)
     for character in (plain, court):
         assert [orchestra.fresh(character, number).grows for number in range(6)] == [False, False, False, False, True, True]     # (what `fresh` says: the plan decides)
     planned = {fam.name: fam for fam, _ in build.plan()}
-    assert build.GROWN <= set(planned) and len(build.GROWN) == 120
+    # (120 were staged that way; a family taken out of the list is written again plainly while it rests: 37 on the first afternoon.)
+    assert build.GROWN <= set(planned) and 0 < len(build.GROWN) <= 83
     assert all(fam.character.grows == (name in build.GROWN) for name, fam in planned.items())
     assert not planned["pastoral-banner-ride-1"].character.grows and not planned["regal-five-black-kings-4"].character.grows
     assert planned["haunted-slow-cortege-1"].character.grows                    # (staged on 2026-11-26 with it: as it was)

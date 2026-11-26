@@ -1555,7 +1555,10 @@ that are played more than once, the liked library's tunes come back in 49% in th
 three in four of the songs this rule made lie under 38. Four of them written again without it go from 15 to 38% up to 43 to 77. The 120 families that were staged with it keep it (`build.GROWN`,
 `studio/grown.txt`: never change a family that has takes; a family taken out of the list is written plainly the next time it is made); every other family, 912 of the plan's that had been set to grow, is
 told as its first telling was, its leaps filled the second time and what a player adds the third (`varied`, `decorated`). `build.TOLD_ONCE` is gone. `tools/study.py` now says how much of a tune comes back
-and marks one under the liked library's lower quartile (7.3).
+and marks one under the liked library's lower quartile (7.3). That afternoon the first 37 families came out of the list to be written again while they rest (none of them is in the player): Knight
+Rock's six in 4/4 by bands that stood with the house band in the auditions (4.11), and Warcraft's 31 in 4/4, 6/8 and 3/4; their takes of before are kept beside
+(`var/studio-demo/retold-audit-1126/resting`), and each new one is read by the judges and held to the library like any new song (8.9). 83 are left: the ones in five and in seven, which need a new
+metre as well, and those of the bands that read under.
 
 *And the liked library itself was changed that night, in place* (2026-11-26, the same audit). In the night of 24 to 25 November the retelling was also laid on 41 takes that existed, by
 revisions of their sheets (the line above, "an old song is told so by a revision of its sheet"): 27 of them were in the player on the 26th, 14 with the retold tune performed and 13 with the sheet

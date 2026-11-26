@@ -143,6 +143,8 @@ MORE_FAMILIES = {"knight": 2, "warcraft": 2}
 # known again when it comes back: the liked library's tunes come back whole in 54% of their two-bar phrases, these in 36, and four of them written again without the rule
 # in 43 to 77.) A family written from now on is told as its first telling was, with what a player adds (`varied`, `decorated`); one taken out of this list is
 # written so the next time it is made.
+# (2026-11-26, afternoon: the first 37 taken out, to be written again while they rest: the six of Knight Rock's in 4/4 by bands that stood with the house band in
+# the auditions, and Warcraft's 31 in 4/4, 6/8 and 3/4. 83 are left: the ones in five and in seven, and those of the bands that read under.)
 GROWN = frozenset((Path(__file__).parent / "grown.txt").read_text(encoding="utf-8").split())
 
 
