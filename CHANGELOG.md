@@ -38,6 +38,7 @@ dictated, where it drove the change.
   places in the brawl's first song on it, has its own the same way. A tone is found on an instrument as it is played now, through the desk.
 - `tools/study.py` reads a take's staged music sheet, not the writer's first draft: a song retold the night before was still read at its first draft's count and marked for the revision it had had.
 - A soft song's opening and first theme are heard as well: fifteen of the day's first takes opened at -33 to -36 LUFS, thirteen under a summit that was itself at -22 (`build.OPEN_FLOOR`, `FIRST_FLOOR`).
+- A company's bass is doubled only by a player who can reach its line: in seven songs a lyre, a xylophone or a kalimba had played it two and three octaves up, inside the bass's channel.
 
 ## 2026-11-24, night: a tune that is told another way each time, and calm House that is not sweet
 

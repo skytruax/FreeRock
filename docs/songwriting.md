@@ -734,6 +734,7 @@ through the second half of each rise and at the moments of music that is not hea
 doubles the line an octave away at 0.8 (`PARTNERS`). At heavy moments bowed celli and basses play
 the root an octave apart, with the contrabassoon in grim music and, at the summit, the tuba and
 trombones where the palette has them.
+In a company the partner is whoever has its part there, and only if that player can play the line where it is written (`DOUBLES_IN_REACH`, 2026-11-25): a lyre whose lowest note is E4, a xylophone and a kalimba had the plucked celli's doubling in seven songs and played the bass's line two and three octaves up in the bass's channel, 22 dB over the liked stems at 7 kHz in Whaler's Dole.
 
 The line keeps within nine semitones under and eight over its centre: its instrument's home less 5,
 but never above A2 (`orchestra.BASS_TOP`, `bass_centre`). An organ that plays the bass plays it on

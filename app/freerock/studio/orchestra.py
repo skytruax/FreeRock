@@ -4265,6 +4265,10 @@ def bass_tonics(spans: list, inst: "Instrument", centre: int, floor: int = 0) ->
     return out
 
 
+# How far over the middle of the bass's doubling (an octave over the bass's own) the lowest note of whoever is given it may lie, in semitones; None: anyone is given it, as until 2026-11-25.
+DOUBLES_IN_REACH: int | None = 5
+
+
 def bass_centre(inst: Instrument) -> int:
     """Where a bass line is centred: its instrument's home less 5, never above BASS_TOP."""
     home = inst.home - 5
@@ -5590,6 +5594,12 @@ class Take:
         # doubled an octave away by its neighbour in the orchestra: from each theme's second statement, through the
         # second half of each rise, and at the moments (where a heavy piece's tutti has the low end, that is enough).
         partner = None if ch.band else PARTNERS.get(name)
+        if partner is not None and DOUBLES_IN_REACH:
+            # (2026-11-25, Whaler's Dole and six songs before it: a company's plucked player given the plucked celli's doubling, a lyre whose lowest note is E4, a xylophone, a kalimba, played the bass's line two
+            # and three octaves up in the bass's channel, 22 dB over the liked stems at 7 kHz. The line is doubled by someone who can play it where it is written, an octave over the bass, or by no one.)
+            player = INSTRUMENTS.get(sounded(band_of(self.fam, self.take), partner))
+            if player is not None and player.low > centre + 12 + DOUBLES_IN_REACH:
+                partner = None
         doubled = False
 
         def low(at: float, length: float, pitch: int, loud: float) -> None:

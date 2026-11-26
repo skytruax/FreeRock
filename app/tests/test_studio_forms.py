@@ -286,6 +286,28 @@ def test_every_company_is_players_the_desk_knows_and_none_is_another_genre_s():
     assert len(signatures) == len(orchestra.COMPANIES)
 
 
+def test_a_bass_is_doubled_by_someone_who_can_play_its_line():
+    """(2026-11-25, Whaler's Dole and six songs before it: a company's lyre, xylophone or kalimba, given the plucked celli's doubling of the bass, played the bass's line two and three octaves up in the
+    bass's channel, 22 dB over the liked stems at 7 kHz.)"""
+    plan = {fam.name: fam for fam, _ in build.plan()}
+    assert orchestra.DOUBLES_IN_REACH == 5
+    for name in ("coast-whalers-hall-1", "marsh-reed-cutters-rest-1", "haunted-side-show-1"):      # the mead hall's lyre, the winds' kalimba, the carnival's xylophone
+        sheet = build.write(plan[name], 1)
+        low = {tag: min(note.pitch for note in voice.notes) for tag, voice in sheet.parts["bass"].items() if voice.notes}
+        assert low and max(low.values()) < 58 and not any(tag.endswith(" doubled") for tag in low), (name, low)
+    # ...an orchestra's plucked celli double its bass as they did, and a company's player that reaches the line (the quartet's piano) does too.
+    town = build.write(plan["anywhere-alliance-town-1"], 1)
+    assert town.parts["bass"]["celli pizz doubled"].instrument == "celli pizz" and len(town.parts["bass"]["celli pizz doubled"].notes) > 100
+    reach = [fam for fam, _ in build.plan() if fam.character.sounds == "quartet" and set(fam.character.basses) & {"acoustic bass", "fretless", "basses pizz"}]
+    assert reach and any(tag.endswith(" doubled") and voice.notes and voice.instrument in ("piano", "dream piano") for fam in reach[:6] for tag, voice in build.write(fam, 1).parts["bass"].items())
+    was, orchestra.DOUBLES_IN_REACH = orchestra.DOUBLES_IN_REACH, None
+    try:
+        before = build.write(plan["coast-whalers-hall-1"], 1)
+        assert before.parts["bass"]["celli pizz doubled"].instrument == "lyre" and min(note.pitch for note in before.parts["bass"]["celli pizz doubled"].notes) >= 64
+    finally:
+        orchestra.DOUBLES_IN_REACH = was
+
+
 def test_a_fourth_family_of_an_orchestra_s_is_a_company_s_song_and_the_first_three_stay():
     own = {character.name for character in CHARACTERS if character.sounds}              # (a character that names its company has it from its first family)
     fams = [(fam, takes) for fam, takes in build.plan() if fam.character.style == "warcraft" and fam.character.name not in own]
