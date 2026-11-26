@@ -181,6 +181,7 @@ def test_a_song_with_a_recording_missing_is_cut_again_and_one_that_cannot_be_is_
     new, done = pieces.build_beside(tmp_path, "warcraft")
     assert (done["put"], done["taken"]) == (1, 0)
     assert [(folder.name, problem != "") for folder, problem in done["wrong"]] == [("2", True)]
+    assert " (raised at " in done["wrong"][0][1] and ".py:" in done["wrong"][0][1]          # where it was raised, not its kind and words alone
     assert len(new.pieces) == 5 and all(new._file(clip.id).is_file() for clip in new.clips)
 
 

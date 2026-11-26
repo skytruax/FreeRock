@@ -70,8 +70,9 @@ def _bucket(var: Path, *sources: str) -> None:
     (folder / "bucket.json").write_text(json.dumps({"pieces": {"p%d" % number: {"source": "knight/" + source} for number, source in enumerate(sources)}}), encoding="utf-8")
 
 
-def test_what_the_player_has_no_take_of_is_new_and_a_further_take_of_a_song_it_has_is_not(tmp_path):
-    """(2026-11-26: a night's new songs were the next evening, none of them judged. A build rests what is new to the player first.)"""
+def test_every_staged_take_the_player_does_not_have_is_new_a_further_take_of_a_song_it_has_too(tmp_path):
+    """(2026-11-26: a night's new songs were the next evening, none of them judged. A build rests what is new to the player first: a new family's
+    take and a further take of an older family alike, since that too is written and mixed as the writer and the desk are that night.)"""
     tool = _tool()
     for name in ("old-road-1/1", "old-road-1/2", "bone-mill-1/1", "bone-mill-1/2", "salt-pan-1/1", "night-fair-1/1"):
         _take(tmp_path, name, "2026-11-26T01:00:00")
@@ -79,13 +80,14 @@ def test_what_the_player_has_no_take_of_is_new_and_a_further_take_of_a_song_it_h
         tool.new_songs(tmp_path, "knight")                                     # no bucket: nothing to tell a new song from
     _bucket(tmp_path, "old-road-1/1", "night-fair-1/1")
     tool.rest(tmp_path, "knight", ["bone-mill-1/1"], "audit-1126", "resting")
-    # old-road-1/2 is a further take of a song the player has; bone-mill-1/2 a further take of one that rests; salt-pan is new.
-    assert tool.new_songs(tmp_path, "knight") == ["bone-mill-1/2", "salt-pan-1/1"]
-    assert tool.rest(tmp_path, "knight", tool.new_songs(tmp_path, "knight"), "new-1127", "new") == ["bone-mill-1/2", "salt-pan-1/1"]
+    # old-road-1/2 is a further take of a song the player has; bone-mill-1/2 a further take of one that rests; salt-pan is a new family's: all three are new.
+    assert tool.new_songs(tmp_path, "knight") == ["bone-mill-1/2", "old-road-1/2", "salt-pan-1/1"]
+    assert tool.rest(tmp_path, "knight", tool.new_songs(tmp_path, "knight"), "new-1127", "new") == ["bone-mill-1/2", "old-road-1/2", "salt-pan-1/1"]
     assert tool.new_songs(tmp_path, "knight") == []
-    # What is brought back (it passed the gate) is let in, and is not rested again by the next build's look.
-    assert tool.back(tmp_path, "knight", "new-1127", ["salt-pan-1/1"]) == ["salt-pan-1/1"]
+    # What is brought back (it passed the gate) is let in, and is not rested again by the next build's look, though the bucket has not got it yet.
+    assert tool.back(tmp_path, "knight", "new-1127", ["salt-pan-1/1", "old-road-1/2"]) == ["old-road-1/2", "salt-pan-1/1"]
     assert tool.new_songs(tmp_path, "knight") == []
-    assert "salt-pan-1/1" not in pieces.resting(tmp_path, "knight") and "bone-mill-1/2" in pieces.resting(tmp_path, "knight")
-    assert (tmp_path / "studio" / "knight" / "admitted.txt").read_text(encoding="utf-8").splitlines()[-1] == "salt-pan-1/1 [new-1127]"
+    resting = pieces.resting(tmp_path, "knight")
+    assert "salt-pan-1/1" not in resting and "old-road-1/2" not in resting and "bone-mill-1/2" in resting and "bone-mill-1/1" in resting
+    assert (tmp_path / "studio" / "knight" / "admitted.txt").read_text(encoding="utf-8").splitlines()[-2:] == ["old-road-1/2 [new-1127]", "salt-pan-1/1 [new-1127]"]
 

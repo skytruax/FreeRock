@@ -6,6 +6,11 @@ half a decibel anywhere is left as it is.
 
     cd app && uv run --no-sync python ../tools/lift_tunes.py knight [family/take ...]     (all the style's takes)
     ... --out FOLDER      the lifted takes written there (the other stems linked), the staged ones left as they are: to be judged
+    ... --back            takes it back, from what was written down: the lead stem (and the rhythm's, where the riff gave way) as it was
+                          before, to the hundredth of a decibel the track keeps; with no take named, every take of the style that was lifted
+
+(2026-11-26, the audit: in the night of 24 to 25 November this was run over the older library in place, 137 takes' lead stems up by 5 dB
+in the middle and 8 at the most, with no way back and no reading of before and after by anyone who listens.)
 """
 from __future__ import annotations
 
@@ -24,13 +29,8 @@ VAR = Path(__file__).resolve().parents[1] / "var"
 RATE = build.RATE
 
 
-def lift(folder: Path, out: Path | None = None) -> str:
-    sheet = json.loads((folder / "sheet.json").read_text(encoding="utf-8"))
-    orchestra = not sheet["about"].get("band")
-    meta = json.loads((folder / "track.json").read_text(encoding="utf-8"))
-    measured = meta.setdefault("measured", {})
-    if measured.get("tune lift again"):
-        return "already brought up (%s)" % measured["tune lift again"]
+def sung(sheet: dict, meta: dict) -> tuple[list[tuple[int, int]], list[int], float]:
+    """Where a take's tune sings, in samples (`build.sung_spans`), the edges of its parts, and a beat in samples."""
     bar, edges, bars = float(meta["bar_frames"]), [0], 0
     for section in meta["sections"]:
         bars += section["bars"]
@@ -38,6 +38,70 @@ def lift(folder: Path, out: Path | None = None) -> str:
     beat = 60.0 / float(sheet["tempo"]) * RATE
     solo = [note for name, part in sheet["parts"].get("lead", {}).items() if name.endswith(" solo") for note in part["notes"]]
     solos = build.solos_of([(note[0], note[1]) for note in solo], float(sheet["beats"]), beat)
+    return build.sung_spans(sheet["form"], edges, solos), edges, beat
+
+
+def curve_of(frames: int, spans: list[tuple[int, int]], dbs: list[float], ramp: int) -> np.ndarray:
+    """The gain for each sample that the desk laid on a stem, made again from what it wrote down for each part (dB): the part's dB through its span, then
+    eased over `ramp` samples to each side of every edge, the edges in their order: as `build.tune_lift` and `build.riff_gives` make theirs. (They write a
+    part's dB down to the hundredth and lay it on unrounded: what comes back is the stem as it was to within that hundredth of a decibel.)"""
+    db = np.zeros(frames, dtype=np.float32)
+    for (first, last), each in zip(spans, dbs):
+        db[first:last] = each
+    for edge in sorted({edge for span in spans for edge in span}):
+        low, high = max(edge - ramp, 0), min(edge + ramp, frames)
+        if high - low > 1:
+            db[low:high] = np.linspace(db[low], db[high - 1], high - low, dtype=np.float32)
+    return (10.0 ** (db / 20.0)).astype(np.float32)
+
+
+def back(folder: Path) -> str:
+    """Takes back what `lift` did to a staged take, from what it wrote down in the track's measurements ("tune lift again": the lead's stem; "riff gives": the
+    rhythm's): each stem divided by the gain it was given, written as it is staged (FLAC, 24 bits; a .part file put in its place), "tune lift" put back to
+    what stood before the lift, and the two notes taken out. A take whose sheet sings in other parts now than when it was lifted is refused."""
+    sheet = json.loads((folder / "sheet.json").read_text(encoding="utf-8"))
+    meta = json.loads((folder / "track.json").read_text(encoding="utf-8"))
+    measured = meta.get("measured") or {}
+    again, gives = measured.get("tune lift again"), measured.get("riff gives")
+    if not again and not gives:
+        return "nothing to take back"
+    spans, _, beat = sung(sheet, meta)
+    for said in (again, gives):
+        if said and len(said) != len(spans):
+            raise ValueError("%s: its tune sings in %d parts by its sheet now, and %d were lifted: the sheet was revised since, and nothing is taken back" % (folder, len(spans), len(said)))
+    done = []
+    for channel, said in (("lead", again), ("rhythm", gives)):
+        if not said or not any(abs(each) >= 0.005 for each in said):
+            continue
+        audio, rate = soundfile.read(str(folder / (channel + ".flac")), dtype="float32", always_2d=True)
+        if rate != RATE:
+            raise RuntimeError("%s/%s.flac is at %d Hz, not %d" % (folder, channel, rate, RATE))
+        was = audio / curve_of(len(audio), spans, said, int(beat))[:, None]
+        peak = float(np.abs(was).max())
+        if peak > 0.999:
+            raise ValueError("%s: its %s would clip as it was (peak %.3f): nothing is taken back" % (folder, channel, peak))
+        soundfile.write(str(folder / (channel + ".part.flac")), was, RATE, format="FLAC", subtype="PCM_24")
+        done.append(channel)
+    for channel in done:                         # (both written before either takes its place)
+        (folder / (channel + ".part.flac")).replace(folder / (channel + ".flac"))
+    if again and measured.get("tune lift") and len(measured["tune lift"]) == len(again):
+        measured["tune lift"] = [round(now - up, 2) for now, up in zip(measured["tune lift"], again)]
+    measured.pop("tune lift again", None)
+    measured.pop("riff gives", None)
+    scratch = folder / "track.json.part"
+    scratch.write_text(json.dumps(meta, indent=1), encoding="utf-8")
+    scratch.replace(folder / "track.json")
+    return "taken back: %s" % (", ".join("its %s by part %s dB" % (channel, ", ".join("%+.1f" % -each for each in (again if channel == "lead" else gives))) for channel in done) or "its notes alone")
+
+
+def lift(folder: Path, out: Path | None = None) -> str:
+    sheet = json.loads((folder / "sheet.json").read_text(encoding="utf-8"))
+    orchestra = not sheet["about"].get("band")
+    meta = json.loads((folder / "track.json").read_text(encoding="utf-8"))
+    measured = meta.setdefault("measured", {})
+    if measured.get("tune lift again"):
+        return "already brought up (%s)" % measured["tune lift again"]
+    spans, edges, beat = sung(sheet, meta)
     parts = {}
     for channel in ("lead", "rhythm", "bass"):
         if not (folder / (channel + ".flac")).is_file():
@@ -45,7 +109,6 @@ def lift(folder: Path, out: Path | None = None) -> str:
         parts[channel], rate = soundfile.read(str(folder / (channel + ".flac")), dtype="float32", always_2d=True)
         if rate != RATE:
             raise RuntimeError("%s/%s.flac is at %d Hz, not %d" % (folder, channel, rate, RATE))
-    spans = build.sung_spans(sheet["form"], edges, solos)
     given = list(measured.get("tune lift") or [])
     if len(given) != len(spans):
         given = [build.TUNE_MOST] * len(spans)                    # (cut by another rule: as if the most were given everywhere)
@@ -109,11 +172,17 @@ def main() -> int:
         at = argv.index("--out")
         out = Path(argv[at + 1])
         argv = argv[:at] + argv[at + 2:]
+    undo = "--back" in argv
+    argv = [each for each in argv if each != "--back"]
+    if undo and out is not None:
+        raise SystemExit("--back takes back what was done to the staged takes: it has no --out")
     style, names = argv[0], argv[1:]
     root = VAR / "studio" / style
     folders = [root / name for name in names] if names else sorted(path.parent for path in root.glob("*/*/sheet.json"))
     for folder in folders:
-        said = lift(folder, out)
+        said = back(folder) if undo else lift(folder, out)
+        if undo and not names and said == "nothing to take back":
+            continue                                             # (every take of the style was asked: only those that were lifted are said)
         print("%-40s %s" % (folder.parent.name + "/" + folder.name, said), flush=True)
     return 0
 

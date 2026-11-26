@@ -10,9 +10,9 @@ taken out again as a whole, and comes back song by song as it is tested against 
     ... rest.py back knight --tag audit-1126 [family/take ...]
         brings back the songs rested under a tag: all of them, or the ones named (and writes them down as let in: admitted.txt)
     ... rest.py new knight --tag new-1127 --why "new: not through the gate yet"
-        rests every staged take that is new to the player: of a family the style's bucket has no take of, or of a family that is
-        resting, and not let in by hand. var/passes/rebuild.sh does this before every build, so that a new song is never in
-        the player before it has been held to the library
+        rests every staged take the style's bucket does not have, a new family's and a further take of an older one alike,
+        unless it was let in by hand (admitted.txt). var/passes/rebuild.sh does this before every build, so that nothing
+        is in the player before it has been held to the library
     ... rest.py list knight
 
 A style's resting songs are the lines of var/studio/<style>/resting.txt (freerock.pieces.resting reads them when the style's
@@ -121,16 +121,16 @@ def in_player(var: Path, style: str) -> set[str]:
 
 
 def new_songs(var: Path, style: str) -> list[str]:
-    """The staged takes that are new to the player: neither resting nor let in (admitted.txt), and of a family the bucket has no
-    take of, or of a family that has a take resting. A further take of a song the player has is not new: it is that song in other hands."""
+    """The staged takes that are new to the player: every one the bucket does not have, that is neither resting nor let in (admitted.txt). A new
+    family's take and a further take of a family the player has are held alike: a further take is written and mixed by the writer and the desk as
+    they are that night, days on from the take that is liked, and until 2026-11-26 it went in unread like everything else."""
     resting = names_in(path_of(var, style))
     let_in = names_in(path_of(var, style).with_name("admitted.txt"))
-    family = lambda name: name.rsplit("/", 1)[0]      # noqa: E731
-    has, rests = {family(name) for name in in_player(var, style)}, {family(name) for name in resting}
+    has = in_player(var, style)
     out = []
     for track in sorted((Path(var) / "studio" / style).glob("*/*/track.json")):
         name = "%s/%s" % (track.parent.parent.name, track.parent.name)
-        if name not in resting and name not in let_in and (family(name) in rests or family(name) not in has):
+        if name not in resting and name not in let_in and name not in has:
             out.append(name)
     return out
 

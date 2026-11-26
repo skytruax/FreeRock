@@ -1537,6 +1537,14 @@ three in four of the songs this rule made lie under 38. Four of them written aga
 told as its first telling was, its leaps filled the second time and what a player adds the third (`varied`, `decorated`). `build.TOLD_ONCE` is gone. `tools/study.py` now says how much of a tune comes back
 and marks one under the liked library's lower quartile (7.3).
 
+*And the liked library itself was changed that night, in place* (2026-11-26, the same audit). In the night of 24 to 25 November the retelling was also laid on 41 takes that existed, by
+revisions of their sheets (the line above, "an old song is told so by a revision of its sheet"): 27 of them were in the player on the 26th, 14 with the retold tune performed and 13 with the sheet
+waiting for its next performance. On the 26th they were put back as they were before the revision (`tools/revise.py --back`; each retold take is kept beside, in `var/studio-demo/retold-audit-1126`).
+The same night `tools/lift_tunes.py` brought the lead stem of 135 older takes up in place (127 of Knight Rock's; 5 dB at its most in the middle one, 8 at the most; in 65 the rhythm's stem was taken
+down as well, by up to 9), and `tools/open_up.py` had by then lifted the openings of 237 (210 of Warcraft's), none of them read before and after by anyone who listens; the lift had no way back
+until that day (`lift_tunes.py --back` takes it back from what each track wrote down; `open_up.py --back` was there). Whether those stay is for the ear that plays with them. A take that is liked is
+changed only beside itself: the new one is staged where the old one is not lost, the two are read by the judges and heard, and the old one stands until the new one is chosen.
+
 *No more songs in five or in seven* (2026-11-26, the same audit). The house band's songs are in 4/4 in 95 of 100 and none is in 5/4 or 7/8. Of the Knight Rock songs begun after the evening of 11-24,
 66 in 100 were not in 4/4 and a third were in 5/4 or 7/8 (of Warcraft's, three in ten, where six in a hundred were before); round thirteen's ten had not one in 4/4, and its 5/4 songs read lowest with the judges (2.62 by SongEval where the same windows of older songs
 read 3.19). The 86 characters written in five or seven stay as they are; no more are added (a test holds the count). A new Knight Rock song is in 4/4, or in 6/8 or 12/8 where it is a shuffle or a jig;
@@ -2456,6 +2464,12 @@ stretch that does not move, and flags 16 bars or more. Read a flag against the s
 peels its groove away a quiet layer at a time reads as unchanged, and a part can change its notes
 and still sound the same (0.4).
 
+The meter is a pointer, never a gate and never a target (2026-11-26, the audit). It compares each bar with the first bar of its run, so it has
+no notion of a phrase that comes back: a riff held through a verse reads as a fault, and so does a tune told the same way twice. With the study's
+old reading of "tune bars heard before" it pushed three nights of writing towards something new in every bar, and the songs that came of it were
+heard as random (4.12). A flag is followed only where the same take, changed, reads no worse with the judges against the take before it; and no
+flag of the meter's keeps a song out of the player or lets one in: that is the gate's (8.9).
+
 `tools/judge.py` runs Meta's Audiobox Aesthetics on a take, whole and part by part (`--parts`), in an
 environment of its own (`var/tools/judges`). It scores enjoyment (CE), usefulness (CU), production
 complexity (PC) and production quality (PQ), about 1 to 10, from 16 kHz mono in ten-second windows.
@@ -2846,7 +2860,9 @@ holds it to the liked library from below.)
 the player ("the idea is to hear new music all the time"), so whatever was made in the night is the next evening: on 11-25, 64 of the 79 songs heard were heard for the first time and 49 had come in
 that morning, none of them judged. So:
 
-1. A new song is rested when it is staged (`rest.py`: a line in `var/studio/<style>/resting.txt`; the bucket's builder leaves it out, the listening pages keep it).
+1. A new song is rested when it is staged (`rest.py`: a line in `var/studio/<style>/resting.txt`; the bucket's builder leaves it out, the listening pages keep it). `var/passes/rebuild.sh`
+   does it before every build (`rest.py new`): every staged take the bucket does not have rests, a new family's and a further take of an older family alike, since a further take is written and
+   mixed as the writer and the desk are that night, days on from the take that is liked. There is no exception.
 2. Its two windows are cut (`windows.py`: the first theme's last 32 bars, the last moment's first 32) and given to the judges under the round's label. A window takes them four minutes, a whole song twenty:
    a night makes no more new songs than its judges can read, about sixty.
 3. `gate.py check <label>` holds each song to the same windows of older, liked songs (the label `library`): it passes when the mean of SongEval's five and its Memorability are each at or over the

@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 import shutil
 import socket
+import traceback
 from pathlib import Path
 from typing import Any
 
@@ -159,7 +160,9 @@ def add_staged(bucket: forever.Bucket, var_dir: Path, style: str, before: studio
             # file that cannot be read, a description with something missing) is reported by
             # name and the rest go in: one bad track among hundreds is no reason to leave the
             # bucket empty. The caller says so and ends with an error.
-            done.append((folder, [], "%s: %s" % (type(problem).__name__, problem)))
+            # (2026-11-26, the audit: the error's kind and words alone were kept, so a fault of the builder's own read as a bad song. Where it was raised is said too.)
+            where = traceback.extract_tb(problem.__traceback__)[-1]
+            done.append((folder, [], "%s: %s (raised at %s:%d, in %s)" % (type(problem).__name__, problem, Path(where.filename).name, where.lineno, where.name)))
     return done
 
 

@@ -561,6 +561,42 @@ def test_a_soft_lead_of_a_band_of_other_sounds_is_brought_up_further(tmp_path):
     assert kept["tune lift"][0] > 5.5
     assert tool.lift(folder).startswith("already")
 
+    # ...and it is taken back from what was written down (2026-11-26: it was run over 137 older takes in one night, with no way back): the lead as it was,
+    # to the hundredth of a decibel the track keeps, and what was given before stands again.
+    assert kept["tune lift again"] == [8.0] and not kept.get("riff gives")
+    assert tool.back(folder).startswith("taken back: its lead by part")
+    was, now = tone(880.0, -29.0), soundfile.read(str(folder / "lead.flac"), dtype="float32", always_2d=True)[0]
+    assert now.shape == was.shape and float(np.abs(now - was).max()) < 1e-3 * float(np.abs(was).max())
+    assert json.loads((folder / "track.json").read_text(encoding="utf-8"))["measured"] == {"tune lift": [5.0]} and not list(folder.glob("*.part*"))
+    assert tool.back(folder) == "nothing to take back"
+    # Where the tune, lifted as far as it goes, stood under its riff still, the riff had given way in the rhythm's stem: that is taken back too.
+    quiet = tmp_path / "quiet" / "1"
+    quiet.mkdir(parents=True)
+    (quiet / "sheet.json").write_text(json.dumps(sheet), encoding="utf-8")
+    (quiet / "track.json").write_text(json.dumps(meta), encoding="utf-8")
+    for channel, audio in (("lead", tone(880.0, -40.0)), ("rhythm", tone(220.0, -22.0))):
+        soundfile.write(str(quiet / (channel + ".flac")), audio, rate, subtype="PCM_24")
+    assert tool.lift(quiet).startswith("brought up by part")
+    told = json.loads((quiet / "track.json").read_text(encoding="utf-8"))["measured"]
+    assert told["tune lift again"] == [8.0] and min(told["riff gives"]) < -3.0
+    given_way, _ = soundfile.read(str(quiet / "rhythm.flac"), dtype="float32", always_2d=True)
+    assert float(np.abs(given_way[12 * rate:15 * rate]).max()) < 0.8 * 10 ** (-22.0 / 20)
+    assert "its lead" in tool.back(quiet) and json.loads((quiet / "track.json").read_text(encoding="utf-8"))["measured"] == {"tune lift": [5.0]}
+    for channel, hz, db in (("lead", 880.0, -40.0), ("rhythm", 220.0, -22.0)):
+        was, now = tone(hz, db), soundfile.read(str(quiet / (channel + ".flac")), dtype="float32", always_2d=True)[0]
+        assert float(np.abs(now - was).max()) < 1e-3 * float(np.abs(was).max()), channel
+    # A take whose sheet sings in other parts now than when it was lifted is refused, and nothing of it is touched.
+    assert tool.lift(folder).startswith("brought up by part")
+    lifted = (folder / "lead.flac").read_bytes()
+    longer = dict(sheet, form=sheet["form"] + [{"story": "moment", "part": "summit", "first": 4, "bars": 1}])
+    meta_now = json.loads((folder / "track.json").read_text(encoding="utf-8"))
+    meta_now["sections"].append({"story": "moment", "bars": 1})
+    (folder / "sheet.json").write_text(json.dumps(longer), encoding="utf-8")
+    (folder / "track.json").write_text(json.dumps(meta_now), encoding="utf-8")
+    with pytest.raises(ValueError, match="revised since"):
+        tool.back(folder)
+    assert (folder / "lead.flac").read_bytes() == lifted
+
 
 def test_an_amplified_instrument_is_held_together_and_the_others_keep_their_range():
     """(Sentence March's valley tune, a chime guitar's, read -48 LUFS; Keel-Scarred Shove's opening riff -40, under its choir.)"""

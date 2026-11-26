@@ -66,9 +66,15 @@ def test_the_old_songs_to_test_are_those_tested_least_then_heard_most_then_judge
     log.write_text("\n".join(json.dumps(row) for row in (
         {"style": "knight", "take": "b-1/1", "label": "watch", "songeval": {k: v + 1 for k, v in score.items()}},
         {"style": "knight", "take": "c-1/1", "label": "watch", "songeval": score},
-        {"style": "knight", "take": "c-1/1", "label": "demo", "songeval": {k: 9.0 for k in score}})) + "\n", encoding="utf-8")
+        {"style": "knight", "take": "c-1/1", "label": "demo", "songeval": {k: 9.0 for k in score}},
+        # (2026-11-26: only the watch's rows were read, and the watch had been dead for three days.) A reading made later in the take's own staged folder
+        # counts, whatever its label (the gate's); a demo's folder and a window's do not.
+        {"style": "knight", "take": "c-1/1", "label": "gate-1126", "folder": "/drive/assets/studio/knight/c-1/1", "songeval": {k: v + 0.5 for k, v in score.items()}},
+        {"style": "knight", "take": "c-1/1", "label": "gate-1126", "folder": "/drive/assets/studio-demo/x/knight/c-1/1", "songeval": {k: 9.0 for k in score}},
+        {"style": "knight", "take": "c-1/1", "label": "round", "folder": "/drive/assets/studio-demo/windows/theme/knight/c-1/1", "songeval": {k: 9.0 for k in score}})) + "\n",
+        encoding="utf-8")
     assert [row["name"] for row in cycle.old(tmp_path, "knight", 10)] == ["knight/c-1/1", "knight/b-1/1", "knight/a-1/1", "knight/d-1/1"]
-    assert cycle.old(tmp_path, "knight", 10)[0]["judged"] == pytest.approx(2.0)
+    assert cycle.old(tmp_path, "knight", 10)[0]["judged"] == pytest.approx(2.5)
     cycle.main(["--var", str(tmp_path), "mark", "knight/c-1/1", "revise", "its drums are thin"], NOW)
     assert [row["name"] for row in cycle.old(tmp_path, "knight", 2)] == ["knight/b-1/1", "knight/a-1/1"]
     kept = cycle.state(tmp_path)["tested"]["knight/c-1/1"]

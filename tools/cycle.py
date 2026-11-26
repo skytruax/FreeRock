@@ -80,14 +80,22 @@ def gaps(var: Path, style: str, kinds: tuple[str, ...]) -> list[dict]:
     return sorted(rows, key=lambda row: (-row["need"], row["songs"]))
 
 
+def staged_reading(row: dict) -> bool:
+    """Whether a row of the judges' log is a reading of a whole staged take as it stood then: the watch's, or any other made in the take's own folder
+    under var/studio (the gate's, a revision's after). A demo's, or a window's, is not."""
+    folder = str(row.get("folder", "")).replace("\\", "/").rstrip("/")
+    return row.get("label") == "watch" or folder.endswith("/studio/%s/%s" % (row.get("style"), row.get("take")))
+
+
 def scores(var: Path) -> dict[str, float]:
-    """What each judged song scored (the mean of SongEval's five), the latest time it was judged."""
+    """What each judged song scored (the mean of SongEval's five), the latest time it was judged as it is staged. (2026-11-26, the audit: only the
+    rows the judges' watch had made were read, and the watch had been dead since 2026-11-23, 20:00: nothing judged after that was seen here.)"""
     log = var / "passes" / "judged3.jsonl"
     out: dict[str, float] = {}
     if log.is_file():
         for line in log.read_text(encoding="utf-8").splitlines():
             row = json.loads(line) if line.strip() else {}
-            if row.get("songeval") and row.get("style") and row.get("label") == "watch":
+            if row.get("songeval") and row.get("style") and staged_reading(row):
                 out["%s/%s" % (row["style"], row["take"])] = sum(row["songeval"].values()) / len(row["songeval"])
     return out
 
