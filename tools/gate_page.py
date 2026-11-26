@@ -8,8 +8,8 @@ says. This is the page they hear them on.)
     cd app && uv run --no-sync python ../tools/gate_page.py gate-1126 [gate-1127 ...]
 
 For the labels given, a style at a time: the songs that passed and are a band's, a company's or an act's, band by band, each to listen to (its whole
-file on the listening pages, var/listen/<style>/); where a song was written again, the take of before beside it (kept under
-var/studio-demo/retold-audit-1126/resting; its whole file is written to var/listen/gate/ as the listening pages write theirs); then the house's own
+file on the listening pages, var/listen/<style>/, written here where it is missing or older than the take); where a song was written again, the take
+of before beside it (kept under var/studio-demo/retold-audit-1126/resting; its whole file is written to var/listen/gate/); then the house's own
 players' songs that passed (they come into the player at the next build); then, by name and number only, the ones that were held. A song whose
 reading was made before it was performed again is not on the page (gate.standing).
 """
@@ -46,43 +46,56 @@ def metre_of(folder: Path) -> str:
     return str((json.loads(sheet.read_text(encoding="utf-8")).get("about") or {}).get("metre") or "") if sheet.is_file() else ""
 
 
-def whole_of(var: Path, style: str, take: str) -> tuple[str, bool]:
-    """A staged take's whole file on the listening pages, as a path from var/listen ("" where there is none yet), and whether it is older than the take
-    as it is staged (the take was performed again, and the listening pages have not written it again yet)."""
+def mixed(folder: Path, out: Path) -> bool:
+    """Writes a take's channels together as one file to listen to, as the listening pages write a whole file (tools/listen.py: the channels summed, the
+    loudest sample at 0.89, FLAC). False, and nothing written, where the folder has no recordings."""
+    import numpy as np
+    import soundfile
+    parts = [soundfile.read(str(Path(folder) / (channel + ".flac")), dtype="float32", always_2d=True) for channel in CHANNELS if (Path(folder) / (channel + ".flac")).is_file()]
+    if not parts:
+        return False
+    rate = parts[0][1]
+    length = max(len(audio) for audio, _ in parts)
+    mix = sum(np.pad(audio, ((0, length - len(audio)), (0, 0))) for audio, _ in parts)
+    peak = float(np.abs(mix).max())
+    if peak <= 0.0:
+        raise ValueError("The take in %s is silent" % folder)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    scratch = out.with_name(out.stem + ".%d.part.flac" % os.getpid())
+    soundfile.write(str(scratch), mix * (0.89 / peak), rate, format="FLAC", subtype="PCM_16")
+    scratch.replace(out)
+    return True
+
+
+def whole_of(var: Path, style: str, take: str, write: bool = False) -> tuple[str, bool]:
+    """A staged take's whole file on the listening pages, as a path from var/listen ("" where there is none), and whether it is older than the take as it
+    is staged (the take was performed again since the file was written). With `write`, a file that is missing or older is written first, here, from the
+    take's channels (2026-11-26: the first song written again that passed stood on the page with the file of the take before it: the listening pages'
+    own pass over everything had not come to it in three hours)."""
     meta = staged(var, style, take)
     if not meta:
         return "", False
     name = "%s - take %s (%s).flac" % (meta["title"], meta["take"], meta["family"])       # (tools/listen.py, `names`)
     path = Path(var) / "listen" / style / name
+    made = (Path(var) / "studio" / style / take / "track.json").stat().st_mtime
+    if write and (not path.is_file() or path.stat().st_mtime < made):
+        mixed(Path(var) / "studio" / style / take, path)
     if not path.is_file():
         return "", False
-    return "%s/%s" % (style, name), path.stat().st_mtime < (Path(var) / "studio" / style / take / "track.json").stat().st_mtime
+    return "%s/%s" % (style, name), path.stat().st_mtime < made
 
 
 def before_of(var: Path, style: str, take: str) -> str:
     """The whole file of the take of before a song was written again, as a path from var/listen, written from its kept channels if it is not there or is
     older than them; "" where no take of before is kept."""
-    import numpy as np
-    import soundfile
     kept = Path(var).joinpath(*BEFORE) / style / take
     if not (kept / "track.json").is_file():
         return ""
     out = Path(var) / "listen" / "gate" / ("%s--%s--before.flac" % (style, take.replace("/", "--")))
     if out.is_file() and out.stat().st_mtime >= (kept / "track.json").stat().st_mtime:
         return "gate/" + out.name
-    parts = [soundfile.read(str(kept / (channel + ".flac")), dtype="float32", always_2d=True) for channel in CHANNELS if (kept / (channel + ".flac")).is_file()]
-    if not parts:
+    if not mixed(kept, out):
         raise ValueError("The take of before kept in %s has no recordings" % kept)
-    rate = parts[0][1]
-    length = max(len(audio) for audio, _ in parts)
-    mix = sum(np.pad(audio, ((0, length - len(audio)), (0, 0))) for audio, _ in parts)
-    peak = float(np.abs(mix).max())
-    if peak <= 0.0:
-        raise ValueError("The take of before kept in %s is silent" % kept)
-    out.parent.mkdir(parents=True, exist_ok=True)
-    scratch = out.with_name(out.stem + ".%d.part.flac" % os.getpid())
-    soundfile.write(str(scratch), mix * (0.89 / peak), rate, format="FLAC", subtype="PCM_16")       # (as the listening pages write a whole file)
-    scratch.replace(out)
     return "gate/" + out.name
 
 
@@ -101,7 +114,7 @@ def songs(var: Path, rows: list[dict], labels: list[str]) -> list[dict]:
         meta = staged(var, style, take)
         if not meta:
             continue                                   # (read and since taken away: nothing to listen to)
-        whole, stale = whole_of(var, style, take)
+        whole, stale = whole_of(var, style, take, write=each["passes"])
         each.update(whose=gate.whose(var, style, take), whole=whole, stale=stale, title=meta.get("title") or each.get("title") or take,
                     tempo=meta.get("tempo"), metre=metre_of(Path(var) / "studio" / style / take),
                     before=before_of(var, style, take) if each["passes"] else "",
