@@ -121,3 +121,37 @@ def test_the_resting_songs_of_a_tag_still_to_be_read_are_those_with_no_whole_rea
     with pytest.raises(FileNotFoundError):
         tool.read(tmp_path, "gate-1126", "knight", ["salt-pan-1/1"])                           # no judges on this made-up drive: said, not passed over
 
+
+
+def test_a_reading_made_before_its_take_was_performed_again_does_not_count_and_the_take_is_read_again(tmp_path):
+    """(2026-11-26: the resting songs written again plainly are performed over their takes by day, and the judges read what rests by night, under
+    one label: a reading of the take of before would have stood for the new one, and passed or held a song nobody had read.)"""
+    import os
+    import time
+    tool = _tool()
+    stage = tmp_path / "studio" / "knight"
+    read_at = time.mktime(time.strptime("2026-11-26T12:38", "%Y-%m-%dT%H:%M"))
+    for name, made in (("bone-mill-1/1", read_at - 3600), ("salt-pan-1/1", read_at + 7200), ("night-fair-1/1", read_at + 30)):
+        (stage / name).mkdir(parents=True)
+        (stage / name / "track.json").write_text("{}", encoding="utf-8")
+        os.utime(stage / name / "track.json", (made, made))
+    (stage / "resting.txt").write_text("".join("%s [audit-1126] why\n" % name for name in ("bone-mill-1/1", "salt-pan-1/1", "night-fair-1/1", "gone-song-1/1")), encoding="utf-8")
+    rows = [dict(_row("watch", "knight", "old-%d/1" % n, "", 3.0 + n / 10, folder=str(stage / ("old-%d" % n) / "1")), at="2026-11-20T10:00") for n in range(5)]
+    rows += [dict(_row("gate-1126", "knight", name, "", 3.4, folder=str(stage / name)), at="2026-11-26T12:38")
+             for name in ("bone-mill-1/1", "salt-pan-1/1", "night-fair-1/1", "gone-song-1/1")]
+    by = {row["take"]: row for row in rows if row["label"] == "gate-1126"}
+    assert not tool.performed_since(by["bone-mill-1/1"])                 # staged an hour before it was read
+    assert tool.performed_since(by["salt-pan-1/1"])                      # performed again two hours after
+    assert not tool.performed_since(by["night-fair-1/1"])                # within the minute a reading's time is kept to: the reading stands
+    assert not tool.performed_since(by["gone-song-1/1"])                 # not staged there: nothing is known against the reading
+    assert not tool.performed_since({"folder": str(stage / "salt-pan-1/1")})     # a row with no time
+    kept, again = tool.standing(rows, "gate-1126")
+    assert again == ["knight/salt-pan-1/1"] and len(kept) == len(rows) - 1
+    assert tool.to_read(tmp_path, kept, "gate-1126", "knight", "audit-1126") == ["salt-pan-1/1"]
+    assert tool.passed(tool.check(kept, "gate-1126")) == ["bone-mill-1/1", "gone-song-1/1", "night-fair-1/1"]
+    # Read again after the performance: that reading stands, and nothing is left to read. The library's rows are never looked at.
+    rows.append(dict(_row("gate-1126", "knight", "salt-pan-1/1", "", 2.0, folder=str(stage / "salt-pan-1/1")), at="2026-11-26T15:00"))
+    kept, again = tool.standing(rows, "gate-1126")
+    assert again == [] and tool.to_read(tmp_path, kept, "gate-1126", "knight", "audit-1126") == []
+    assert [each["passes"] for each in tool.check(kept, "gate-1126") if each["take"] == "salt-pan-1/1"] == [False]
+    assert tool.standing(rows, "watch") == (rows, [])

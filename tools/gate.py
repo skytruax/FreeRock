@@ -26,11 +26,15 @@ sheet's to say: tools/study.py, "the tune's phrases that come back".)
     ... gate.py read <label> knight --tag audit-1126 [--threads 2] [--n 40]      has the judges read (SongEval alone, whole takes) the songs resting under a tag
                                                                                  that have no reading under the label yet; then `check <label>` says which pass
 
+A reading counts for the take as it is staged: one made before the take was performed again (`performed_since`) is left out by `check`,
+and `read` has that take read again.
+
 It reads the judges' log and changes nothing.
 """
 from __future__ import annotations
 
 import argparse
+import datetime
 import json
 import statistics
 import sys
@@ -44,6 +48,7 @@ WINDOWS = ("theme", "summit")
 WAYS = ("whole", "windows")
 QUARTER = 0.25
 THIN = 20                      # a library read from fewer songs than this is said to be thin
+MINUTE = 60.0                  # a reading's time is kept to the minute (tools/judges.py, "at")
 
 
 def rows_of(log: Path) -> list[dict]:
@@ -63,6 +68,35 @@ def whole(row: dict) -> bool:
     """Whether a row is of a whole staged take: its folder is <style>/<family>/<take> of a stage (var/studio, or a demo's), not a window's."""
     said = str(row.get("folder", "")).replace("\\", "/").rstrip("/").split("/")
     return not window_of(row) and len(said) >= 3 and "%s/%s" % (said[-2], said[-1]) == row.get("take")
+
+
+def performed_since(row: dict) -> bool:
+    """Whether the take a reading is of was performed again after it was read: its track.json, the last thing a performance writes
+    (studio.write_track), is newer than the reading by more than the minute a reading's time is kept to. Such a reading is of recordings that
+    are no longer there, or of half of each where the judges read a take while its stems were being put in. (2026-11-26: the resting songs
+    written again plainly are performed over their takes by day, and the judges read what rests by night under one label.) False where the
+    row has no time, or the take is not staged where it was read: nothing is known against the reading."""
+    at, folder = row.get("at"), row.get("folder")
+    if not at or not folder:
+        return False
+    meta = Path(folder) / "track.json"
+    if not meta.is_file():
+        return False
+    return meta.stat().st_mtime >= datetime.datetime.fromisoformat(at).timestamp() + MINUTE
+
+
+def standing(rows: list[dict], label: str) -> tuple[list[dict], list[str]]:
+    """The judges' rows without a label's whole readings of takes performed again since (`performed_since`), and the songs (style/family/take)
+    that are left with no reading by it: those are read again. The library's own readings are not looked at: they are of its songs as they
+    were liked."""
+    kept, gone = [], set()
+    for row in rows:
+        if row.get("label") == label and whole(row) and performed_since(row):
+            gone.add((row.get("style"), row.get("take")))
+        else:
+            kept.append(row)
+    still = {(row.get("style"), row.get("take")) for row in kept if row.get("label") == label and whole(row)}
+    return kept, sorted("%s/%s" % key for key in gone - still)
 
 
 def songs(rows: list[dict], labels: tuple[str, ...], way: str = "windows") -> dict[tuple[str, str], dict]:
@@ -198,7 +232,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--log", default=str(VAR / "passes" / "judged3.jsonl"))
     args = parser.parse_args(argv)
     if args.what == "read":
-        names = to_read(VAR, rows_of(Path(args.log)), args.label, args.style, args.tag)
+        rows, again = standing(rows_of(Path(args.log)), args.label)
+        again = [name for name in again if name.startswith(args.style + "/")]
+        if again:
+            print("%s: %d read under %s before they were performed again, to be read again: %s" % (args.style, len(again), args.label, ", ".join(again)), flush=True)
+        names = to_read(VAR, rows, args.label, args.style, args.tag)
         if args.n:
             names = names[:args.n]
         if not names:
@@ -210,6 +248,10 @@ def main(argv: list[str] | None = None) -> int:
         print("\n".join(pick(VAR, args.style, args.n)))
         return 0
     rows = rows_of(Path(args.log))
+    again: list[str] = []
+    if args.what == "check":
+        rows, again = standing(rows, args.label)
+        again = [name for name in again if not args.style or name.startswith(args.style + "/")]
     if args.what == "library":
         for way in WAYS:
             for style, bar in sorted(library(rows, way).items()):
@@ -227,6 +269,8 @@ def main(argv: list[str] | None = None) -> int:
             bar["memorability"], "+".join(each["windows"]), "" if each["passes"] else "  under in: " + ", ".join(each["under"])))
     names = {each["take"] for each in found}
     print("%d songs: %d pass, %d held" % (len(names), len(passed(found)), len(names) - len(passed(found))))
+    if again:
+        print("%d not counted, read before they were performed again (gate.py read reads them again): %s" % (len(again), ", ".join(again)))
     return 0
 
 
