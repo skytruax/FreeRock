@@ -772,7 +772,7 @@
     // (2026-11-23, played: a cave's three characters heard once each tonight, every other cave song was a sister of one of them and
     // the song just heard was not its own: Glowworm Cave came back with one song between. A song is its own nearest sister.)
     _rotation(meta) {
-      const now = this.ctx.currentTime, family = Forever.family(meta), kind = Forever.kind(family);
+      const now = this.ctx.currentTime, family = Forever.family(meta), kind = this._kind(family);
       let cost = 0;
       const own = this.begun.get(family);
       if (own && own.length) {
@@ -780,7 +780,7 @@
         for (const at of own) cost += HEARD_LATELY * Math.exp(-Math.max(0, now - at) / HEARD_TAU);
       }
       for (const [key, times] of this.begun) {
-        if (times.length && Forever.kind(key) === kind && now - Math.max(...times) < SISTER_FOR) {
+        if (times.length && this._kind(key) === kind && now - Math.max(...times) < SISTER_FOR) {
           cost += SISTER_OFF;
           break;
         }
@@ -807,6 +807,13 @@
     static family(meta) { return meta.family || meta.track; }
 
     static kind(family) { return family.replace(/-\d+$/, ""); }
+
+    // Whose sister a family is, in the bucket that plays. A band's or the orchestra's family is named for its character and a number (the same
+    // character's other tunes are its sisters); House's are named for their kind of place and a number (highland-12), and are no sisters by that:
+    // there a family is its own kind. (2026-11-26, the audit: with the number taken off, 196 House families were 20 kinds: after one highland song
+    // every other highland song counted a sister's 0.8 against it for two hours, more than a neighbouring kind of place's 0.6, so the neighbours'
+    // songs came before the place's own.)
+    _kind(family) { return this.bucket && this.bucket.genre === "house" ? family : Forever.kind(family); }
 
     // What has begun lately, kept by the page for its next visit (in seconds since 1970).
     _remember() {

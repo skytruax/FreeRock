@@ -1139,6 +1139,23 @@ tests.pieceFamilies = async () => {
   return { order };
 };
 
+// House's families are named for their kind of place and a number (highland-12): they are no sisters by that. In a highland place its three highland
+// songs are all heard before a neighbouring kind's; a band's families named alike are sisters still, and the neighbour's song comes second.
+tests.pieceHouseKinds = async () => {
+  const one = (id, family, moods) => ({ id, family, moods });
+  const pieces = [one("h1", "highland-01", ["highland"]), one("h2", "highland-02", ["highland"]), one("h3", "highland-03", ["highland"]),
+                  one("p1", "pastoral-01", ["pastoral"])];
+  const go = async (key, genre) => {
+    const bucket = makePieces(key, pieces);
+    bucket.genre = genre;
+    const run = await render(200, { bucket, tickEvery: 2.0, target: Object.assign(mix(1), { kinds: ["highland"] }) });
+    const order = [];
+    for (const entry of [...run.engine.log].sort((a, b) => a.at - b.at)) if (order[order.length - 1] !== pieceOf(entry)) order.push(pieceOf(entry));
+    return order;
+  };
+  return { house: await go("housekinds", "house"), band: await go("bandkinds", "test") };
+};
+
 // The walking song a camp cut into is gone back to when the player moves on, though another suits the country better: it was chosen over that one, heard
 // three times just now, and the player has gone nowhere. Gone into another kind of country meanwhile, it is not.
 tests.pieceCampBack = async () => {

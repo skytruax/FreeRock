@@ -532,6 +532,16 @@ async def test_the_takes_of_one_family_count_as_one_song_and_its_sister_families
     assert heard[3] == "dance-2", "the sister family did not come before a second hearing of the others: %s" % heard
 
 
+async def test_house_s_families_of_one_kind_of_place_are_not_sisters(results):
+    """(2026-11-26, the audit: House's families are named for their kind of place and a number, highland-12; with the number taken off 196 families
+    were 20 kinds, and after one highland song every other highland song counted a sister's 0.8 against it for two hours: the neighbouring kinds'
+    songs, at 0.6, came before the place's own.)"""
+    found = of(results, "pieceHouseKinds")
+    assert len(found["house"]) >= 4 and set(found["house"][:3]) == {"h1", "h2", "h3"}, "a neighbouring kind's song came before the place's own in House: %s" % found["house"]
+    # A band's families that are named alike are sisters still: after one of them the neighbour's song comes before the next.
+    assert found["band"][0] in ("h1", "h2", "h3") and found["band"][1] == "p1", found["band"]
+
+
 async def test_the_walking_song_a_camp_cut_into_is_gone_back_to_though_another_suits_the_country_better(results):
     """(2026-11-23, played: stood and stepped about in Menethil Harbor, five songs began in three minutes: a song for a neighbouring kind of place, chosen
     because the place's own had been heard, was never gone back to.)"""
