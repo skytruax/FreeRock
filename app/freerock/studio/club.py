@@ -1093,18 +1093,47 @@ HELD_BACK = {"drums": -1.2, "bass": -1.2, "rhythm": -1.5, "lead": -2.5}
 HELD_BACK_SOFTER = {"drums": -1.0, "bass": -1.0, "rhythm": -1.0, "lead": -1.5, "texture": -0.5}
 
 
-def held_back(sections: list[tuple[str, int, int]], channel: str, frames: int, over: "np.ndarray | float" = 1.0, held: dict[str, float] | None = None) -> np.ndarray:
-    """A channel's volume through a song (HELD_BACK, or `held`): its themes held under its drops, each eased over a bar into what comes after it."""
+def held_back(sections: list[tuple[str, int, int]], channel: str, frames: int, over: "np.ndarray | float" = 1.0, held: dict[str, float] | None = None,
+              where: str = "theme") -> np.ndarray:
+    """A channel's volume through a song (HELD_BACK, or `held`): its themes held under its drops (or the parts named by `where`), each eased over a bar into what comes after it."""
     curve = np.ones(frames, dtype=np.float32)
     down, bar = 10.0 ** ((HELD_BACK if held is None else held).get(channel, 0.0) / 20.0), int(house.BAR_FRAMES)
     for story, first, count in sections:
-        if story == "theme":
+        if story == where:
             curve[int(round(first * house.BAR_FRAMES)):min(int(round((first + count) * house.BAR_FRAMES)), frames)] = down
     # (Eased by the mean over a bar: what is after a theme, a rise without its drums or a drop, is at its full by the second beat of it.)
     half = max(bar // 2, 1)
     total = np.cumsum(np.concatenate([np.full(half, curve[0]), curve, np.full(half, curve[-1])]), dtype=np.float64)
     eased = (total[2 * half:] - total[:-2 * half]) / (2.0 * half)
     return (np.resize(eased, frames) * over).astype(np.float32)
+
+
+# A calm song's rise stands under the moment it leads to (2026-11-25, the render's own check on Night Bus I, the mortuary's night: its rises at -12.8 LUFS over moments of -13.8, its bass and its stabs
+# 2.6 and 3 dB hotter in the rise than anywhere in the moment, with no kick to give way under; Cool of the Evening II's had been the same on 2026-11-20, and the build's eighths played half as loud
+# (house.CALM_BUILD_SOFT) had cost the rise its lift by the judges and was left off). The notes stay as they are written: where a rise stands less than CALM_RISE_UNDER dB under its moment, the bass, the
+# chords and the lead are held through it by what it is over, CALM_RISE_MOST dB at the most. None: a calm rise is left where it falls, as until then.
+CALM_RISE_UNDER: float | None = 0.7
+CALM_RISE_MOST = 4.0
+CALM_RISE_HELD = ("bass", "rhythm", "lead")
+
+
+def calm_rise_hold(sections: list[tuple[str, int, int]], parts: dict[str, np.ndarray]) -> float:
+    """How far (dB, 0 or more) a calm song's rises are held so that each stands CALM_RISE_UNDER under the moment after it: the most any of them needs, CALM_RISE_MOST at the most. What is not held (the
+    pad, the drums) stays, so the held channels come down a little further than the mix has to."""
+    if CALM_RISE_UNDER is None or not parts:
+        return 0.0
+    mixed = sum(parts.values())
+    frames = len(mixed)
+    spans = [(story, int(round(first * house.BAR_FRAMES)), min(int(round((first + count) * house.BAR_FRAMES)), frames)) for story, first, count in sections]
+    need = 0.0
+    for index, (story, low, high) in enumerate(spans):
+        after = next((each for each in spans[index + 1:] if each[0] == "moment"), None)
+        if story != "rise" or after is None or high <= low:
+            continue
+        rise, moment = analysis.loudness_lufs(mixed[low:high], RATE), analysis.loudness_lufs(mixed[after[1]:after[2]], RATE)
+        if rise > -70.0 and moment > -70.0:
+            need = max(need, rise - (moment - CALM_RISE_UNDER))
+    return round(min(need / 0.85, CALM_RISE_MOST), 2) if need > 0.0 else 0.0
 
 
 STROKE_OFF = 45.0           # cents: a lead whose strokes on one note stand this far from it is out of tune there
@@ -1221,6 +1250,7 @@ def _perform(sheet: Sheet) -> dict:
         want = {**want, "drums": want["drums"] + 0.7, "bass": want["bass"] + 1.0, "lead": want["lead"] + 2.0, "rhythm": want["rhythm"] + 1.5, "texture": want["texture"] - 3.0}
     faders = {}
     alone: dict[str, list[tuple[float, float]]] = {}
+    rides: dict[str, np.ndarray] = {}
     hard = about.get("sounds") in ACTS and ACTS[about["sounds"]].drive > 0.0 and not about["calm"]
     held = {} if about["calm"] else HELD_BACK if hard else HELD_BACK_SOFTER
     for channel in list(parts):
@@ -1246,6 +1276,7 @@ def _perform(sheet: Sheet) -> dict:
             if ride is not None:
                 parts[channel] = (parts[channel] * ride[:, None]).astype(np.float32)
                 alone[channel] = desk.ride_points(ride)
+                rides[channel] = ride
             continue
         have = max(have, max(analysis.loudness_lufs(parts[channel][low:high], RATE) for low, high in zip(edges, edges[1:])) - 3.0)
         faders[channel] = 10.0 ** ((want[channel] - have) / 20.0)
@@ -1254,6 +1285,16 @@ def _perform(sheet: Sheet) -> dict:
             ride = held_back(sections, channel, frames, held=held)
             parts[channel] = (parts[channel] * ride[:, None]).astype(np.float32)
             alone[channel] = desk.ride_points(ride)
+            rides[channel] = ride
+    # A calm song's rise is held under its moment where it stands over it (CALM_RISE_UNDER): on each held channel's own volume, with what rides it already.
+    hold = calm_rise_hold(sections, parts) if about["calm"] else 0.0
+    if hold:
+        for channel in CALM_RISE_HELD:
+            if channel in parts:
+                less = held_back(sections, channel, frames, held={channel: -hold}, where="rise")
+                parts[channel] = (parts[channel] * less[:, None]).astype(np.float32)
+                rides[channel] = less * rides[channel] if channel in rides else less
+                alone[channel] = desk.ride_points(rides[channel])
     # What is still ringing two seconds before the recording ends is eased away to nothing (as the writer's own render does).
     last = int(2.0 * RATE)
     ease = np.ones(frames, dtype=np.float32)
@@ -1281,6 +1322,8 @@ def _perform(sheet: Sheet) -> dict:
                       "MckAudio's TR-8 drum-machine recordings (CC0) and, in some songs, Karoryfer's and others' recordings (CC0) in the sfizz "
                       "sampler, put together by studio.club.")
     found = house.measure(meta, parts)
+    if hold:
+        found["calm rise held"] = hold                   # (dB: its rises' bass, chords and lead under the moment they lead to, CALM_RISE_UNDER)
     if "lead" in parts and sheet.parts.get("lead") and not about["calm"]:
         # The riff, stroke by stroke (strokes_off): of the voice that has the most of the drops, in the first of them.
         drops = [(first * 4.0, (first + count) * 4.0) for story, first, count in sections if story == "moment"]

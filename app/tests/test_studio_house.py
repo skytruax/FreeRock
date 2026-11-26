@@ -433,6 +433,36 @@ def test_a_hard_acts_themes_are_held_under_its_drops():
     assert at(curve, 8) < at(softer, 8) < 1.0 and at(softer, 17) > 0.999
 
 
+def test_a_calm_songs_rise_is_held_under_its_moment():
+    """(2026-11-25, the render's own check on Night Bus I, the mortuary's night: its rises at -12.8 LUFS over moments of -13.8, the bass and the stabs 3 dB hotter in the rise than in the moment, with no
+    kick to give way under. Cool of the Evening II's had been the same on 2026-11-20.)"""
+    from freerock.studio import club
+    sections = [("open", 0, 4), ("theme", 4, 8), ("rise", 12, 4), ("moment", 16, 8), ("close", 24, 4)]
+    frames = int(28 * house.BAR_FRAMES)
+    noise = (np.random.default_rng(3).standard_normal((frames, 2)) * 0.05).astype(np.float32)
+
+    def song(over: float) -> dict:
+        gain = np.ones(frames, dtype=np.float32)
+        gain[int(12 * house.BAR_FRAMES):int(16 * house.BAR_FRAMES)] = 10.0 ** (over / 20.0)           # its rise so far over its moment
+        return {"bass": noise * gain[:, None]}
+
+    assert club.CALM_RISE_UNDER == 0.7 and club.CALM_RISE_HELD == ("bass", "rhythm", "lead")
+    assert club.calm_rise_hold(sections, song(-3.0)) == 0.0                                           # a rise that stands under its moment is left where it is
+    hold = club.calm_rise_hold(sections, song(1.0))
+    assert abs(hold - (1.0 + club.CALM_RISE_UNDER) / 0.85) < 0.15                                     # one over: held by that and the margin, a little further for what is not held
+    assert club.calm_rise_hold(sections, song(9.0)) == club.CALM_RISE_MOST                           # and no further than this
+    curve = club.held_back(sections, "bass", frames, held={"bass": -hold}, where="rise")
+    at = lambda bar: float(curve[int(bar * house.BAR_FRAMES)])                                        # noqa: E731
+    assert abs(at(14) - 10.0 ** (-hold / 20.0)) < 1e-3 and all(abs(at(bar) - 1.0) < 1e-3 for bar in (1, 8, 17, 22, 26))
+    assert club.calm_rise_hold(sections, {"bass": song(1.0)["bass"] * curve[:, None]}) == 0.0         # held so, it stands under
+    assert club.calm_rise_hold([("open", 0, 4), ("theme", 4, 24)], song(9.0)) == 0.0                  # (a song with no rise has nothing to hold)
+    was, club.CALM_RISE_UNDER = club.CALM_RISE_UNDER, None
+    try:
+        assert club.calm_rise_hold(sections, song(9.0)) == 0.0
+    finally:
+        club.CALM_RISE_UNDER = was
+
+
 def test_a_lead_of_houses_own_is_played_with_accents_and_opens_over_the_drop():
     from freerock.studio import club
     from freerock.studio.score import Note

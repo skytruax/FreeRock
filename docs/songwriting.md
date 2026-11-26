@@ -2301,6 +2301,7 @@ sung alone for a minute under a game's own sounds. What stands more than 15 dB u
 **In a soft song an opening and a first theme have a floor of their own** (`OPEN_FLOOR`, `FIRST_FLOOR`: -32 and -30 LUFS, the same evening): fifteen of the day's first takes opened at -33 to -36, each as far under its summit as the rules say, and the summit of a cave's or a camp's song itself at -22 (Daylight-Starved Echo, Prospector's Stake). They are brought up to the floor within the same limits: never over the part after them.
 
 **A drop stands over its theme** (`club.HELD_BACK`, `HELD_BACK_SOFTER`, the same day): House's in 5.7.
+**A calm song's rise stands under its moment** (`club.CALM_RISE_UNDER`, 2026-11-25). The render's own check had said so of Cool of the Evening II on 2026-11-20 and said it of Night Bus I, the mortuary's night: its rises at -12.8 LUFS over moments of -13.8, the bass and the stabs 2.6 and 3 dB hotter in the rise than anywhere in the moment, with no kick to give way under. The build's eighths played half as loud (`house.CALM_BUILD_SOFT`) had cost the rise its lift by the judges and stays off: the notes are as written, and where a rise stands less than 0.7 dB under its moment the bass, the chords and the lead are held through it by what it is over, 4 dB at the most, eased over a bar; a rise that is under already is not touched. What was held is in the take's measurements ("calm rise held").
 
 ### 6.7 File formats
 
