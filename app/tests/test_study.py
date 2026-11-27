@@ -43,6 +43,9 @@ def test_a_measurement_that_does_not_apply_says_so_and_does_not_print_a_nought(m
     monkeypatch.setattr(tool, "stems", lambda style, name, take: ({"title": name}, {"lead": None}, 48000))
     monkeypatch.setattr(tool, "story_loudness", lambda meta, parts, rate: [("theme", -20.0), ("moment", -12.0)])
     monkeypatch.setattr(tool.ear, "profile", lambda audio, rate: None)
+    def no_stems(*_, **__):                 # (2026-11-27: main's suite passed this and a worktree's did not — reference() reads the liked
+        raise KeyError("no liked stems")    # stems off the drive, so the test went to var/ for them. A test asks the drive for nothing.)
+    monkeypatch.setattr(tool.ear, "reference", no_stems)
     monkeypatch.setattr(tool, "written", lambda style, name, take: {})                       # as House is
     assert tool.main(["house", "camp-03/2", "coast-01/2"]) == 0
     said = capsys.readouterr().out
