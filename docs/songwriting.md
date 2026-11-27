@@ -753,6 +753,20 @@ What is owed: a demo on those two, the celli chair kept off the bass line in a c
 themselves, read by the judges and by `ear`. Nothing is changed until it reads; it would touch every company song written after it.
 Not this fault, though it was studied the same hour: Whaler's Dole's bass (the mead hall's war tuba) reads 9 dB UNDER the liked stems at 894 Hz, which is the thin middle of a band's bass, 8.6.
 
+*Counted over all 741 staged takes that have the desk's sub, the chair decides where the whole low end sits* (the same evening; the sheet's first history line says when a take was written, not the
+file's date, which two tools rewrote in hundreds on 11-25):
+
+| the chair the bass line is written for | takes | the line's middle | the sub over A2 |
+|---|---|---|---|
+| `celli` | 69 | 46 | 36 in 100 |
+| `celli slow` | 17 | 45 | 0 in 100 |
+| `basses`, `basses slow`, `basses pizz`, `acoustic bass`, `fretless` | 245 | 37 to 41 | 0 to 12 in 100 |
+
+A line written for the celli chair sits a fifth over one written for a bass chair, because `bass_centre` is the instrument's home less five and the celli's home is a twelfth over the double basses'.
+That is a cello's own place and it is not new: 69 takes of the liked library are written that way. It turns into the fault above only where the company's player for that chair is a tenor, and the
+desk puts the whole channel at the bass's place. The desk's sub follows it (`build.perform` gives the deep synth the bass line's own pitches), so in those songs the sub is up there too: a
+consequence, not a second fault, and the liked library lives with it (13 in 100 of its Warcraft takes have the sub over A2 already). So the demo tries the one thing that is wrong: the chair.
+
 *Tried and left off: a plucked bass played to be heard* (2026-11-22, morning: in a night's studies of Warcraft's walks,
 inns and camps the bass stood 7 to 12 dB thin in its middle wherever its line was plucked, never where it was bowed or
 blown). The fretless struck no softer than mezzo-forte (`orchestra.FRETLESS_FIRM`, 0.55): its tone did not change (MuseScore's
