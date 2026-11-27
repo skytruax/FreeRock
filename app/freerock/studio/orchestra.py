@@ -231,6 +231,9 @@ class Character:
     # (2026-11-24, 22:00: two of the burn form's four songs had 62 and 76% of their tune's bars heard before, the library's middle 46: the form says its first
     # theme at three strengths, and it was the same two statements every time.)
     grows: bool = False                                    # its themes are told another way each time they come back (`retold`)
+    # (2026-11-26, afternoon: the songs made in five and in seven rest, never liked: the house band's songs are 95 in 100 in four and none in five or seven, and the
+    # judges read round thirteen's 5/4 ones lowest. Two written again in four read 0.3 to 0.4 higher on the same band.)
+    even: bool = False                                     # its family is written in an even metre whatever it drew (EVEN_OF; Knight Rock's in four)
 
 
 C = Character
@@ -2420,6 +2423,14 @@ CHARACTERS = (
 
 METRES = {"4/4": (4.0, (2.0, 2.0)), "3/4": (3.0, (3.0,)), "6/8": (3.0, (1.5, 1.5)), "5/4": (5.0, (3.0, 2.0)),
           "7/8": (3.5, (1.5, 1.0, 1.0))}
+# What a family written again in an even metre (Character.even) is in: five and seven go to four, and every other metre stays as drawn (Warcraft's three and
+# its six read level with its four in the liked library: 3.10, 2.91 and 2.92 by SongEval's five).
+EVEN_OF = {"5/4": "4/4", "7/8": "4/4"}
+# Knight Rock's goes to four whatever it drew. (2026-11-26, the same afternoon, before any was played: the liked library's seven Knight Rock songs in 6/8 read 2.79
+# to 2.93 by SongEval's five, every one under the lower quartile a new song is held to (3.08), where its 114 in four read 3.21 in the middle; and of the first
+# nineteen new band songs the judges read, the five that passed were in four, the two in six and the three in three were not among them. The band's writing in six
+# is not its writing in four yet.)
+EVEN_OF_KNIGHT = {**EVEN_OF, "3/4": "4/4", "6/8": "4/4"}
 
 # Changes for eight bars of theme, by mode: four chords are two bars each. The last two bars are
 # rewritten as the mode's own way home.
@@ -3199,6 +3210,9 @@ def family(character: Character, seed: int, name: str, title: str) -> Family:
     mode = rng.choice(character.modes)
     key = Key(rng.randrange(12), mode)
     metre = rng.choice(character.metres)
+    if character.even:
+        # (After the draw, so that the family keeps its key and its tempo: the same song in another metre.)
+        metre = (EVEN_OF_KNIGHT if character.style == "knight" else EVEN_OF).get(metre, metre)
     beats = METRES[metre][0]
     bpm = float(rng.randint(*character.bpm))
     bar_s = beats * 60.0 / bpm

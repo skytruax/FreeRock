@@ -73,11 +73,13 @@ def test_a_first_build_shows_the_songs_of_the_day_before_it_and_what_waits(tmp_p
     assert now_page.main(["--var", str(var)]) == 0
 
     page = (var / "listen" / "now.html").read_text(encoding="utf-8")
-    player = _section(page, "<h2>In the player</h2>", "</body>")
+    player = _section(page, "<h2>In the player</h2>", "<h2>Staged, and not in the player</h2>")
     assert "Fresh Gate" in player and "Old Road" not in player          # the day before the build, not older
     assert "src='knight/Fresh%20Gate%20-%20take%201%20%28fresh-gate-1%29.flac'" in player
-    waiting = _section(page, "<h2>For the next build</h2>", "<h2>Demos and changes</h2>")
-    assert page.index("<h2>For the next build</h2>") < page.index("<h2>Demos and changes</h2>") < page.index("<h2>In the player</h2>")     # what is new first
+    waiting = _section(page, "<h2>Staged, and not in the player</h2>", "<h2>Demos and changes</h2>")
+    # What came into the player first, then what is staged and rests (it comes in when the judges have passed it: the page says so, and where), then the demos.
+    assert page.index("<h2>In the player</h2>") < page.index("<h2>Staged, and not in the player</h2>") < page.index("<h2>Demos and changes</h2>")
+    assert "rests until the judges" in waiting and "href='gate.html'" in waiting and "in the player once it is built again" not in page
     assert "Later Hill" in waiting and "its file is being written" in waiting
     assert "1 new, 0 made again" in waiting
     assert "<h2>A demo written by hand</h2>" in page
@@ -118,7 +120,7 @@ def test_a_long_list_of_what_came_in_is_closed_and_a_short_one_is_open(tmp_path)
     _build(var, "house", ["house/few-1/1"], BUILT)
     now_page.main(["--var", str(var)])
     page = (var / "listen" / "now.html").read_text(encoding="utf-8")
-    player = _section(page, "<h2>In the player</h2>", "</body>")
+    player = _section(page, "<h2>In the player</h2>", "<h2>Staged, and not in the player</h2>")
     assert "<summary>the %d that came in</summary>" % (now_page.LONG_LIST + 1) in player and "Song 3" in player
     assert "<summary>the 1 that came in</summary>" not in player and "Few" in player
 
@@ -142,11 +144,11 @@ def test_the_next_build_is_read_against_the_one_before_it(tmp_path):
     assert state["again"] == ["knight/old-road-1/1"]
     assert state["since"] == BUILT
     page = (var / "listen" / "now.html").read_text(encoding="utf-8")
-    player = _section(page, "<h2>In the player</h2>", "</body>")
+    player = _section(page, "<h2>In the player</h2>", "<h2>Staged, and not in the player</h2>")
     assert "1 came in with this build, 1 made again" in player
     assert player.index("Later Hill") < player.index("the 1 made again") < player.index("Old Road")
     assert "Fresh Gate" not in player
-    assert "0 new, 0 made again" in _section(page, "<h2>For the next build</h2>", "<h2>Demos and changes</h2>")
+    assert "0 new, 0 made again" in _section(page, "<h2>Staged, and not in the player</h2>", "<h2>Demos and changes</h2>")
 
 
 def test_the_page_written_twice_on_one_build_keeps_what_came_in_with_it(tmp_path):
@@ -163,7 +165,7 @@ def test_the_page_written_twice_on_one_build_keeps_what_came_in_with_it(tmp_path
     state = json.loads((var / "listen" / "now-state.json").read_text(encoding="utf-8"))["house"]
     assert state["came"] == ["house/ember-02/1"]
     page = (var / "listen" / "now.html").read_text(encoding="utf-8")
-    assert "Second Hearth" in _section(page, "<h2>In the player</h2>", "</body>")
+    assert "Second Hearth" in _section(page, "<h2>In the player</h2>", "<h2>Staged, and not in the player</h2>")
     assert "no bucket" in page                  # the styles with no bucket say so
 
 

@@ -452,14 +452,15 @@ def test_a_phrase_turned_upside_down_keeps_its_rhythm_and_comes_home():
 def test_only_the_families_staged_that_way_are_told_another_way():
     """(2026-11-26, after an evening of them: "most of the music we heard last night sucked, the new bands a lot of time just sound random, it got worse not
     better". Until then every family with no take yet was to be told another way each time its theme came back, 1,032 of the plan's 1,656, to bring down how
-    much of a tune had been heard before: a tune that is not known again when it comes back.) The 120 families staged that way keep it (never change a family
-    that has takes); every other is told as its first telling was, and more of its tune comes back."""
+    much of a tune had been heard before: a tune that is not known again when it comes back.) The families staged that way keep it until they are written
+    again (120 at first; none of them is in the player, they rest); every other is told as its first telling was, and more of its tune comes back."""
     plain = next(character for character in CHARACTERS if character.band and not character.sounds)
     court = next(character for character in CHARACTERS if not character.band and not character.sounds)
     for character in (plain, court):
         assert [orchestra.fresh(character, number).grows for number in range(6)] == [False, False, False, False, True, True]     # (what `fresh` says: the plan decides)
     planned = {fam.name: fam for fam, _ in build.plan()}
-    assert build.GROWN <= set(planned) and len(build.GROWN) == 120
+    # (120 were staged that way; a family taken out of the list is written again plainly while it rests: 37 on the first afternoon.)
+    assert build.GROWN <= set(planned) and 0 < len(build.GROWN) <= 83
     assert all(fam.character.grows == (name in build.GROWN) for name, fam in planned.items())
     assert not planned["pastoral-banner-ride-1"].character.grows and not planned["regal-five-black-kings-4"].character.grows
     assert planned["haunted-slow-cortege-1"].character.grows                    # (staged on 2026-11-26 with it: as it was)
@@ -799,6 +800,30 @@ def test_a_song_is_heard_from_its_first_bar():
     assert build.opened(soft, [0.0, 0.0, 0.0]) == [7.0, 8.0, 0.0]                                    # (the theme as far as it goes, the opening never over it)
     assert build.opened([-43.0, -42.0], [0.0, 0.0]) == [0.0, 0.0]
     assert build.opened([-80.0] + heard[1:], lifts) == lifts and build.opened([-40.0], [0.0]) == [0.0]
+
+
+def test_a_resting_family_of_a_sound_band_is_written_again_in_an_even_metre():
+    """(2026-11-26, afternoon: 55 of the resting families, of the bands and companies that read level in the auditions, were in 5/4, in 7/8 or, Knight Rock's, in
+    3/4 or 6/8, where the house band's songs are in four and none in five or seven, and its few in six read under every one in four.) A family on the list
+    (studio/even.txt) is the same song in another metre: its key and its tempo as it drew them, five and seven in four, and Knight Rock's in four whatever it
+    drew; it is told plainly too. No other family changes."""
+    planned = {fam.name: fam for fam, _ in build.plan()}
+    assert build.EVEN and build.EVEN <= set(planned) and not build.EVEN & build.GROWN
+    assert all(fam.character.even == (name in build.EVEN) for name, fam in planned.items())
+    for name in build.EVEN:
+        fam = planned[name]
+        assert fam.metre in (("4/4",) if fam.character.style == "knight" else ("4/4", "6/8", "3/4")), (name, fam.metre)
+    five = planned["coast-customs-house-1"]                       # the hammond's Tally-Clerk's Ledger, drawn in five
+    drawn = family(replace(five.character, even=False), five.seed, five.name, five.title)
+    assert (drawn.metre, five.metre) == ("5/4", "4/4") and (five.key, five.bpm) == (drawn.key, drawn.bpm)
+    for name, was in (("desert-sirocco-1", "7/8"), ("anywhere-lee-shore-1", "3/4"), ("coast-fish-quay-1", "6/8")):     # the stoner's, and the shanty's two
+        fam = planned[name]
+        assert family(replace(fam.character, even=False), fam.seed, fam.name, fam.title).metre == was and fam.metre == "4/4"
+    assert orchestra.EVEN_OF == {"5/4": "4/4", "7/8": "4/4"}      # (Warcraft's three and six stay)
+    company = planned["desert-salt-market-1"]                     # the caravan's, drawn in five
+    assert family(replace(company.character, even=False), company.seed, company.name, company.title).metre == "5/4" and company.metre == "4/4"
+    liked = planned["desert-sandstorm-ride-1"]                    # in the player in seven: as it is
+    assert liked.metre == "7/8" and not liked.character.even
 
 
 def test_no_more_characters_are_written_in_five_or_in_seven():

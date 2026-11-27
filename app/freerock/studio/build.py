@@ -143,7 +143,15 @@ MORE_FAMILIES = {"knight": 2, "warcraft": 2}
 # known again when it comes back: the liked library's tunes come back whole in 54% of their two-bar phrases, these in 36, and four of them written again without the rule
 # in 43 to 77.) A family written from now on is told as its first telling was, with what a player adds (`varied`, `decorated`); one taken out of this list is
 # written so the next time it is made.
+# (2026-11-26, afternoon: the first 37 taken out, to be written again while they rest: the six of Knight Rock's in 4/4 by bands that stood with the house band in
+# the auditions, and Warcraft's 31 in 4/4, 6/8 and 3/4. 83 are left: the ones in five and in seven, and those of the bands that read under.)
+# (The same afternoon: the other 55 of those bands and companies, Knight Rock's 28 in six, three, five and seven and Warcraft's 27 in five and seven, which are
+# written in an even metre: EVEN below. 28 are left, the songs of the four bands that read under and of the two to be read again.)
 GROWN = frozenset((Path(__file__).parent / "grown.txt").read_text(encoding="utf-8").split())
+# (2026-11-26, afternoon.) The families written again in an even metre (orchestra.EVEN_OF: five and seven to four; Knight Rock's to four whatever they drew): the
+# resting ones of the bands and companies that read level in the auditions, taken off the list above at the same time. A family that has takes in the player is
+# never put here: it would be another song under the same name.
+EVEN = frozenset((Path(__file__).parent / "even.txt").read_text(encoding="utf-8").split())
 
 
 # House's titles (house.PLAN's, the test keeps them the same), written out here so that the plan, which the study and the lanes
@@ -218,7 +226,7 @@ def plan() -> list[tuple[Family, int]]:
         name = "%s-%s-%d" % (place, character.name.replace(" ", "-"), number + 1)
         # (A house band's character's families past its third are another band's songs: orchestra.fresh.)
         made = fresh(character, number)
-        out.append((family(replace(made, grows=name in GROWN), seed, name, title), takes))
+        out.append((family(replace(made, grows=name in GROWN, even=name in EVEN), seed, name, title), takes))
 
     later, camps, last = [], [], []
     for index, character in enumerate(CHARACTERS):

@@ -6,7 +6,8 @@ process for the server"). Newest first:
     the build before it had (kept in var/listen/now-state.json); the songs made again since that build are folded away
     under them. A style met for the first time has no build before it: its songs staged in the day before the build are
     shown.
-  - For the next build: the songs staged after their style's bucket was built, new and made again.
+  - Staged, and not in the player: the songs staged after their style's bucket was built, new (they rest until the judges have passed them:
+    tools/gate.py, and the page of what passed, gate.html) and made again.
   - Demos and changes: what was tried and how it was heard and judged, written by hand, newest first, in
     var/listen/now-demos.html, put in as it is.
 
@@ -168,26 +169,9 @@ def page(var: Path, state: dict, now: datetime.datetime) -> str:
     parts = ["<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>",
              "<title>FreeRock: Listen Now</title><style>%s</style></head><body>" % STYLE,
              "<h1>Listen now</h1><p class='sub'>What is new, newest first, as of %s (written again whenever a bucket is built "
-             "again). Other pages: <a href='new.html'>the songs of the last days</a> &middot; <a href='judges.html'>the judges</a> "
-             "&middot; <a href='/player'>the player</a></p>" % now.strftime("%H:%M, %d %B")]
+             "again). Other pages: <a href='gate.html'>what the judges passed</a> &middot; <a href='new.html'>the songs of the last days</a> "
+             "&middot; <a href='judges.html'>the judges</a> &middot; <a href='/player'>the player</a></p>" % now.strftime("%H:%M, %d %B")]
     labels = dict(STYLES)
-    parts.append("<h2>For the next build</h2><p class='sub'>Staged since their style's bucket was built: in the player once it "
-                 "is built again.</p>")
-    for style, label in STYLES:
-        build = state.get(style)
-        since = build["built"] if build else 0.0
-        waiting = staged_since(var, style, since)
-        inside = set(build["tracks"]) if build else set()
-        fresh = [track for track in waiting if track not in inside]
-        again = [track for track in waiting if track in inside]
-        parts.append("<h3>%s <span class='sub'>%d new, %d made again</span></h3>" % (html.escape(labels[style]), len(fresh), len(again)))
-        if fresh:
-            parts.append(table(var, style, fresh))
-        if again:
-            parts.append("<details><summary>the %d made again</summary>%s</details>" % (len(again), table(var, style, again)))
-    demos = var / "listen" / "now-demos.html"
-    parts.append("<h2>Demos and changes</h2>")
-    parts.append(demos.read_text(encoding="utf-8") if demos.is_file() else "<p class='sub'>none written yet</p>")
     parts.append("<h2>In the player</h2>")
     for style, label in STYLES:
         build = state.get(style)
@@ -207,6 +191,28 @@ def page(var: Path, state: dict, now: datetime.datetime) -> str:
             parts.append(table(var, style, build["came"]))
         if build["again"]:
             parts.append("<details><summary>the %d made again</summary>%s</details>" % (len(build["again"]), table(var, style, build["again"])))
+    # (2026-11-26, after "most of the music we heard last night sucked ... it got worse not better": until that day this part was headed "For the next build" and
+    # said its songs were "in the player once it is built again". A new song rests now until the judges have read it and it has passed.)
+    parts.append("<h2>Staged, and not in the player</h2><p class='sub'>Staged since their style's bucket was built. A new song rests until the judges have "
+                 "read it and held it to the songs you liked; it comes in when it passes, a band's, a company's or an act's on your word as well: "
+                 "<a href='gate.html'>what the judges passed</a>. A song that was in the player and was made again comes in at the next build.</p>")
+    for style, label in STYLES:
+        build = state.get(style)
+        since = build["built"] if build else 0.0
+        waiting = staged_since(var, style, since)
+        inside = set(build["tracks"]) if build else set()
+        fresh = [track for track in waiting if track not in inside]
+        again = [track for track in waiting if track in inside]
+        parts.append("<h3>%s <span class='sub'>%d new, %d made again</span></h3>" % (html.escape(labels[style]), len(fresh), len(again)))
+        if len(fresh) > LONG_LIST:
+            parts.append("<details><summary>the %d new</summary>%s</details>" % (len(fresh), table(var, style, fresh)))
+        elif fresh:
+            parts.append(table(var, style, fresh))
+        if again:
+            parts.append("<details><summary>the %d made again</summary>%s</details>" % (len(again), table(var, style, again)))
+    demos = var / "listen" / "now-demos.html"
+    parts.append("<h2>Demos and changes</h2>")
+    parts.append(demos.read_text(encoding="utf-8") if demos.is_file() else "<p class='sub'>none written yet</p>")
     parts.append("</body></html>")
     return "\n".join(parts)
 

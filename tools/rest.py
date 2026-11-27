@@ -13,6 +13,13 @@ taken out again as a whole, and comes back song by song as it is tested against 
         rests every staged take the style's bucket does not have, a new family's and a further take of an older one alike,
         unless it was let in by hand (admitted.txt). var/passes/rebuild.sh does this before every build, so that nothing
         is in the player before it has been held to the library
+    ... rest.py tag knight --tag audit-1126 --to retold-1126 --why "told another way each time: out until written again" [family/take ...]
+        moves resting songs to another tag (all under the tag, or the ones named; with --since 2026-11-26T14:11 only those whose
+        sheet was written then or after: the ones written again). A song is brought back by its tag, and the judges are given a
+        tag to read: what is to stay out whatever they say rests under a word of its own
+    ... rest.py these knight --tag audit-1126 --why "came in unread" family/take ...
+        rests the songs named, whether the player has them or not (2026-11-26: fifteen further takes that came into the player with the
+        morning's builds unread, before every take the player did not have was rested; and what the listener lets in and wants out again)
     ... rest.py list knight
 
 A style's resting songs are the lines of var/studio/<style>/resting.txt (freerock.pieces.resting reads them when the style's
@@ -102,6 +109,28 @@ def back(var: Path, style: str, tag: str, names: list[str] | None = None) -> lis
     return out
 
 
+def retag(var: Path, style: str, tag: str, to: str, names: list[str] | None = None, why: str = "", since: str = "") -> list[str]:
+    """Moves songs resting under one tag to another: all of them, or the ones named; with `since`, only those whose sheet was first written at
+    that time or after it (the ones written again since). The reason is said anew where one is given, and kept where not. Returns the songs moved.
+    (2026-11-26: the takes told another way each time rest with the other new songs, and are to stay out even where the judges pass them, until
+    they are written again plainly: `back` brings back by tag, and tools/gate.py reads by tag.)"""
+    if not to or " " in to or "]" in to:
+        raise ValueError("A tag is one word (retold-1126), not %r" % to)
+    path = path_of(var, style)
+    kept, moved = [], []
+    for line in lines_of(path):
+        name, _, said = line.partition(" ")
+        if (not line.startswith("#") and said.startswith("[%s]" % tag) and (names is None or name in names)
+                and (not since or written(Path(var) / "studio" / style / name) >= since)):
+            kept.append(("%s [%s] %s" % (name, to, why or said[len(tag) + 2:].strip())).rstrip())
+            moved.append(name)
+        else:
+            kept.append(line)
+    if moved:
+        _write(path, kept)
+    return moved
+
+
 def names_in(path: Path) -> set[str]:
     return {line.split(" ", 1)[0] for line in lines_of(path) if line.strip() and not line.startswith("#")}
 
@@ -153,6 +182,18 @@ def main(argv: list[str] | None = None) -> int:
     fresh.add_argument("--tag", required=True)
     fresh.add_argument("--why", default="new: not held to the library yet (tools/gate.py)")
     fresh.add_argument("--dry", action="store_true", help="say which songs, and rest none")
+    moved = sub.add_parser("tag")
+    moved.add_argument("style")
+    moved.add_argument("--tag", required=True, help="the tag they rest under now")
+    moved.add_argument("--to", required=True, help="the tag they are to rest under")
+    moved.add_argument("--why", default="", help="the reason said anew (kept as it is where none is given)")
+    moved.add_argument("--since", default="", help="2026-11-26T14:11: only the songs whose sheet was written then or after")
+    moved.add_argument("songs", nargs="*")
+    named = sub.add_parser("these")
+    named.add_argument("style")
+    named.add_argument("--tag", required=True)
+    named.add_argument("--why", required=True)
+    named.add_argument("songs", nargs="+")
     listed = sub.add_parser("list")
     listed.add_argument("style")
     args = parser.parse_args(argv)
@@ -175,6 +216,19 @@ def main(argv: list[str] | None = None) -> int:
     elif args.what == "back":
         out = back(VAR, args.style, args.tag, args.songs or None)
         print("%s: %d songs brought back from [%s]. Heard after: var/passes/rebuild.sh %s" % (args.style, len(out), args.tag, args.style))
+    elif args.what == "these":
+        missing = [name for name in args.songs if not (VAR / "studio" / args.style / name / "track.json").is_file()]
+        if missing:
+            parser.error("not staged in %s: %s" % (args.style, " ".join(missing)))
+        added = rest(VAR, args.style, args.songs, args.tag, args.why)
+        print("%s: %d songs rested under [%s]%s. Heard after: var/passes/rebuild.sh %s" % (
+            args.style, len(added), args.tag, "" if len(added) == len(args.songs) else " (%d were resting already)" % (len(args.songs) - len(added)), args.style))
+    elif args.what == "tag":
+        out = retag(VAR, args.style, args.tag, args.to, args.songs or None, args.why, args.since)
+        print("%s: %d songs moved from [%s] to [%s]" % (args.style, len(out), args.tag, args.to))
+        missing = [name for name in args.songs if name not in out]
+        if missing:
+            print("%s: not moved (not resting under [%s]%s): %s" % (args.style, args.tag, ", or not written since %s" % args.since if args.since else "", " ".join(missing)))
     else:
         lines = [line for line in lines_of(path_of(VAR, args.style)) if line.strip() and not line.startswith("#")]
         print("\n".join(lines))

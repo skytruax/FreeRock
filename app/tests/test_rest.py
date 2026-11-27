@@ -91,3 +91,42 @@ def test_every_staged_take_the_player_does_not_have_is_new_a_further_take_of_a_s
     assert "salt-pan-1/1" not in resting and "old-road-1/2" not in resting and "bone-mill-1/2" in resting and "bone-mill-1/1" in resting
     assert (tmp_path / "studio" / "knight" / "admitted.txt").read_text(encoding="utf-8").splitlines()[-2:] == ["old-road-1/2 [new-1127]", "salt-pan-1/1 [new-1127]"]
 
+
+
+def test_resting_songs_move_to_another_tag_and_are_brought_back_and_read_by_it(tmp_path):
+    """(2026-11-26: the takes told another way each time rested under the same tag as every other new song, and the morning's "bring back what
+    passed" went by that tag: one of them the judges passed would have come back. They rest under a word of their own until written again.)"""
+    tool = _tool()
+    for name, when in (("bone-mill-1/1", "2026-11-25T01:00:00"), ("bone-mill-1/2", "2026-11-25T01:30:00"), ("salt-pan-1/1", "2026-11-25T02:00:00"), ("old-road-1/1", None)):
+        _take(tmp_path, name, when)
+    tool.rest(tmp_path, "knight", ["bone-mill-1/1", "bone-mill-1/2", "salt-pan-1/1", "old-road-1/1"], "audit-1126", "new since the evening that was liked")
+    assert tool.retag(tmp_path, "knight", "audit-1126", "retold-1126", ["bone-mill-1/1", "bone-mill-1/2", "night-fair-1/1"], why="told another way each time") == ["bone-mill-1/1", "bone-mill-1/2"]
+    lines = tool.lines_of(tool.path_of(tmp_path, "knight"))
+    assert "bone-mill-1/1 [retold-1126] told another way each time" in lines and "salt-pan-1/1 [audit-1126] new since the evening that was liked" in lines
+    assert set(pieces.resting(tmp_path, "knight")) == {"bone-mill-1/1", "bone-mill-1/2", "salt-pan-1/1", "old-road-1/1"}  # (they all rest still)
+    assert tool.back(tmp_path, "knight", "audit-1126", ["bone-mill-1/1", "salt-pan-1/1"]) == ["salt-pan-1/1"]             # not by the other tag
+    # Written again since (its sheet's first draft is of this afternoon): it moves back to the tag the judges read, the reason kept where none is given.
+    _take(tmp_path, "bone-mill-1/1", "2026-11-26T14:30:00")
+    assert tool.retag(tmp_path, "knight", "retold-1126", "audit-1126", since="2026-11-26T14:11") == ["bone-mill-1/1"]
+    lines = tool.lines_of(tool.path_of(tmp_path, "knight"))
+    assert "bone-mill-1/1 [audit-1126] told another way each time" in lines and "bone-mill-1/2 [retold-1126] told another way each time" in lines
+    assert tool.retag(tmp_path, "knight", "audit-1126", "kept-1126", ["old-road-1/1"], since="2026-11-26T14:11") == []     # no sheet: not written since
+    assert tool.retag(tmp_path, "knight", "nothing-here", "audit-1126") == []
+    with pytest.raises(ValueError, match="one word"):
+        tool.retag(tmp_path, "knight", "audit-1126", "two words")
+
+
+def test_songs_named_are_rested_whether_the_player_has_them_or_not(tmp_path, monkeypatch, capsys):
+    """(2026-11-26: fifteen further takes had come into the player with the morning's builds unread. `new` rests what the player does not have; these it had.)"""
+    tool = _tool()
+    monkeypatch.setattr(tool, "VAR", tmp_path)
+    for name in ("old-road-1/3", "mill-song-1/2"):
+        _take(tmp_path, name, "2026-11-26T03:00:00")
+    assert tool.main(["these", "knight", "--tag", "audit-1126", "--why", "came in unread", "old-road-1/3", "mill-song-1/2"]) == 0
+    assert "2 songs rested under [audit-1126]." in capsys.readouterr().out
+    assert pieces.resting(tmp_path, "knight") == {"old-road-1/3": "[audit-1126] came in unread", "mill-song-1/2": "[audit-1126] came in unread"}
+    assert tool.main(["these", "knight", "--tag", "audit-1126", "--why", "again", "old-road-1/3"]) == 0
+    assert "0 songs rested under [audit-1126] (1 were resting already)" in capsys.readouterr().out
+    with pytest.raises(SystemExit):
+        tool.main(["these", "knight", "--tag", "audit-1126", "--why", "x", "no-such-song-1/1"])           # not staged: said, nothing rested
+    assert set(pieces.resting(tmp_path, "knight")) == {"old-road-1/3", "mill-song-1/2"}

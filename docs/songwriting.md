@@ -743,6 +743,73 @@ as a pad, played its bass from A2 to F#4 around A3; the desk raised it 8.9 dB to
 line 7 dB over the liked stems in the mids and 16 at the top, with nothing under it. The moonwell and
 the elven hymn had the harp's the same way, around B3.)
 
+*A company's tenor chair on the bass line* (2026-11-26, the studies of the songs written again, and the trace that followed them). Rush-Light Chant's bass line read 9 dB over the liked bass stems
+at 3.5 kHz and Bellows-Boy's Pour's 12 to 13 over at 1.8 kHz and at the top. Both are companies whose chair for the writer's `celli` is a tenor, not a low string (`company_table`: the monastery's
+choir, the iron brass's trombone), and on these takes `Character.basses` named `celli`, so the bass line itself was theirs. The register is not the fault and the cap is not broken: traced, the
+centre is A2 as `bass_centre` sets it, every part's key note is C3, and the line runs C3 to B3 — a cello's own place, and what a cello has always played there. It is the timbre. A choir or a
+trombone at C3 to B3 carries far more at 1.8 to 3.5 kHz than celli do, and the desk puts the whole channel at the bass's place, so the channel reads over the liked stems in the mids while the low
+end is where it should be. (A guess tried on paper first and thrown away: holding each part's key note within an octave of the centre changes not one note, because they are already there.)
+**The demo read, and the chair is not the fault** (2026-11-27, 01:00 to 05:08: both songs performed twice, once as they stand and once with the bass line taken off the tenor chair and given to the
+basses' — the monastery's choir to its organ, the iron brass's trombone to its tuba — the tenor left in the bed, everything else the same, and four windows of each read by SongEval under
+`basschair-1126`):
+
+| | as it stands | the bass moved | |
+|---|---|---|---|
+| Rush-Light Chant, theme | 2.42 | 2.33 | −0.08 |
+| Rush-Light Chant, summit | 2.67 | 2.64 | −0.03 |
+| **Rush-Light Chant** | **2.54** | **2.49** | **−0.06** |
+| Bellows-Boy's Pour, theme | 3.00 | 3.02 | +0.03 |
+| Bellows-Boy's Pour, summit | 2.76 | 2.70 | −0.06 |
+| **Bellows-Boy's Pour** | **2.88** | **2.86** | **−0.02** |
+
+Flat on both songs, a shade down on both, every window inside the 0.15 that two renders of one patch move a judge. The bar was written down before the numbers landed: a gain over 0.15 on both
+songs, or a large gain on one with the other not falling. Nothing of the sort. **Nothing in the writer changes, and the tenor chair joins the list of things measured and thrown away.** What the
+0.50 spread across the companies is made of is still open, and the strings count above says where to look next; the demo that settles it is one no-string company, one song, its bed given real
+strings beside itself.
+Not this fault, though it was studied the same hour: Whaler's Dole's bass (the mead hall's war tuba) reads 9 dB UNDER the liked stems at 894 Hz, which is the thin middle of a band's bass, 8.6.
+
+*And the judges, asked across every company, say the same thing without being asked about chairs* (2026-11-27 02:57, the newest gate reading of every staged take that has one, 31 bands and
+companies with two songs or more; the demo's two songs were chosen the evening before this was counted):
+
+| the company's chair for the writer's `celli` | companies | how their songs read |
+|---|---|---|
+| a cello (`cello`, `celli slow`) | highland 3.43, quartet 3.41, caravan 3.07, bronze 3.07, silk 3.01, crypt 2.99, consort 2.97 | **3.14** over seven |
+| a bassoon | carnival 2.91, winds 2.65 | 2.78 |
+| a trombone | iron brass 2.85, horde 2.61 | 2.73 |
+| a choir | monastery 2.19 | 2.19, the lowest of all 31 |
+| | | a gap of **0.50**, where two renders of one patch move a judge 0.15 |
+
+The order is nearly monotone from a low string down to a voice, and the two companies the demo is built on are the bottom of it: the monastery, whose choir takes the `celli` chair, and the iron
+brass, whose trombone does. **This is a correlation, not the finding.** A company differs in far more than that one chair — the monastery is choir and organ the whole way down its bed
+(`oohs`, `choir`, `choir`, `organ`), so a reading of 2.19 could be the voices everywhere and not the bass line at all. That is the whole reason the demo changes one thing on one song beside
+itself. What the table does is raise the demo from a guess to a measured hypothesis, and say what to expect: if the chair is the fault, the moved arm gains; if the voices are, it will not.
+
+*And counted a second way the same hour, a plainer thing explains it at least as well:* **how many strings the company has at all**. Counted over every chair a company fills (high, middle, low,
+bed, chord, pluck), the reading follows the strings down — quartet 7 strings reads 3.41, highland 5 reads 3.43, silk 6 reads 3.01, consort 5 reads 2.97, and at the bottom iron brass, winds and
+horde have **none at all** (2.85, 2.65, 2.61) with the monastery's one (2.19) under them. Split on the bed alone: the four companies with no string in their bed read **2.58**, the eight with one
+read **3.11** — a gap of 0.53, wider than the chair's 0.49, and the two splits name almost the same four companies, because a company whose `celli` chair is not a cello usually has no strings
+anywhere near its bed. With twelve companies and one number each these features cannot be told apart by counting; only a demo can.
+
+**The caveat that matters more than either table.** The companies are *built* to be different ensembles — a brass band is meant to sound like a brass band, a monastery like voices and an organ.
+If what this measures is that the judges prefer strings, then "mend the companies by giving them strings" would make every company sound like the quartet, which is the exact opposite of what was
+asked for (unique bands; *"too much of the same instrument sounds"*, 11-23). A judge's taste is not a fault in the music. So the next demo is not "add strings": it is one no-string company, one
+song, its bed given real strings beside itself — to learn **whether the judges are reading the writing or reading the instruments**. If the strings arm gains while nothing else changes, the
+reading is of the palette, and then the companies stand as they are and the judges are the wrong instrument for scoring them against one another.
+
+*Counted over all 741 staged takes that have the desk's sub, the chair decides where the whole low end sits* (the same evening; the sheet's first history line says when a take was written, not the
+file's date, which two tools rewrote in hundreds on 11-25):
+
+| the chair the bass line is written for | takes | the line's middle | the sub over A2 |
+|---|---|---|---|
+| `celli` | 69 | 46 | 36 in 100 |
+| `celli slow` | 17 | 45 | 0 in 100 |
+| `basses`, `basses slow`, `basses pizz`, `acoustic bass`, `fretless` | 245 | 37 to 41 | 0 to 12 in 100 |
+
+A line written for the celli chair sits a fifth over one written for a bass chair, because `bass_centre` is the instrument's home less five and the celli's home is a twelfth over the double basses'.
+That is a cello's own place and it is not new: 69 takes of the liked library are written that way. It turns into the fault above only where the company's player for that chair is a tenor, and the
+desk puts the whole channel at the bass's place. The desk's sub follows it (`build.perform` gives the deep synth the bass line's own pitches), so in those songs the sub is up there too: a
+consequence, not a second fault, and the liked library lives with it (13 in 100 of its Warcraft takes have the sub over A2 already). So the demo tries the one thing that is wrong: the chair.
+
 *Tried and left off: a plucked bass played to be heard* (2026-11-22, morning: in a night's studies of Warcraft's walks,
 inns and camps the bass stood 7 to 12 dB thin in its middle wherever its line was plucked, never where it was bowed or
 blown). The fretless struck no softer than mezzo-forte (`orchestra.FRETLESS_FIRM`, 0.55): its tone did not change (MuseScore's
@@ -1555,7 +1622,47 @@ that are played more than once, the liked library's tunes come back in 49% in th
 three in four of the songs this rule made lie under 38. Four of them written again without it go from 15 to 38% up to 43 to 77. The 120 families that were staged with it keep it (`build.GROWN`,
 `studio/grown.txt`: never change a family that has takes; a family taken out of the list is written plainly the next time it is made); every other family, 912 of the plan's that had been set to grow, is
 told as its first telling was, its leaps filled the second time and what a player adds the third (`varied`, `decorated`). `build.TOLD_ONCE` is gone. `tools/study.py` now says how much of a tune comes back
-and marks one under the liked library's lower quartile (7.3).
+and marks one under the liked library's lower quartile (7.3). That afternoon the first 37 families came out of the list to be written again while they rest (none of them is in the player): Knight
+Rock's six in 4/4 by bands that stood with the house band in the auditions (4.11), and Warcraft's 31 in 4/4, 6/8 and 3/4; their takes of before are kept beside
+(`var/studio-demo/retold-audit-1126/resting`), and each new one is read by the judges and held to the library like any new song (8.9). 83 are left: the ones in five and in seven, which need a new
+metre as well, and those of the bands that read under.
+*What Sky actually heard that evening, counted* (`tools/heard.py --day 2026-11-25`): 79 songs over four and a half hours, 64 of them for the first time (75 in 100 of the time), 60 written since the
+23rd. Knight Rock was 45 of the 79 hearings and 26 of those were a new band's; Warcraft 34, with 15 a company's; House 2. So more than half the evening was Knight Rock, and most of that was the new
+bands' songs, which the judges pass 23 times in 100 where Warcraft's new songs pass 67. The complaint and the numbers are the same thing said twice.
+
+*And it worked, measured the same evening.* Of Knight Rock's songs resting under `audit-1126`, the judges read 39 as they were staged and 12 written again: 23 in 100 of the first passed the
+gate, 50 in 100 of the second (the judges' five in the middle 2.95 against 3.12, Memorability 2.88 against 3.00). Six of the twelve pass: Runaway Gradient 3.50, Daylight-Starved Echo 3.35,
+Copper-Still Hollow 3.34, Long-Haul Bottle 3.34, Fish-Quay Slab 3.26, Twister Uproot 3.17; five of those six were in 6/8, 3/4, 5/4 or 7/8 as they were staged and are in 4/4 now. The six that are
+held (Auction-Block Gavel 3.06 to Shotgun Hoedown 2.72) are the writer's next question, not the band's: four of them are the jug's, the hammond's and the cathedral's, which read level or over the
+house players in the auditions (4.11).
+
+*Of the two things a rewrite changes, the metre is the whole of it.* All 34 of Knight Rock's rewrites were read by the small hours of 27 November, and they part as cleanly as a trial could ask:
+
+| | read | pass | the judges, in the middle |
+|---|---|---|---|
+| left as they were staged | 39 | 9 (23 in 100) | 2.95 |
+| written again, and already in 4/4 | 6 | 1 (17 in 100) | 2.84 |
+| written again, and 6/8 to 4/4 | 9 | 6 (67 in 100) | 3.26 |
+| written again, and 7/8 to 4/4 | 6 | 4 (67 in 100) | 3.20 |
+| written again, and 5/4 to 4/4 | 6 | 4 (67 in 100) | 3.13 |
+| written again, and 3/4 to 4/4 | 7 | 4 (57 in 100) | 3.09 |
+| every rewrite | 34 | 19 (56 in 100) | 3.15 |
+
+Telling the theme plainly and leaving the metre alone passes 1 song in 6, which is no better than leaving the song as it was (23 in 100, and the judges' noise is about 0.1). Moving it to four
+passes 18 of 28, and from every odd metre alike: six-eight, seven-eight, five-four and three-four all land between 57 and 67 in 100. So it is the metre, and the retelling's cost, real as it is on
+the writer's own count of how much of a tune comes back, does not show in what the judges hear over two minutes. The rule of 4.12 stands for both reasons, but the one that is paying is the metre.
+
+*What the first twelve looked like, before the rest were read:* the twelve read fall in two sixes. Six were staged in 4/4 and only their telling changed (the theme as it was first told, not
+turned): one passed, Runaway Gradient 3.50, and the five held read 2.72 to 3.06. Six were staged in 6/8 and are in 4/4 as well: five passed (3.17 to 3.35) and one held, Snake-Handler's Moan 2.89.
+They are not the same songs by the same bands, so it is not a trial of one thing; but it agrees with what the liked library says of itself (its seven Knight Rock songs in 6/8 read 2.79 to 2.93 where
+its 114 in four read 3.21), and the two together are why Knight Rock is written in four now. What the retelling cost is still real and still worth undoing: the writer's measure of how much of a tune
+comes back rose from 19-27% to 38-65% in those first six. It is simply not enough on its own to carry a song over the bar.
+The same afternoon the rest of those bands' and companies' came off it, 55 families, and are written in an even metre (`studio/even.txt`, `build.EVEN`, `orchestra.EVEN_OF`): five and seven go
+to four, and Knight Rock's go to four whatever they drew, its three and its six too; the family keeps the key and the tempo it drew, so it is the same song in another metre. Why Knight Rock's six
+goes as well: the liked library's seven Knight Rock songs in 6/8 read 2.79 to 2.93 by SongEval's five, every one of them under the lower quartile a new song is held to (3.08), where its 114 in
+four read 3.21 in the middle; of the first nineteen new band songs the judges read, the five that passed were all in four. (Warcraft's three and six read level with its four: 3.10, 2.91, 2.92; its
+few in five and seven 2.37 and 2.65.) So a new Knight Rock song is in four until the band's writing in six reads as its writing in four does.
+28 are left on the list: the songs of the four bands that read under and of the two to be read again (4.11).
 
 *And the liked library itself was changed that night, in place* (2026-11-26, the same audit). In the night of 24 to 25 November the retelling was also laid on 41 takes that existed, by
 revisions of their sheets (the line above, "an old song is told so by a revision of its sheet"): 27 of them were in the player on the 26th, 14 with the retold tune performed and 13 with the sheet
@@ -2898,6 +3005,15 @@ that morning, none of them judged. So:
    2026-11-23 (the label `watch`). `gate.py read <label> <style> --tag <tag>` has the resting songs of a tag read the same way, by SongEval alone (`judges.py --only songeval`: a minute or two a song,
    where the three judges take twenty over one), and `check` holds them to those 261. SongEval does not hear whether a tune comes back four minutes on: that is the sheet's to say (7.3).
 4. What passes is brought back (`rest.py back <style> --tag <tag> $(gate.py check <label> --passed)`) and comes in with the next build; what does not is written again, or stays out.
+   A song is brought back, and given to the judges, by its tag: one that is to stay out whatever they say rests under a word of its own (`rest.py tag`: the takes told another way each
+   time rest under `retold-1126`, and one of them moves back to the tag that is read once it has been written again, `--since`). And a reading counts for the take as it is staged: one made
+   before the take was performed again is left out by `check`, and `read` has the take read again (`gate.performed_since`: a take's `track.json` is the last thing a performance writes).
+   Whose a song is, its sheet says (`gate.whose`): the morning brings back the house's own players' songs that passed (`gate.py check <label> --style <style> --passed --own`); a band's, a
+   company's or an act's that passed (`--bands`) does not come in on the judges' word alone. `tools/gate_page.py <label> ...` writes the page the listener hears them on
+   (`var/listen/gate.html`: band by band, each to play, the take of before beside a song that was written again, and the held ones by name), and they say which may come in.
+   What they let in is written down (`studio/<style>/admitted.txt`, by `rest.py back`): `gate.py` and the page say so (`gate.let_in`), and it is not put to them again. A song
+   that is in the player and should not be is rested by name (`rest.py these`) and leaves at the next build: on 2026-11-26 fifteen further takes of older families, made the
+   night before, had come in with the morning's builds unread, an hour before every take the player did not have was rested; a song never heard comes first.
 5. Each morning `heard.py` says what was played the evening before, how much of it for the first time and how much of it new, before anything is said about the night's music.
 
 The library's windows are few still (five Knight Rock songs, six Warcraft, none of House's: `gate.py library` says "THIN"): two windows of twenty-four liked songs in each style are owed, the most
@@ -2927,4 +3043,9 @@ played first (`gate.py pick <style>`), under the label `library`, before a song 
 | Hairpins from 1.5 s | *nearly every note of a slow piece swelled, which read as pumping, not phrasing* | From 2.5 s (`muse.LONG_S`) |
 | Streams from music shops and services | their published terms forbid capturing or altering streams, or using them with games | The studio's own music |
 | A theme told another way each time it comes back (`Character.grows`), for every new family; songs in 5/4 and 7/8 for a third of a style's new ones; every night's new songs into the player unjudged, read only against their own round | "most of the music we heard last night sucked, the new bands a lot of time just sound random, it got worse not better" (2026-11-26); *the judges had read the new Knight Rock songs 0.45 under the same windows of older ones, and three in four of them had less of their tune come back than nine in ten of the liked* | Themes told as they were first told (4.12); 4/4, 6/8 and 3/4; a new song rested until it passes the gate against the liked library (8.9); what came in after the evening of 11-24 rested (276 songs, tag `audit-1126`) |
+| Reading "does the theme come back as it was first told?" from the parts the sheet calls `theme` | 2026-11-27, the night's 26 new Knight songs, and the test wrong twice in one hour. First a whole-row compare called all twelve staged by 02:20 a different tune: a theme's last return is written short — the first eight bars verbatim, then a four-bar tag home (`1 1 7 7 6 6 5+ 1 ‖ 6 6 5+ 1` against the 16-bar first telling). Narrowed to the shorter of the two, it then called three songs faults outright, Pitch-Black Surge, Iron Drum and Hayride Jamboree: *the tune never comes back*. Their charts say otherwise — they are A B A B A, and the A returns stand under `moment` while the second tune stands under `theme`. Measured over all 26 ignoring the labels: **every one restates its first tune two or three times, holding 21 to 42% of its bars, 29% on average**, and none fails | Test the phrase against **every part after the first telling, whatever the sheet calls it**. The story word is a hint for a reader, never a selector and never a test: a bucket's pieces are chained by `next` in the written order (`forever.py` 335), so what a listener hears is the order, not the labels |
+| Reading House's `rise` as a fault because it is quieter than the theme before it | 2026-11-27 04:20, round fifteen's ten old House songs: **in all ten** the rise reads 0 to 3 dB UNDER the theme it follows (Seaspray II −2, The Deep Road I −3, By the Fire III −3). It is how club music is written — the kick and the bass come out for the build so that the drop lands — and it does land, by 1 to 2 dB into the moment, in nine of the ten. Nor is House's small story swing a fault: the three flattest (Heat Haze II 4.6 dB, Last Candle I 6.0, By the Fire III 6.2) are exactly the three marked calm, where staying calm is the design, and the seven that are not calm run 6.7 to 13.2 | Read a House rise as a strip-back, and judge it by what the moment AFTER it gains. The one that failed that test was Seaspray II, whose moment reads no louder than its theme: marked revise. Judge a calm piece's swing against calm pieces |
+| Taking the render's *"the texture is only N% in the key"* on House's new acts for the known occasional | 2026-11-27 05:30, the 21 new acts' audition: **6 of the first 15 tripped it** (chopshop, drydock, foundry, kennel, powerhouse, quarry, at 62 to 65%), where the whole library's history before tonight held ten such warnings in all. Measured against the liked library rather than against the threshold: twelve liked House songs' textures read **0.77 to 0.95, median 0.876**, so the check's 0.65 is not a tight threshold — it is far under what House normally does, and those six acts really do have a texture near the noise floor (flat chroma over a seven-note scale is 0.583). Five of the six carry `house pad drone`; the three other drone acts (faultline, smelter, tunnel) came out clean, so the pad alone is not it. The one liked song that also reads low is **storm-01/1, Rain on the Roofs, at 0.578** — and that is the very song the audition is built on | Read this warning against the liked library's median, not the threshold. The six acts go to the judges at 08:30 under `acts-1126` and that reading says whether it is heard; do not change the check, which is doing its job. Rain on the Roofs' own texture at the noise floor is a separate thing, noted and not yet chased |
+| Reading *"too much of the same instrument sounds"* (11-23) as a fault in the new Knight songs' bed | 2026-11-27 05:55, tonight's 26 new Knight songs counted sound by sound and set beside the 432 the player has. The bed does repeat — picked bass in 85% of them, rhythm guitar 69%, a rock organ 69%, the kit in every one — but **the liked library repeats it harder**: picked bass 93%, rhythm guitar 72%, rock organ 80%, the kit 100%. And the lead is wider tonight than it has ever been: 42 distinct leads over 26 songs where the library has 52 over 432, the commonest in 58% against 69% | Nothing tonight made this worse, so there is nothing to mend in the writer. If the sameness is still heard, it is **the recipe of Knight Rock itself** — four sounds under every song by design — and changing that is Sky's call about the style, asked in the morning report of 27 November, not a fault to be fixed quietly |
+| **Knight Rock's calm songs are the weak group** (11-26: the new bands' calm ones read 2.86 over 21 where the house band's liked calm ones read 3.14 over 39) | 2026-11-27 07:20, the night's 26 new Knight songs, 14 of them read: split on the house's own `light` flag, **the light ones passed 6 of 6** at 3.17 to 3.47, and the ones that are not light passed 3 of 8. All 26 read by 07:42: **15 passed, 58 in 100, where a band on one of the house band's own characters was passing 40.** On `weight`, which is the axis that divides them: **0.70 and under, 11 of 14 (79 in 100); 0.85 and over, 4 of 12 (33).** Five of the eleven held sit within a hundredth of the bar (3.07 three times, 3.06, 3.04), which is inside the move between two renders of one patch, so only six are clearly held: Gilded Rot Hall 2.67, Mountain Stomp 2.70, Storm Rider 2.83, Royal March 2.96, Hollow Deeps 2.96, Chained Row 2.99 — every one of them weight 0.85 or over. By band, the saloon took 4 of 4, baroque, cellos and tweed 1 of 1; twang 2 of 5, doom 0 of 2, shanty and stoner 0 of 1 | Turned over: it is **the heavy songs** that read badly, not the calm ones. Use `weight`, not the `light` flag — songs that are not light but carry a low weight (Sorrow Lament 0.4, Dented Oath 0.5) passed with the light ones. **And wait for the whole set before writing a row like this one**: it was written at 14 read (100 against 33), revised at 18, and moved again at 24 to 79 against 40 before settling here. The next round's question is what a heavy song does that a light one does not; loudness is where to look first |
 | A bell in the old House songs' drums (their claps and snares stand 8 to 17 dB under the liked stems at 900 Hz and 1.8 kHz) | five old songs with the drums' middle 5 and 9 dB up, 25 November: *the themes' hardness moved by -0.8 to +0.3; one listening judge fell with the amount on four songs of five, by 0.05 to 0.25, and two rose by 0.01 to 0.14*: the judges do not agree, and a song that exists stays as it is unless they do | The old songs' drums as they are; what the meter hears in them is that nothing turns, and that is a revision of their sheets (the kick rests at each eight's end, a pickup, a shaker out every other eight), kept song by song where the judges agree |

@@ -170,9 +170,13 @@ def main(argv: list[str]) -> int:
         if unheld:
             print("%-34s NOT held against the liked stems (there are none of %s's): %s" % ("", style, ", ".join(unheld)))
     if rows:
-        print("\nacross the set: story swing %.1f dB on average (least %.1f); tune bars heard before %.0f%% on average" % (
+        # (2026-11-27: House's ten old songs read "tune bars heard before 0% on average", which was the mean of nothing — written() gives House no
+        # notes at all. A measurement that does not apply says so; it does not print a nought that a reader would act on.)
+        told = [r[4]["tune_repeats"] for r in rows if r[4] and "tune_repeats" in r[4]]
+        print("\nacross the set: story swing %.1f dB on average (least %.1f); %s" % (
             float(np.mean([r[2] for r in rows])), min(r[2] for r in rows),
-            100 * float(np.mean([r[4].get("tune_repeats", 0) for r in rows if r[4]] or [0]))))
+            ("tune bars heard before %.0f%% on average, over %d of the %d" % (100 * float(np.mean(told)), len(told), len(rows))) if told
+            else "what is written was not read for any of them (study.py reads no notes for %s): the tune is not measured here" % style))
     return 0
 
 
