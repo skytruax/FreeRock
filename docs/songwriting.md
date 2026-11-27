@@ -743,6 +743,15 @@ as a pad, played its bass from A2 to F#4 around A3; the desk raised it 8.9 dB to
 line 7 dB over the liked stems in the mids and 16 at the top, with nothing under it. The moonwell and
 the elven hymn had the harp's the same way, around B3.)
 
+*The same fault, three times in one day, and where it comes from* (2026-11-26, the studies of the songs written again): Whaler's Dole's cello reached B flat 4 in the bass's channel and read 9 dB
+over the liked stems at 3.5 kHz; Rush-Light Chant's choir sat at C4 to B3 there and read 9 over; Bellows-Boy's Pour's trombone read 12 to 13 over at 1.8 kHz and at the top. All three are companies
+whose player for the writer's `celli` is a tenor, not a low string (`company_table`: the mead hall's cello, the monastery's choir, the iron brass's trombone), and `Character.basses` names `celli`
+first, so on a first take the bass line itself is theirs. WHERE IT COMES FROM IS NOT KNOWN YET. The cap reads as though it should hold: `bass_centre` is the instrument's home less five and never
+above A2, and the celli's centre works out at A2 itself. But the written lines sit far over it (the monastery's choir C4 to B3, every note above A2; the iron brass's trombone 41 to 60, 72 in 100
+above it), so either the cap is not reaching these lines or something after it moves them. A guess was tried on paper and was wrong: holding each part's key note within an octave of the centre
+(`bass_tonics`) changes not one note of the three, because the key notes are already there. Nothing is changed until the cause is found and a demo on two of the three reads better by the judges and
+by `ear` against the liked bass stems; it would touch every orchestra song written after it.
+
 *Tried and left off: a plucked bass played to be heard* (2026-11-22, morning: in a night's studies of Warcraft's walks,
 inns and camps the bass stood 7 to 12 dB thin in its middle wherever its line was plucked, never where it was bowed or
 blown). The fretless struck no softer than mezzo-forte (`orchestra.FRETLESS_FIRM`, 0.55): its tone did not change (MuseScore's
