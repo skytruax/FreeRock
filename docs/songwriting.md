@@ -1583,6 +1583,10 @@ and marks one under the liked library's lower quartile (7.3). That afternoon the
 Rock's six in 4/4 by bands that stood with the house band in the auditions (4.11), and Warcraft's 31 in 4/4, 6/8 and 3/4; their takes of before are kept beside
 (`var/studio-demo/retold-audit-1126/resting`), and each new one is read by the judges and held to the library like any new song (8.9). 83 are left: the ones in five and in seven, which need a new
 metre as well, and those of the bands that read under.
+*What Sky actually heard that evening, counted* (`tools/heard.py --day 2026-11-25`): 79 songs over four and a half hours, 64 of them for the first time (75 in 100 of the time), 60 written since the
+23rd. Knight Rock was 45 of the 79 hearings and 26 of those were a new band's; Warcraft 34, with 15 a company's; House 2. So more than half the evening was Knight Rock, and most of that was the new
+bands' songs, which the judges pass 23 times in 100 where Warcraft's new songs pass 67. The complaint and the numbers are the same thing said twice.
+
 *And it worked, measured the same evening.* Of Knight Rock's songs resting under `audit-1126`, the judges read 39 as they were staged and 12 written again: 23 in 100 of the first passed the
 gate, 50 in 100 of the second (the judges' five in the middle 2.95 against 3.12, Memorability 2.88 against 3.00). Six of the twelve pass: Runaway Gradient 3.50, Daylight-Starved Echo 3.35,
 Copper-Still Hollow 3.34, Long-Haul Bottle 3.34, Fish-Quay Slab 3.26, Twister Uproot 3.17; five of those six were in 6/8, 3/4, 5/4 or 7/8 as they were staged and are in 4/4 now. The six that are
