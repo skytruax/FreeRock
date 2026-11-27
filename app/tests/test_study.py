@@ -34,3 +34,19 @@ def test_a_tune_that_comes_back_counts_and_one_told_another_way_each_time_does_n
 def test_the_floor_is_the_liked_librarys_and_only_where_it_was_measured():
     tool = _tool()
     assert 0.4 <= tool.RETURNS_FLOOR["knight"] <= 0.5 and 0.2 <= tool.RETURNS_FLOOR["warcraft"] <= 0.35 and "house" not in tool.RETURNS_FLOOR
+
+
+def test_a_measurement_that_does_not_apply_says_so_and_does_not_print_a_nought(monkeypatch, capsys):
+    """(2026-11-27: House's ten old songs of round fifteen read "tune bars heard before 0% on average". written() gives House no notes at all, so
+    that nought was the mean of nothing — a number a reader would act on, standing where "not measured" belonged.)"""
+    tool = _tool()
+    monkeypatch.setattr(tool, "stems", lambda style, name, take: ({"title": name}, {"lead": None}, 48000))
+    monkeypatch.setattr(tool, "story_loudness", lambda meta, parts, rate: [("theme", -20.0), ("moment", -12.0)])
+    monkeypatch.setattr(tool.ear, "profile", lambda audio, rate: None)
+    monkeypatch.setattr(tool, "written", lambda style, name, take: {})                       # as House is
+    assert tool.main(["house", "camp-03/2", "coast-01/2"]) == 0
+    said = capsys.readouterr().out
+    assert "study.py reads no notes for house): the tune is not measured here" in said and "0% on average" not in said
+    monkeypatch.setattr(tool, "written", lambda style, name, take: {"at_once": [], "spread": [], "tune_repeats": 0.5})
+    assert tool.main(["knight", "bone-mill-1/1", "old-road-4/1"]) == 0
+    assert "tune bars heard before 50% on average, over 2 of the 2" in capsys.readouterr().out

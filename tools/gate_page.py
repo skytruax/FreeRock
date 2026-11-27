@@ -127,8 +127,7 @@ def songs(var: Path, rows: list[dict], labels: list[str]) -> list[dict]:
 
 
 def _row(each: dict, who: bool = False) -> str:
-    bar = each["bar"] or {"score": float("nan"), "memorability": float("nan")}
-    said = "the judges %.2f, memorability %.2f <small>(a song passes at %.2f and %.2f)</small>" % (each["score"], each["memorability"], bar["score"], bar["memorability"])
+    said = "the judges %.2f, memorability %.2f" % (each["score"], each["memorability"])     # (the bar is said once a style, 2026-11-27: it stood on all 123 rows, two lines of every one on a phone)
     about = " · ".join(part for part in ("%.0f to the minute" % each["tempo"] if each.get("tempo") else "", "in " + each["metre"] if each["metre"] else "") if part)
     if each["whole"]:
         now = '<audio controls preload="none" src="%s"></audio>' % quote(each["whole"])
@@ -162,14 +161,30 @@ def page(found: list[dict], labels: list[str], now: float | None = None) -> str:
                 theirs[each["whose"]].append(each)
         own = [each for each in through if not each["whose"] and not each["inside"]]
         held = [each for each in mine if not each["passes"]]
-        parts.append("<h2>%s</h2><p>%d songs read: %d passed (%d let into the player; %d of a band, a company or an act waiting for your word; %d of the house's own players for the next build), %d were held.</p>" % (
-            name, len(mine), len(through), len(inside), sum(len(each) for each in theirs.values()), len(own), len(held)))
+        bars = [each["bar"] for each in mine if each["bar"]]
+        held_at = (" A song of this style passes when the judges give it %.2f and its memorability %.2f, which is where the songs you liked stand three in four of the way down." %
+                   (bars[0]["score"], bars[0]["memorability"])) if bars else ""
+        parts.append("<h2>%s</h2><p>%d songs read: %d passed (%d let into the player; %d of a band, a company or an act waiting for your word; %d of the house's own players for the next build), %d were held.%s</p>" % (
+            name, len(mine), len(through), len(inside), sum(len(each) for each in theirs.values()), len(own), len(held), held_at))
         if inside:
             parts.append("<h3>Passed, and let into the player</h3><table>%s</table>" % "\n".join(_row(each, who=True) for each in sorted(inside, key=lambda each: -each["score"])))
         if theirs:
             parts.append("<h3>Passed, and waiting for your word</h3>")
-            for who in sorted(theirs, key=lambda who: (-len(theirs[who]), who)):
-                parts.append("<h4>%s</h4><table>%s</table>" % (html.escape(who), "\n".join(_row(each) for each in sorted(theirs[who], key=lambda each: -each["score"]))))
+            # (2026-11-27: 57 songs waited here at once, which is 57 decisions. A band is one decision, so each band says how ALL of its songs
+            # read in this style — the held ones too — and they stand best band first. "Yes to the baroque" is the answer this page wants.)
+            allof: dict[str, list[dict]] = defaultdict(list)
+            for each in mine:
+                if each["whose"]:
+                    allof[each["whose"]].append(each)
+            def standing(who: str) -> float:
+                return sum(each["score"] for each in allof[who]) / len(allof[who])
+            for who in sorted(theirs, key=lambda who: (-standing(who), who)):
+                every = allof[who]
+                through_ = [each for each in every if each["passes"]]
+                parts.append("<h4>%s</h4><p class=\"band\">%d of its songs read, %d passed; they read <b>%.2f</b> on average (the bar is above). %d %s waiting for your word.</p><table>%s</table>" % (
+                    html.escape(who), len(every), len(through_), standing(who),
+                    len(theirs[who]), "is" if len(theirs[who]) == 1 else "are",
+                    "\n".join(_row(each) for each in sorted(theirs[who], key=lambda each: -each["score"]))))
         if own:
             parts.append("<h3>Passed, the house's own players: in the player at its next build</h3><table>%s</table>" % "\n".join(_row(each) for each in sorted(own, key=lambda each: -each["score"])))
         if held:
@@ -179,7 +194,7 @@ def page(found: list[dict], labels: list[str], now: float | None = None) -> str:
     return """<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>What the judges passed</title>
 <style>body{font:16px/1.5 system-ui,sans-serif;margin:16px;background:#14161a;color:#e8e6e1}table{border-collapse:collapse;width:100%%}td{border-top:1px solid #333;padding:10px 8px;vertical-align:top;width:33%%}
 audio{width:100%%;max-width:420px}small{color:#a8a59c}h1{font-size:22px}h2{font-size:20px;margin-top:28px}h3{font-size:17px;margin-top:20px}h4{font-size:16px;margin:14px 0 2px;text-transform:capitalize}
-.held{color:#c9c6bd}@media(max-width:700px){td{display:block;border-top:0;width:auto}tr{display:block;border-top:1px solid #333;padding:6px 0}}</style>
+.held{color:#c9c6bd}.band{color:#a8a59c;font-size:14px;margin:0 0 6px}.band b{color:#e8e6e1}@media(max-width:700px){td{display:block;border-top:0;width:auto}tr{display:block;border-top:1px solid #333;padding:6px 0}}</style>
 <h1>What the judges passed</h1>
 <p>Every new song is read by the judges and held to the songs you liked: it passes when it reads no worse than three in four of them. Until then it is not in the player.
 A song of one of the new bands, companies or acts that passed is here for you to hear: say which bands may come in, or which songs; the ones you have let in are first.

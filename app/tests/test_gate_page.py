@@ -67,6 +67,11 @@ def test_the_page_has_a_bands_passes_to_hear_the_houses_own_and_the_held_and_the
     assert waiting < page.index("Bone Mill") < page.index("Night Fair") < own < page.index("Old Road") < held < page.index("Salt Pan")     # a band's by score, the house's own, the held
     assert page.index("Passed, and let into the player") < page.index("Crow Watch") < waiting and "crow-watch-4/1 · the baroque" in page      # what was let in is first, and says whose
     assert "<h4>jug</h4>" in page and "gone-song" not in page                                        # (read, and not staged: nothing to hear)
+    # A band is one decision where its songs are many (57 waited at once on 2026-11-27), so each band says how ALL of its songs read, the held ones too.
+    assert '<h4>jug</h4><p class="band">2 of its songs read, 2 passed; they read <b>3.30</b> on average (the bar is above). 2 are waiting for your word.</p>' in page
+    # The bar a song passes at is said once, in the style's own line, and on no row: it stood on all 123 rows of the page of 2026-11-27, two lines of every one on a phone.
+    assert page.count("A song of this style passes when the judges give it") == 1 and "a song passes at" not in page
+    assert "the judges 3.40, memorability 3.40" in page                                              # (a row says what the judges gave it, and no more)
     assert "Mill Song" not in page                                                                   # (its reading is of a take that is no longer there)
     assert 'src="knight/Bone%20Mill%20-%20take%201%20%28bone-mill-1%29.flac"' in page
     assert "as it was before it was written again in 7/8" in page and 'src="gate/knight--bone-mill-1--1--before.flac"' in page
