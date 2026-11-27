@@ -743,14 +743,15 @@ as a pad, played its bass from A2 to F#4 around A3; the desk raised it 8.9 dB to
 line 7 dB over the liked stems in the mids and 16 at the top, with nothing under it. The moonwell and
 the elven hymn had the harp's the same way, around B3.)
 
-*The same fault, three times in one day, and where it comes from* (2026-11-26, the studies of the songs written again): Whaler's Dole's cello reached B flat 4 in the bass's channel and read 9 dB
-over the liked stems at 3.5 kHz; Rush-Light Chant's choir sat at C4 to B3 there and read 9 over; Bellows-Boy's Pour's trombone read 12 to 13 over at 1.8 kHz and at the top. All three are companies
-whose player for the writer's `celli` is a tenor, not a low string (`company_table`: the mead hall's cello, the monastery's choir, the iron brass's trombone), and `Character.basses` names `celli`
-first, so on a first take the bass line itself is theirs. WHERE IT COMES FROM IS NOT KNOWN YET. The cap reads as though it should hold: `bass_centre` is the instrument's home less five and never
-above A2, and the celli's centre works out at A2 itself. But the written lines sit far over it (the monastery's choir C4 to B3, every note above A2; the iron brass's trombone 41 to 60, 72 in 100
-above it), so either the cap is not reaching these lines or something after it moves them. A guess was tried on paper and was wrong: holding each part's key note within an octave of the centre
-(`bass_tonics`) changes not one note of the three, because the key notes are already there. Nothing is changed until the cause is found and a demo on two of the three reads better by the judges and
-by `ear` against the liked bass stems; it would touch every orchestra song written after it.
+*A company's tenor chair on the bass line* (2026-11-26, the studies of the songs written again, and the trace that followed them). Rush-Light Chant's bass line read 9 dB over the liked bass stems
+at 3.5 kHz and Bellows-Boy's Pour's 12 to 13 over at 1.8 kHz and at the top. Both are companies whose chair for the writer's `celli` is a tenor, not a low string (`company_table`: the monastery's
+choir, the iron brass's trombone), and on these takes `Character.basses` named `celli`, so the bass line itself was theirs. The register is not the fault and the cap is not broken: traced, the
+centre is A2 as `bass_centre` sets it, every part's key note is C3, and the line runs C3 to B3 — a cello's own place, and what a cello has always played there. It is the timbre. A choir or a
+trombone at C3 to B3 carries far more at 1.8 to 3.5 kHz than celli do, and the desk puts the whole channel at the bass's place, so the channel reads over the liked stems in the mids while the low
+end is where it should be. (A guess tried on paper first and thrown away: holding each part's key note within an octave of the centre changes not one note, because they are already there.)
+What is owed: a demo on those two, the celli chair kept off the bass line in a company whose player for it is a tenor (the bass line to the basses' chair, the tenor left to the bed), against
+themselves, read by the judges and by `ear`. Nothing is changed until it reads; it would touch every company song written after it.
+Not this fault, though it was studied the same hour: Whaler's Dole's bass (the mead hall's war tuba) reads 9 dB UNDER the liked stems at 894 Hz, which is the thin middle of a band's bass, 8.6.
 
 *Tried and left off: a plucked bass played to be heard* (2026-11-22, morning: in a night's studies of Warcraft's walks,
 inns and camps the bass stood 7 to 12 dB thin in its middle wherever its line was plucked, never where it was bowed or
