@@ -1589,7 +1589,23 @@ Copper-Still Hollow 3.34, Long-Haul Bottle 3.34, Fish-Quay Slab 3.26, Twister Up
 held (Auction-Block Gavel 3.06 to Shotgun Hoedown 2.72) are the writer's next question, not the band's: four of them are the jug's, the hammond's and the cathedral's, which read level or over the
 house players in the auditions (4.11).
 
-*Of the two things a rewrite changes, the metre is the one that tells.* The twelve read fall in two sixes. Six were staged in 4/4 and only their telling changed (the theme as it was first told, not
+*Of the two things a rewrite changes, the metre is the whole of it.* All 34 of Knight Rock's rewrites were read by the small hours of 27 November, and they part as cleanly as a trial could ask:
+
+| | read | pass | the judges, in the middle |
+|---|---|---|---|
+| left as they were staged | 39 | 9 (23 in 100) | 2.95 |
+| written again, and already in 4/4 | 6 | 1 (17 in 100) | 2.84 |
+| written again, and 6/8 to 4/4 | 9 | 6 (67 in 100) | 3.26 |
+| written again, and 7/8 to 4/4 | 6 | 4 (67 in 100) | 3.20 |
+| written again, and 5/4 to 4/4 | 6 | 4 (67 in 100) | 3.13 |
+| written again, and 3/4 to 4/4 | 7 | 4 (57 in 100) | 3.09 |
+| every rewrite | 34 | 19 (56 in 100) | 3.15 |
+
+Telling the theme plainly and leaving the metre alone passes 1 song in 6, which is no better than leaving the song as it was (23 in 100, and the judges' noise is about 0.1). Moving it to four
+passes 18 of 28, and from every odd metre alike: six-eight, seven-eight, five-four and three-four all land between 57 and 67 in 100. So it is the metre, and the retelling's cost, real as it is on
+the writer's own count of how much of a tune comes back, does not show in what the judges hear over two minutes. The rule of 4.12 stands for both reasons, but the one that is paying is the metre.
+
+*What the first twelve looked like, before the rest were read:* the twelve read fall in two sixes. Six were staged in 4/4 and only their telling changed (the theme as it was first told, not
 turned): one passed, Runaway Gradient 3.50, and the five held read 2.72 to 3.06. Six were staged in 6/8 and are in 4/4 as well: five passed (3.17 to 3.35) and one held, Snake-Handler's Moan 2.89.
 They are not the same songs by the same bands, so it is not a trial of one thing; but it agrees with what the liked library says of itself (its seven Knight Rock songs in 6/8 read 2.79 to 2.93 where
 its 114 in four read 3.21), and the two together are why Knight Rock is written in four now. What the retelling cost is still real and still worth undoing: the writer's measure of how much of a tune
