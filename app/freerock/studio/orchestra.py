@@ -4522,6 +4522,17 @@ BUSIER = {"long": "two", "two": "walk", "walk": "two"}
 LAST_CHORUS = {"long": "two", "two": "walk", "walk": "oct"}
 # Who doubles a tune an octave above it rather than where the tune is: high woodwinds and bells.
 HIGH = ("flute", "piccolo", "whistle", "recorder", "ocarina", "pan flute", "glock", "celesta", "xylophone")
+# (2026-11-28, the instrument demo `instrument-1128`, docs/songwriting.md: six held songs whose tune was sung by a low instrument sitting low —
+# a trombone, horns, a cello — had it given to a bright one their style plays, in its singing range, and ALL SIX ROSE, +0.22 on SongEval's mean
+# on average, +0.23 memorability: the heavy band songs most, +0.34 and +0.36 on their own lead guitars, where the same tunes an octave up on
+# the same instruments had moved +0.04, and a second performance alone moves 0.01.) So the first theme is sung by a lead whose home is
+# SINGS_OVER or over, where the character has one; one that has none gives it to the first strong voice that is (Warcraft), and Knight Rock
+# only in a heavy song, from BRIGHT_HEAVY: a light Knight song keeps its leads as they are, so the lead guitar does not take every tune (11-23:
+# "too much of the same instrument sounds"; modelled, it carries 41 in 100 of Knight Rock's tunes this way, 13 before, and every one of the
+# heavy songs' is its own band's lead). A character with no singer that high anywhere (the titan, the dwarven hall) is sung as it was.
+SINGS_OVER = 67            # G4, the clarinet's and the lead guitar's home: the english horn (65) and all under it are low leads
+BRIGHT_HEAVY = 0.85        # the weight from which a Knight Rock character with no high lead has its tune sung by a strong voice
+BRIGHT_TUNE = True         # False: the leads take turns as they did before 2026-11-28
 # The orchestra's own low drums: what the war drums stand in for while they play.
 LOW = ("boom", "great drum", "taiko", "deep")
 # A drummer fills with what is not keeping time (2026-11-20, the study: Downpour Surge II's summit the same 19 bars, its groove
@@ -4608,8 +4619,16 @@ class Take:
         ch, rng, take = self.ch, self.rng, self.take
         turn = take % len(ch.leads)
         order = ch.leads[turn:] + ch.leads[:turn]
-        self.solo, self.mate, self.third = order[0], order[1 % len(order)], order[2 % len(order)]
         self.strong = ch.strong[take % len(ch.strong):] + ch.strong[:take % len(ch.strong)]
+        # The first theme is sung by a lead that sings over the band (BRIGHT_TUNE): no draw of the take's is spent on it, so every note is
+        # as it was and only who sings it changes; the low lead the turn came to first doubles it (octave_of) and may sing the second theme.
+        if BRIGHT_TUNE and INSTRUMENTS[order[0]].home < SINGS_OVER:
+            over = [name for name in order if INSTRUMENTS[name].home >= SINGS_OVER]
+            if not over and (ch.style != "knight" or ch.weight >= BRIGHT_HEAVY):
+                over = [name for name in self.strong if name in INSTRUMENTS and INSTRUMENTS[name].home >= SINGS_OVER]
+            if over:
+                order = (over[0],) + tuple(name for name in order if name != over[0])
+        self.solo, self.mate, self.third = order[0], order[1 % len(order)], order[2 % len(order)]
         home = INSTRUMENTS[self.solo].home
         pool = [name for name in dict.fromkeys(order[1:] + ch.under + self.strong + tuple(pad for pad in ch.pads if pad in SINGERS))
                 if name != self.solo]
