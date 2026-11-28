@@ -5,7 +5,9 @@ the liked library by the judges (tools/gate.py), and of the first twenty-eight n
 a band's. A band's, a company's or an act's song does not come into the player on the judges' word alone: the listener hears the ones that passed and
 says. This is the page they hear them on.)
 
-    cd app && uv run --no-sync python ../tools/gate_page.py gate-1126 [gate-1127 ...]
+    cd app && uv run --no-sync python ../tools/gate_page.py gate-1126 [gate-1127 ...] [--only]
+        (the labels given and every other gate label the log has, so that whichever copy of the gate writes it, the page is of all that
+        waits for the listener; --only: the labels given alone)
 
 For the labels given, a style at a time: the songs that passed and have been let into the player (tools/rest.py back writes them down); the songs that
 passed and are a band's, a company's or an act's and wait for the listener's word, band by band; each to listen to (its whole
@@ -20,6 +22,7 @@ import argparse
 import html
 import json
 import os
+import re
 import sys
 import time
 from collections import defaultdict
@@ -100,16 +103,43 @@ def before_of(var: Path, style: str, take: str) -> str:
     return "gate/" + out.name
 
 
+GATE_LABEL = re.compile(r"^gate-\d{4}$")         # the gate's own labels: gate-<month><day> (gate-1126); not the watch's, a demo's or a revision's
+
+
+def every_label(rows: list[dict], given: list[str]) -> list[str]:
+    """The labels given and every other gate label the log has, the one read most lately last: a song read under two counts by the newer.
+    (2026-11-28: the day's gate copy and the night's each wrote this page of their own labels only, one over the other, so what waited for the
+    listener's word went from 82 songs to 57 and back as they took turns.)"""
+    latest: dict[str, str] = {}
+    for row in rows:
+        label = str(row.get("label") or "")
+        if GATE_LABEL.match(label) or label in given:
+            latest[label] = max(latest.get(label, ""), str(row.get("at") or ""))
+    for label in given:
+        latest.setdefault(label, "")
+    return sorted(latest, key=lambda label: (latest[label], label))
+
+
 def songs(var: Path, rows: list[dict], labels: list[str]) -> list[dict]:
-    """Every song read under the labels as the gate has it (a song read under two labels counts by the later one given): its verdict, whose it is, what to
-    listen to, and the take of before where it was written again."""
+    """Every song read under the labels as the gate has it (a song read under two labels counts by its newer reading, and by the later label given where
+    the two were read at one time): its verdict, whose it is, what to listen to, and the take of before where it was written again."""
     by: dict[tuple[str, str], dict] = {}
+    when: dict[tuple[str, str], str] = {}
     for label in labels:
         kept, _ = gate.standing(rows, label)
+        read_at: dict[tuple[str, str], str] = {}
+        for row in kept:
+            if row.get("label") == label:
+                key = (row.get("style"), row.get("take"))
+                read_at[key] = max(read_at.get(key, ""), str(row.get("at") or ""))
         found = gate.check(kept, label)
         through = set(gate.passed(found))
         for each in found:
-            by[(each["style"], each["take"])] = dict(each, label=label, passes=each["take"] in through)
+            key = (each["style"], each["take"])
+            at = read_at.get(key, "")
+            if key in by and at < when[key]:
+                continue                               # (read more lately under another label: that reading counts)
+            by[key], when[key] = dict(each, label=label, passes=each["take"] in through), at
     out = []
     inside: dict[str, set[str]] = {}
     for (style, take), each in sorted(by.items()):
@@ -206,17 +236,19 @@ The house's own players' songs that passed come in by themselves at the next bui
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="The page of what the judges passed, for the listener.")
     parser.add_argument("labels", nargs="+", help="the labels the songs were read under (gate-1126)")
+    parser.add_argument("--only", action="store_true", help="only the labels given, not every gate label the log has")
     parser.add_argument("--var", default=str(VAR))
     parser.add_argument("--log", default="")
     parser.add_argument("--out", default="gate.html", help="the page's name under var/listen")
     args = parser.parse_args(argv)
     var = Path(args.var)
     rows = gate.rows_of(Path(args.log) if args.log else var / "passes" / "judged3.jsonl")
-    found = songs(var, rows, args.labels)
+    labels = list(args.labels) if args.only else every_label(rows, args.labels)
+    found = songs(var, rows, labels)
     out = var / "listen" / args.out
     out.parent.mkdir(parents=True, exist_ok=True)
     scratch = out.with_name(out.name + ".part")
-    scratch.write_text(page(found, args.labels), encoding="utf-8")
+    scratch.write_text(page(found, labels), encoding="utf-8")
     scratch.replace(out)
     through = [each for each in found if each["passes"]]
     print("%s: %d songs read, %d passed (%d let in; %d a band's, a company's or an act's waiting), %d of them with the take of before beside" % (

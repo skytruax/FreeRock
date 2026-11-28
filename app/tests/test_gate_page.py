@@ -84,3 +84,32 @@ def test_the_page_has_a_bands_passes_to_hear_the_houses_own_and_the_held_and_the
     assert rate == 48000 and len(audio) == 2400 and abs(float(np.abs(audio).max()) - 0.89) < 0.01    # its two channels together, as loud as a listening file
     written = before.stat().st_mtime_ns
     assert tool.main(["--var", str(tmp_path), "--log", str(log), "gate-x"]) == 0 and before.stat().st_mtime_ns == written      # not written twice
+
+
+def test_whichever_gate_writes_the_page_it_is_of_every_gate_label(tmp_path, capsys):
+    """(2026-11-28: the day's gate copy and the night's each wrote the page of their own labels only, one over the other: 82 songs waiting,
+    then 57, then 82 again.)"""
+    tool = _tool()
+    stage = tmp_path / "studio" / "knight"
+    for take, title in (("bone-mill-1", "Bone Mill"), ("salt-pan-1", "Salt Pan"), ("night-fair-1", "Night Fair"), ("crow-watch-1", "Crow Watch")):
+        _take(stage / take / "1", title, "jug", "4/4")
+    rows = [_row("watch", "old-%d/1" % n, 3.0 + n / 10, "/drive/studio/knight/old-%d/1" % n) for n in range(5)]
+    # (the readings' times are after the takes' own, which are written now: a reading older than its take is of recordings no longer there)
+    rows += [_row("gate-1126", "bone-mill-1/1", 3.4, str(stage / "bone-mill-1/1"), at="2099-11-26T23:00"),
+             _row("gate-1126", "night-fair-1/1", 2.0, str(stage / "night-fair-1/1"), at="2099-11-26T23:10"),
+             _row("gate-1128", "salt-pan-1/1", 3.3, str(stage / "salt-pan-1/1"), at="2099-11-28T01:00"),
+             _row("gate-1128", "night-fair-1/1", 3.2, str(stage / "night-fair-1/1"), at="2099-11-28T01:10"),     # read again, later: it counts
+             _row("revise-1128b", "salt-pan-1/1", 1.0, str(stage / "salt-pan-1/1"), at="2099-11-28T11:00"),    # (a revision's label: not the gate's)
+             # gate-1126 read something after all of gate-1128 (the day's copy goes round), so it is the label read most lately; Night Fair's
+             # newer reading is still gate-1128's, and that is the one that counts.
+             _row("gate-1126", "crow-watch-1/1", 3.35, str(stage / "crow-watch-1/1"), at="2099-11-29T11:30")]
+    log = tmp_path / "judged.jsonl"
+    log.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+    assert tool.every_label(tool.gate.rows_of(log), ["gate-1126"]) == ["gate-1128", "gate-1126"]
+    assert tool.main(["--var", str(tmp_path), "--log", str(log), "gate-1126"]) == 0                  # the day's copy, of its own label
+    assert "4 songs read, 4 passed (0 let in; 4 a band's, a company's or an act's waiting)" in capsys.readouterr().out
+    page = (tmp_path / "listen" / "gate.html").read_text(encoding="utf-8")
+    assert all(title in page for title in ("Bone Mill", "Salt Pan", "Night Fair", "Crow Watch"))
+    assert "the judges 3.20" in page and "the judges 2.00" not in page                              # Night Fair by its newer reading
+    assert tool.main(["--var", str(tmp_path), "--log", str(log), "gate-1126", "--only"]) == 0
+    assert "3 songs read, 2 passed" in capsys.readouterr().out                                          # (--only: as the page was before)

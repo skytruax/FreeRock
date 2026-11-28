@@ -3082,6 +3082,9 @@ that morning, none of them judged. So:
    Whose a song is, its sheet says (`gate.whose`): the morning brings back the house's own players' songs that passed (`gate.py check <label> --style <style> --passed --own`); a band's, a
    company's or an act's that passed (`--bands`) does not come in on the judges' word alone. `tools/gate_page.py <label> ...` writes the page the listener hears them on
    (`var/listen/gate.html`: band by band, each to play, the take of before beside a song that was written again, and the held ones by name), and they say which may come in.
+   The page is of EVERY gate label the log has, whatever labels it is given, a song counting by its newest reading (2026-11-28: the day's gate copy and the night's
+   each wrote it of their own labels only, one over the other, and what waited for the listener went from 82 songs to 57 and back; of all of them it is 111; `--only` for
+   the labels given alone).
    What they let in is written down (`studio/<style>/admitted.txt`, by `rest.py back`): `gate.py` and the page say so (`gate.let_in`), and it is not put to them again. A song
    that is in the player and should not be is rested by name (`rest.py these`) and leaves at the next build: on 2026-11-26 fifteen further takes of older families, made the
    night before, had come in with the morning's builds unread, an hour before every take the player did not have was rested; a song never heard comes first.
