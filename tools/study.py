@@ -68,6 +68,49 @@ def returns(by_bar: dict[int, set]) -> float | None:
     return sum(1 for phrase in phrases if counts[phrase] > 1) / len(phrases)
 
 
+# How much of the tune a listener knows again (2026-11-27, round sixteen's old songs). The count above was blind: Drowned Ruins read 10%,
+# "stated, then abandoned", while its choir sings the English horn's theme note for note at the arrival, its cello plays its answer again in
+# the valley and its summit is all of it lifted a minor third — told again on other voices, together with others, in another key, and so
+# never the same phrases of every lead voice at the same pitch; the judges give it memorability 3.01 where Warcraft's bar is 2.65. Counted by
+# each voice's phrase shape instead, over the gate's library (the whole takes the judges' watch read, 121 Knight Rock songs and 63 Warcraft),
+# and over the songs the retelling rule of 11-24 made before it was turned down (66 and 91, studio-demo/retold-audit-1126): with a quarter of
+# the liked under the floor either way, the old count caught 56 of the 66 retold Knight Rock songs and 35 of the 91 Warcraft, this one 63 and
+# all 91. So it hears a tune told another way each time at least as well as the old one did, and does not take a tune told again on other
+# voices for one that never came back. The lower quartiles of the liked: 68% for Knight Rock (the middle 72), 83 for Warcraft (the middle 88).
+# (The same night, later: over every take the judges have read whose sheet is staged, 231 Knight Rock and 268 Warcraft, this goes with SongEval's
+# memorability by r = +0.07 and +0.04, and the middle memorability under the floor and over it is 3.06 against 3.10, and 2.92 against 2.94. It
+# tells the fault it was made against, a tune told another way each time, and nothing more: it is no reason on its own to revise a song.
+# Split by the characters' `light`, the liked library's quartiles are alike (Knight Rock 70 light and 67 full, Warcraft 82 and 84): one floor.)
+HEARD_FLOOR = {"knight": 0.68, "warcraft": 0.83}
+SHAPE_NOTES = 3            # a phrase of fewer notes than this has no shape to be known again by
+
+
+def heard(lead: list, beats: float) -> float | None:
+    """The share of the tune's two-bar spans in which some lead voice plays a phrase whose shape — where its notes fall in the two bars
+    and how far each lies from its first — is played in another span too, by any lead voice at any pitch: the tune told again as a
+    listener knows it, on another instrument, an octave or a lift away, or under a second line. The same phrase in two voices at once
+    is not a return. A phrase of fewer than SHAPE_NOTES notes is left out of both sides of the share, and a span where no voice has one
+    is not counted. None for a tune of fewer than two such spans."""
+    where: dict[tuple, set] = collections.defaultdict(set)
+    spans_shapes: dict[int, list] = collections.defaultdict(list)
+    for voice in lead:
+        spans: dict[int, set] = collections.defaultdict(set)
+        for note in voice.notes:
+            at = round(note.start * 12.0) / 12.0
+            span = int((at + 1e-6) // (2 * beats))
+            spans[span].add((round((at - span * 2 * beats) * 12), note.pitch))
+        for span, notes in spans.items():
+            if len(notes) < SHAPE_NOTES:
+                continue
+            notes = sorted(notes)
+            shape = tuple((onset, pitch - notes[0][1]) for onset, pitch in notes)
+            where[shape].add(span)
+            spans_shapes[span].append(shape)
+    if len(spans_shapes) < 2:
+        return None
+    return sum(1 for span, shapes in spans_shapes.items() if any(where[shape] - {span} for shape in shapes)) / len(spans_shapes)
+
+
 def written(style: str, name: str, take: int) -> dict:
     """From the take's music sheet: instruments at once in each part, the tune's repeated bars, the spread of registers.
 
@@ -128,6 +171,7 @@ def written(style: str, name: str, take: int) -> dict:
         seen.add(signature)
     out["tune_repeats"] = sum(lead_bars) / max(len(lead_bars), 1)
     out["tune_returns"] = returns(by_bar)
+    out["tune_heard"] = heard([voice for voice, _ in voices.get("lead", [])], beats)
     return out
 
 
@@ -161,10 +205,18 @@ def main(argv: list[str]) -> int:
         if notes:
             print("%-34s at once: %s | spread: %s | tune bars heard before: %.0f%%" % (
                 "", " ".join("%s %d" % (p[:4], n) for p, n in notes["at_once"]), " ".join("%d" % s for _, s in notes["spread"]), 100 * notes["tune_repeats"]))
+            # (2026-11-27: UNDER is said of the tune heard again, by shape; the count of phrases played again note for note, every lead voice
+            # together, is still printed beside it with its own quartile, and marks nothing: it was blind to a tune told again on other voices.)
+            known, floor = notes.get("tune_heard"), HEARD_FLOOR.get(style)
+            if known is not None:
+                print("%-34s the tune heard again (any voice, any pitch): %.0f%%%s" % ("", 100 * known, "" if floor is None else (
+                    "  UNDER the liked library's lower quartile (%.0f%%): a tune told another way each time, or one told once; it predicts nothing of the"
+                    " judges' memorability, so look by ear and at their reading before any revision" % (100 * floor)
+                    if known < floor else "  (the liked library's lower quartile %.0f%%)" % (100 * floor))))
             back, floor = notes.get("tune_returns"), RETURNS_FLOOR.get(style)
             if back is not None:
-                print("%-34s the tune's phrases that come back: %.0f%%%s" % ("", 100 * back, "" if floor is None else (
-                    "  UNDER the liked library's lower quartile (%.0f%%): the tune hardly returns" % (100 * floor) if back < floor else "  (the liked library's lower quartile %.0f%%)" % (100 * floor))))
+                print("%-34s the tune's phrases played again note for note, every lead voice together: %.0f%%%s" % ("", 100 * back, "" if floor is None else
+                    "  (the liked library's lower quartile %.0f%%)" % (100 * floor)))
         if off:
             print("%-34s against the liked stems (mids dB, top dB): %s" % ("", "  ".join("%s %+.1f %+.1f" % (c, m, t) for c, (m, t) in off.items())))
         if unheld:
