@@ -1429,6 +1429,21 @@ def test_a_wind_player_breathes():
     assert "bagpipe" not in orchestra.BREATH
 
 
+def test_a_wind_player_takes_no_breath_after_the_music_is_over():
+    # (2026-11-28: lantern walk's harmonica held its last note past the take's end, and the breathing took it up again AT the end,
+    # beat 736 of 736, whenever the harmonica sang the tune: takes 3 and 6 as the house wrote them, every one where it is the singer since.)
+    index, character = next((i, c) for i, c in enumerate(orchestra.CHARACTERS) if c.name == "lantern walk")
+    for number in range(1, 7):
+        take = orchestra.Take(orchestra.family(character, 40 + index, "f", "F"), number)
+        for parts in take.voices.values():
+            for voice in parts.values():
+                assert all(note.start < take.total - 1e-6 for note in voice.notes), (number, voice.instrument)
+        harmonica = take.voices["lead"].get("harmonica")
+        if harmonica and harmonica.notes and take.solo == "harmonica":
+            last = max(harmonica.notes, key=lambda note: note.start)
+            assert last.start + last.length > take.total                 # its last chord still rings on, in the one breath
+
+
 def test_a_bands_lead_guitar_takes_a_solo_at_the_summit():
     # ("i want fucking guitar solos in my knight rock, study eddie vedder and pearl jam"; of the first one, runs and bends
     # under a wah from end to end: "all wammy no chill", "thats not a guitar solo thats a solo effect track", 2026-11-18.)

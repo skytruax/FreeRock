@@ -931,6 +931,20 @@ Bitter Dirge's whistle and Soot Toll's mandolin to the fiddle, the choir of Bone
 Keg Toast's horns to a trumpet and Cinder Ritual's bass clarinet to a clarinet (their families' high voices), and two liked songs' tunes,
 Sentence March's english horn and Limping Shortcut's alto sax, to their bands' own lead guitars.
 
+*Nor by a mandolin or a whistle in Knight Rock* (`WEAK_TUNE`, 28 November, noon). Where a Knight Rock take has another singer over G4 —
+among its leads, or else its first strong voice that sings over and is not one of them — the mandolin and the whistle sing neither theme:
+they leave the leads' order, and the second theme is not given to one of them either, unless nobody else can sing it (a character whose
+only voices are a whistle and a fiddle, as Bitter Dirge's: the swap gave the fiddle both themes, but the writer keeps two singers, so the
+fiddle has the first theme, the one heard most, and the whistle the second). Where the character has them besides (a strong voice at the
+moments, a pad) they still play, and a character with no other singer that high is sung as it was. Why: the day's swaps gave Bitter
+Dirge's whistle, D6 in the middle, to the fiddle an octave down, and it rose +0.30 on SongEval's mean and +0.37 on its memorability; and
+Soot Toll's mandolin to the fiddle at its own pitch, +0.19 and +0.20, the instrument alone. On paper it moves the first theme in 190 of
+Knight Rock's 3888 family-takes over fourteen characters (five had the weak voice as their only lead, so it sang every take of theirs),
+and one of the ten new songs of the night of 28-29, Cutpurse Lane, whose whistle's 268 notes go to its fiddle. Warcraft keeps its whistle,
+whose tunes pass 6 of 6. (Writing it turned up an older fault: a wind note held past the take's end, its last chord left ringing, was
+taken up again by the breathing AT the end — lantern walk's harmonica at beat 736 of 736, in every take where the harmonica sings the
+tune. The breath that reaches the end is the last now: `breathe`.)
+
 **Registers.** Each instrument has a range and a home (`orchestra.INSTRUMENTS`): flute 60–96 round
 79, violins 55–96 round 74, celli 36–72 round 50, basses 28–52 round 38, horns 41–74 round 58,
 trumpet 55–82 round 70, tuba 28–55 round 40. `Take.sing` places a line round the home and moves it

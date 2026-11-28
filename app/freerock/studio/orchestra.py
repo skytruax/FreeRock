@@ -4533,6 +4533,17 @@ HIGH = ("flute", "piccolo", "whistle", "recorder", "ocarina", "pan flute", "gloc
 SINGS_OVER = 67            # G4, the clarinet's and the lead guitar's home: the english horn (65) and all under it are low leads
 BRIGHT_HEAVY = 0.85        # the weight from which a Knight Rock character with no high lead has its tune sung by a strong voice
 BRIGHT_TUNE = True         # False: the leads take turns as they did before 2026-11-28
+# (2026-11-28, noon: the day's swaps `revise-1128b`, docs/songwriting.md "Who carries the tune".) In Knight Rock a tune on the mandolin or the
+# whistle reads low however high it sits: over every song the judges have read the mandolin's pass 1 of 8 where the fiddle's pass 18 of 20,
+# and inside a song, given to the fiddle, the tune rose — Bitter Dirge's whistle +0.30 on SongEval's mean and +0.37 on its memorability,
+# Soot Toll's mandolin +0.19 and +0.20, where a second performance of one sheet moves 0.01. So in Knight Rock they sing neither theme where
+# the take has another singer over G4 — among its leads, or else its first strong voice that sings over and is not one of them: they leave
+# the leads' order, and the second theme (`other`) is not given to one of them either, unless nobody else can sing it (a character whose
+# only voices are a whistle and a fiddle: the swap gave the fiddle both themes; the writer keeps two singers, and the fiddle has the first,
+# the one heard most). Where the character has them besides (a strong voice at the moments, a pad) they still play. A character with no
+# other singer that high is sung as it was. Warcraft keeps them (its whistle's tunes pass 6 of 6).
+WEAK_SINGERS = {"knight": ("mandolin", "front mandolin", "whistle")}
+WEAK_TUNE = True           # False: a mandolin or a whistle sings a Knight Rock theme when its turn comes, as before 2026-11-28 noon
 # The orchestra's own low drums: what the war drums stand in for while they play.
 LOW = ("boom", "great drum", "taiko", "deep")
 # A drummer fills with what is not keeping time (2026-11-20, the study: Downpour Surge II's summit the same 19 bars, its groove
@@ -4628,10 +4639,21 @@ class Take:
                 over = [name for name in self.strong if name in INSTRUMENTS and INSTRUMENTS[name].home >= SINGS_OVER]
             if over:
                 order = (over[0],) + tuple(name for name in order if name != over[0])
+        # Nor is it sung by a voice that carries a tune badly in this style (WEAK_TUNE), where another sings over the band.
+        weak = WEAK_SINGERS.get(ch.style, ()) if WEAK_TUNE else ()
+        unsung: tuple[str, ...] = ()            # the weak voices taken out of this take's order (none where none was in it)
+        if any(name in weak for name in order):
+            kept = tuple(name for name in order if name not in weak)
+            if not any(INSTRUMENTS[name].home >= SINGS_OVER for name in kept):
+                kept = tuple(name for name in self.strong if name in INSTRUMENTS and name not in weak
+                             and INSTRUMENTS[name].home >= SINGS_OVER)[:1] + kept
+            if any(INSTRUMENTS[name].home >= SINGS_OVER for name in kept):
+                order, unsung = kept, tuple(name for name in order if name in weak)     # (else no other singer is that high: as it was)
         self.solo, self.mate, self.third = order[0], order[1 % len(order)], order[2 % len(order)]
         home = INSTRUMENTS[self.solo].home
         pool = [name for name in dict.fromkeys(order[1:] + ch.under + self.strong + tuple(pad for pad in ch.pads if pad in SINGERS))
                 if name != self.solo]
+        pool = [name for name in pool if name not in unsung] or pool or list(unsung)     # (the second theme has a singer of its own)
         far = [name for name in pool if abs(INSTRUMENTS[name].home - home) >= 5] or pool
         self.other = far[take % len(far)] if far else self.solo
         # In the valley a theme is sung by someone who has not stated it.
@@ -6843,9 +6865,14 @@ class Take:
                     at = note.start
                     while end - at > 0.01:
                         upto = min((math.floor(at / span + 1e-6) + 1) * span, end)
-                        last = end - upto <= 0.01
-                        length = upto - at if last else max(upto - at - 0.5, 0.5)
+                        # (2026-11-28: a note held past the take's end, its last chord left ringing, was taken up again AT the end, a
+                        # breath begun after the music is over: lantern walk's harmonica, beat 736 of 736, whenever it sang the tune.
+                        # The breath that reaches the end is the last, held as the note was.)
+                        last = end - upto <= 0.01 or upto >= self.total - 1e-6
+                        length = end - at if last else max(upto - at - 0.5, 0.5)
                         out.append(Note(at, length, note.pitch, note.loud))
+                        if last:
+                            break
                         at = upto
                 voice.notes = sorted(out, key=lambda note: (note.start, note.pitch))
 
