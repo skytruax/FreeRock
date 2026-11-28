@@ -152,3 +152,29 @@ def test_a_performed_revision_keeps_the_take_of_before_and_can_be_put_back(var, 
     assert not list(folder.glob("*.back"))
     with pytest.raises(FileNotFoundError):
         tool.main(["knight/no-such-song-1/1", "--back"])
+
+
+def test_a_take_put_back_is_newer_than_any_reading_of_its_revision(var, tmp_path, monkeypatch):
+    """(2026-11-28: the files put back keep their times, and the gate takes a reading as of a take while its track.json is older than the
+    reading: a gate that read the revision as it went round would have had that reading stand for the take of before.)"""
+    import datetime
+    import os
+    import time
+    spec = importlib.util.spec_from_file_location("gate", REPO / "tools" / "gate.py")
+    gate = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(gate)
+    folder, tool = _staged(var), _tool()
+    long_ago = time.time() - 3 * 86400
+    os.utime(folder / "track.json", (long_ago, long_ago))                   # the take of before was performed days ago
+    recipe = tmp_path / "softer.py"
+    recipe.write_text(RECIPE, encoding="utf-8")
+    monkeypatch.setattr(tool.sheets, "perform", lambda sheet: pytest.fail("performed at once"))
+    assert tool.main([TRACK, "--recipe", str(recipe), "--later"]) == 0
+    kept = var / "studio-demo" / "before-revise" / TRACK
+    assert abs((kept / "track.json").stat().st_mtime - long_ago) < 1        # kept as it was, its time with it
+    revision_read = {"at": (datetime.datetime.now() - datetime.timedelta(minutes=10)).strftime("%Y-%m-%dT%H:%M"), "folder": str(folder)}
+    os.utime(folder / "track.json", (long_ago, long_ago))
+    assert not gate.performed_since(revision_read)                           # (what the gate would have believed with the old times)
+    assert tool.main([TRACK, "--back"]) == 0
+    assert gate.performed_since(revision_read)                               # the take put back is read again, not given the revision's reading
+    assert abs((kept / "track.json").stat().st_mtime - long_ago) < 1

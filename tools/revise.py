@@ -17,6 +17,7 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import os
 import shutil
 import sys
 from pathlib import Path
@@ -89,6 +90,11 @@ def main(argv: list[str] | None = None) -> int:
         for path in kept.iterdir():
             shutil.copy2(path, folder / (path.name + ".back"))
             (folder / (path.name + ".back")).replace(folder / path.name)
+        # (28 November: the files put back keep the times they had, and tools/gate.py takes a reading as of a take while the take's track.json
+        # is older than the reading, so a reading of the revision made under a gate's label before it was put back — the gate reads what is
+        # performed again while it goes round — would stand for the take of before, which never had it. The take as it stands now is newer
+        # than any reading of either, and the gate reads it again.)
+        os.utime(folder / "track.json")
         print("%s: the take of before its revision is back" % args.track)
         return 0
     if not args.recipe:

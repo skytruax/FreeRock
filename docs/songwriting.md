@@ -916,6 +916,21 @@ question, a change of the characters, not of the writer. Pads, plucks, figures, 
 Sounds from its seed (`muse.CHOICES`): six horns twice as often as one, and in one piece of three
 the harp's part is a piano's.
 
+*Who carries the tune, over every song the judges have read* (28 November; the busiest lead voice's player; each take once, by its
+latest reading, and none whose sheet was revised after it was read; the bands and the characters go with the instrument, so across songs
+this is a pointer, where the instrument demo is a test inside one song). Warcraft: the fiddle passes 10 of 10, the flute 13 of 13, the
+whistle 6 of 6, the piano 8 of 8, the trumpet 13 of 14, the horns 28 of 31, the violins 34 of 41, the viola 16 of 20, the cello 15 of 20
+— and the CHOIR 9 of 17 (mean 2.59), the brass section 7 of 12, the slow violins 2 of 8, the euphonium 3 of 6: a sung "ah" carries a
+tune badly, and a low voice does not of itself (the horns, the viola and the cello, which carry most of the never-made orchestra
+families' tunes on paper, pass three in four and more). Knight Rock: the lead guitar 52 of 67, the fiddle 18 of 20, the viola 5 of 6 —
+and the horns 2 of 11, the english horn 2 of 8, the trombone 1 of 4, and a bright one as well, the MANDOLIN 1 of 8 (the whistle 1 of 3,
+too few to say): so in Knight Rock it is not only how high the tune sits. (The bands' own leads, the fuzz 1 of 4 and the sweet lead 3 of
+8, read low across songs because their bands do; inside a song they lifted the tune +0.34 and +0.36.) A first count at 09:45 took every
+reading, revised sheets' too, and said the whistle 1 of 7 and the choir 9 of 19. The day's swaps test it inside songs (`revise-1128b`):
+Bitter Dirge's whistle and Soot Toll's mandolin to the fiddle, the choir of Bone Rite's and Smoking Crown's second takes to the violins,
+Keg Toast's horns to a trumpet and Cinder Ritual's bass clarinet to a clarinet (their families' high voices), and two liked songs' tunes,
+Sentence March's english horn and Limping Shortcut's alto sax, to their bands' own lead guitars.
+
 **Registers.** Each instrument has a range and a home (`orchestra.INSTRUMENTS`): flute 60–96 round
 79, violins 55–96 round 74, celli 36–72 round 50, basses 28–52 round 38, horns 41–74 round 58,
 trumpet 55–82 round 70, tuba 28–55 round 40. `Take.sing` places a line round the home and moves it
